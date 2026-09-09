@@ -1,70 +1,45 @@
-import { Tabs, Redirect } from "expo-router";
 import React from "react";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "../../context/AuthContext";
+import { useColorScheme } from "nativewind";
+import { THEME } from "@/lib/theme";
 
-export default function TabLayout() {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Redirect href="/login" />;
-  }
+export default function TabsLayout() {
+  const { colorScheme } = useColorScheme();
+  const resolved = colorScheme ?? "light";
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#1447E6",
-        tabBarInactiveTintColor: "#8e8e93",
-        tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: "#f2f2f7",
-          height: 64,
-          paddingBottom: 10,
-          paddingTop: 8,
-          backgroundColor: "#ffffff",
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "bold",
-        },
         headerShown: false,
+        tabBarActiveTintColor: THEME[resolved].primary,
+        tabBarInactiveTintColor: THEME[resolved].mutedForeground,
+        tabBarStyle: { backgroundColor: THEME[resolved].background, borderTopColor: THEME[resolved].border },
       }}
     >
       <Tabs.Screen
         name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "home" : "home-outline"} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="memories"
-        options={{
-          title: "Memories",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "folder" : "folder-outline"} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="capture"
-        options={{
-          title: "",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name="add-circle" size={32} color="#1447E6" style={{ marginTop: 2 }} />
-          ),
-        }}
+        options={{ title: "Memories", tabBarIcon: ({ color, size }) => <Ionicons name="albums-outline" size={size} color={color} /> }}
       />
       <Tabs.Screen
         name="ask"
-        options={{
-          title: "Ask",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "sparkles" : "sparkles-outline"} size={22} color={color} />
-          ),
-        }}
+        options={{ title: "Ask", tabBarIcon: ({ color, size }) => <Ionicons name="sparkles-outline" size={size} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{ title: "Search", tabBarIcon: ({ color, size }) => <Ionicons name="search-outline" size={size} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="capture"
+        options={{ title: "Capture", tabBarIcon: ({ color, size }) => <Ionicons name="add-circle-outline" size={size} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="library"
+        options={{ title: "Library", tabBarIcon: ({ color, size }) => <Ionicons name="folder-outline" size={size} color={color} /> }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{ title: "Settings", tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} /> }}
       />
     </Tabs>
   );
