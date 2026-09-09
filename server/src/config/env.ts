@@ -19,6 +19,11 @@ const envSchema = z
     // SMTP_FROM_ADDRESS: z.string().email().optional(),
     FRONTEND_URL: z.string().url().min(1, "FRONTEND_URL is required"),
     SERVER_URL: z.string().url().min(1, "SERVER_URL is required"),
+    // Custom URL scheme the mobile app registers (app.json's "scheme") — the
+    // OAuth callback redirects here instead of FRONTEND_URL when the request
+    // came from mobile, since a native app has no cookie jar to receive
+    // Set-Cookie the way a same-origin web app does.
+    MOBILE_SCHEME: z.string().default("memora"),
 
     JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
     JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),

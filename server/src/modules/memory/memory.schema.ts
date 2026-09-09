@@ -38,7 +38,7 @@ export const createMemorySchema = z.object({
   attachments: z.array(attachmentInputSchema).max(10).optional(),
   // How this memory was originally captured — defaults to "manual" (web
   // dashboard) in the service layer when omitted.
-  captureMethod: z.enum(["server", "extension", "manual"]).optional(),
+  captureMethod: z.enum(["server", "extension", "manual", "mobile"]).optional(),
 });
 
 export const updateMemorySchema = z.object({
