@@ -69,3 +69,25 @@ Vite + React, Chrome Manifest V3. Three entry points: `src/popup/` (capture UI r
 
 ## Mobile (`mobile/`)
 Expo + `expo-router` (file-based routing, tabs layout under `app/(tabs)/`). Global state lives in `context/MemoryContext.tsx`. `pnpm start` / `pnpm android` / `pnpm ios` / `pnpm web`.
+
+
+
+
+
+<!-- 
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH
+emulator -avd memora -no-snapshot -gpu host -no-boot-anim -->
+
+<!-- 
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$ANDROID_HOME/platform-tools:$PATH
+adb devices                      # confirm it shows "emulator-5554  device"
+adb reverse tcp:4000 tcp:4000
+adb reverse tcp:8081 tcp:8081 -->
+
+
+<!-- npx expo start --dev-client -->
+
+
+<!-- adb shell am start -n com.memora.app/.MainActivity -->
