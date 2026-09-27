@@ -11,5 +11,6 @@ router.get("/", authenticate, requireAdmin, validateListUsers, UsersController.l
 router.get("/:id", authenticate, requireAdmin, UsersController.getUser);
 router.patch("/:id/roles", authenticate, requireAdmin, validateUpdateUserRoles, UsersController.updateRoles);
 router.patch("/:id/status", authenticate, requireAdmin, validateUpdateUserStatus, UsersController.updateStatus);
+router.delete("/:id", authenticate, requireAdmin, UsersController.deleteUser);
 
 export default router;

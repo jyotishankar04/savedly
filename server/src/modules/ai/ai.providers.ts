@@ -29,6 +29,7 @@ export interface UsageContext {
 // because its wire format (tool-calling, message shape) isn't OpenAI-
 // compatible at all.
 const GOOGLE_OPENAI_COMPAT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
+export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
 export interface ProviderCredentialInput {
   provider: AiCredentialProvider;
@@ -88,10 +89,45 @@ function platformEmbeddingsCredential(): ProviderCredentialInput | null {
 function openAiCompatBaseUrl(credential: ProviderCredentialInput): string | undefined {
   if (credential.provider === AiCredentialProvider.GOOGLE) return GOOGLE_OPENAI_COMPAT_BASE_URL;
   if (credential.provider === AiCredentialProvider.CUSTOM) return credential.baseUrl ?? undefined;
+  if (credential.provider === AiCredentialProvider.OPENROUTER) return OPENROUTER_BASE_URL;
   return undefined;
 }
 
-function buildChatModel(credential: ProviderCredentialInput, temperature?: number): BaseChatModel {
+type ModelTier = "fast" | "reasoning" | "vision";
+
+/** Model IDs can carry a vendor prefix, e.g. OpenRouter's "openai/gpt-5-nano". */
+const bareModelId = (model: string) => model.toLowerCase().replace(/^.*\//, "");
+
+/** OpenAI's reasoning models: the o-series and the GPT-5 family. */
+const isOpenAiReasoningModel = (model: string) => /^(o\d|gpt-5)/.test(bareModelId(model));
+
+// These reject any temperature except the default with a 400 ("Only the
+// default (1) value is supported") — OpenAI's reasoning models, and Claude
+// from Opus 4.7 on. Sending one crashed every Fast-role step of ingestion.
+function rejectsCustomTemperature(model: string): boolean {
+  const id = bareModelId(model);
+  return isOpenAiReasoningModel(id) || /^claude-(opus-4-[7-9]|opus-[5-9]|sonnet-[5-9]|fable|mythos)/.test(id);
+}
+
+/**
+ * Per-tier call settings, used by live calls AND the Settings test, so a role
+ * that passes its test is known to work in ingestion with these exact options.
+ * Fast/vision jobs are short classification and description tasks: they get a
+ * low temperature where the model allows one, and OpenAI reasoning models get
+ * low reasoning effort (at the default, gpt-5-nano spent ~3,000 hidden tokens
+ * per screenshot, making saves slow and costly).
+ */
+function tierOptions(credential: ProviderCredentialInput, tier: ModelTier): { temperature?: number; reasoningEffort?: "low" } {
+  const quickJob = tier === "fast" || tier === "vision";
+  return {
+    temperature: tier === "fast" && !rejectsCustomTemperature(credential.model) ? 0.2 : undefined,
+    reasoningEffort:
+      quickJob && credential.provider === AiCredentialProvider.OPENAI && isOpenAiReasoningModel(credential.model) ? "low" : undefined,
+  };
+}
+
+function buildChatModel(credential: ProviderCredentialInput, tier: ModelTier): BaseChatModel {
+  const { temperature, reasoningEffort } = tierOptions(credential, tier);
   switch (credential.provider) {
     case AiCredentialProvider.GROQ:
       return new ChatGroq({ apiKey: credential.apiKey, model: credential.model, temperature });
@@ -100,12 +136,14 @@ function buildChatModel(credential: ProviderCredentialInput, temperature?: numbe
     case AiCredentialProvider.OPENAI:
     case AiCredentialProvider.GOOGLE:
     case AiCredentialProvider.CUSTOM:
+    case AiCredentialProvider.OPENROUTER:
     default: {
       const baseURL = openAiCompatBaseUrl(credential);
       return new ChatOpenAI({
         apiKey: credential.apiKey,
         model: credential.model,
         temperature,
+        ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
         ...(baseURL ? { configuration: { baseURL } } : {}),
       });
     }
@@ -134,7 +172,7 @@ function buildEmbeddings(credential: ProviderCredentialInput): EmbeddingsInterfa
 export async function getChatModel(userId: string, tier: "fast" | "reasoning"): Promise<BaseChatModel | null> {
   const credential = await resolveCredential(userId, tier === "fast" ? AiRole.FAST : AiRole.REASONING);
   if (!credential) return null;
-  return buildChatModel(credential, tier === "fast" ? 0.2 : undefined);
+  return buildChatModel(credential, tier);
 }
 
 export interface ResolvedEmbeddings {
@@ -165,7 +203,7 @@ export async function getEmbeddings(userId: string): Promise<ResolvedEmbeddings 
 export async function getVisionModels(userId: string): Promise<BaseChatModel[]> {
   const credential = await resolveCredential(userId, AiRole.VISION);
   if (!credential) return [];
-  return [buildChatModel(credential)];
+  return [buildChatModel(credential, "vision")];
 }
 
 // Previously two different *providers* (Groq + OpenAI) so one outage
@@ -228,7 +266,7 @@ export async function testRoleCredential(input: ProviderCredentialInput, role: A
       return { ok: true, dimensions: vector.length };
     }
 
-    const model = buildChatModel(input);
+    const model = buildChatModel(input, role === AiRole.FAST ? "fast" : role === AiRole.VISION ? "vision" : "reasoning");
     await model.invoke([new HumanMessage("Reply with the single word: ok")], { timeout: 15000 });
     return { ok: true };
   } catch (err) {

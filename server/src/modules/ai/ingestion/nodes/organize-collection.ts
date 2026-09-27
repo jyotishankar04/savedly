@@ -25,17 +25,17 @@ Category: {resourceCategory}
 The user's existing collections:
 {existingCollections}
 
-Decide how to organize this memory:
-- If one of the existing collections is clearly a good fit, respond with action "existing" and its exact name (must match one of the names above exactly).
-- If none fit well but this memory represents a distinct, likely-recurring theme worth its own collection, respond with action "new" and propose a short name (2-4 words), a single emoji as the icon, and a one-sentence description.
-- If this is too generic or one-off to deserve categorization (e.g. a passing reminder, a single unrelated link), respond with action "none".
+Judge by the memory's subject matter (what it is about), not by its kind: the "Category" above says what type of content it is (a task, a note, a link), which says nothing about which topic collection it belongs in.
 
-Be conservative about proposing a new collection — only do it for a genuinely distinct, likely-recurring topic, not every memory.
+Decide how to organize this memory, in this order:
+1. If one of the existing collections is genuinely related to this memory's topic, respond with action "existing" and its exact name (must match one of the names above exactly). Prefer this whenever the fit is real.
+2. If none of the existing collections is related, do NOT force the memory into an unrelated one just because a collection exists (e.g. a beekeeping article does not belong in a generic "Tasks" or "Ideas" collection). Instead respond with action "new" and propose a short name (2-4 words), a single emoji as the icon, and a one-sentence description. Keep the name broad enough that future memories on the topic will fit (e.g. "Recipes", not "Sourdough starter tips").
+3. Only if the memory is truly one-off or too generic to group under any topic (e.g. a passing reminder, a lone unrelated link), respond with action "none".
 
 Respond as strict JSON: {{"action": "existing"|"new"|"none", "collectionName": "...", "icon": "...", "description": "..."}}`,
 );
 
-/** Conservative by design — most memories should come back "none" rather than spawning a new collection per save. */
+/** Uses an existing collection only when it is genuinely related; otherwise creates a new one. "none" is reserved for true one-offs. */
 export async function organizeCollection(state: IngestionStateType): Promise<IngestionUpdate> {
   const model = await getChatModel(state.userId, "fast");
   if (!model) {

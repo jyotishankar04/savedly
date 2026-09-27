@@ -1,4 +1,5 @@
 import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
+import { mergeConfigs, type RunnableConfig } from "@langchain/core/runnables";
 import type { ChatGeneration, LLMResult } from "@langchain/core/outputs";
 import { db } from "../../db";
 import { aiUsageLogs } from "../../db/schema";
@@ -91,4 +92,15 @@ export function createUsageCallback(params: UsageCallbackParams): BaseCallbackHa
       });
     },
   }) as unknown as BaseCallbackHandler;
+}
+
+/**
+ * Config for a model call made inside a graph node: keeps the node's own
+ * config (and with it the callbacks LangGraph's streamEvents and Langfuse
+ * rely on) and adds the usage logger. Passing `{ callbacks: [...] }` alone
+ * *replaces* the inherited callbacks, which silently stopped Ask from
+ * streaming its answer to the browser.
+ */
+export function withUsage(config: RunnableConfig | undefined, params: UsageCallbackParams, extra?: RunnableConfig): RunnableConfig {
+  return mergeConfigs(config, extra, { callbacks: [createUsageCallback(params)] });
 }

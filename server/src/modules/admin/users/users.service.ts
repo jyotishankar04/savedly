@@ -5,6 +5,8 @@ import { EmailCategory, EmailTemplateKey, PlanAssignmentStatus } from "../../../
 import { AppError } from "../../../shared/errors/app-error";
 import { logAdminAction } from "../../../shared/utils/audit-log";
 import { logger } from "../../../shared/utils/logger";
+import { env } from "../../../config/env";
+import { hardDeleteAccount } from "../../account/account.service";
 import { sendEmail } from "../../email";
 import { userStatusChangedEmailTemplate } from "../../../shared/mailer/templates";
 import type { ListUsersQuery, UpdateUserRolesInput, UpdateUserStatusInput } from "./users.schema";
@@ -272,4 +274,37 @@ export async function updateUserStatus(
   }
 
   return after;
+}
+
+/**
+ * Immediate, irreversible account wipe — a dev convenience for clearing out
+ * test accounts, not something to expose against real users. Refused
+ * outright in production (rather than merely hidden in the UI) so it can't
+ * be reached by calling the endpoint directly. Reuses hardDeleteAccount, so
+ * sessions and vector-store entries are cleaned up the same way as a real
+ * account deletion.
+ */
+export async function deleteUserForDev(userId: string, adminUserId: string, ipAddress?: string) {
+  if (env.NODE_ENV === "production") {
+    throw new AppError("Deleting users from the admin panel is disabled in production", 403, "FORBIDDEN");
+  }
+  if (userId === adminUserId) {
+    throw new AppError("You can't delete your own account from here", 400, "BAD_REQUEST");
+  }
+
+  const [target] = await db.select({ id: users.id, email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!target) {
+    throw new AppError("User not found", 404, "NOT_FOUND");
+  }
+
+  await hardDeleteAccount(userId);
+
+  await logAdminAction({
+    adminUserId,
+    action: "user.deleted",
+    targetType: "user",
+    targetId: userId,
+    beforeValue: { email: target.email },
+    ipAddress,
+  });
 }

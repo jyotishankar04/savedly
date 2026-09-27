@@ -52,7 +52,7 @@ export type ThreadMessagePart =
       toolName: string;
       toolCallId: string;
       state: "output-available";
-      output: { kwargs: { content: string } };
+      output: { kwargs: { content: string; artifact?: unknown } };
     };
 
 export interface ThreadMessage {
@@ -114,7 +114,11 @@ export async function getThreadMessages(userId: string, threadId: string): Promi
           toolCallId: toolCall.id,
           state: "output-available",
           output: {
-            kwargs: { content: typeof toolMessage.content === "string" ? toolMessage.content : JSON.stringify(toolMessage.content) },
+            kwargs: {
+              content: typeof toolMessage.content === "string" ? toolMessage.content : JSON.stringify(toolMessage.content),
+              // Same shape the live stream carries: tools like get_platform_help put UI data (button links) here.
+              ...(toolMessage.artifact !== undefined ? { artifact: toolMessage.artifact } : {}),
+            },
           },
         });
       }

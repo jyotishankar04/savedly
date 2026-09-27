@@ -16,6 +16,7 @@ router.get("/", authenticate, validateListMemories, requireVaultUnlockedForQuery
 router.post("/", authenticate, validateCreateMemory, MemoryController.create);
 // Must come before "/:id" — otherwise Express matches these as :id="export"/"graph".
 router.get("/export", authenticate, MemoryController.exportAll);
+router.get("/export/okf", authenticate, MemoryController.exportOkf);
 router.get("/graph", authenticate, MemoryController.graph);
 router.get("/:id", authenticate, MemoryController.get);
 router.patch("/:id", authenticate, validateUpdateMemory, requireUnlockToUnvault, MemoryController.update);

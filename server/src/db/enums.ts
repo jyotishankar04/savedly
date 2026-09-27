@@ -223,6 +223,8 @@ export enum AiCredentialProvider {
   GROQ = "groq",
   GOOGLE = "google",
   CUSTOM = "custom",
+  // One key, every model from every provider — OpenAI-compatible at a fixed base URL.
+  OPENROUTER = "openrouter",
 }
 
 // Mirrors the four model "slots" ai.providers.ts has always had internally

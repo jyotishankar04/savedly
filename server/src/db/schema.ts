@@ -122,6 +122,7 @@ export const aiCredentialProviderEnum = pgEnum("ai_credential_provider", [
   AiCredentialProvider.GROQ,
   AiCredentialProvider.GOOGLE,
   AiCredentialProvider.CUSTOM,
+  AiCredentialProvider.OPENROUTER,
 ]);
 
 export const aiRoleEnum = pgEnum("ai_role", [AiRole.FAST, AiRole.REASONING, AiRole.VISION, AiRole.EMBEDDINGS]);
