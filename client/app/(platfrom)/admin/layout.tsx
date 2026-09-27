@@ -6,8 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  SparklesIcon as Sparkles,
-  ShieldUserIcon as ShieldUser,
   DashboardSquare01Icon as DashboardSquare,
   UserGroupIcon as UserGroup,
   BarChartIcon as BarChart,
@@ -23,6 +21,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { cn } from "@/lib/utils";
+import { LogoMark } from "@/components/logo";
 import { logout } from "@/lib/auth";
 import { usePlanLabel } from "@/hooks/use-plan-limit";
 import {
@@ -107,7 +106,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoading || isError || !currentUser || !isAdmin) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-5 w-5 text-primary animate-pulse" />
+        <LogoMark className="h-10 w-10 animate-pulse" />
       </div>
     );
   }
@@ -138,7 +137,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           surface rather than a reskinned app sidebar. */}
       <aside className="w-56 shrink-0 hidden md:flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="h-16 flex items-center gap-2 px-5 border-b border-sidebar-border/60 shrink-0">
-          <HugeiconsIcon icon={ShieldUser} strokeWidth={2.25} className="h-4 w-4 text-sidebar-primary" />
+          <LogoMark className="h-7 w-7" />
           <span className="text-sm font-bold tracking-tight">Admin</span>
         </div>
 
@@ -202,7 +201,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             the page title context + user controls. */}
         <header className="h-16 border-b border-border/60 px-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 md:hidden">
-            <HugeiconsIcon icon={ShieldUser} strokeWidth={2.25} className="h-4 w-4 text-primary" />
+            <LogoMark className="h-7 w-7" />
             <span className="text-sm font-bold">Admin</span>
           </div>
 
