@@ -71,7 +71,7 @@ export default function AdminAnalyticsPage() {
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">Signups, active users, and content growth across the platform.</p>
-        <Select value={days} onValueChange={(v) => v && setDays(v)}>
+        <Select items={RANGE_OPTIONS} value={days} onValueChange={(v) => v && setDays(v)}>
           <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>

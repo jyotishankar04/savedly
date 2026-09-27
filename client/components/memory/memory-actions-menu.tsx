@@ -28,6 +28,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
@@ -195,6 +196,9 @@ export function MemoryActionsMenu({ memory, trigger, align = "end", redirectTo }
       <AlertDialog open={trashConfirmOpen} onOpenChange={setTrashConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <AlertDialogMedia tone="destructive">
+              <HugeiconsIcon icon={Trash2} strokeWidth={2.25} />
+            </AlertDialogMedia>
             <AlertDialogTitle>Move &quot;{memory.title}&quot; to trash?</AlertDialogTitle>
             <AlertDialogDescription>You can restore it from Trash within 15 days.</AlertDialogDescription>
           </AlertDialogHeader>

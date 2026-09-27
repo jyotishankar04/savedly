@@ -18,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLockVaultMutation, useSetVaultPinMutation, useUnlockVaultMutation, useVaultStatusQuery } from "@/hooks/use-vault";
 import { cn } from "@/lib/utils";
 import type { Collection, Memory } from "@/types/memory";
+import { PageHeader, EmptyState } from "@/components/app-page";
 
 const COLOR_PALETTE = [
   "bg-blue-500/10 text-blue-500 border-blue-500/20",
@@ -108,8 +109,8 @@ function GateShell({ title, description, children }: { title: string; descriptio
           <HugeiconsIcon icon={Lock} strokeWidth={2.25} className="h-6 w-6 text-primary" />
         </div>
       </div>
-      <h1 className="text-xl font-bold tracking-tight">{title}</h1>
-      <p className="mx-auto mt-2 max-w-xs text-xs leading-relaxed text-muted-foreground">{description}</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+      <p className="mx-auto mt-2 max-w-xs text-[15px] leading-relaxed text-muted-foreground">{description}</p>
       <div className="mt-6">{children}</div>
     </Reveal>
   );
@@ -239,21 +240,20 @@ function VaultContents() {
   const empty = !loading && memories.length === 0 && collections.length === 0;
 
   const header = (
-    <div className="flex items-start justify-between gap-4">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Vault</h1>
-        <p className="text-xs text-muted-foreground">Hidden from search, the graph, insights, and sharing until you unlock it.</p>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={lockMutation.isPending}
-        onClick={() => lockMutation.mutate()}
-        className="h-9 shrink-0 rounded-full px-3.5 text-xs font-semibold"
-      >
-        <HugeiconsIcon icon={Lock} strokeWidth={2.25} className="h-3.5 w-3.5" /> Lock now
-      </Button>
-    </div>
+    <PageHeader
+      title="Vault"
+      description="Hidden from search, the graph, insights, and sharing until you unlock it."
+      action={
+        <Button
+          variant="outline"
+          disabled={lockMutation.isPending}
+          onClick={() => lockMutation.mutate()}
+          className="h-10 shrink-0 rounded-full px-4 text-sm font-medium"
+        >
+          <HugeiconsIcon icon={Lock} strokeWidth={2} className="h-4 w-4" /> Lock now
+        </Button>
+      }
+    />
   );
 
   if (selectedCollection) {
@@ -261,7 +261,7 @@ function VaultContents() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-6 py-10 animate-fade-in">
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 md:py-10">
       {header}
 
       {loading ? (
@@ -271,14 +271,12 @@ function VaultContents() {
           ))}
         </div>
       ) : empty ? (
-        <p className="rounded-xl border border-dashed border-border px-4 py-20 text-center text-xs text-muted-foreground">
-          Nothing in the vault yet. Use &ldquo;Move to vault&rdquo; on a memory or collection to hide it here.
-        </p>
+        <EmptyState title="Nothing in the vault yet" description="Use “Move to vault” on a memory or collection to hide it here." className="py-16" />
       ) : (
         <div className="space-y-10">
           {collections.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-sm font-bold text-foreground">Collections</h2>
+              <h2 className="text-sm font-medium text-muted-foreground">Collections</h2>
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
                 {collections.map((col) => (
                   <div key={col.id} className="relative">
@@ -295,9 +293,9 @@ function VaultContents() {
                         trigger={
                           <button
                             type="button"
-                            className="flex h-7 w-7 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground shadow-sm backdrop-blur-sm hover:text-foreground"
+                            className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground shadow-sm backdrop-blur-sm hover:text-foreground"
                           >
-                            <HugeiconsIcon icon={Lock} strokeWidth={2.25} className="h-3 w-3" />
+                            <HugeiconsIcon icon={Lock} strokeWidth={2} className="h-3.5 w-3.5" />
                           </button>
                         }
                       />
@@ -310,8 +308,8 @@ function VaultContents() {
 
           {memories.length > 0 && (
             <section className="space-y-4">
-              <h2 className="text-sm font-bold text-foreground">Memories</h2>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+              <h2 className="text-sm font-medium text-muted-foreground">Memories</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {memories.map((item) => (
                   <MemoryGridCardLink key={item.id} item={item} />
                 ))}
@@ -329,43 +327,41 @@ function VaultCollectionView({ collection, onBack, header }: { collection: Colle
   const memories = data?.items ?? [];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 px-6 py-10 animate-fade-in">
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 md:py-10">
       {header}
 
-      <div className="space-y-6 border-t border-border/20 pt-6">
+      <div className="space-y-6 border-t border-border/60 pt-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-primary"
+          className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
-          <HugeiconsIcon icon={ArrowLeft} strokeWidth={2.25} className="h-4 w-4" /> Back to vault
+          <HugeiconsIcon icon={ArrowLeft} strokeWidth={2} className="h-4 w-4" /> Back to vault
         </button>
 
-        <div className="flex items-start justify-between gap-4 border-b border-border/20 pb-6">
+        <div className="flex items-start justify-between gap-4 border-b border-border pb-6">
           <div className="flex items-start gap-4">
             <div className="flex h-14 w-14 shrink-0 select-none items-center justify-center rounded-2xl border border-primary/20 bg-primary/5 text-3xl">
               {collection.icon}
             </div>
             <div>
-              <h2 className="text-xl font-bold tracking-tight">{collection.name}</h2>
-              {collection.description && <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">{collection.description}</p>}
-              <span className="mt-2 block font-mono text-[10px] font-semibold text-muted-foreground">{collection.memoryCount} saved memories</span>
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground">{collection.name}</h2>
+              {collection.description && <p className="mt-1 max-w-md text-[15px] leading-relaxed text-muted-foreground">{collection.description}</p>}
+              <span className="mt-2 block text-sm text-muted-foreground">{collection.memoryCount} saved memories</span>
             </div>
           </div>
           <CollectionActionsMenu collection={collection} redirectTo="/app/vault" />
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+              <Skeleton key={i} className="h-52 w-full rounded-2xl" />
             ))}
           </div>
         ) : memories.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-border px-4 py-16 text-center text-xs text-muted-foreground">
-            No memories in this collection.
-          </p>
+          <EmptyState title="No memories in this collection" className="py-14" />
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {memories.map((item) => (
               <MemoryGridCardLink key={item.id} item={item} />
             ))}

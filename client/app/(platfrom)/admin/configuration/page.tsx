@@ -333,7 +333,7 @@ function AnnouncementsSection() {
         <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">New announcement</span>
 
         <div className="flex gap-2">
-          <Select value={type} onValueChange={(v) => v && setType(v as AnnouncementType)}>
+          <Select items={{ countdown: "Countdown", announcement: "Announcement", update: "Update" }} value={type} onValueChange={(v) => v && setType(v as AnnouncementType)}>
             <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>

@@ -2,21 +2,41 @@
 
 import React, { use, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon as ArrowLeft, Delete02Icon as Trash2 } from "@hugeicons/core-free-icons";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useCurrentUserQuery } from "@/context/UserContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getUser, updateUserRoles, updateUserStatus, type AdminUser } from "@/lib/admin-users";
+import { deleteUser, getUser, updateUserRoles, updateUserStatus, type AdminUser } from "@/lib/admin-users";
 import { getUsageForUser } from "@/lib/ai-usage";
 import { toast } from "@/components/ui/toast";
 
 const ASSIGNABLE_ROLES = ["user", "admin"];
+// Next inlines NODE_ENV at build time, so this whole block is absent from a
+// production bundle; the server independently refuses the request too.
+const SHOW_DEV_DELETE = process.env.NODE_ENV !== "production";
 const STATUS_OPTIONS: AdminUser["status"][] = ["active", "inactive", "suspended", "banned"];
 
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { data: currentUser } = useCurrentUserQuery();
   const [pending, setPending] = useState<string | null>(null);
 
   const { data: user, isLoading, isError } = useQuery({
@@ -58,6 +78,19 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     } catch {
       toast.add({ title: "Failed to update status.", type: "error" });
     } finally {
+      setPending(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    setPending("delete");
+    try {
+      await deleteUser(id);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast.add({ title: "User deleted.", type: "success" });
+      router.push("/admin/users");
+    } catch {
+      toast.add({ title: "Failed to delete user.", type: "error" });
       setPending(null);
     }
   };
@@ -150,6 +183,41 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           <p className="text-xs text-muted-foreground">No AI usage recorded.</p>
         )}
       </div>
+
+      {SHOW_DEV_DELETE && currentUser?.id !== user.id && (
+        <div className="space-y-2 rounded-lg border border-destructive/30 p-4">
+          <h3 className="text-xs font-bold text-destructive uppercase tracking-wide">Danger zone (dev only)</h3>
+          <p className="text-[11px] text-muted-foreground">
+            Permanently deletes this account and all its data immediately. Not available in production.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button variant="outline" disabled={pending === "delete"} className="border-destructive/30 text-destructive hover:bg-destructive/10">
+                  Delete user
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogMedia tone="destructive">
+                  <HugeiconsIcon icon={Trash2} strokeWidth={2} />
+                </AlertDialogMedia>
+                <AlertDialogTitle>Delete {user.email}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently removes the account, {user.stats.memoryCount} memories, and everything else it owns. This can&apos;t be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDelete}>
+                  Delete permanently
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,3 +20,18 @@ export async function downloadMemoriesExport(): Promise<void> {
   link.remove();
   URL.revokeObjectURL(url);
 }
+
+/** Same raw-download path as the JSON export, for the Open Knowledge Format bundle: a zip of Markdown files. */
+export async function downloadOkfExport(): Promise<void> {
+  const response = await api.get("/memories/export/okf", { responseType: "blob" });
+
+  const blob = new Blob([response.data], { type: "application/zip" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `saveforlatter-okf-${new Date().toISOString().slice(0, 10)}.zip`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

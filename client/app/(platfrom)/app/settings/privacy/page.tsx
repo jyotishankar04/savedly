@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Delete02Icon as Trash2, UserRemove01Icon as UserRemove } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -11,11 +13,12 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { usePlanFeature } from "@/hooks/use-plan-limit";
 import { ProBadge } from "@/components/plan-limit-notice";
-import { downloadMemoriesExport } from "@/lib/data-export";
+import { downloadMemoriesExport, downloadOkfExport } from "@/lib/data-export";
 import { toast } from "@/components/ui/toast";
 import { clearMemories, deleteAccount, type ClearMemoriesMode, type DeleteAccountMode } from "@/lib/account";
 import { logout } from "@/lib/auth";
@@ -25,20 +28,20 @@ export default function PrivacySettingsPage() {
   const router = useRouter();
   const { user } = useUser();
   const dataExport = usePlanFeature("dataExport");
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState<"json" | "okf" | null>(null);
   const [clearOpen, setClearOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [clearPending, setClearPending] = useState(false);
   const [deletePending, setDeletePending] = useState(false);
 
-  const handleExport = async () => {
-    setExporting(true);
+  const handleExport = async (format: "json" | "okf") => {
+    setExporting(format);
     try {
-      await downloadMemoriesExport();
+      await (format === "okf" ? downloadOkfExport() : downloadMemoriesExport());
     } catch {
       toast.add({ title: "Export failed. Please try again.", type: "error" });
     } finally {
-      setExporting(false);
+      setExporting(null);
     }
   };
 
@@ -87,22 +90,41 @@ export default function PrivacySettingsPage() {
       <div className="space-y-4 text-xs font-semibold text-foreground/80">
 
         {/* Export Data */}
-        <div className="p-4 border border-border bg-card rounded-xl flex items-center justify-between">
+        <div className="p-4 border border-border bg-card rounded-xl space-y-3">
           <div>
             <h4 className="text-foreground flex items-center gap-1.5">
               Export all memories
               {!dataExport.loading && !dataExport.enabled && <ProBadge />}
             </h4>
-            <p className="text-[9.5px] text-muted-foreground mt-0.5 font-medium">Download JSON dump representing all parsed cards metadata.</p>
+            <p className="text-[9.5px] text-muted-foreground mt-0.5 font-medium">
+              Everything you&apos;ve saved and how it&apos;s organized. Vault and Trash aren&apos;t included.
+            </p>
           </div>
+
           {dataExport.enabled ? (
-            <Button
-              onClick={handleExport}
-              disabled={exporting}
-              className="h-8 rounded-full text-[10px] font-bold"
-            >
-              {exporting ? "Exporting..." : "Export"}
-            </Button>
+            <div className="divide-y divide-border/60 rounded-lg border border-border/60">
+              {(
+                [
+                  { format: "json", title: "JSON", desc: "One file with every memory's full data. Best for backups and scripts." },
+                  { format: "okf", title: "Open Knowledge Format (OKF)", desc: "A folder of Markdown files, one per memory and collection, that any AI agent or person can read." },
+                ] as const
+              ).map((option) => (
+                <div key={option.format} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="text-foreground">{option.title}</p>
+                    <p className="text-[9.5px] text-muted-foreground mt-0.5 font-medium leading-relaxed">{option.desc}</p>
+                  </div>
+                  <Button
+                    onClick={() => handleExport(option.format)}
+                    disabled={exporting !== null}
+                    variant={option.format === "json" ? "default" : "outline"}
+                    className="h-8 shrink-0 rounded-full text-[10px] font-bold"
+                  >
+                    {exporting === option.format ? "Exporting..." : option.format === "okf" ? "Export .zip" : "Export .json"}
+                  </Button>
+                </div>
+              ))}
+            </div>
           ) : (
             <Button
               disabled
@@ -126,22 +148,22 @@ export default function PrivacySettingsPage() {
         </div>
 
         {/* Delete settings */}
-        <div className="p-4 border border-red-500/20 bg-red-500/5 rounded-xl space-y-4">
+        <div className="p-4 border border-destructive/20 bg-destructive/5 rounded-xl space-y-4">
           <div>
-            <h4 className="text-red-500 font-bold">Danger Zone</h4>
+            <h4 className="text-destructive font-bold">Danger Zone</h4>
             <p className="text-[9.5px] text-muted-foreground mt-0.5 font-medium">Irreversible actions regarding account records.</p>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={() => setClearOpen(true)}
-              className="h-8 px-3 rounded-full border border-red-500/20 text-red-500 text-[9.5px] font-bold hover:bg-red-500/10 transition-colors"
+              className="h-8 px-3 rounded-full border border-destructive/20 text-destructive text-[9.5px] font-bold hover:bg-destructive/10 transition-colors"
             >
               Clear memories
             </button>
             <button
               onClick={() => setDeleteOpen(true)}
-              className="h-8 px-3 rounded-full bg-red-500 text-white text-[9.5px] font-bold hover:bg-red-600 transition-colors"
+              className="h-8 px-3 rounded-full bg-destructive text-destructive-foreground text-[9.5px] font-bold hover:bg-destructive/90 transition-colors"
             >
               Delete account
             </button>
@@ -153,6 +175,9 @@ export default function PrivacySettingsPage() {
       <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <AlertDialogMedia tone="destructive">
+              <HugeiconsIcon icon={Trash2} strokeWidth={2} />
+            </AlertDialogMedia>
             <AlertDialogTitle>Clear all memories?</AlertDialogTitle>
             <AlertDialogDescription>
               Choose whether to move everything to Trash (recoverable for 15 days) or delete it all right now, permanently.
@@ -169,7 +194,7 @@ export default function PrivacySettingsPage() {
             </AlertDialogAction>
             <AlertDialogAction
               disabled={clearPending}
-              className="bg-red-500 hover:bg-red-600 text-white"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => runClearMemories("delete")}
             >
               Delete permanently
@@ -181,6 +206,9 @@ export default function PrivacySettingsPage() {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <AlertDialogMedia tone="destructive">
+              <HugeiconsIcon icon={UserRemove} strokeWidth={2} />
+            </AlertDialogMedia>
             <AlertDialogTitle>Delete your account?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete {user?.email ?? "your account"} and everything in it. Choose a 30-day grace period (log back in
@@ -198,7 +226,7 @@ export default function PrivacySettingsPage() {
             </AlertDialogAction>
             <AlertDialogAction
               disabled={deletePending}
-              className="bg-red-500 hover:bg-red-600 text-white"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => runDeleteAccount("hard")}
             >
               Delete everything now

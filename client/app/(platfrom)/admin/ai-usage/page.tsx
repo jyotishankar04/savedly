@@ -73,7 +73,7 @@ export default function AdminAiUsagePage() {
 
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">Token usage and cost across every AI call — ingestion and Ask, combined.</p>
-        <Select value={days} onValueChange={(v) => v && setDays(v)}>
+        <Select items={RANGE_OPTIONS} value={days} onValueChange={(v) => v && setDays(v)}>
           <SelectTrigger className="w-40">
             <SelectValue />
           </SelectTrigger>

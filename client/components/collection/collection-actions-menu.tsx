@@ -24,6 +24,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
@@ -122,13 +123,16 @@ export function CollectionActionsMenu({ collection, trigger, align = "end", redi
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <AlertDialogMedia tone="destructive">
+              <HugeiconsIcon icon={Trash2} strokeWidth={2.25} />
+            </AlertDialogMedia>
             <AlertDialogTitle>Delete this collection?</AlertDialogTitle>
             <AlertDialogDescription>Memories inside won&apos;t be deleted, only unlinked from this collection.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-500 text-white hover:bg-red-600"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={async () => {
                 try {
                   await deleteMutation.mutateAsync(collection.id);

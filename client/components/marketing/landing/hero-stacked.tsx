@@ -9,6 +9,7 @@ import { ArrowRight, Layers, MessageSquareQuote, SearchCheck } from "lucide-reac
 import { SHOWCASE_MODE } from "@/lib/showcase";
 import { Navbar } from "@/components/marketing/navbar";
 import { useAuthCta } from "@/hooks/use-auth-cta";
+import { GithubStarButton } from "@/components/marketing/github-star-button";
 
 const CAPABILITIES = [
   { icon: Layers, body: "Links, videos, notes, images, documents and voice all go in the same box." },
@@ -175,6 +176,8 @@ export default function HeroStacked() {
                   {cta.label}
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
+
+                <GithubStarButton variant="hero" />
 
                 {/* The reference's second CTA is a Watch Demo play button.
                     There's no demo film, so this goes to the feature tour and
