@@ -42,7 +42,13 @@ jobs:
         working-directory: client
     steps:
       - uses: actions/checkout@v4
+      # The action only reads "packageManager" from a package.json at the
+      # repo root, and there isn't one (each app is independent), so this
+      # job needs the version spelled out too. Keep in step with
+      # client/package.json's packageManager.
       - uses: pnpm/action-setup@v4
+        with:
+          version: 11.18.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
