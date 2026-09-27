@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
+import { LogoMark } from "@/components/logo";
 import { getProviderLoginUrl } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 
@@ -46,7 +47,7 @@ export default function LoginPage() {
         {/* Brand Copy */}
         <div className="relative z-10 max-w-md space-y-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-primary bg-primary/10 border border-primary/15">
-            <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-3.5 w-3.5 fill-current" />
+            <LogoMark ticks={false} className="h-3.5 w-3.5" />
             <span>AI Powered Memory</span>
           </span>
           <h1 className="text-4xl font-semibold tracking-tight leading-tight text-card-foreground">

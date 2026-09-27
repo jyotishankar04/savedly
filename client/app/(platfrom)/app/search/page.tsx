@@ -8,12 +8,12 @@ import {
   Search01Icon as Search,
   XIcon as X,
   CheckIcon as Check,
-  SparklesIcon as Sparkles,
   ArrowRight01Icon as ArrowRight,
   Clock01Icon as Clock,
   ArrowDown01Icon as ChevronDown,
 } from "@hugeicons/core-free-icons";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { LogoMark } from "@/components/logo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -351,7 +351,7 @@ export default function SearchPage() {
                 href={`/app/ask?q=${encodeURIComponent(trimmedQuery)}`}
                 className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
-                <HugeiconsIcon icon={Sparkles} strokeWidth={2} className="h-4 w-4" /> Ask about this instead
+                <LogoMark ticks={false} className="h-4 w-4" /> Ask about this instead
               </Link>
             )}
           </div>
@@ -374,7 +374,7 @@ export default function SearchPage() {
                   href={`/app/ask?q=${encodeURIComponent(trimmedQuery)}`}
                   className="flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
                 >
-                  <HugeiconsIcon icon={Sparkles} strokeWidth={2} className="h-4 w-4" /> Ask SaveForLatter
+                  <LogoMark ticks={false} className="h-4 w-4 rounded-sm bg-white/90" /> Ask SaveForLatter
                 </Link>
               </div>
             </div>

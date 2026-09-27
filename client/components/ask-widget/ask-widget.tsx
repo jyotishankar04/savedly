@@ -13,10 +13,10 @@ import {
   MultiplicationSignIcon as CloseX,
   PlusIcon as Plus,
   Search01Icon as Search,
-  SparklesIcon as Sparkles,
   SquareIcon as PopupIcon,
   UnfoldMoreIcon as Expand,
 } from "@hugeicons/core-free-icons";
+import { LogoMark } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { askStreamUrl } from "@/lib/ask";
@@ -266,9 +266,9 @@ export function AskWidget() {
       <button
         onClick={() => setIsOpen(true)}
         aria-label="Ask SaveForLatter"
-        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 flex items-center justify-center hover:bg-primary/90 transition-colors"
+        className="group fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 h-14 w-14 rounded-full bg-background ring-1 ring-foreground/10 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.35)] flex items-center justify-center transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       >
-        <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-5 w-5 fill-current" />
+        <LogoMark className="h-10 w-10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105" />
       </button>
     );
   }
@@ -305,9 +305,7 @@ export function AskWidget() {
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/60 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <HugeiconsIcon icon={Sparkles} strokeWidth={2} className="h-4 w-4" />
-          </span>
+          <LogoMark ticks={false} className="h-7 w-7" />
           <span className="text-sm font-semibold text-foreground truncate">Ask SaveForLatter</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">

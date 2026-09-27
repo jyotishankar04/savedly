@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, GlobeIcon as Globe, Video01Icon as Video, FileTextIcon as FileText, StickyNote01Icon as StickyNote, Image01Icon as ImageIcon, StarIcon as Star, ExternalLinkIcon as ExternalLink, ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
+import { GlobeIcon as Globe, Video01Icon as Video, FileTextIcon as FileText, StickyNote01Icon as StickyNote, Image01Icon as ImageIcon, StarIcon as Star, ExternalLinkIcon as ExternalLink, ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
+import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
@@ -277,12 +278,12 @@ export default function MemoryDetailPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-primary">
-                <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-4 w-4 fill-current" />
+                <LogoMark ticks={false} className="h-4 w-4" />
                 <h3 className="text-xs font-bold uppercase tracking-widest">SaveForLatter understood</h3>
               </div>
               {isMemoryProcessing(memory) && (
                 <span className="flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-0.5 text-[8px] font-bold text-primary">
-                  <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-2.5 w-2.5 animate-pulse" />
+                  <LogoMark ticks={false} className="h-3 w-3 animate-pulse" />
                   Processing
                 </span>
               )}

@@ -4,8 +4,9 @@ import React, { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
+import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
 import { useMutation } from "@tanstack/react-query";
+import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { completeOnboarding } from "@/lib/user";
@@ -360,7 +361,7 @@ function OnboardingFlow() {
                 >
                   <div className="flex items-start gap-3.5">
                     <div className="p-1 rounded-lg bg-primary/10 text-primary mt-0.5 shrink-0">
-                      <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-4.5 w-4.5 fill-current" />
+                      <LogoMark ticks={false} className="h-[18px] w-[18px]" />
                     </div>
                     <div className="pr-6">
                       <div className="flex items-center gap-2">
@@ -536,7 +537,7 @@ function OnboardingFlow() {
             <div className="relative w-16 h-16 flex items-center justify-center">
               <div className="absolute inset-0 bg-primary/25 rounded-full blur-xl animate-pulse" />
               <div className="w-14 h-14 rounded-2xl border border-primary/40 flex items-center justify-center bg-card shadow-md">
-                <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-7 w-7 text-primary" />
+                <LogoMark className="h-9 w-9" />
               </div>
             </div>
 

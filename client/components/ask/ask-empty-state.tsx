@@ -8,6 +8,7 @@ import {
   SparklesIcon as Sparkles,
   HelpCircleIcon as Help,
 } from "@hugeicons/core-free-icons";
+import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
 // One of each thing Ask can do: recall by time, find by topic, summarize,
@@ -34,7 +35,7 @@ export function AskEmptyState({
       {/* The popup's header already carries this mark. */}
       {!compact && (
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <HugeiconsIcon icon={Sparkles} strokeWidth={2} className="h-6 w-6" />
+          <LogoMark ticks={false} className="h-9 w-9" />
         </div>
       )}
       <h2 className={cn("font-medium tracking-tight text-foreground text-balance", compact ? "text-lg" : "mt-5 text-2xl md:text-3xl")}>
