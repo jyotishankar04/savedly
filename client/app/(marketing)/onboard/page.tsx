@@ -4,7 +4,7 @@ import React, { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, CheckIcon as Check, ArrowRight01Icon as ArrowRight, GlobeIcon as Globe, LaptopIcon as Laptop, SmartPhone01Icon as Smartphone, SlidersHorizontalIcon as Sliders, PlusIcon as Plus } from "@hugeicons/core-free-icons";
+import { SparklesIcon as Sparkles, CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
 import { useMutation } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,11 @@ const saveTypes = [
   "Social posts", "Notes", "Ideas", "Products", "Books", "Courses", "Tools"
 ];
 
-// Step 5 Capture Channels
+// Step 5 Ways to save — informational only; each is a real capture path.
 const captureChannels = [
-  { label: "Browser", desc: "Save anything from the web", icon: Globe },
-  { label: "Phone", desc: "Save through your share menu", icon: Smartphone },
-  { label: "Quick Save", desc: "Paste anything instantly", icon: Laptop },
+  { label: "Browser extension", desc: "Save the current page with Ctrl/Cmd + Shift + S", icon: Puzzle },
+  { label: "Quick Capture", desc: "Press Ctrl/Cmd + Q anywhere in the dashboard", icon: Keyboard },
+  { label: "Import bookmarks", desc: "Bring in an exported bookmarks file from Import", icon: Upload },
 ];
 
 function OnboardingFlow() {
@@ -370,7 +370,7 @@ function OnboardingFlow() {
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
-                        Let SaveForLatter understand and organize everything for you. No tags or folders to maintain.
+                        Let SaveForLatter understand and organize everything for you. No tags or folders to maintain. Needs an AI key, which you can connect after setup.
                       </p>
                     </div>
                   </div>
@@ -450,10 +450,10 @@ function OnboardingFlow() {
           <div className="w-full space-y-8 animate-fade-in">
             <div className="text-center space-y-3">
               <h2 className="text-3xl font-medium tracking-tight text-foreground">
-                Where do you discover things?
+                Ways to save
               </h2>
               <p className="text-sm text-muted-foreground">
-                Connect SaveForLatter to the places where you find things worth remembering.
+                Three quick ways to get things in — you can use any of them later.
               </p>
             </div>
 
@@ -465,7 +465,7 @@ function OnboardingFlow() {
                     key={idx}
                     className="rounded-xl border border-border/45 bg-muted/75 p-0.5 shadow-xs hover:border-primary/20 transition-all duration-300"
                   >
-                    <div className="p-3.5 rounded-lg border border-border/75 bg-card flex items-center justify-between">
+                    <div className="p-3.5 rounded-lg border border-border/75 bg-card flex items-center">
                       <div className="flex items-center gap-3">
                         <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
                           <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-4.5 w-4.5" />
@@ -476,9 +476,6 @@ function OnboardingFlow() {
                         </div>
                       </div>
 
-                      <button className="h-7 w-7 rounded-full border border-border flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
-                        <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                   </div>
                 );
@@ -492,9 +489,6 @@ function OnboardingFlow() {
               >
                 Continue
               </Button>
-              <button onClick={nextStep} className="text-[10px] text-muted-foreground hover:text-foreground hover:underline transition-colors font-medium">
-                Skip for now
-              </button>
             </div>
           </div>
         )}
@@ -563,6 +557,20 @@ function OnboardingFlow() {
             >
               Enter SaveForLatter <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
             </Button>
+
+            <div className="w-full max-w-xs rounded-xl border border-border/60 bg-muted/20 p-4 text-left space-y-2">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <HugeiconsIcon icon={Key} strokeWidth={2.25} className="h-4 w-4 text-primary" />
+                Turn on the smart features
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Summaries, auto-tags, and Ask use your own AI key. Saving and keyword search work without one.
+              </p>
+              <div className="flex gap-3 text-[11px] font-medium">
+                <Link href="/app/settings/ai" className="text-primary hover:underline">Connect a key</Link>
+                <Link href="/help" className="text-muted-foreground hover:text-foreground hover:underline">Help Center</Link>
+              </div>
+            </div>
           </div>
         )}
 
