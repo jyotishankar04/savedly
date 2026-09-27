@@ -5,6 +5,7 @@ import { AiCredentialProvider, AiRole } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { env } from "../../config/env";
 import { decryptToken, encryptToken } from "../../shared/crypto/token-cipher";
+import { listProviderModels, type ProviderModelList } from "./model-catalog";
 import { testRoleCredential, type TestCredentialResult } from "../ai/ai.providers";
 import type { AssignRoleInput, CreateCredentialInput, TestConnectionInput, UpdateCredentialInput } from "./ai-settings.schema";
 
@@ -158,4 +159,15 @@ export async function testConnection(input: TestConnectionInput): Promise<TestCr
     return { ok: false, error: `${input.provider} has no embeddings API` };
   }
   return testRoleCredential({ provider: input.provider, apiKey: input.apiKey, baseUrl: input.baseUrl, model: input.model }, input.role);
+}
+
+/** Every model this saved key can use, straight from its provider (see model-catalog.ts). */
+export async function listCredentialModels(userId: string, id: string): Promise<ProviderModelList> {
+  const credential = await requireOwnedCredential(userId, id);
+  return listProviderModels(
+    credential.provider,
+    decryptToken(credential.encryptedApiKey),
+    credential.baseUrl,
+    `${credential.id}:${credential.updatedAt.getTime()}`,
+  );
 }

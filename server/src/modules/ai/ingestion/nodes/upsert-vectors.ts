@@ -8,6 +8,7 @@ import { getVectorStore } from "../../vector-store";
 import { isVideoUrl } from "../extract-url";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { isPlaceholderTitle } from "../title";
 
 async function assignCollection(tx: Tx, state: IngestionStateType): Promise<string | null> {
   if (state.collectionAction === "existing" && state.collectionName) {
@@ -31,7 +32,9 @@ async function assignCollection(tx: Tx, state: IngestionStateType): Promise<stri
         name: state.collectionName,
         icon: state.collectionIcon || "📁",
         description: state.collectionDescription,
-        source: CollectionSource.SYSTEM,
+        // A normal, visible collection: nothing is paid or limited any more, so
+        // there is no reason to hide what the AI files things into.
+        source: CollectionSource.USER,
       })
       .returning({ id: collections.id });
 
@@ -82,11 +85,10 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
       .update(memories)
       .set({
         // Never overwrite a title the user actually typed — only fill in
-        // when capture left it at the schema default. Prefers the AI title,
+        // over a placeholder (see isPlaceholderTitle). Prefers the AI title,
         // falling back to the page's own og:title/<title> when AI insight
         // generation itself came up empty (still better than "Untitled").
-        title:
-          state.existingTitle === "Untitled" ? (state.aiTitle ?? state.previewTitle ?? undefined) : undefined,
+        title: isPlaceholderTitle(state.existingTitle) ? (state.aiTitle ?? state.previewTitle ?? undefined) : undefined,
         // Spelling/grammar-corrected version of what the user typed as a
         // caption — never runs for "note" (see correctCaption.ts), so a
         // note's own body is never touched here.
@@ -170,14 +172,14 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
         userId: state.userId,
         email: row.email,
         memoryId: state.memoryId,
-        memoryTitle: state.existingTitle !== "Untitled" ? state.existingTitle : (state.aiTitle ?? "your memory"),
+        memoryTitle: !isPlaceholderTitle(state.existingTitle) ? state.existingTitle : (state.aiTitle ?? "your memory"),
         suggestedEventAt: state.detectedEventAt,
       });
     }
   }
 
   logNode(state.memoryId, "upsertVectors", {
-    titleWritten: state.existingTitle === "Untitled" && !!state.aiTitle,
+    titleWritten: isPlaceholderTitle(state.existingTitle) && !!state.aiTitle,
     tagsLinked: state.suggestedTags.length,
     chunksWritten: state.chunks.length,
     collectionAction: state.collectionAction,

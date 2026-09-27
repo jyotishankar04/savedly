@@ -4,6 +4,7 @@ import { getChatModel } from "../../ai.providers";
 import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { isPlaceholderTitle } from "../title";
 
 interface Insights {
   title: string;
@@ -49,7 +50,7 @@ Respond with valid JSON matching this schema:
 export async function generateAiInsights(state: IngestionStateType): Promise<IngestionUpdate> {
   const context =
     [
-      state.existingTitle !== "Untitled" ? state.existingTitle : null,
+      !isPlaceholderTitle(state.existingTitle) ? state.existingTitle : null,
       state.sourceDomain,
       state.url,
       state.platform,

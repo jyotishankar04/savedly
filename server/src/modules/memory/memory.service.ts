@@ -8,6 +8,7 @@ import { enqueueIngestion } from "../ai/ingestion/queue";
 import { getVectorStore } from "../ai/vector-store";
 import { hybridSearch, SEMANTIC_SIMILARITY_FLOOR } from "../ai/search";
 import { normalizeUrl } from "./normalize-url";
+import { buildOkfBundle, zipOkfBundle } from "./okf-export";
 import type {
   AttachmentInput,
   BrowserCaptureInput,
@@ -399,6 +400,19 @@ export async function exportAllMemories(userId: string): Promise<MemoryDetail[]>
     keywords: row.keywords,
     attachments: attachmentsByMemory.get(row.id) ?? [],
   }));
+}
+
+/** The same library as exportAllMemories, as a zipped Open Knowledge Format bundle (see okf-export.ts). Vaulted collections are left out, like vaulted memories. */
+export async function exportOkfBundle(userId: string): Promise<Uint8Array> {
+  const [items, collectionRows] = await Promise.all([
+    exportAllMemories(userId),
+    db
+      .select({ id: collections.id, name: collections.name, description: collections.description, createdAt: collections.createdAt })
+      .from(collections)
+      .where(and(eq(collections.userId, userId), eq(collections.isVaulted, false)))
+      .orderBy(collections.name),
+  ]);
+  return zipOkfBundle(buildOkfBundle(items, collectionRows));
 }
 
 // --- Memory graph -----------------------------------------------------------

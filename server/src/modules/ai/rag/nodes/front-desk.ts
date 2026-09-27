@@ -2,7 +2,7 @@ import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages
 import type { GraphNode } from "@langchain/langgraph";
 import { z } from "zod";
 import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { withUsage } from "../../../ai-usage/usage-logger";
 import { FRONT_DESK_CLASSIFY_PROMPT, FRONT_DESK_DECLINE_PROMPT } from "../prompts";
 import { RAGState, type RAGStateType } from "../state";
 import { INTERNAL_EVENT_TAG } from "../internal-tag";
@@ -40,17 +40,18 @@ export const frontDeskNode: GraphNode<typeof RAGState> = async (state, config) =
   const prompt = FRONT_DESK_CLASSIFY_PROMPT.replace("{query}", query);
   // Tagged internal — this classifier call must never leak into the client
   // stream (same reasoning as checkGrounding's tagged call).
-  const { inScope } = await classifyModel.invoke(prompt, {
-    tags: [INTERNAL_EVENT_TAG],
-    callbacks: [createUsageCallback({ userId, requestType: "rag:front_desk_classify", threadId })],
-  });
+  const { inScope } = await classifyModel.invoke(
+    prompt,
+    withUsage(config, { userId, requestType: "rag:front_desk_classify", threadId }, { tags: [INTERNAL_EVENT_TAG] }),
+  );
   if (inScope) return { inScope: true };
 
   const declineModel = await getChatModel(userId, "fast");
   if (!declineModel) return { inScope: true };
-  const decline = await declineModel.invoke([new SystemMessage(FRONT_DESK_DECLINE_PROMPT), ...state.messages], {
-    callbacks: [createUsageCallback({ userId, requestType: "rag:front_desk_decline", threadId })],
-  });
+  const decline = await declineModel.invoke(
+    [new SystemMessage(FRONT_DESK_DECLINE_PROMPT), ...state.messages],
+    withUsage(config, { userId, requestType: "rag:front_desk_decline", threadId }),
+  );
   return { inScope: false, messages: [decline as AIMessage] };
 };
 

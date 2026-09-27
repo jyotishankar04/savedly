@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
@@ -573,7 +574,6 @@ function pad(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
-/** A shadcn Calendar for the date + a plain time input, behind one popover trigger — replaces the browser's native <input type="datetime-local"> picker, which renders as an OS-styled widget that doesn't match the rest of the app. */
 /**
  * Rendered inline, not behind a Popover trigger — a Popover's portal
  * fighting a Dialog's own modal overlay for top stacking is a real,
@@ -581,39 +581,135 @@ function pad(n: number): string {
  * wins the hit-test over the popover's calendar), not just a visual quirk.
  * Showing the calendar directly avoids that whole class of conflict.
  */
-function DateTimePicker({ value, onChange }: { value: Date; onChange: (date: Date) => void }) {
-  const timeValue = `${pad(value.getHours())}:${pad(value.getMinutes())}`;
+function EventSchedule({
+  start,
+  onStart,
+  duration,
+  onDuration,
+}: {
+  start: Date;
+  onStart: (date: Date) => void;
+  duration: number;
+  onDuration: (minutes: number) => void;
+}) {
+  const timeValue = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+  const end = new Date(start.getTime() + duration * 60000);
+  const sameDay = end.toDateString() === start.toDateString();
+  const clock = (d: Date) => d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
   function handleDateSelect(date: Date | undefined) {
     if (!date) return;
     const next = new Date(date);
-    next.setHours(value.getHours(), value.getMinutes(), 0, 0);
-    onChange(next);
+    next.setHours(start.getHours(), start.getMinutes(), 0, 0);
+    onStart(next);
   }
 
   function handleTimeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const [h, m] = e.target.value.split(":").map(Number);
     if (Number.isNaN(h) || Number.isNaN(m)) return;
-    const next = new Date(value);
+    const next = new Date(start);
     next.setHours(h, m, 0, 0);
-    onChange(next);
+    onStart(next);
   }
 
   return (
-    <div className="flex gap-3 rounded-xl border border-border p-2">
-      <Calendar mode="single" selected={value} onSelect={handleDateSelect} className="p-0" />
-      <div className="flex w-24 shrink-0 flex-col gap-1.5 border-l border-border/50 py-1 pl-3">
-        <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Time</label>
-        <Input type="time" value={timeValue} onChange={handleTimeChange} className="h-8 w-full text-xs" />
+    <div className="grid gap-x-8 gap-y-6 sm:grid-cols-[auto_minmax(0,1fr)]">
+      <Calendar
+        mode="single"
+        selected={start}
+        onSelect={handleDateSelect}
+        className="mx-auto bg-transparent p-0 [--cell-size:--spacing(9)]"
+        classNames={{ today: "rounded-(--cell-radius) font-semibold text-primary data-[selected=true]:rounded-none" }}
+      />
+
+      <div className="flex flex-col gap-5">
+        <div className="space-y-2">
+          <FieldLabel htmlFor="event-time">Time</FieldLabel>
+          <Input id="event-time" type="time" value={timeValue} onChange={handleTimeChange} className="h-10 w-full text-sm" />
+        </div>
+        <div className="space-y-2">
+          <FieldLabel>Duration</FieldLabel>
+          <DurationSelect value={duration} onChange={onDuration} />
+        </div>
+        <div className="rounded-lg bg-muted/40 px-3 py-2.5 text-sm">
+          <p className="font-medium text-foreground">
+            {start.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+          </p>
+          <p className="mt-0.5 text-muted-foreground">
+            {clock(start)} – {clock(end)}
+            {!sameDay && " (next day)"}
+          </p>
+        </div>
       </div>
     </div>
+  );
+}
+
+function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <label htmlFor={htmlFor} className="block text-sm font-medium text-foreground">
+      {children}
+    </label>
+  );
+}
+
+/** Title, description, and schedule: the fields New event and Edit event share, so the two can't drift apart. */
+function EventFields({
+  title,
+  onTitle,
+  description,
+  onDescription,
+  start,
+  onStart,
+  duration,
+  onDuration,
+  titlePlaceholder,
+}: {
+  title: string;
+  onTitle: (v: string) => void;
+  description: string;
+  onDescription: (v: string) => void;
+  start: Date;
+  onStart: (d: Date) => void;
+  duration: number;
+  onDuration: (m: number) => void;
+  titlePlaceholder?: string;
+}) {
+  return (
+    <ScrollArea className="min-h-0" viewportClassName="max-h-[58dvh] pr-3">
+      <div className="space-y-6 pb-1">
+        <div className="space-y-2">
+          <FieldLabel htmlFor="event-title">Title</FieldLabel>
+          <Input id="event-title" value={title} onChange={(e) => onTitle(e.target.value)} required autoFocus className="h-10 text-sm" placeholder={titlePlaceholder} />
+        </div>
+
+        <div className="space-y-2">
+          <FieldLabel htmlFor="event-description">
+            Description <span className="font-normal text-muted-foreground">(optional)</span>
+          </FieldLabel>
+          <Textarea
+            id="event-description"
+            value={description}
+            onChange={(e) => onDescription(e.target.value)}
+            rows={3}
+            placeholder="Add details, a link, or notes"
+            className="max-h-40 resize-none text-sm leading-relaxed"
+          />
+        </div>
+
+        <div className="space-y-3">
+          <FieldLabel>Date &amp; time</FieldLabel>
+          <EventSchedule start={start} onStart={onStart} duration={duration} onDuration={onDuration} />
+        </div>
+      </div>
+    </ScrollArea>
   );
 }
 
 function DurationSelect({ value, onChange }: { value: number; onChange: (minutes: number) => void }) {
   return (
     <Select value={String(value)} onValueChange={(v) => v && onChange(Number(v))}>
-      <SelectTrigger className="h-9 w-full">
+      <SelectTrigger className="h-10 w-full text-sm">
         {/* A render-prop, not the bare default — otherwise the trigger shows
             the raw value ("60") until the dropdown has been opened at least
             once, since Base UI resolves the label from a rendered
@@ -678,40 +774,30 @@ function NewEventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md gap-5 p-6">
-        <DialogHeader className="border-b border-border/20 pb-3">
-          <DialogTitle className="text-xs font-bold">New event</DialogTitle>
-          <DialogDescription className="text-[11px]">
-            Saved to Memora and synced to any calendar you&apos;ve connected.
-          </DialogDescription>
+      <DialogContent className="max-h-[94dvh] sm:max-w-xl gap-5 p-6">
+        <DialogHeader className="gap-1">
+          <DialogTitle className="text-lg font-semibold tracking-tight">New event</DialogTitle>
+          <DialogDescription className="text-sm">Saved to Memora and synced to any calendar you&apos;ve connected.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Title</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus className="h-9" placeholder="Meeting with…" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Description (optional)</label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Date &amp; time</label>
-            <DateTimePicker value={startDraft} onChange={setStartDraft} />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</label>
-            <DurationSelect value={durationMinutes} onChange={setDurationMinutes} />
-          </div>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col gap-5">
+          <EventFields
+            title={title}
+            onTitle={setTitle}
+            description={description}
+            onDescription={setDescription}
+            start={startDraft}
+            onStart={setStartDraft}
+            duration={durationMinutes}
+            onDuration={setDurationMinutes}
+            titlePlaceholder="Meeting with…"
+          />
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-full">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-10 rounded-full px-5 text-sm">
               Cancel
             </Button>
-            <Button type="submit" disabled={!title.trim() || createMutation.isPending} className="rounded-full">
+            <Button type="submit" disabled={!title.trim() || createMutation.isPending} className="h-10 rounded-full px-6 text-sm">
               {createMutation.isPending ? "Saving…" : "Create event"}
             </Button>
           </DialogFooter>
@@ -797,39 +883,31 @@ function EventDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md gap-5 p-6">
+      <DialogContent className="max-h-[94dvh] sm:max-w-xl gap-5 p-6">
         {editing ? (
           <>
-            <DialogHeader className="border-b border-border/20 pb-3">
-              <DialogTitle className="text-xs font-bold">Edit event</DialogTitle>
+            <DialogHeader className="gap-1">
+              <DialogTitle className="text-lg font-semibold tracking-tight">Edit event</DialogTitle>
+              <DialogDescription className="text-sm">Changes sync to any calendar this event was added to.</DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSave} className="space-y-4 text-xs">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Title</label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus className="h-9" />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Description</label>
-                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Date &amp; time</label>
-                <DateTimePicker value={startDraft} onChange={setStartDraft} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</label>
-                <DurationSelect value={durationMinutes} onChange={setDurationMinutes} />
-              </div>
+            <form onSubmit={handleSave} className="flex min-h-0 flex-col gap-5">
+              <EventFields
+                title={title}
+                onTitle={setTitle}
+                description={description}
+                onDescription={setDescription}
+                start={startDraft}
+                onStart={setStartDraft}
+                duration={durationMinutes}
+                onDuration={setDurationMinutes}
+              />
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setEditing(false)} className="rounded-full">
+                <Button type="button" variant="ghost" onClick={() => setEditing(false)} className="h-10 rounded-full px-5 text-sm">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={!title.trim() || isPending} className="rounded-full">
+                <Button type="submit" disabled={!title.trim() || isPending} className="h-10 rounded-full px-6 text-sm">
                   {updateMutation.isPending ? "Saving…" : "Save changes"}
                 </Button>
               </DialogFooter>
@@ -837,37 +915,29 @@ function EventDetailsDialog({
           </>
         ) : (
           <>
-            <DialogHeader className="border-b border-border/20 pb-3">
-              <DialogTitle className="text-xs font-bold">{event.title}</DialogTitle>
-              <DialogDescription className="text-[11px]">
-                {new Date(event.startAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })} · {SOURCE_LABEL[event.source]}
+            <DialogHeader className="gap-1 pr-6">
+              <DialogTitle className="text-lg font-semibold tracking-tight">{event.title}</DialogTitle>
+              <DialogDescription className="text-sm">
+                {new Date(event.startAt).toLocaleString(undefined, { weekday: "long", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {SOURCE_LABEL[event.source]}
               </DialogDescription>
             </DialogHeader>
 
-            {event.description && <p className="text-xs leading-relaxed text-muted-foreground">{event.description}</p>}
+            {event.description && (
+              <ScrollArea className="min-h-0" viewportClassName="max-h-48 pr-3">
+                <p className="text-sm leading-relaxed text-muted-foreground">{event.description}</p>
+              </ScrollArea>
+            )}
 
             {(event.htmlLink || event.memoryId) && (
               <div className="flex flex-wrap gap-2">
                 {event.htmlLink && (
-                  <Button
-                    render={<Link href={event.htmlLink} target="_blank" rel="noreferrer" />}
-                    nativeButton={false}
-                    variant="outline"
-                    size="sm"
-                    className="h-7 rounded-full px-3 text-[10px] font-bold"
-                  >
+                  <Button render={<Link href={event.htmlLink} target="_blank" rel="noreferrer" />} nativeButton={false} variant="outline" className="h-9 rounded-full px-4 text-sm font-medium">
                     Open in {event.source === "google" ? "Google Calendar" : "Outlook"}{" "}
-                    <HugeiconsIcon icon={ExternalLink} strokeWidth={2.25} className="h-3 w-3" />
+                    <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="h-3.5 w-3.5" />
                   </Button>
                 )}
                 {event.memoryId && (
-                  <Button
-                    render={<Link href={`/app/memories/${event.memoryId}`} />}
-                    nativeButton={false}
-                    variant="outline"
-                    size="sm"
-                    className="h-7 rounded-full px-3 text-[10px] font-bold"
-                  >
+                  <Button render={<Link href={`/app/memories/${event.memoryId}`} />} nativeButton={false} variant="outline" className="h-9 rounded-full px-4 text-sm font-medium">
                     View memory
                   </Button>
                 )}
@@ -875,18 +945,18 @@ function EventDetailsDialog({
             )}
 
             {target && (
-              <DialogFooter>
+              <DialogFooter className="sm:justify-between">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   disabled={isPending}
                   onClick={handleDelete}
-                  className="rounded-full text-destructive hover:text-destructive"
+                  className="h-10 rounded-full px-4 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                 >
-                  <HugeiconsIcon icon={Trash2} strokeWidth={2.25} className="h-3.5 w-3.5" /> {deleteMutation.isPending ? "Removing…" : "Remove"}
+                  <HugeiconsIcon icon={Trash2} strokeWidth={2} className="h-4 w-4" /> {deleteMutation.isPending ? "Removing…" : "Remove"}
                 </Button>
-                <Button type="button" disabled={isPending} onClick={() => setEditing(true)} className="rounded-full">
-                  <HugeiconsIcon icon={Edit} strokeWidth={2.25} className="h-3.5 w-3.5" /> Edit
+                <Button type="button" disabled={isPending} onClick={() => setEditing(true)} className="h-10 rounded-full px-6 text-sm">
+                  <HugeiconsIcon icon={Edit} strokeWidth={2} className="h-4 w-4" /> Edit
                 </Button>
               </DialogFooter>
             )}

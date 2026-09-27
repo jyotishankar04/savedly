@@ -1,7 +1,7 @@
 import { AIMessage, SystemMessage } from "@langchain/core/messages";
 import type { GraphNode } from "@langchain/langgraph";
 import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { withUsage } from "../../../ai-usage/usage-logger";
 import { tools } from "../tools";
 import { AGENT_SYSTEM_PROMPT } from "../prompts";
 import type { RAGState } from "../state";
@@ -32,8 +32,9 @@ export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
   const today = new Date().toISOString().slice(0, 10);
   const systemPrompt = `${AGENT_SYSTEM_PROMPT}\n\nToday's date is ${today}.`;
 
-  const response = await modelWithTools.invoke([new SystemMessage(systemPrompt), ...state.messages], {
-    callbacks: [createUsageCallback({ userId, requestType: "rag:agent", threadId })],
-  });
+  const response = await modelWithTools.invoke(
+    [new SystemMessage(systemPrompt), ...state.messages],
+    withUsage(config, { userId, requestType: "rag:agent", threadId }),
+  );
   return { messages: [response] };
 };

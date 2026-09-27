@@ -4,6 +4,7 @@ import {
   createMemory,
   deleteMemory,
   exportAllMemories,
+  exportOkfBundle,
   getMemoryById,
   getMemoryGraph,
   getProcessingStatus,
@@ -66,14 +67,18 @@ export class MemoryController {
     res.status(200).json(ApiResponse.success(graph));
   }
 
-  // The one non-JSON-envelope response in this codebase — a file download,
-  // not an ApiResponse-wrapped result. exportAllMemories throws the
-  // FEATURE_NOT_AVAILABLE AppError itself (same pattern as
-  // collection.service.ts's shareCollection) before any of this runs.
+  // File downloads, not ApiResponse-wrapped results.
   static async exportAll(req: Request, res: Response) {
     const items = await exportAllMemories(req.user!.id);
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Content-Disposition", `attachment; filename="saveforlatter-export-${Date.now()}.json"`);
     res.send(JSON.stringify(items, null, 2));
+  }
+
+  static async exportOkf(req: Request, res: Response) {
+    const zip = await exportOkfBundle(req.user!.id);
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="saveforlatter-okf-${new Date().toISOString().slice(0, 10)}.zip"`);
+    res.send(Buffer.from(zip));
   }
 }

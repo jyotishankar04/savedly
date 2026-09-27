@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ShuffleIcon as Shuffle,
@@ -21,6 +20,7 @@ import { QueryErrorState } from "@/components/query-error-state";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import { Reveal } from "@/components/ui/reveal";
 import type { Memory, MemoryType } from "@/types/memory";
+import { PageHeader, EmptyState } from "@/components/app-page";
 
 const TYPE_LABELS: Record<MemoryType, string> = {
   web: "Web pages",
@@ -101,7 +101,6 @@ function rediscoveryReason(item: Memory, now: number): string {
 }
 
 export default function ExplorePage() {
-  const router = useRouter();
   // Discovery only ever works over what's already been fetched — the API
   // has no random/oldest-first mode, so this pulls the most recent 100
   // (the max page size) and does every "surprise"/"forgotten"/"by type"
@@ -148,11 +147,8 @@ export default function ExplorePage() {
   const topTags = React.useMemo(() => [...tags].sort((a, b) => b.memoryCount - a.memoryCount).slice(0, 12), [tags]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Explore</h1>
-        <p className="mt-1 text-xs text-muted-foreground">A few ways to rediscover what&apos;s already in your library.</p>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 md:py-10">
+      <PageHeader title="Explore" description="A few ways to rediscover what's already in your library." />
 
       {isError ? (
         <QueryErrorState onRetry={() => refetch()} />
@@ -166,10 +162,7 @@ export default function ExplorePage() {
           </div>
         </div>
       ) : items.length === 0 ? (
-        <div className="mx-auto max-w-sm space-y-3 py-20 text-center">
-          <h3 className="text-sm font-semibold text-foreground">Nothing to explore yet</h3>
-          <p className="text-xs text-muted-foreground">Save a few memories and this page will fill up with ways to revisit them.</p>
-        </div>
+        <EmptyState title="Nothing to explore yet" description="Save a few memories and this page will fill up with ways to revisit them." />
       ) : (
         <>
           {/* Surprise me */}
@@ -181,22 +174,22 @@ export default function ExplorePage() {
                     <MemoryThumbnail item={surprise} className="rounded-xl" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-2">
-                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
-                      <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-2.5 w-2.5" /> Surprise pick
+                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-primary">
+                      <HugeiconsIcon icon={Sparkles} strokeWidth={2} className="h-3 w-3" /> Surprise pick
                     </span>
-                    <h3 className="line-clamp-1 text-sm font-bold text-foreground">{surprise.title}</h3>
-                    {surprise.description && <p className="line-clamp-2 text-xs text-muted-foreground">{surprise.description}</p>}
+                    <h3 className="line-clamp-1 text-base font-medium text-foreground">{surprise.title}</h3>
+                    {surprise.description && <p className="line-clamp-2 text-sm text-muted-foreground">{surprise.description}</p>}
                     <div className="flex items-center gap-3 pt-1">
-                      <Link href={`/app/memories/${surprise.id}`} className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
-                        Revisit memory <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-3 w-3" />
+                      <Link href={`/app/memories/${surprise.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                        Revisit memory <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-3.5 w-3.5" />
                       </Link>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setSurpriseId((current) => pickRandom(items, current ?? undefined)?.id ?? current)}
-                        className="h-7 rounded-full px-3 text-[10px] font-semibold"
+                        className="h-8 rounded-full px-3 text-xs font-medium"
                       >
-                        <HugeiconsIcon icon={Shuffle} strokeWidth={2.25} className="h-3 w-3" /> Shuffle
+                        <HugeiconsIcon icon={Shuffle} strokeWidth={2} className="h-3.5 w-3.5" /> Shuffle
                       </Button>
                     </div>
                   </div>
@@ -209,12 +202,12 @@ export default function ExplorePage() {
           {onThisDay.length > 0 && (
             <section className="space-y-4">
               <div className="flex items-center gap-1.5">
-                <HugeiconsIcon icon={Calendar} strokeWidth={2.25} className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-bold text-foreground">On this day</h2>
+                <HugeiconsIcon icon={Calendar} strokeWidth={2} className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-medium text-foreground">On this day</h2>
               </div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {onThisDay.map((item) => (
-                  <MemoryGridCard key={item.id} item={item} onClick={() => router.push(`/app/memories/${item.id}`)} />
+                  <MemoryGridCard key={item.id} item={item} href={`/app/memories/${item.id}`} />
                 ))}
               </div>
             </section>
@@ -222,7 +215,7 @@ export default function ExplorePage() {
 
           {/* Browse by type */}
           <section className="space-y-4">
-            <h2 className="text-sm font-bold text-foreground">Browse by type</h2>
+            <h2 className="text-sm font-medium text-foreground">Browse by type</h2>
             <div className="flex flex-wrap gap-2">
               {(Object.keys(TYPE_LABELS) as MemoryType[])
                 .filter((type) => (typeCounts[type] ?? 0) > 0)
@@ -231,21 +224,21 @@ export default function ExplorePage() {
                     key={type}
                     onClick={() => setSelectedType((current) => (current === type ? null : type))}
                     className={cn(
-                      "flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-left text-xs font-semibold transition-colors",
+                      "flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-left text-sm font-medium transition-colors",
                       selectedType === type ? "border-primary/40 bg-primary/10 text-primary" : "border-border hover:bg-muted",
                     )}
                   >
-                    <HugeiconsIcon icon={MEMORY_TYPE_ICONS[type]} strokeWidth={2.25} className="h-4 w-4" />
+                    <HugeiconsIcon icon={MEMORY_TYPE_ICONS[type]} strokeWidth={2} className="h-4 w-4" />
                     {TYPE_LABELS[type]}
-                    <span className="font-mono text-[10px] opacity-70">{typeCounts[type]}</span>
+                    <span className="text-xs text-muted-foreground/80">{typeCounts[type]}</span>
                   </button>
                 ))}
             </div>
 
             {selectedType && (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {byType.map((item) => (
-                  <MemoryGridCard key={item.id} item={item} onClick={() => router.push(`/app/memories/${item.id}`)} />
+                  <MemoryGridCard key={item.id} item={item} href={`/app/memories/${item.id}`} />
                 ))}
               </div>
             )}
@@ -255,21 +248,21 @@ export default function ExplorePage() {
           {topTags.length > 0 && (
             <section className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-foreground">Tags to explore</h2>
-                <Link href="/app/tags" className="text-[11px] font-semibold text-primary hover:underline">
+                <h2 className="text-sm font-medium text-foreground">Tags to explore</h2>
+                <Link href="/app/tags" className="text-sm font-medium text-primary hover:underline">
                   View all &rarr;
                 </Link>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2">
                 {topTags.map((tag) => (
                   <Link
                     key={tag.id}
                     href={`/app/tags/${encodeURIComponent(tag.name)}`}
-                    className={cn("group flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold transition-colors", colorFor(tag.id))}
+                    className={cn("group flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors", colorFor(tag.id))}
                   >
-                    <HugeiconsIcon icon={TagIcon} strokeWidth={2.25} className="h-3.5 w-3.5" />
+                    <HugeiconsIcon icon={TagIcon} strokeWidth={2} className="h-3.5 w-3.5" />
                     {tag.name}
-                    <span className="font-mono text-[10px] opacity-70">{tag.memoryCount}</span>
+                    <span className="text-xs opacity-70">{tag.memoryCount}</span>
                   </Link>
                 ))}
               </div>
@@ -282,14 +275,14 @@ export default function ExplorePage() {
           {worthRevisiting.length > 0 && (
             <section className="space-y-4">
               <div>
-                <h2 className="text-sm font-bold text-foreground">Worth revisiting</h2>
-                <p className="text-[11px] text-muted-foreground">Memories that look valuable and haven&apos;t come up again in a while.</p>
+                <h2 className="text-sm font-medium text-foreground">Worth revisiting</h2>
+                <p className="text-[13px] text-muted-foreground">Memories that look valuable and haven&apos;t come up again in a while.</p>
               </div>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 md:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {worthRevisiting.map(({ item, reason }) => (
                   <div key={item.id} className="space-y-1.5">
-                    <MemoryGridCard item={item} onClick={() => router.push(`/app/memories/${item.id}`)} />
-                    <p className="truncate px-0.5 text-[10px] text-muted-foreground">{reason}</p>
+                    <MemoryGridCard item={item} href={`/app/memories/${item.id}`} />
+                    <p className="truncate px-0.5 text-xs text-muted-foreground">{reason}</p>
                   </div>
                 ))}
               </div>

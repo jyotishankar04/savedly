@@ -5,6 +5,7 @@ import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logger } from "../../../../shared/utils/logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { isPlaceholderTitle } from "../title";
 
 interface EventDetection {
   hasEvent: boolean;
@@ -48,7 +49,7 @@ export async function detectEvent(state: IngestionStateType): Promise<IngestionU
 
     const context =
       [
-        state.existingTitle !== "Untitled" ? state.existingTitle : null,
+        !isPlaceholderTitle(state.existingTitle) ? state.existingTitle : null,
         state.sourceDomain,
         state.url,
       ]

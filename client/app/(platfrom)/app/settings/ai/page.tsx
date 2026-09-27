@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -27,6 +28,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
@@ -40,7 +42,9 @@ import {
   listCredentials,
   listRoleAssignments,
   PROVIDER_LABEL,
-  RECOMMENDED_MODELS,
+  formatModelPrice,
+  listCredentialModels,
+  modelFitsRole,
   ROLE_DESCRIPTION,
   ROLE_LABEL,
   unassignRole,
@@ -51,7 +55,8 @@ import {
   type AiRoleAssignment,
 } from "@/lib/ai-settings";
 
-const PROVIDERS: AiProvider[] = ["openai", "anthropic", "groq", "google", "custom"];
+const PROVIDERS: AiProvider[] = ["openrouter", "openai", "anthropic", "groq", "google", "custom"];
+const MAX_MODEL_SUGGESTIONS = 8;
 const ROLES: AiRole[] = ["fast", "reasoning", "vision", "embeddings"];
 
 export default function AISettingsPage() {
@@ -61,6 +66,13 @@ export default function AISettingsPage() {
         <h3 className="text-sm font-bold text-foreground">AI</h3>
         <p className="text-[10px] text-muted-foreground leading-relaxed">
           This product doesn&apos;t pay for AI on your behalf — bring your own API key from any provider, and it&apos;s used only for your account. Nothing is shared with us or anyone else.
+        </p>
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          Not sure which models to use?{" "}
+          <Link href="/help/model-selection" className="text-primary hover:underline">
+            Compare models and prices
+          </Link>
+          .
         </p>
       </div>
 
@@ -166,6 +178,9 @@ function ProviderKeysSection() {
       <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <AlertDialogMedia tone="warning">
+              <HugeiconsIcon icon={Trash} strokeWidth={2} />
+            </AlertDialogMedia>
             <AlertDialogTitle>Remove &quot;{deleting?.label}&quot;?</AlertDialogTitle>
             <AlertDialogDescription>
               Any role currently using this key (Fast/Reasoning/Vision/Embeddings) will become unconfigured until you assign a different key.
@@ -223,7 +238,7 @@ function CredentialForm({ editing, onDone }: { editing: AiCredential | null; onD
           <Label>Provider</Label>
           <Select value={provider} onValueChange={(v) => v && setProvider(v as AiProvider)}>
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>{(value: AiProvider) => PROVIDER_LABEL[value]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {PROVIDERS.map((p) => (
@@ -335,7 +350,21 @@ function RoleForm({
   }, [rolesLoading, current]);
 
   const selectedCredential = eligibleCredentials.find((c) => c.id === credentialId);
-  const recommendations = selectedCredential ? RECOMMENDED_MODELS[selectedCredential.provider][role] ?? [] : [];
+  // Live list of every model this key can use (asked of its provider, priced
+  // from OpenRouter's catalog). Typing in the model box filters it.
+  const { data: modelList, isLoading: modelsLoading } = useQuery({
+    queryKey: ["ai-settings", "credential-models", credentialId],
+    queryFn: () => listCredentialModels(credentialId),
+    enabled: Boolean(selectedCredential),
+    staleTime: 5 * 60 * 1000,
+  });
+  const roleModels = (modelList?.models ?? []).filter((m) => modelFitsRole(m, role));
+  const search = model.trim().toLowerCase();
+  const suggestions = roleModels
+    .filter((m) => !search || m.id.toLowerCase().includes(search) || m.name.toLowerCase().includes(search))
+    .filter((m) => m.id !== model)
+    .sort((a, b) => (a.inputPrice ?? Infinity) - (b.inputPrice ?? Infinity))
+    .slice(0, MAX_MODEL_SUGGESTIONS);
   const isDirty = credentialId !== (current?.credentialId ?? "") || model !== (current?.model ?? "");
 
   const assignMutation = useMutation({
@@ -399,7 +428,7 @@ function RoleForm({
       {eligibleCredentials.length === 0 ? (
         <p className="text-[10px] text-muted-foreground">
           {role === "embeddings"
-            ? "None of your saved keys support embeddings (Groq and Anthropic don't offer an embeddings API). Add an OpenAI, Google, or custom key above."
+            ? "None of your saved keys support embeddings (Groq and Anthropic don't offer an embeddings API). Add an OpenRouter, OpenAI, Google, or custom key above."
             : "Add a provider key above, then come back here to assign it to this role."}
         </p>
       ) : (
@@ -409,7 +438,12 @@ function RoleForm({
               <Label>Key</Label>
               <Select value={credentialId} onValueChange={(v) => v && setCredentialId(v)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a key" />
+                  <SelectValue>
+                    {(value: string) => {
+                      const selected = eligibleCredentials.find((c) => c.id === value);
+                      return selected ? `${selected.label} · ${PROVIDER_LABEL[selected.provider]}` : "Select a key";
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {eligibleCredentials.map((c) => (
@@ -423,25 +457,41 @@ function RoleForm({
 
             <div className="space-y-1.5">
               <Label>Model</Label>
-              <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. gpt-4o-mini" />
+              <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Search or type a model ID" />
             </div>
           </div>
 
-          {recommendations.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {recommendations.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setModel(m)}
-                  className={cn(
-                    "px-2 py-1 rounded-full border text-[9.5px] font-mono transition-colors",
-                    model === m ? "border-primary bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-border hover:text-foreground",
+          {selectedCredential && (
+            <div className="space-y-1.5">
+              {modelsLoading ? (
+                <p className="text-[9.5px] text-muted-foreground">Loading this key&apos;s models…</p>
+              ) : modelList?.error ? (
+                <p className="text-[9.5px] text-muted-foreground">{modelList.error}</p>
+              ) : (
+                <>
+                  <p className="text-[9.5px] text-muted-foreground">
+                    {roleModels.length} {roleModels.length === 1 ? "model fits" : "models fit"} this role · {search ? "matching your search" : "cheapest first"} · prices per 1M tokens
+                  </p>
+                  {suggestions.length > 0 && (
+                    <div className="border border-border/60 rounded-lg divide-y divide-border/50 overflow-hidden">
+                      {suggestions.map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setModel(m.id)}
+                          className="w-full flex items-center justify-between gap-3 px-2.5 py-1.5 text-left hover:bg-muted/60 transition-colors"
+                        >
+                          <span className="min-w-0 flex items-center gap-1.5">
+                            <span className="font-mono text-[9.5px] text-foreground truncate">{m.id}</span>
+                            {m.vision && role !== "vision" && <Badge variant="outline" className="h-4 px-1 text-[8px]">vision</Badge>}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground tabular-nums shrink-0">{formatModelPrice(m)}</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
-                >
-                  {m}
-                </button>
-              ))}
+                </>
+              )}
             </div>
           )}
 

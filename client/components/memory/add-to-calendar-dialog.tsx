@@ -7,8 +7,11 @@ import {
   Delete02Icon as Trash2,
   CloudDownloadIcon as Download,
   ExternalLinkIcon as ExternalLink,
+  CheckmarkCircle02Icon as CheckCircle,
+  ArrowRight01Icon as ArrowRight,
 } from "@hugeicons/core-free-icons";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
@@ -25,6 +28,12 @@ interface AddToCalendarDialogProps {
 }
 
 /** Local datetime-local input value ("YYYY-MM-DDTHH:mm") from an ISO string, in the viewer's own timezone. */
+const PROVIDER_LABEL: Record<CalendarProviderKey, string> = { google: "Google Calendar", microsoft: "Outlook Calendar" };
+
+/** A row in the "add it yourself" list: quiet, because the direct sync above is the better path when it's available. */
+const manualRowClass =
+  "flex w-full items-center gap-3 px-3.5 py-3 text-left text-sm text-foreground transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none";
+
 function toLocalInputValue(iso: string): string {
   const d = new Date(iso);
   const offset = d.getTimezoneOffset();
@@ -37,10 +46,15 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
   const pushMutation = usePushToCalendarMutation();
   const [draft, setDraft] = React.useState(() => (memory.eventAt ? toLocalInputValue(memory.eventAt) : ""));
 
+  const [addedTo, setAddedTo] = React.useState<CalendarProviderKey[]>([]);
+
   const [wasOpen, setWasOpen] = React.useState(open);
   if (open !== wasOpen) {
     setWasOpen(open);
-    if (open) setDraft(memory.eventAt ? toLocalInputValue(memory.eventAt) : "");
+    if (open) {
+      setDraft(memory.eventAt ? toLocalInputValue(memory.eventAt) : "");
+      setAddedTo([]);
+    }
   }
 
   async function saveDate(event: React.FormEvent) {
@@ -75,104 +89,141 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
   async function pushToCalendar(provider: CalendarProviderKey) {
     try {
       await pushMutation.mutateAsync({ memoryId: memory.id, provider });
+      setAddedTo((prev) => [...prev, provider]);
       toast.add({ title: `Added to ${provider === "google" ? "Google" : "Outlook"} Calendar`, type: "success" });
     } catch (err) {
       toast.add({ title: err instanceof Error ? err.message : "Couldn't create the calendar event.", type: "error" });
     }
   }
 
+  const start = memory.eventAt ? new Date(memory.eventAt) : null;
+  const anyConnected = (["google", "microsoft"] as const).some(isConnected);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm gap-5 p-6">
-        <DialogHeader className="border-b border-border/20 pb-3">
-          <DialogTitle className="text-xs font-bold">Add to calendar</DialogTitle>
-          <DialogDescription className="truncate text-[11px]">{memory.title}</DialogDescription>
+      <DialogContent className="sm:max-w-md gap-6 p-6">
+        <DialogHeader className="gap-1">
+          <DialogTitle className="text-lg font-semibold tracking-tight">Add to calendar</DialogTitle>
+          <DialogDescription className="text-sm">
+            {eventInput ? "Pick where this event should go." : "When does this happen?"}
+          </DialogDescription>
         </DialogHeader>
 
         {!eventInput ? (
-          <form onSubmit={saveDate} className="space-y-4 text-xs">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Date &amp; time</label>
-              <Input type="datetime-local" value={draft} onChange={(e) => setDraft(e.target.value)} required className="h-9" />
+          <form onSubmit={saveDate} className="space-y-5">
+            <div className="space-y-2">
+              <label htmlFor="event-date" className="text-sm font-medium text-foreground">
+                Date &amp; time
+              </label>
+              <Input id="event-date" type="datetime-local" value={draft} onChange={(e) => setDraft(e.target.value)} required className="h-10" />
+              <p className="truncate text-xs text-muted-foreground">For &ldquo;{memory.title}&rdquo;</p>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-full">
+              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-10 rounded-full px-5 text-sm">
                 Cancel
               </Button>
-              <Button type="submit" disabled={!draft || updateMutation.isPending} className="rounded-full">
+              <Button type="submit" disabled={!draft || updateMutation.isPending} className="h-10 rounded-full px-6 text-sm">
                 {updateMutation.isPending ? "Saving…" : "Continue"}
               </Button>
             </DialogFooter>
           </form>
         ) : (
-          <div className="space-y-4 text-xs">
-            <p className="text-muted-foreground">
-              {new Date(memory.eventAt!).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-            </p>
-
-            <div className="space-y-2">
-              {(["google", "microsoft"] as const).map((provider) =>
-                isConnected(provider) ? (
-                  <Button
-                    key={provider}
-                    variant="outline"
-                    disabled={pushMutation.isPending}
-                    className="h-9 w-full justify-start rounded-xl text-xs font-semibold"
-                    onClick={() => pushToCalendar(provider)}
-                  >
-                    <HugeiconsIcon icon={CalendarIcon} strokeWidth={2.25} className="h-4 w-4" />
-                    Create in my {provider === "google" ? "Google" : "Outlook"} Calendar
-                  </Button>
-                ) : (
-                  <Button
-                    key={provider}
-                    variant="outline"
-                    nativeButton={false}
-                    className="h-9 w-full justify-start rounded-xl text-xs font-semibold text-muted-foreground"
-                    render={<a href={getCalendarConnectUrl(provider)} />}
-                  >
-                    <HugeiconsIcon icon={ExternalLink} strokeWidth={2.25} className="h-4 w-4" />
-                    Connect {provider === "google" ? "Google" : "Outlook"} Calendar to sync directly
-                  </Button>
-                ),
-              )}
-              <div className="h-px bg-border/60" />
-              <Button
-                variant="outline"
-                nativeButton={false}
-                className="h-9 w-full justify-start rounded-xl text-xs font-semibold"
-                render={<a href={googleCalendarUrl(eventInput)} target="_blank" rel="noreferrer" />}
-              >
-                <HugeiconsIcon icon={CalendarIcon} strokeWidth={2.25} className="h-4 w-4" /> Add to Google Calendar (quick link)
-              </Button>
-              <Button
-                variant="outline"
-                nativeButton={false}
-                className="h-9 w-full justify-start rounded-xl text-xs font-semibold"
-                render={<a href={outlookCalendarUrl(eventInput)} target="_blank" rel="noreferrer" />}
-              >
-                <HugeiconsIcon icon={CalendarIcon} strokeWidth={2.25} className="h-4 w-4" /> Add to Outlook (quick link)
-              </Button>
-              <Button
-                variant="outline"
-                className="h-9 w-full justify-start rounded-xl text-xs font-semibold"
-                onClick={() => downloadTextFile(`${memory.title.slice(0, 60) || "event"}.ics`, buildIcsContent(eventInput))}
-              >
-                <HugeiconsIcon icon={Download} strokeWidth={2.25} className="h-4 w-4" /> Download .ics (Apple, others)
-              </Button>
+          <div className="space-y-6">
+            {/* The event itself: a date tile, the title, and the time. */}
+            <div className="flex items-center gap-4 rounded-xl bg-muted/40 p-3.5">
+              <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-[14px] border border-border bg-background">
+                <span className="text-[10px] font-semibold uppercase leading-none tracking-wider text-primary">
+                  {start!.toLocaleString(undefined, { month: "short" })}
+                </span>
+                <span className="mt-0.5 text-xl font-semibold leading-none tabular-nums text-foreground">{start!.getDate()}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">{memory.title}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {start!.toLocaleString(undefined, { weekday: "long", hour: "numeric", minute: "2-digit" })}
+                </p>
+              </div>
             </div>
 
-            <DialogFooter>
+            <section aria-labelledby="cal-direct" className="space-y-2.5">
+              <h3 id="cal-direct" className="text-sm font-medium text-foreground">
+                {anyConnected ? "Add to your calendar" : "Sync directly"}
+              </h3>
+              <div className="space-y-2">
+                {(["google", "microsoft"] as const).map((provider) => {
+                  const label = PROVIDER_LABEL[provider];
+                  const added = addedTo.includes(provider);
+                  return isConnected(provider) ? (
+                    <Button
+                      key={provider}
+                      disabled={pushMutation.isPending || added}
+                      onClick={() => pushToCalendar(provider)}
+                      className={cn("h-11 w-full justify-between rounded-xl px-4 text-sm font-medium", added && "disabled:opacity-100")}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <HugeiconsIcon icon={added ? CheckCircle : CalendarIcon} strokeWidth={2} className="h-[18px] w-[18px]" />
+                        {added ? `Added to ${label}` : `Add to ${label}`}
+                      </span>
+                      {!added && <span className="text-xs font-normal opacity-80">Connected</span>}
+                    </Button>
+                  ) : (
+                    <Button
+                      key={provider}
+                      variant="outline"
+                      nativeButton={false}
+                      className="h-11 w-full justify-between rounded-xl px-4 text-sm font-medium"
+                      render={<a href={getCalendarConnectUrl(provider)} />}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <HugeiconsIcon icon={CalendarIcon} strokeWidth={2} className="h-[18px] w-[18px] text-muted-foreground" />
+                        Connect {label}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
+                        Sync automatically
+                        <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-3.5 w-3.5" />
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section aria-labelledby="cal-manual" className="space-y-2.5">
+              <h3 id="cal-manual" className="text-sm font-medium text-foreground">
+                Or add it yourself
+              </h3>
+              <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+                <a href={googleCalendarUrl(eventInput)} target="_blank" rel="noreferrer" className={manualRowClass}>
+                  <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1">Google Calendar link</span>
+                </a>
+                <a href={outlookCalendarUrl(eventInput)} target="_blank" rel="noreferrer" className={manualRowClass}>
+                  <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1">Outlook link</span>
+                </a>
+                <button
+                  type="button"
+                  className={manualRowClass}
+                  onClick={() => downloadTextFile(`${memory.title.slice(0, 60) || "event"}.ics`, buildIcsContent(eventInput))}
+                >
+                  <HugeiconsIcon icon={Download} strokeWidth={2} className="h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1">Download .ics file</span>
+                  <span className="text-xs text-muted-foreground">Apple and others</span>
+                </button>
+              </div>
+            </section>
+
+            <DialogFooter className="sm:justify-between">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 disabled={updateMutation.isPending}
                 onClick={removeEvent}
-                className="rounded-full text-destructive hover:text-destructive"
+                className="h-10 rounded-full px-4 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
-                <HugeiconsIcon icon={Trash2} strokeWidth={2.25} className="h-3.5 w-3.5" /> Remove event
+                <HugeiconsIcon icon={Trash2} strokeWidth={2} className="h-4 w-4" /> Remove event
               </Button>
-              <Button type="button" onClick={() => onOpenChange(false)} className="rounded-full">
+              <Button type="button" variant={addedTo.length > 0 ? "default" : "outline"} onClick={() => onOpenChange(false)} className="h-10 rounded-full px-7 text-sm">
                 Done
               </Button>
             </DialogFooter>

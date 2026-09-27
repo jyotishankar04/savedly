@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../../shared/response/api-response";
 import type { ListUsersQuery } from "./users.schema";
-import { getUserDetail, listUsers, updateUserRoles, updateUserStatus } from "./users.service";
+import { deleteUserForDev, getUserDetail, listUsers, updateUserRoles, updateUserStatus } from "./users.service";
 
 export class UsersController {
   static async listUsers(req: Request, res: Response) {
@@ -23,5 +23,10 @@ export class UsersController {
   static async updateStatus(req: Request, res: Response) {
     const result = await updateUserStatus(req.params.id as string, req.body, req.user!.id, req.ip);
     res.status(200).json(ApiResponse.success(result));
+  }
+
+  static async deleteUser(req: Request, res: Response) {
+    await deleteUserForDev(req.params.id as string, req.user!.id, req.ip);
+    res.status(204).send();
   }
 }

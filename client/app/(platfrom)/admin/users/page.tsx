@@ -68,7 +68,7 @@ export default function AdminUsersPage() {
           />
         </div>
 
-        <Select value={status} onValueChange={(v) => { if (v) { setStatus(v); setPage(1); } }}>
+        <Select items={{ all: "All statuses", active: "Active", inactive: "Inactive", suspended: "Suspended", banned: "Banned" }} value={status} onValueChange={(v) => { if (v) { setStatus(v); setPage(1); } }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -81,7 +81,7 @@ export default function AdminUsersPage() {
           </SelectContent>
         </Select>
 
-        <Select value={role} onValueChange={(v) => { if (v) { setRole(v); setPage(1); } }}>
+        <Select items={{ all: "All roles", user: "user", admin: "admin" }} value={role} onValueChange={(v) => { if (v) { setRole(v); setPage(1); } }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Role" />
           </SelectTrigger>

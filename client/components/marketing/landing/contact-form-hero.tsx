@@ -132,7 +132,7 @@ export function ContactFormHero() {
                   <Label htmlFor="topic" className="text-sm font-medium text-foreground">
                     What&rsquo;s this about?
                   </Label>
-                  <Select value={form.topic} onValueChange={(val) => handleChange("topic", val as string)}>
+                  <Select items={SERVICE_OPTIONS} value={form.topic} onValueChange={(val) => handleChange("topic", val as string)}>
                     <SelectTrigger
                       id="topic"
                       className="rounded-xl border-0 bg-input text-sm text-muted-foreground shadow-[inset_0_1px_0_0_rgba(255,255,255,1)] focus:ring-1 focus:ring-primary dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.2)]"

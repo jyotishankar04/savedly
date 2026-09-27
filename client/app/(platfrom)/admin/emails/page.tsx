@@ -246,7 +246,7 @@ function ComposeDialog({ open, onOpenChange, onSent }: { open: boolean; onOpenCh
           <form onSubmit={submit} className="space-y-4 text-xs">
             <div className="space-y-1.5">
               <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Category</label>
-              <Select value={category} onValueChange={(v) => v && setCategory(v as EmailCampaignCategory)}>
+              <Select items={{ marketing: "Marketing", alert: "Alert", announcement: "Announcement", custom: "Custom" }} value={category} onValueChange={(v) => v && setCategory(v as EmailCampaignCategory)}>
                 <SelectTrigger className="h-9 w-full">
                   <SelectValue />
                 </SelectTrigger>

@@ -1,0 +1,1 @@
+ALTER TYPE "ai_credential_provider" ADD VALUE 'openrouter';

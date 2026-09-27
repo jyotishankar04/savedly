@@ -23,6 +23,15 @@ import { askStreamUrl } from "@/lib/ask";
 import { useCreateThreadMutation } from "@/context/AskContext";
 import { AiConfiguredGate } from "@/components/ai-configured-gate";
 import { cn } from "@/lib/utils";
+import { HelpActions } from "@/components/ask/help-actions";
+import { AskEmptyState } from "@/components/ask/ask-empty-state";
+import {
+  MessageScroller,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller";
 
 type WidgetMode = "popup" | "sidebar";
 
@@ -227,7 +236,11 @@ export function AskWidget() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const text = input.trim();
+    await send(input);
+  }
+
+  async function send(raw: string) {
+    const text = raw.trim();
     if (!text || isBusy) return;
     setInput("");
 
@@ -292,8 +305,10 @@ export function AskWidget() {
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/60 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-xs font-bold text-foreground truncate">Ask SaveForLatter</span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <HugeiconsIcon icon={Sparkles} strokeWidth={2} className="h-4 w-4" />
+          </span>
+          <span className="text-sm font-semibold text-foreground truncate">Ask SaveForLatter</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="icon-sm" title="New chat" onClick={handleNewChat}>
@@ -318,26 +333,23 @@ export function AskWidget() {
 
       <AiConfiguredGate className="flex-1 min-h-0 flex flex-col">
       {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="text-center py-10 space-y-2">
-            <div className="h-9 w-9 bg-primary/5 text-primary border border-primary/20 rounded-full flex items-center justify-center mx-auto">
-              <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-4 w-4 fill-current" />
-            </div>
-            <p className="text-xs text-muted-foreground max-w-[16rem] mx-auto">
-              Ask about anything you&apos;ve saved — or tell me to save, edit, or organize something.
-            </p>
-          </div>
-        )}
+      {/* Same scroller as the full Ask page: shadcn's thin scrollbar, and it follows a streaming answer. */}
+      <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+      <MessageScroller className="flex-1 min-h-0">
+      <MessageScrollerViewport>
+      <MessageScrollerContent className="gap-4 px-4 py-4">
+        {messages.length === 0 && <AskEmptyState compact onPick={send} disabled={isBusy} />}
 
         {messages.map((message, messageIndex) => {
           const isLastMessage = messageIndex === messages.length - 1;
           const isUser = message.role === "user";
+          const hasText = message.parts.some((p) => p.type === "text" && p.text);
           return (
-            <div key={message.id} className={cn("flex", isUser ? "justify-end" : "justify-start")}>
+            <MessageScrollerItem key={message.id} messageId={message.id} scrollAnchor={isUser}>
+            <div className={cn("flex flex-col gap-2", isUser ? "items-end" : "items-start")}>
               <div
                 className={cn(
-                  "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed",
+                  "max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
                   isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
                 )}
               >
@@ -346,9 +358,21 @@ export function AskWidget() {
                     return isUser ? (
                       <span key={i}>{part.text}</span>
                     ) : (
-                      <Streamdown key={i} isAnimating={isBusy && isLastMessage}>
+                      <Streamdown
+                        key={i}
+                        isAnimating={isBusy && isLastMessage}
+                        // The popup is narrow: page-sized markdown headings swamp it.
+                        className="text-sm leading-relaxed [&_h1]:mt-3 [&_h1]:mb-1.5 [&_h1]:text-base [&_h1]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1.5 [&_h2]:text-[15px] [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h4]:text-sm [&_li]:my-0.5 [&_ol]:my-1.5 [&_ol]:pl-5 [&_p]:my-1.5 [&_ul]:my-1.5 [&_ul]:pl-5"
+                      >
                         {part.text}
                       </Streamdown>
+                    );
+                  }
+                  if (part.type === "dynamic-tool" && part.toolName === "get_platform_help" && (part.state === "input-streaming" || part.state === "input-available")) {
+                    return (
+                      <div key={i} className="text-[11px] text-muted-foreground shimmer">
+                        Checking the Help Center…
+                      </div>
                     );
                   }
                   if (part.type === "dynamic-tool" && (part.toolName === "search_memories" || part.toolName === "search_memories_by_date")) {
@@ -376,20 +400,29 @@ export function AskWidget() {
                   return null;
                 })}
               </div>
+              {!isUser && hasText && !(isBusy && isLastMessage) && (
+                <div className="max-w-[92%]">
+                  <HelpActions parts={message.parts} compact onNavigate={() => setIsOpen(false)} />
+                </div>
+              )}
             </div>
+            </MessageScrollerItem>
           );
         })}
 
         {status === "submitted" && (
           <div className="flex justify-start">
-            <span className="text-xs text-muted-foreground shimmer px-1">Thinking…</span>
+            <span className="text-sm text-muted-foreground shimmer px-1">Thinking…</span>
           </div>
         )}
-      </div>
+      </MessageScrollerContent>
+      </MessageScrollerViewport>
+      </MessageScroller>
+      </MessageScrollerProvider>
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-3 border-t border-border/60 shrink-0">
-        <div className="rounded-2xl border border-border bg-card shadow-xs focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10">
+        <div className="rounded-2xl border border-border bg-card shadow-sm transition-colors focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -400,12 +433,19 @@ export function AskWidget() {
               }
             }}
             placeholder="Ask anything…"
-            className="min-h-[44px] max-h-32 resize-none border-none bg-transparent px-3.5 pt-2.5 pb-1 text-xs shadow-none outline-none focus-visible:border-none focus-visible:ring-0 dark:bg-transparent"
+            rows={1}
+            className="min-h-[44px] max-h-36 resize-none border-none bg-transparent px-3.5 pt-3 pb-1 text-sm leading-relaxed shadow-none outline-none placeholder:text-muted-foreground/70 focus-visible:border-none focus-visible:ring-0 dark:bg-transparent"
             disabled={isBusy}
           />
           <div className="flex items-center justify-end px-2 pb-2">
-            <Button type="submit" size="icon-sm" className="rounded-full h-7 w-7 shrink-0" disabled={isBusy || !input.trim()}>
-              <HugeiconsIcon icon={ArrowUp} strokeWidth={2.25} className={cn("h-3.5 w-3.5", isBusy && "opacity-50")} />
+            <Button
+              type="submit"
+              size="icon-sm"
+              aria-label="Send"
+              className="h-8 w-8 shrink-0 rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
+              disabled={isBusy || !input.trim()}
+            >
+              <HugeiconsIcon icon={ArrowUp} strokeWidth={2.25} className="h-4 w-4" />
             </Button>
           </div>
         </div>

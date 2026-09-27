@@ -11,7 +11,6 @@ import {
   Bug01Icon as Bug,
   GitPullRequestIcon as PullRequest,
 } from "@hugeicons/core-free-icons";
-import { SupportProjectCard } from "@/components/support-project-card";
 import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
 import { useAuthCta } from "@/hooks/use-auth-cta";
 
@@ -51,17 +50,12 @@ export function ContributeSection() {
           Help build something that isn&apos;t for sale.
         </h2>
         <p className="mt-4 text-balance text-lg text-muted-foreground tracking-[-0.01em] sm:text-xl">
-          This project is free and open source, kept running by the people who use it — with a coffee, or with code.
+          This project is free and open source, kept running by the people who use it.
         </p>
       </div>
 
-      {/* 1. Financial contribution — the ask, up front. */}
-      <div className="mt-14 max-w-md mx-auto">
-        <SupportProjectCard />
-      </div>
-
-      {/* 2. What "free" actually means here. */}
-      <div className="mt-20">
+      {/* 1. What "free" actually means here. */}
+      <div className="mt-14">
         <div className="max-w-2xl">
           <h3 className="text-xl font-semibold text-foreground">What free actually means</h3>
           <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
@@ -94,7 +88,7 @@ export function ContributeSection() {
         </div>
       </div>
 
-      {/* 3. Help improve the project itself. */}
+      {/* 2. Help improve the project itself. */}
       <div className="mt-20 rounded-2xl border border-border/60 bg-muted/20 p-6 md:p-8">
         <h3 className="text-xl font-semibold text-foreground">Help improve the project</h3>
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-2xl">

@@ -22,11 +22,26 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ChevronRightIcon as ChevronRight, Menu01Icon as Menu, MoonIcon as Moon, Sun01Icon as Sun, LayoutDashboardIcon as LayoutDashboard } from "@hugeicons/core-free-icons";
+import {
+  ChevronRightIcon as ChevronRight,
+  Menu01Icon as Menu,
+  MoonIcon as Moon,
+  Sun01Icon as Sun,
+  LayoutDashboardIcon as LayoutDashboard,
+  CloudUploadIcon,
+  Layers01Icon,
+  SparklesIcon,
+  ChartRelationshipIcon,
+  News01Icon,
+  HelpCircleIcon,
+  GitBranchIcon,
+} from "@hugeicons/core-free-icons";
+import type { IconSvgElement } from "@hugeicons/react";
 import { useCurrentUserQuery } from "@/context/UserContext";
 import { AnnouncementBanner } from "@/components/marketing/announcement-banner";
 import { MaintenanceModal } from "@/components/marketing/maintenance-modal";
 import { ctaHref } from "@/lib/showcase";
+import { GithubStarButton } from "@/components/marketing/github-star-button";
 
 // Reverted to the floating/popup pill style — the one before it was swapped
 // for a solid border-b "Navigation2"-style bar. That version's real content
@@ -36,43 +51,75 @@ import { ctaHref } from "@/lib/showcase";
 // which had already been deleted from this repo (visible in this session's
 // very first `git status`, before any of this navbar work started) — the
 // last pill version predates that fix, so it's carried forward here too.
-const features = [
+interface MenuEntry {
+  title: string;
+  description: string;
+  href: string;
+  icon: IconSvgElement;
+}
+
+const features: MenuEntry[] = [
   {
     title: "Capture anything",
+    icon: CloudUploadIcon,
     description: "Web, import, and soon the browser extension.",
     href: "/features#everywhere",
   },
   {
     title: "Every format",
+    icon: Layers01Icon,
     description: "Links, videos, notes, images, documents, voice.",
     href: "/features#formats",
   },
   {
     title: "Ask your library",
+    icon: SparklesIcon,
     description: "Answers that point back to the memory they came from.",
     href: "/features#ask",
   },
   {
     title: "See the shape of it",
+    icon: ChartRelationshipIcon,
     description: "Related by meaning, by tag, or by collection.",
     href: "/features#graph",
   },
 ];
 
-const resources = [
+const resources: MenuEntry[] = [
   {
     title: "Blog",
+    icon: News01Icon,
+    description: "Notes on what we're building.",
     href: "/blog",
   },
   {
     title: "Help Center",
+    icon: HelpCircleIcon,
+    description: "Guides for every feature.",
     href: "/help",
   },
   {
     title: "Changelog",
+    icon: GitBranchIcon,
+    description: "What's new, release by release.",
     href: "/changelog",
   },
 ];
+
+/** One dropdown row: rounded icon tile, bold title, muted subtitle. */
+function MenuRow({ entry }: { entry: MenuEntry }) {
+  return (
+    <Link href={entry.href} className="group flex items-center gap-3.5 rounded-xl p-2.5 transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+        <HugeiconsIcon icon={entry.icon} strokeWidth={1.75} className="h-5 w-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-foreground">{entry.title}</span>
+        <span className="mt-0.5 block text-[13px] leading-snug text-muted-foreground">{entry.description}</span>
+      </span>
+    </Link>
+  );
+}
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();
@@ -138,49 +185,10 @@ export function Navbar() {
                 </NavigationMenuTrigger>
 
                 <NavigationMenuContent>
-                  <div className="w-[450px] p-3">
-                    <div className="mb-2 px-3 py-2">
-                      <p className="text-sm font-semibold text-foreground">
-                        Everything you want to remember
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Capture, organize and find anything in one place.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-1">
-                      {features.map((feature) => (
-                        <Link
-                          key={feature.title}
-                          href={feature.href}
-                          className="
-                            group rounded-xl p-3
-                            transition-colors
-                            hover:bg-muted
-                          "
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                              {feature.title}
-                            </span>
-
-                            <HugeiconsIcon icon={ChevronRight} strokeWidth={2.25}
-                              className="
-                                h-4 w-4
-                                text-muted-foreground/40
-                                transition-transform
-                                group-hover:translate-x-0.5
-                                group-hover:text-foreground
-                              "
-                            />
-                          </div>
-
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {feature.description}
-                          </p>
-                        </Link>
-                      ))}
-                    </div>
+                  <div className="w-[360px] p-1.5">
+                    {features.map((feature) => (
+                      <MenuRow key={feature.title} entry={feature} />
+                    ))}
                   </div>
                 </NavigationMenuContent>
               </NavigationMenuItem>
@@ -210,20 +218,9 @@ export function Navbar() {
                 </NavigationMenuTrigger>
 
                 <NavigationMenuContent>
-                  <div className="w-[200px] p-1">
+                  <div className="w-[320px] p-1.5">
                     {resources.map((resource) => (
-                      <Link
-                        key={resource.title}
-                        href={resource.href}
-                        className="
-                          block rounded-lg px-3 py-2
-                          text-sm text-muted-foreground hover:text-foreground
-                          hover:bg-muted
-                          transition-colors
-                        "
-                      >
-                        {resource.title}
-                      </Link>
+                      <MenuRow key={resource.title} entry={resource} />
                     ))}
                   </div>
                 </NavigationMenuContent>
@@ -247,6 +244,9 @@ export function Navbar() {
 
         {/* Desktop Right Actions */}
         <div className="ml-auto hidden md:flex items-center gap-2">
+          {/* Only from lg up: at md the bar is already full. The mobile menu carries it below. */}
+          <GithubStarButton variant="nav" className="hidden lg:inline-flex" />
+
           {/* Theme Toggle */}
           <Button
             variant="ghost"
@@ -438,6 +438,7 @@ export function Navbar() {
               </div>
 
               <div className="space-y-3 pt-6 border-t border-border mt-auto">
+                <GithubStarButton variant="menu" />
                 {isAuthenticated ? (
                   <Link
                     href={ctaHref("/app")}

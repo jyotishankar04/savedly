@@ -5,6 +5,7 @@ import { createMemoryTool } from "./create-memory";
 import { updateMemoryTool } from "./update-memory";
 import { deleteMemoryTool } from "./delete-memory";
 import { createCollectionTool } from "./create-collection";
+import { platformHelpTool } from "./platform-help";
 
 // Adding a future tool is a new file + one entry here — no graph changes
 // needed (see nodes/agent.ts).
@@ -16,6 +17,7 @@ export const tools = [
   updateMemoryTool,
   deleteMemoryTool,
   createCollectionTool,
+  platformHelpTool,
 ];
 
 export { ragToolContextSchema, type RAGToolContext } from "./search-memories";

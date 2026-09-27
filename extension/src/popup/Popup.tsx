@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Sparkles, Check, AlertCircle, RefreshCw, Settings, ExternalLink, ShieldAlert, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff
+  Check, AlertCircle, RefreshCw, Settings, ExternalLink, ShieldAlert, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff
 } from "lucide-react";
 import { apiFetch, ApiError } from "../lib/api";
 import { SHOW_FLOATING_ICON_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
@@ -288,8 +288,10 @@ export default function Popup() {
       {/* Extension Header */}
       <div style={styles.header}>
         <div style={styles.logoRow}>
-          <Sparkles size={16} color="#1447E6" fill="#1447E6" />
-          <span style={styles.logoText}>memora</span>
+          <img src={chrome.runtime.getURL("icon-48.png")} alt="" width={22} height={22} />
+          <span style={styles.logoText}>
+            save<span style={{ fontWeight: 400, fontSize: "0.78em", color: "#1447E6" }}>for</span>latter
+          </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           {state !== "checking" && state !== "unauthorized" && (

@@ -75,3 +75,8 @@ export async function updateUserStatus(id: string, status: AdminUser["status"]):
     body: { status },
   });
 }
+
+/** Dev-only: the server rejects this in production. */
+export async function deleteUser(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/users/${id}`, { method: "DELETE" });
+}
