@@ -1,51 +1,28 @@
-import HeroStacked from "@/components/marketing/landing/hero-stacked";
-import { FeaturesGridCards } from "@/components/marketing/landing/features-grid-cards";
+import { HeroProduct } from "@/components/marketing/landing/hero-product";
+import { ManifestoSection } from "@/components/marketing/landing/manifesto-section";
+import { PipelineSection } from "@/components/marketing/landing/pipeline-section";
+import { FeatureRowsSection } from "@/components/marketing/landing/feature-rows-section";
 import { ContributeSection } from "@/components/marketing/landing/contribute-section";
 import { FaqSection } from "@/components/marketing/landing/faq-section";
 import { FinalCtaSection } from "@/components/marketing/landing/final-cta-section";
 import MainFooter from "@/components/marketing/landing/main-footer";
 
 /**
- * Three heroes are built against the same copy and the same salt-flat art:
+ * The product proves itself: the hero opens on the real app in a window
+ * (screenshots in public/landing/, demo library in public/landing/demo/),
+ * a short argument follows, then each capability shown working.
  *
- *   hero-stacked.tsx    full-bleed art, copy left-aligned and vertically
- *                       centred, three-up capability row at the bottom
- *                       (in use — the Hero34 layout)
- *   hero-fullbleed.tsx  full-bleed art with the copy in the bottom band
- *                       (the Hero35 layout)
- *   hero-split.tsx      copy on a plain ground, art in a panel bleeding off
- *                       the right edge
- *
- * Swap by changing the import above and the element below — nothing else in
- * the page depends on which one renders.
- *
- * The homepage used to carry a full anchored breakdown of every feature
- * (how-it-works, ask, formats, search, graph, everywhere, integrations,
- * vault) plus a 9-tile bento overview linking between them. That's all
- * moved to /features now.
- *
- * The homepage's own features section has gone through three layouts on
- * the same real capabilities, each left in place unused as an alternate:
- *
- *   features-grid-cards.tsx     9-card grid, real UI/live demos inset in
- *                               each card (in use)
- *   sticky-features-section.tsx sticky-scroll reveal, 3 of the demos
- *   features-alternating.tsx    alternating left/right rows, same 3
- *
- * ChangelogSection (what's-new carousel) was here between the features
- * grid and pricing — removed per request, not deleted (changelog-
- * section.tsx still exists and still renders on /changelog itself).
- *
- * There's no pricing section anymore — this product isn't sold. ContributeSection
- * (also the whole content of /contribute) replaced it: the Buy Me a Coffee
- * support ask, what "free" actually means, and how to contribute code —
- * not a plans grid.
+ * Earlier layouts are kept as unused alternates: hero-stacked.tsx (full-bleed
+ * salt-flat art), features-grid-cards.tsx (9-card grid), and the sticky and
+ * alternating feature sections. The full anchored breakdown lives on /features.
  */
 export default function MarketingPage() {
   return (
     <>
-      <HeroStacked />
-      <FeaturesGridCards />
+      <HeroProduct />
+      <ManifestoSection />
+      <PipelineSection />
+      <FeatureRowsSection />
       <ContributeSection />
       <FaqSection />
       <FinalCtaSection />

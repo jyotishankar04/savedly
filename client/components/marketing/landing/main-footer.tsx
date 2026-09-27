@@ -5,10 +5,19 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { motion, type Variants } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { MoonIcon as Moon, Sun01Icon as Sun, Calendar01Icon as Calendar } from "@hugeicons/core-free-icons";
-import { Logo } from "@/components/logo";
+import {
+  MoonIcon as Moon,
+  Sun01Icon as Sun,
+  ComputerIcon as System,
+  Calendar01Icon as Calendar,
+  GithubIcon as Github,
+  Coffee01Icon as Coffee,
+  ArrowUpRight01Icon as ArrowUpRight,
+} from "@hugeicons/core-free-icons";
+import { Logo, LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { BOOKING_URL } from "@/lib/booking";
+import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
 
 // Structure adapted from a pasted "Footer12" reference — kept: the
 // asymmetric two-column grid (a lead block beside 4 link columns), the
@@ -67,7 +76,6 @@ const sections: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
-      { label: "Book a call", href: BOOKING_URL, external: true },
     ],
   },
   {
@@ -89,6 +97,21 @@ const riseItem: Variants = {
   visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", duration: 0.65, bounce: 0 } },
 };
 
+const THEMES = [
+  { id: "light", label: "Light", icon: Sun },
+  { id: "dark", label: "Dark", icon: Moon },
+  { id: "system", label: "System", icon: System },
+] as const;
+
+const linkClass =
+  "text-[15px] text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:underline underline-offset-4";
+
+/**
+ * A rounded panel inset from the page edges, the same shape language as the
+ * landing page's panels and blue CTA block, so the page ends on a surface
+ * rather than a hairline. Everything linked here exists; nothing is
+ * decorative (no newsletter or social icons, since neither exists).
+ */
 export function MainFooter() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -97,61 +120,70 @@ export function MainFooter() {
   // flipped true only after hydration.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
-  const isDark = mounted && theme === "dark";
+  const current = mounted ? (theme ?? "system") : null;
 
   return (
-    <motion.footer
-      variants={footerContainer}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.28 }}
-      className="w-full overflow-hidden border-t border-border bg-background px-6 py-10 font-sans text-foreground antialiased sm:px-10 lg:px-12"
-    >
-      <div className="mx-auto flex w-full max-w-6xl flex-col justify-between">
-        <div className="grid gap-10 lg:grid-cols-[minmax(250px,340px)_1fr] lg:gap-20">
-          <motion.div variants={riseItem} className="max-w-[340px] space-y-3">
-            <Link href="/" className="inline-flex items-center gap-2 transition-opacity hover:opacity-90">
-              <Logo className="text-lg text-foreground" />
+    <footer className="w-full overflow-hidden bg-background px-5 pb-5 font-sans text-foreground antialiased sm:px-6 sm:pb-6">
+      <motion.div
+        variants={footerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.2 }}
+        className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-[2rem] bg-foreground/[0.035] px-6 pt-12 pb-8 ring-1 ring-foreground/8 sm:px-10 sm:pt-16 lg:px-14"
+      >
+        <div className="grid gap-12 lg:grid-cols-[minmax(260px,360px)_1fr] lg:gap-20">
+          <motion.div variants={riseItem} className="max-w-sm">
+            <Link href="/" className="inline-flex items-center rounded-lg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+              <Logo className="text-xl text-foreground" />
             </Link>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Save anything. Ask it anything. A personal library that gets smarter
-              the more you use it.
+            <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
+              Save anything. Ask it anything. A personal library that reads what you save and finds it again when you need it.
             </p>
-            <a
-              href={BOOKING_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex w-fit items-center gap-2 rounded-full border border-primary/40 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
-            >
-              <HugeiconsIcon icon={Calendar} strokeWidth={2.25} className="h-3.5 w-3.5" />
-              Book a 30-min call
-            </a>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {GITHUB_CONFIGURED && (
+                <a
+                  href={GITHUB_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-9 items-center gap-2 rounded-full bg-foreground px-4 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                >
+                  <HugeiconsIcon icon={Github} strokeWidth={2} className="h-4 w-4" />
+                  GitHub
+                </a>
+              )}
+              <a
+                href={BOOKING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/5"
+              >
+                <HugeiconsIcon icon={Calendar} strokeWidth={2} className="h-4 w-4" />
+                Book a call
+              </a>
+              <Link
+                href="/contribute"
+                className="inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/5"
+              >
+                <HugeiconsIcon icon={Coffee} strokeWidth={2} className="h-4 w-4" />
+                Support the project
+              </Link>
+            </div>
           </motion.div>
 
-          <motion.nav
-            variants={footerContainer}
-            aria-label="Footer navigation"
-            className="grid grid-cols-2 gap-x-10 gap-y-8 sm:grid-cols-4"
-          >
+          <motion.nav variants={footerContainer} aria-label="Footer" className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
             {sections.map((section) => (
               <motion.div key={section.title} variants={riseItem}>
-                <h3 className="text-xs font-semibold tracking-wider text-foreground uppercase">
-                  {section.title}
-                </h3>
-                <ul className="mt-5 space-y-3">
+                <h3 className="text-sm font-medium text-foreground">{section.title}</h3>
+                <ul className="mt-4 space-y-3">
                   {section.links.map((link) => (
                     <li key={link.label}>
                       {link.external ? (
-                        <a
-                          href={link.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
+                        <a href={link.href} target="_blank" rel="noopener noreferrer" className={cn(linkClass, "inline-flex items-center gap-1")}>
                           {link.label}
+                          <HugeiconsIcon icon={ArrowUpRight} strokeWidth={2} className="h-3.5 w-3.5 opacity-60" />
                         </a>
                       ) : (
-                        <Link href={link.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                        <Link href={link.href} className={linkClass}>
                           {link.label}
                         </Link>
                       )}
@@ -163,66 +195,46 @@ export function MainFooter() {
           </motion.nav>
         </div>
 
-        {/* Giant background brand text, auto-fit to the container width via
-            textLength rather than the old footer's clamp() guess — more
-            robust against a brand name this long ("saveforlatter") at any
-            viewport width. Still a low-opacity watermark, not the
-            reference's full-strength brand statement. */}
-        <div className="pointer-events-none mt-10 w-full translate-y-[22%] overflow-hidden text-center select-none sm:mt-8">
-          <svg
-            className="h-auto w-full select-none"
-            viewBox="0 0 1200 160"
-            preserveAspectRatio="xMidYMid meet"
-            aria-hidden="true"
-          >
-            <text
-              x="50%"
-              y="92%"
-              textAnchor="middle"
-              textLength="94%"
-              lengthAdjust="spacing"
-              fontSize="150"
-              className="fill-foreground/[0.08] font-sans font-black tracking-tighter lowercase"
-            >
+        {/* The mark and wordmark as one large sign-off, auto-fit to the
+            panel's width via textLength so the long name never wraps. */}
+        <motion.div variants={riseItem} className="pointer-events-none mt-16 flex items-end gap-[2.5%] select-none" aria-hidden>
+          <LogoMark className="h-auto w-[11%] shrink-0 opacity-90" />
+          <svg className="h-auto min-w-0 flex-1" viewBox="0 0 1000 150" preserveAspectRatio="xMinYMax meet">
+            <text x="0" y="128" textLength="1000" lengthAdjust="spacingAndGlyphs" fontSize="160" className="fill-foreground/[0.09] font-sans font-semibold tracking-tight">
               saveforlatter
             </text>
           </svg>
-        </div>
+        </motion.div>
 
-        <motion.div variants={riseItem} className="mt-9 grid gap-6 border-t border-border pt-8 md:grid-cols-3 md:items-center">
-          <p className="text-xs text-muted-foreground">&copy; 2026 SaveForLatter. All rights reserved.</p>
+        <motion.div variants={riseItem} className="mt-10 flex flex-col gap-5 border-t border-foreground/10 pt-6 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} SaveForLatter · Free and open source under the {LICENSE} license · Made in Bengaluru
+          </p>
 
-          <p className="text-xs text-muted-foreground md:text-center">Built with ❤️ for digital explorers</p>
-
-          <div className="flex items-center gap-3 md:justify-end">
-            <div className="flex h-7 items-center rounded-full bg-muted p-0.5">
-              <button
-                type="button"
-                onClick={() => setTheme("light")}
-                className={cn(
-                  "flex h-full items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium transition-colors",
-                  !isDark ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <HugeiconsIcon icon={Sun} strokeWidth={2.5} className="h-2.5 w-2.5" />
-                Light
-              </button>
-              <button
-                type="button"
-                onClick={() => setTheme("dark")}
-                className={cn(
-                  "flex h-full items-center gap-1.5 rounded-full px-2.5 text-[10px] font-medium transition-colors",
-                  isDark ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <HugeiconsIcon icon={Moon} strokeWidth={2.5} className="h-2.5 w-2.5" />
-                Dark
-              </button>
-            </div>
+          <div role="radiogroup" aria-label="Theme" className="flex h-9 w-fit items-center rounded-full bg-foreground/[0.06] p-1">
+            {THEMES.map((t) => {
+              const selected = current === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setTheme(t.id)}
+                  className={cn(
+                    "flex h-full items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    selected ? "bg-background text-foreground shadow-sm ring-1 ring-foreground/10" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <HugeiconsIcon icon={t.icon} strokeWidth={2} className="h-3.5 w-3.5" />
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
         </motion.div>
-      </div>
-    </motion.footer>
+      </motion.div>
+    </footer>
   );
 }
 

@@ -8,7 +8,7 @@ export default function ContributePage() {
       <Navbar />
 
       <main className="flex-1 pt-20">
-        <ContributeSection />
+        <ContributeSection showDonate />
       </main>
 
       <MainFooter />

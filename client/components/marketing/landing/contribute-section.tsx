@@ -13,6 +13,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
 import { useAuthCta } from "@/hooks/use-auth-cta";
+import { DonatePanel } from "@/components/marketing/landing/donate-panel";
 
 const FREE_HIGHLIGHTS = [
   {
@@ -37,116 +38,108 @@ const FREE_HIGHLIGHTS = [
   },
 ];
 
-export function ContributeSection() {
+/** `showDonate` adds the Buy Me a Coffee panel; only the /contribute page passes it. */
+export function ContributeSection({ showDonate = false }: { showDonate?: boolean }) {
   const cta = useAuthCta();
 
   return (
-    <section id="contribute" className="mx-auto max-w-6xl px-6 py-20 border-t border-border/20">
-      <div className="text-center max-w-2xl mx-auto">
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
-          Contribute
-        </span>
-        <h2 className="mt-6 text-balance text-center font-medium text-4xl tracking-[-0.04em] sm:text-[2.75rem] text-foreground">
-          Help build something that isn&apos;t for sale.
-        </h2>
-        <p className="mt-4 text-balance text-lg text-muted-foreground tracking-[-0.01em] sm:text-xl">
-          This project is free and open source, kept running by the people who use it.
-        </p>
-      </div>
+    <section id="contribute" className="bg-background px-5 py-16 sm:px-6 md:py-24">
+      <div className="mx-auto max-w-6xl">
+        <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+          <div className="max-w-md">
+            <h2 className="text-3xl leading-[1.08] font-semibold tracking-[-0.03em] text-balance text-foreground sm:text-[2.75rem]">
+              Help build something that isn&apos;t for sale.
+            </h2>
+            <p className="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
+              This project is free and open source, kept running by the people who use it. Not a free tier with a paid one waiting
+              behind it: there isn&apos;t a paid one.
+            </p>
+            <Link
+              href={cta.href}
+              className="group mt-8 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {cta.isAuthenticated ? "Go to Dashboard" : "Get started free"}
+              <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
 
-      {/* 1. What "free" actually means here. */}
-      <div className="mt-14">
-        <div className="max-w-2xl">
-          <h3 className="text-xl font-semibold text-foreground">What free actually means</h3>
-          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-            Not a free tier with a paid one waiting behind it — there isn&apos;t a paid one.
-          </p>
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {FREE_HIGHLIGHTS.map((item) => (
-            <div key={item.title} className="flex items-start gap-3.5 rounded-xl border border-border/50 bg-card p-5">
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <HugeiconsIcon icon={item.icon} strokeWidth={2.25} className="h-4 w-4 text-primary" />
+          {/* What free actually means: a spec list, not a card grid. */}
+          <dl className="grid gap-x-10 border-t border-foreground/10 sm:grid-cols-2">
+            {FREE_HIGHLIGHTS.map((item) => (
+              <div key={item.title} className="border-b border-foreground/10 py-6">
+                <dt className="flex items-center gap-2.5 font-medium text-foreground">
+                  <HugeiconsIcon icon={item.icon} strokeWidth={2} className="h-[18px] w-[18px] text-primary" />
+                  {item.title}
+                </dt>
+                <dd className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{item.body}</dd>
               </div>
-              <div>
-                <h4 className="text-sm font-semibold text-foreground">{item.title}</h4>
-                <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">{item.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 flex items-center gap-3">
-          <Link
-            href={cta.href}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            {cta.isAuthenticated ? "Go to Dashboard" : "Get started free"}
-            <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
-
-      {/* 2. Help improve the project itself. */}
-      <div className="mt-20 rounded-2xl border border-border/60 bg-muted/20 p-6 md:p-8">
-        <h3 className="text-xl font-semibold text-foreground">Help improve the project</h3>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-2xl">
-          {GITHUB_CONFIGURED
-            ? "The code is public — read it, fix something that bugs you, or build something it's missing. Every contribution, small or large, is welcome."
-            : "The code is being prepared for a public repository — check back soon for ways to contribute directly."}
-        </p>
-
-        {GITHUB_CONFIGURED && (
-          <ol className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {[
-              { step: "Fork the repo", body: "Fork it to your own GitHub account and clone it locally." },
-              { step: "Make your change", body: "Create a branch, fix the bug or build the feature, and commit it." },
-              { step: "Open a pull request", body: "Push your branch and open a PR describing what changed and why." },
-            ].map((item, i) => (
-              <li key={item.step} className="flex items-start gap-2.5">
-                <span className="h-5 w-5 rounded-full bg-background border border-border text-foreground text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-xs font-semibold text-foreground">{item.step}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground leading-relaxed">{item.body}</p>
-                </div>
-              </li>
             ))}
-          </ol>
-        )}
+          </dl>
+        </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        {showDonate && <DonatePanel />}
+
+        {/* Help improve the project itself. */}
+        <div className="mt-20 grid gap-10 rounded-3xl bg-foreground/[0.035] p-7 ring-1 ring-foreground/8 sm:p-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:p-12">
+          <div>
+            <h3 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">Help improve the project</h3>
+            <p className="mt-3 max-w-md leading-relaxed text-muted-foreground">
+              {GITHUB_CONFIGURED
+                ? "The code is public. Read it, fix something that bugs you, or build something it's missing. Every contribution, small or large, is welcome."
+                : "The code is being prepared for a public repository. Check back soon for ways to contribute directly."}
+            </p>
+            <div className="mt-7 flex flex-wrap gap-2.5">
+              {GITHUB_CONFIGURED && (
+                <>
+                  <a
+                    href={GITHUB_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                  >
+                    <HugeiconsIcon icon={Github} strokeWidth={2} className="h-4 w-4" />
+                    View on GitHub
+                  </a>
+                  <a
+                    href={`${GITHUB_URL}/issues`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-sm font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/5"
+                  >
+                    <HugeiconsIcon icon={PullRequest} strokeWidth={2} className="h-4 w-4" />
+                    Browse open issues
+                  </a>
+                </>
+              )}
+              <Link
+                href="/report"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-sm font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/5"
+              >
+                <HugeiconsIcon icon={Bug} strokeWidth={2} className="h-4 w-4" />
+                Report a bug or request a feature
+              </Link>
+            </div>
+          </div>
+
           {GITHUB_CONFIGURED && (
-            <>
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:opacity-90 transition-opacity"
-              >
-                <HugeiconsIcon icon={Github} strokeWidth={2.25} className="h-4 w-4" />
-                View on GitHub
-              </a>
-              <a
-                href={`${GITHUB_URL}/issues`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-              >
-                <HugeiconsIcon icon={PullRequest} strokeWidth={2.25} className="h-4 w-4" />
-                Browse open issues
-              </a>
-            </>
+            <ol className="space-y-5 self-center">
+              {[
+                { step: "Fork the repo", body: "Fork it to your own GitHub account and clone it locally." },
+                { step: "Make your change", body: "Create a branch, fix the bug or build the feature, and commit it." },
+                { step: "Open a pull request", body: "Push your branch and open a PR describing what changed and why." },
+              ].map((item, i) => (
+                <li key={item.step} className="flex gap-4">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-background font-mono text-xs text-foreground ring-1 ring-foreground/15">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="font-medium text-foreground">{item.step}</p>
+                    <p className="mt-0.5 text-[15px] text-muted-foreground">{item.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           )}
-          <Link
-            href="/report"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-          >
-            <HugeiconsIcon icon={Bug} strokeWidth={2.25} className="h-4 w-4" />
-            Report a bug or request a feature
-          </Link>
         </div>
       </div>
     </section>

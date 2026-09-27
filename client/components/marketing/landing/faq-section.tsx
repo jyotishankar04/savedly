@@ -1,11 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ChevronDown } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowDown01Icon as ChevronDownIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 
 const ANIMATION_DURATION = 0.5;
-const STAGGER_DELAY = 0.08;
 
 // Adapted from @shoogle/smoothui/faq-2 — free, already token-based
 // (text-foreground, border-border), already using motion/react (no
@@ -57,64 +57,54 @@ export function FaqSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="py-24 sm:py-32">
-      <div className="mx-auto max-w-4xl px-6 md:px-12">
-        <motion.div
-          initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={shouldReduceMotion ? { duration: 0 } : { duration: ANIMATION_DURATION }}
-          className="mb-16 text-center"
-        >
-          <span className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">Before you ask</span>
-          <h2 className="mt-3 text-3xl font-normal tracking-tight text-foreground sm:text-4xl">Frequently asked questions</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-            The honest version of the things every one of these sections claims.
-          </p>
-        </motion.div>
+    <section id="faq" className="bg-background px-5 py-16 sm:px-6 md:py-24">
+      <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+        <div className="max-w-sm">
+          <h2 className="text-3xl leading-[1.08] font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">Frequently asked questions</h2>
+          <p className="mt-4 text-lg leading-relaxed text-muted-foreground">The honest version of what the rest of this page claims.</p>
+        </div>
 
-        <div className="space-y-4">
+        <div className="border-t border-foreground/10">
           {FAQS.map((faq, index) => {
             const isOpen = openIndex === index;
+            const panelId = `faq-panel-${index}`;
             return (
-              <motion.div
-                key={faq.question}
-                initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={shouldReduceMotion ? { duration: 0 } : { duration: ANIMATION_DURATION, delay: index * STAGGER_DELAY }}
-                className="overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10 transition-colors hover:ring-primary/40"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenIndex(isOpen ? null : index)}
-                  className="flex w-full items-center justify-between gap-4 p-6 text-left"
-                  aria-expanded={isOpen}
-                >
-                  <h3 className="text-lg font-semibold text-foreground">{faq.question}</h3>
-                  <motion.span
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={shouldReduceMotion ? { duration: 0 } : { duration: ANIMATION_DURATION, ease: "easeInOut" }}
-                    className="shrink-0"
+              <div key={faq.question} className="border-b border-foreground/10">
+                <h3>
+                  <button
+                    type="button"
+                    onClick={() => setOpenIndex(isOpen ? null : index)}
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    className="group flex w-full items-center justify-between gap-6 py-6 text-left focus-visible:outline-none"
                   >
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" strokeWidth={2.25} />
-                  </motion.span>
-                </button>
-
+                    <span className="text-lg font-medium text-foreground underline-offset-4 group-hover:underline group-focus-visible:underline">
+                      {faq.question}
+                    </span>
+                    <motion.span
+                      animate={{ rotate: isOpen ? 180 : 0 }}
+                      transition={shouldReduceMotion ? { duration: 0 } : { duration: ANIMATION_DURATION, ease: [0.16, 1, 0.3, 1] }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-1 ring-foreground/15"
+                    >
+                      <HugeiconsIcon icon={ChevronDownIcon} className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+                    </motion.span>
+                  </button>
+                </h3>
                 <AnimatePresence initial={false}>
                   {isOpen && (
                     <motion.div
+                      id={panelId}
                       initial={shouldReduceMotion ? { opacity: 1 } : { height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={shouldReduceMotion ? { opacity: 0, transition: { duration: 0 } } : { height: 0, opacity: 0 }}
-                      transition={shouldReduceMotion ? { duration: 0 } : { duration: ANIMATION_DURATION, ease: "easeInOut" }}
+                      transition={shouldReduceMotion ? { duration: 0 } : { duration: ANIMATION_DURATION, ease: [0.16, 1, 0.3, 1] }}
                       className="overflow-hidden"
                     >
-                      <p className="px-6 pb-6 leading-relaxed text-muted-foreground">{faq.answer}</p>
+                      <p className="max-w-2xl pb-7 text-[15px] leading-relaxed text-muted-foreground">{faq.answer}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </div>
             );
           })}
         </div>

@@ -259,3 +259,12 @@
 @utility scrollbar-gutter-stable {
   scrollbar-gutter: stable;
 }
+/* Landing page: dashes travelling along the hero's memory-type lines, and
+   the progress hairline under the auto-advancing screen tab. */
+@keyframes signal-flow {
+  to { stroke-dashoffset: -28; }
+}
+@keyframes tab-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
