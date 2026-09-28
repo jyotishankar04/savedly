@@ -37,8 +37,9 @@ export interface HelpGuide {
   actions?: HelpAction[];
 }
 
+/** An entry with its own hand-built page: an interactive tool, or an article too rich for the step format (code blocks, tables). */
 export interface HelpTool {
-  kind: "tool";
+  kind: "tool" | "article";
   slug: string;
   category: string;
   title: string;
@@ -52,6 +53,7 @@ export const CATEGORIES: HelpCategory[] = [
   { id: "get-started", title: "Get started", blurb: "Set up and save your first memories." },
   { id: "find", title: "Organize and find", blurb: "Keep things tidy and get back to them fast." },
   { id: "ai", title: "Ask and AI", blurb: "The assistant, your AI key, and picking models." },
+  { id: "self-host", title: "Self-hosting", blurb: "Run your own SaveForLatter on your own server." },
   { id: "share", title: "Share and protect", blurb: "Control who sees what." },
   { id: "stay", title: "Stay on top", blurb: "Calendar events and notifications." },
   { id: "account", title: "Account and tools", blurb: "Your data, settings and shortcuts." },
@@ -433,6 +435,14 @@ export const GUIDES: HelpGuide[] = [
 
 export const TOOLS: HelpTool[] = [
   {
+    kind: "article",
+    slug: "self-host",
+    category: "self-host",
+    title: "Self-host SaveForLatter",
+    summary: "Install with one command, create the admin account, connect storage, email and sign-in, back up and upgrade.",
+    href: "/help/self-host",
+  },
+  {
     kind: "tool",
     slug: "model-selection",
     category: "ai",
@@ -446,7 +456,8 @@ export const HELP_ENTRIES: HelpEntry[] = [...GUIDES, ...TOOLS];
 
 export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug);
 export const categoryById = (id: string) => CATEGORIES.find((c) => c.id === id);
-export const entryHref = (e: HelpEntry) => (e.kind === "tool" ? e.href : `/help/${e.slug}`);
+export const isGuide = (e: HelpEntry): e is HelpGuide => !("href" in e);
+export const entryHref = (e: HelpEntry) => (isGuide(e) ? `/help/${e.slug}` : e.href);
 
 /** Entries grouped in category order, each group in registry order. */
 export function entriesByCategory(): { category: HelpCategory; entries: HelpEntry[] }[] {
@@ -455,7 +466,7 @@ export function entriesByCategory(): { category: HelpCategory; entries: HelpEntr
 
 /** Reading order across the guides, used for previous/next links. */
 export function guideNeighbors(slug: string): { prev?: HelpGuide; next?: HelpGuide } {
-  const ordered = entriesByCategory().flatMap((g) => g.entries).filter((e): e is HelpGuide => e.kind !== "tool");
+  const ordered = entriesByCategory().flatMap((g) => g.entries).filter(isGuide);
   const i = ordered.findIndex((g) => g.slug === slug);
   return { prev: i > 0 ? ordered[i - 1] : undefined, next: i >= 0 && i < ordered.length - 1 ? ordered[i + 1] : undefined };
 }
@@ -475,7 +486,7 @@ export function searchHelp(query: string): SearchHit[] {
   for (const entry of HELP_ENTRIES) {
     const title = entry.title.toLowerCase();
     const summary = entry.summary.toLowerCase();
-    const guide = entry.kind === "tool" ? undefined : entry;
+    const guide = isGuide(entry) ? entry : undefined;
     let score = 0;
     let step: HelpStep | undefined;
     let stepScore = 0;
