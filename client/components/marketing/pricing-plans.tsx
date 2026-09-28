@@ -38,9 +38,11 @@ export function PricingPlans() {
 
   const { free, paid, hasYearly } = useMemo(() => {
     const all = plans ?? [];
-    const paidPlans = all.filter((p) => p.priceMinor > 0);
+    // Every non-default plan is a paid tier; one without a price yet shows
+    // as "Price coming soon" and can't be bought.
+    const paidPlans = all.filter((p) => !p.isDefault);
     return {
-      free: all.find((p) => p.priceMinor === 0 && p.isDefault) ?? null,
+      free: all.find((p) => p.isDefault) ?? null,
       hasYearly: paidPlans.some((p) => p.billingInterval === "yearly"),
       // One card per tier, showing the chosen interval (falling back to the other).
       paid: [...new Set(paidPlans.map((p) => planTier(p.key)))].map((tier) => {
@@ -145,8 +147,8 @@ export function PricingPlans() {
             <PlanCard
               key={plan.key}
               name={plan.name}
-              price={formatPriceMinor(plan.priceMinor, plan.currency)}
-              period={plan.billingInterval === "yearly" ? "per year" : "per month"}
+              price={plan.priceMinor > 0 ? formatPriceMinor(plan.priceMinor, plan.currency) : "Price"}
+              period={plan.priceMinor > 0 ? (plan.billingInterval === "yearly" ? "per year" : "per month") : "coming soon"}
               description={plan.description ?? ""}
               bullets={planLimitBullets(plan.limits)}
               highlighted={i === paid.length - 1}
@@ -154,11 +156,11 @@ export function PricingPlans() {
                 <button
                   type="button"
                   onClick={() => buy(plan)}
-                  disabled={pending !== null || !config?.billing}
+                  disabled={pending !== null || !config?.billing || plan.priceMinor <= 0}
                   className={primaryCta}
                 >
                   {pending === plan.key && <Spinner />}
-                  {config?.billing ? `Get ${plan.name}` : "Coming soon"}
+                  {config?.billing && plan.priceMinor > 0 ? `Get ${plan.name}` : "Coming soon"}
                 </button>
               }
             />

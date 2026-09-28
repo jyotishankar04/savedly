@@ -60,9 +60,9 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
 // quotas; anyone's own key is never limited). The values are starting points
 // an admin edits in Admin -> Plans & Limits without a deploy.
 //
-// Prices are deliberately NOT seeded: the paid plans start inactive at 0, and
-// stay off the pricing page until an admin sets a real price and activates
-// them.
+// Prices are deliberately NOT seeded: paid plans start at 0, which the
+// pricing page shows as "Price coming soon" and checkout refuses, until an
+// admin sets the real price (matching the payment provider's product).
 const OWN_KEY_LIMITS = limits({
   [PlanLimitType.STORAGE_MB]: 25 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 100,
@@ -109,7 +109,7 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
       currency: "usd",
       billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
       isDefault: false,
-      isActive: false,
+      isActive: true,
       sortOrder: 1 + i,
       limits: OWN_KEY_LIMITS,
       features: ALL_FEATURES,
@@ -122,7 +122,7 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
       currency: "usd",
       billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
       isDefault: false,
-      isActive: false,
+      isActive: true,
       sortOrder: 3 + i,
       limits: AI_LIMITS,
       features: ALL_FEATURES,
@@ -154,6 +154,42 @@ const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
  * edited, unlike upsertLimits below (which is deliberately an overwrite,
  * for admin edits).
  */
+/**
+ * Writes the default plans' names, descriptions, features and limits over
+ * what's in the database (inserting any plan that's missing), for moving an
+ * existing database onto new defaults — `pnpm db:plans:reset`. Never touches
+ * a plan's price, currency, isActive or isDefault, which are admin decisions.
+ */
+export async function resetPlanDefaults(): Promise<string[]> {
+  const touched: string[] = [];
+  for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
+    await db
+      .insert(plans)
+      .values({
+        key: seed.key,
+        name: seed.name,
+        description: seed.description,
+        priceMinor: seed.priceMinor,
+        currency: seed.currency,
+        billingInterval: seed.billingInterval,
+        isDefault: seed.isDefault,
+        isActive: seed.isActive,
+        sortOrder: seed.sortOrder,
+        features: seed.features,
+      })
+      .onConflictDoUpdate({
+        target: plans.key,
+        set: { name: seed.name, description: seed.description, features: seed.features, sortOrder: seed.sortOrder },
+      });
+
+    const [plan] = await db.select().from(plans).where(eq(plans.key, seed.key)).limit(1);
+    if (!plan) continue;
+    await upsertLimits(db, plan.id, seed.limits);
+    touched.push(seed.key);
+  }
+  return touched;
+}
+
 export async function seedDefaultPlans(): Promise<void> {
   for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
     await db

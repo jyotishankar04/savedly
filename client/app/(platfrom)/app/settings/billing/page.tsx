@@ -71,8 +71,11 @@ function BillingSettings() {
     }
   };
 
-  const onPaidPlan = !!data && data.plan.priceMinor > 0;
-  const upgrades = (plans ?? []).filter((p) => p.priceMinor > 0 && planTier(p.key) !== planTier(data?.plan.key ?? ""));
+  const onPaidPlan = !!data && !data.plan.isDefault;
+  // Priced paid plans only — an unpriced one can't be bought yet.
+  const upgrades = (plans ?? []).filter(
+    (p) => !p.isDefault && p.priceMinor > 0 && planTier(p.key) !== planTier(data?.plan.key ?? ""),
+  );
 
   return (
     <div className="space-y-6 max-w-3xl text-xs font-semibold">
