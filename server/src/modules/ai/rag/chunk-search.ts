@@ -71,7 +71,7 @@ async function chunkSemanticSearch(userId: string, queryText: string, limit: num
   try {
     const embedding = await resolved.client.embedQuery(queryText);
     void logAiUsage({ userId, requestType: "embedding:query", provider: resolved.provider, model: resolved.model });
-    const results = await getVectorStore().searchChunksByEmbedding(userId, embedding, limit);
+    const results = await (await getVectorStore()).searchChunksByEmbedding(userId, embedding, limit);
     return results.map((r) => ({ chunkId: r.chunkId, memoryId: r.memoryId, content: r.content, score: r.score }));
   } catch (err) {
     logger.error({ err, userId }, "chunkSemanticSearch: leg failed, degrading to lexical-only");

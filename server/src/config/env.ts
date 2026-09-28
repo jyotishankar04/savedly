@@ -1,10 +1,36 @@
 import dotenv from "dotenv";
 import z from "zod";
+import { loadSelfHostSecrets } from "./self-host-secrets";
 dotenv.config();
+loadSelfHostSecrets();
+
+// "true"/"false" strings from the environment — z.coerce.boolean() would read
+// the string "false" as true.
+const envFlag = z
+  .enum(["true", "false"])
+  .default("false")
+  .transform((v) => v === "true");
 
 const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    // Self-hosted install (docker-compose.yml at the repo root). Every
+    // external service becomes optional with a working default (local disk,
+    // pgvector, no email), the admin can configure the rest from Admin ->
+    // Configuration -> Infrastructure, billing is off and every plan limit
+    // is lifted. Hosted production leaves this false and is configured only
+    // through env.
+    SELF_HOSTED: envFlag,
+    // Where a self-hosted install keeps its generated secrets and, with the
+    // local storage driver, uploaded files. Both are Docker volumes in
+    // docker-compose.yml.
+    SECRETS_DIR: z.string().default("./.secrets"),
+    FILES_DIR: z.string().default("./data/files"),
+    // Express "trust proxy" hops, so req.ip (rate limits, session records) is
+    // the visitor's address rather than the proxy's. The self-hosted client
+    // proxies /api/v1 to this server, so docker-compose.yml sets 1; add one
+    // more for each reverse proxy (Caddy, nginx) in front of it.
+    TRUST_PROXY: z.coerce.number().int().min(0).default(0),
     PORT: z.coerce.number().default(4000),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
@@ -21,8 +47,8 @@ const envSchema = z
     SMTP_SECURE: z.coerce.boolean().default(false),
     SMTP_USERNAME: z.string().optional(),
     SMTP_PASSWORD: z.string().optional(),
-    SMTP_FROM_ADDRESS: z.string().email().default("noreply@memora.local"),
-    SMTP_FROM_NAME: z.string().default("Memora"),
+    SMTP_FROM_ADDRESS: z.string().email().default("noreply@saveforlatter.local"),
+    SMTP_FROM_NAME: z.string().default("SaveForLatter"),
     FRONTEND_URL: z.string().url().min(1, "FRONTEND_URL is required"),
     SERVER_URL: z.string().url().min(1, "SERVER_URL is required"),
 
@@ -43,16 +69,22 @@ const envSchema = z
     // as SHARE_TOKEN_SECRET, kept as its own secret rather than reused.
     VAULT_TOKEN_SECRET: z.string().min(32, "VAULT_TOKEN_SECRET must be at least 32 characters"),
 
-    GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required"),
-    GOOGLE_CLIENT_SECRET: z.string().min(1, "GOOGLE_CLIENT_SECRET is required"),
-    GITHUB_CLIENT_ID: z.string().min(1, "GITHUB_CLIENT_ID is required"),
-    GITHUB_CLIENT_SECRET: z.string().min(1, "GITHUB_CLIENT_SECRET is required"),
+    // Required in hosted production (see the superRefine below); optional
+    // when SELF_HOSTED, where email + password sign-in works on its own and
+    // OAuth can be added later from the admin Infrastructure settings.
+    GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+    GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+    GITHUB_CLIENT_ID: z.string().min(1).optional(),
+    GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
 
-    R2_ACCOUNT_ID: z.string().min(1, "R2_ACCOUNT_ID is required"),
-    R2_ACCESS_KEY_ID: z.string().min(1, "R2_ACCESS_KEY_ID is required"),
-    R2_SECRET_ACCESS_KEY: z.string().min(1, "R2_SECRET_ACCESS_KEY is required"),
-    R2_BUCKET_NAME: z.string().min(1, "R2_BUCKET_NAME is required"),
-    R2_PUBLIC_URL: z.string().url("R2_PUBLIC_URL must be a valid URL"),
+    // Cloudflare R2 — hosted production's file storage. Same rule as OAuth:
+    // required unless SELF_HOSTED, where uploads default to local disk
+    // (FILES_DIR) and any S3-compatible store can be set up in settings.
+    R2_ACCOUNT_ID: z.string().min(1).optional(),
+    R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+    R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+    R2_BUCKET_NAME: z.string().min(1).optional(),
+    R2_PUBLIC_URL: z.string().url("R2_PUBLIC_URL must be a valid URL").optional(),
 
     // Vector storage backend — local/dev uses the pgvector columns already
     // on `memories`/`memory_chunks`; production points at Upstash Vector
@@ -107,6 +139,25 @@ const envSchema = z
     // secret, not reused, so a forged calendar-state token can never be
     // read as any other kind.
     CALENDAR_STATE_SECRET: z.string().min(32, "CALENDAR_STATE_SECRET must be at least 32 characters"),
+  })
+  .superRefine((data, ctx) => {
+    if (data.SELF_HOSTED) return;
+    const requiredInProduction = [
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "R2_ACCOUNT_ID",
+      "R2_ACCESS_KEY_ID",
+      "R2_SECRET_ACCESS_KEY",
+      "R2_BUCKET_NAME",
+      "R2_PUBLIC_URL",
+    ] as const;
+    for (const key of requiredInProduction) {
+      if (!data[key]) {
+        ctx.addIssue({ code: "custom", path: [key], message: `${key} is required (set SELF_HOSTED=true to run without it)` });
+      }
+    }
   })
   .refine((data) => data.JWT_ACCESS_SECRET !== data.JWT_REFRESH_SECRET, {
     message: "JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different",

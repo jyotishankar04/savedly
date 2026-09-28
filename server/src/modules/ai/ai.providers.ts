@@ -14,6 +14,7 @@ import { decryptToken } from "../../shared/crypto/token-cipher";
 import { logger } from "../../shared/utils/logger";
 import { env } from "../../config/env";
 import { createUsageCallback } from "../ai-usage/usage-logger";
+import { getSection } from "../instance-settings/instance-settings.service";
 
 export interface UsageContext {
   userId: string | null;
@@ -76,13 +77,16 @@ async function resolveCredential(userId: string, role: AiRole): Promise<Provider
  * EMBEDDINGS_API_KEY. Returns null when unset, so a deployment that leaves
  * it blank gets exactly the old fully-BYOK embeddings behavior.
  */
-function platformEmbeddingsCredential(): ProviderCredentialInput | null {
-  if (!env.EMBEDDINGS_API_KEY) return null;
+async function platformEmbeddingsCredential(): Promise<ProviderCredentialInput | null> {
+  // EMBEDDINGS_* in env, or Admin -> Infrastructure -> Embeddings on a
+  // self-hosted install.
+  const settings = await getSection("embeddings");
+  if (!settings.apiKey) return null;
   return {
-    provider: env.EMBEDDINGS_PROVIDER as AiCredentialProvider,
-    apiKey: env.EMBEDDINGS_API_KEY,
-    baseUrl: env.EMBEDDINGS_BASE_URL ?? null,
-    model: env.EMBEDDINGS_MODEL,
+    provider: String(settings.provider) as AiCredentialProvider,
+    apiKey: String(settings.apiKey),
+    baseUrl: settings.baseUrl ? String(settings.baseUrl) : null,
+    model: String(settings.model),
   };
 }
 
@@ -190,7 +194,7 @@ export interface ResolvedEmbeddings {
  * BYOK, see the comment on platformEmbeddingsCredential above.
  */
 export async function getEmbeddings(userId: string): Promise<ResolvedEmbeddings | null> {
-  const credential = (await resolveCredential(userId, AiRole.EMBEDDINGS)) ?? platformEmbeddingsCredential();
+  const credential = (await resolveCredential(userId, AiRole.EMBEDDINGS)) ?? (await platformEmbeddingsCredential());
   if (!credential) return null;
   try {
     return { client: buildEmbeddings(credential), provider: credential.provider, model: credential.model };
@@ -272,5 +276,13 @@ export async function testRoleCredential(input: ProviderCredentialInput, role: A
   } catch (err) {
     const message = err instanceof Error ? err.message : "Connection test failed";
     return { ok: false, error: message };
+  }
+}
+
+/** Admin -> Infrastructure's "Test connection" for the embeddings key: one real embedding call. */
+export async function testEmbeddingsCredential(credential: ProviderCredentialInput): Promise<void> {
+  const vector = await buildEmbeddings(credential).embedQuery("SaveForLatter connection test");
+  if (vector.length !== EMBEDDING_DIMENSIONS) {
+    throw new Error(`This model returns ${vector.length}-dimensional vectors; SaveForLatter needs ${EMBEDDING_DIMENSIONS}.`);
   }
 }

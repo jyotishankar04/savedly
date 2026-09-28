@@ -23,7 +23,7 @@ export async function semanticSearch(userId: string, queryText: string, limit: n
   try {
     const embedding = await resolved.client.embedQuery(queryText);
     void logAiUsage({ userId, requestType: "embedding:query", provider: resolved.provider, model: resolved.model });
-    return await getVectorStore().searchByEmbedding(userId, embedding, limit);
+    return await (await getVectorStore()).searchByEmbedding(userId, embedding, limit);
   } catch (err) {
     logger.error({ err, userId }, "semanticSearch: leg failed, degrading to lexical-only");
     return [];

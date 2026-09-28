@@ -1,6 +1,7 @@
 import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
 import { isTokenCipherConfigured } from "../../../shared/crypto/token-cipher";
+import { getOAuthCredentials, requireOAuthCredentials } from "../../auth/oauth-config";
 import type {
   CalendarEventPayload,
   CalendarTokenExchange,
@@ -27,13 +28,14 @@ import type {
 const GOOGLE_CALENDAR_CALLBACK_URL = `${env.SERVER_URL}/api/v1/integrations/calendar/google/callback`;
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
-export function isGoogleCalendarConfigured(): boolean {
-  return Boolean(env.GOOGLE_CLIENT_ID) && Boolean(env.GOOGLE_CLIENT_SECRET) && isTokenCipherConfigured();
+export async function isGoogleCalendarConfigured(): Promise<boolean> {
+  return isTokenCipherConfigured() && !!(await getOAuthCredentials("google"));
 }
 
-export function buildGoogleCalendarAuthUrl(state: string): string {
+export async function buildGoogleCalendarAuthUrl(state: string): Promise<string> {
+  const { clientId } = await requireOAuthCredentials("google");
   const params = new URLSearchParams({
-    client_id: env.GOOGLE_CLIENT_ID,
+    client_id: clientId,
     redirect_uri: GOOGLE_CALENDAR_CALLBACK_URL,
     response_type: "code",
     scope: GOOGLE_CALENDAR_SCOPE,
@@ -48,13 +50,14 @@ export function buildGoogleCalendarAuthUrl(state: string): string {
 }
 
 export async function exchangeGoogleCalendarCode(code: string): Promise<CalendarTokenExchange> {
+  const google = await requireOAuthCredentials("google");
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
+      client_id: google.clientId,
+      client_secret: google.clientSecret,
       redirect_uri: GOOGLE_CALENDAR_CALLBACK_URL,
       grant_type: "authorization_code",
     }),
@@ -90,13 +93,14 @@ export async function exchangeGoogleCalendarCode(code: string): Promise<Calendar
 }
 
 export async function refreshGoogleAccessToken(refreshToken: string): Promise<CalendarTokenRefresh> {
+  const google = await requireOAuthCredentials("google");
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       refresh_token: refreshToken,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
+      client_id: google.clientId,
+      client_secret: google.clientSecret,
       grant_type: "refresh_token",
     }),
   });

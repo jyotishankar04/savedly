@@ -1,4 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+// Server components can't use a relative URL, so a self-hosted build (where
+// NEXT_PUBLIC_API_URL is "/api/v1") reaches the API container directly.
+const API_URL = process.env.API_INTERNAL_URL
+  ? `${process.env.API_INTERNAL_URL.replace(/\/$/, "")}/api/v1`
+  : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1");
 
 interface ApiEnvelope<T> {
   success: boolean;

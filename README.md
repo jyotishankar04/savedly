@@ -48,6 +48,16 @@ There's no paid tier. Every feature is unlimited on every account, the code is p
 
 This is a monorepo of independent apps with **no root workspace** linking them — each has its own `pnpm-workspace.yaml` and lockfile. `cd` into an app directory before installing or running anything.
 
+## Self-host
+
+Run your own SaveForLatter with one command. You need Docker and Git:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh
+```
+
+Then open <http://localhost:3000> and create your admin account. It works out of the box with local file storage, the built-in vector store and no email; connect R2/S3, Upstash, SMTP or Google/GitHub sign-in later from **Admin** > **Infrastructure**, or with environment variables. Every feature is unlimited on a self-hosted install. See the [self-hosting guide](./docs/SELF_HOSTING.md).
+
 ## Getting started
 
 > [!IMPORTANT]

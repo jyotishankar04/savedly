@@ -76,7 +76,7 @@ export async function hardDeleteAccount(userId: string): Promise<void> {
   const userMemories = await db.select({ id: memories.id }).from(memories).where(eq(memories.userId, userId));
   for (const { id } of userMemories) {
     getVectorStore()
-      .deleteMemoryVectors(id)
+      .then((store) => store.deleteMemoryVectors(id))
       .catch((err) => logger.error({ userId, memoryId: id, err }, "[account] vector cleanup failed during hard delete"));
   }
 

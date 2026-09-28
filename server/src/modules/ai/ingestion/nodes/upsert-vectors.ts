@@ -142,7 +142,7 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
   // natural empty state (column default null / zero chunk rows) until
   // embeddings get configured and it's reprocessed.
   if (state.documentEmbedding.length > 0) {
-    await getVectorStore().upsertMemoryVectors({
+    await (await getVectorStore()).upsertMemoryVectors({
       memoryId: state.memoryId,
       userId: state.userId,
       documentEmbedding: state.documentEmbedding,

@@ -264,6 +264,10 @@ export const users = pgTable(
     // as the `pv` claim in the vault-unlock token, so changing the PIN
     // invalidates every unlock proof already issued, the same trick used for
     // share-link passwords.
+    // Email + password sign-in (self-hosted installs), scrypt-hashed with
+    // shared/crypto/scrypt-password.ts like the vault PIN. Null for accounts
+    // that only ever signed in through Google/GitHub.
+    passwordHash: text("password_hash"),
     vaultPinHash: text("vault_pin_hash"),
     vaultPinUpdatedAt: timestamp("vault_pin_updated_at", { withTimezone: true }),
     // When a soft account-deletion was requested (status flips to DELETED at
@@ -1075,6 +1079,27 @@ export const featureFlags = pgTable(
   },
   (table) => [index("idx_feature_flags_category").on(table.category)]
 );
+
+// -----------------------------------------------------------------------------
+// 20b. Instance Settings (self-hosted installs only)
+//     The infrastructure an admin configures from Admin -> Configuration ->
+//     Infrastructure: file storage, vector store, email, embeddings, OAuth.
+//     One row per section. Non-secret fields live in `value`; secret fields
+//     (API keys, passwords) are a JSON object encrypted with token-cipher's
+//     encryptToken in `secret_value`, never returned to the client. Hosted
+//     production never reads this table — it's configured only through env.
+//     See modules/instance-settings/.
+// -----------------------------------------------------------------------------
+export const instanceSettings = pgTable("instance_settings", {
+  section: varchar("section", { length: 50 }).primaryKey(),
+  value: jsonb("value").notNull().default({}),
+  secretValue: text("secret_value"),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
 
 // -----------------------------------------------------------------------------
 // 21. Announcements Table (launch/update countdowns and banners — a history,

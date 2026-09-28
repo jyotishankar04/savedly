@@ -22,6 +22,7 @@ import { toast } from "@/components/ui/toast";
 const RESERVED_KEYS = {
   GOOGLE: "auth.google.enabled",
   GITHUB: "auth.github.enabled",
+  PASSWORD: "auth.password.enabled",
   SIGNUPS: "signups.enabled",
   MAINTENANCE: "maintenance.enabled",
   MAINTENANCE_MESSAGE: "maintenance.message",
@@ -75,6 +76,7 @@ export default function AdminConfigurationPage() {
 
   const google = flagByKey.get(RESERVED_KEYS.GOOGLE);
   const github = flagByKey.get(RESERVED_KEYS.GITHUB);
+  const password = flagByKey.get(RESERVED_KEYS.PASSWORD);
   const signups = flagByKey.get(RESERVED_KEYS.SIGNUPS);
   const maintenance = flagByKey.get(RESERVED_KEYS.MAINTENANCE);
   const maintenanceMessage = flagByKey.get(RESERVED_KEYS.MAINTENANCE_MESSAGE);
@@ -100,6 +102,13 @@ export default function AdminConfigurationPage() {
           checked={Boolean(github?.value)}
           disabled={pending === RESERVED_KEYS.GITHUB}
           onChange={(v) => toggle(RESERVED_KEYS.GITHUB, v)}
+        />
+        <ToggleRow
+          label="Email and password sign-in"
+          description="Allow accounts with an email and password. Always on for self-hosted installs."
+          checked={Boolean(password?.value)}
+          disabled={pending === RESERVED_KEYS.PASSWORD}
+          onChange={(v) => toggle(RESERVED_KEYS.PASSWORD, v)}
         />
         <ToggleRow
           label="New signups"

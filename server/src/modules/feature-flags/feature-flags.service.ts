@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
+import { env } from "../../config/env";
 import { featureFlags } from "../../db/schema";
 import type { UpdateFlagInput } from "./feature-flags.schema";
 
@@ -11,6 +12,7 @@ import type { UpdateFlagInput } from "./feature-flags.schema";
 export const RESERVED_FLAG_KEYS = {
   AUTH_GOOGLE_ENABLED: "auth.google.enabled",
   AUTH_GITHUB_ENABLED: "auth.github.enabled",
+  AUTH_PASSWORD_ENABLED: "auth.password.enabled",
   SIGNUPS_ENABLED: "signups.enabled",
   MAINTENANCE_ENABLED: "maintenance.enabled",
   MAINTENANCE_MESSAGE: "maintenance.message",
@@ -47,6 +49,12 @@ const DEFAULT_FLAGS: { key: string; value: unknown; description: string; categor
   // Authentication
   { key: RESERVED_FLAG_KEYS.AUTH_GOOGLE_ENABLED, value: true, description: "Allow signing in with Google.", category: "auth" },
   { key: RESERVED_FLAG_KEYS.AUTH_GITHUB_ENABLED, value: true, description: "Allow signing in with GitHub.", category: "auth" },
+  {
+    key: RESERVED_FLAG_KEYS.AUTH_PASSWORD_ENABLED,
+    value: false,
+    description: "Allow signing in with email and password (always on for self-hosted installs).",
+    category: "auth",
+  },
   { key: RESERVED_FLAG_KEYS.SIGNUPS_ENABLED, value: true, description: "Allow new account signups.", category: "auth" },
   // System
   { key: RESERVED_FLAG_KEYS.MAINTENANCE_ENABLED, value: false, description: "Block non-admin traffic app-wide.", category: "system" },
@@ -133,6 +141,12 @@ export async function updateFlag(key: string, patch: UpdateFlagInput, adminUserI
 export async function isProviderEnabled(provider: "google" | "github"): Promise<boolean> {
   const key = provider === "google" ? RESERVED_FLAG_KEYS.AUTH_GOOGLE_ENABLED : RESERVED_FLAG_KEYS.AUTH_GITHUB_ENABLED;
   return getFlagValue<boolean>(key, true);
+}
+
+/** Always on for a self-hosted install — it's how the first admin gets in without setting up OAuth. */
+export async function isPasswordAuthEnabled(): Promise<boolean> {
+  if (env.SELF_HOSTED) return true;
+  return getFlagValue<boolean>(RESERVED_FLAG_KEYS.AUTH_PASSWORD_ENABLED, false);
 }
 
 export async function isSignupsEnabled(): Promise<boolean> {

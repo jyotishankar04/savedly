@@ -18,6 +18,7 @@ import {
   Layers01Icon as Layers,
   Mail01Icon as Mail,
   SlideIcon as Sliders,
+  CloudServerIcon as CloudServer,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,7 @@ const NAV_ENTRIES: NavEntry[] = [
   { label: "AI Usage", href: "/admin/ai-usage", icon: Cpu },
   { label: "Features", href: "/admin/features", icon: Sliders },
   { label: "Configuration", href: "/admin/configuration", icon: Settings },
+  { label: "Infrastructure", href: "/admin/infrastructure", icon: CloudServer },
   { label: "Plans & Limits", href: "/admin/plans-limits", icon: Layers },
 ];
 

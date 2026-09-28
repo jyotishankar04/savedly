@@ -809,7 +809,7 @@ export async function deleteMemory(userId: string, id: string): Promise<void> {
   // via cascade automatically. Best-effort: an orphaned vector costs a
   // little storage, but must never block the delete response.
   getVectorStore()
-    .deleteMemoryVectors(id)
+    .then((store) => store.deleteMemoryVectors(id))
     .catch((err) => {
       logger.error({ memoryId: id, err }, "Failed to delete memory vectors");
     });

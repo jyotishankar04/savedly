@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
             Save everything you discover, search by what you remember.
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Join thousands of professionals, developers, and researchers building their digital second brains.
+            Links, notes, screenshots, PDFs and voice memos in one place, organized for you and searchable by meaning.
           </p>
         </div>
 

@@ -31,8 +31,8 @@ export type CalendarProviderKey = "google" | "microsoft";
 // about-to-expire token.
 const REFRESH_SKEW_MS = 5 * 60 * 1000;
 
-function isProviderConfigured(provider: CalendarProviderKey): boolean {
-  return provider === "google" ? isGoogleCalendarConfigured() : isMicrosoftCalendarConfigured();
+async function isProviderConfigured(provider: CalendarProviderKey): Promise<boolean> {
+  return provider === "google" ? await isGoogleCalendarConfigured() : isMicrosoftCalendarConfigured();
 }
 
 function toEnumValue(provider: CalendarProviderKey): CalendarProvider {
@@ -142,7 +142,7 @@ export async function pushMemoryToCalendar(
   provider: CalendarProviderKey,
   memory: PushableMemory,
 ): Promise<{ htmlLink: string }> {
-  if (!isProviderConfigured(provider)) {
+  if (!(await isProviderConfigured(provider))) {
     throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
   }
 
@@ -474,7 +474,7 @@ export async function updateExternalCalendarEvent(
   externalEventId: string,
   input: { title: string; description: string | null; startAt: string; endAt: string },
 ): Promise<void> {
-  if (!isProviderConfigured(provider)) {
+  if (!(await isProviderConfigured(provider))) {
     throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
   }
   const accessToken = await getValidAccessToken(userId, provider);
@@ -490,7 +490,7 @@ export async function updateExternalCalendarEvent(
 }
 
 export async function deleteExternalCalendarEvent(userId: string, provider: CalendarProviderKey, externalEventId: string): Promise<void> {
-  if (!isProviderConfigured(provider)) {
+  if (!(await isProviderConfigured(provider))) {
     throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
   }
   const accessToken = await getValidAccessToken(userId, provider);

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { corsOptions } from "./config/cors";
+import { env } from "./config/env";
 import routes from "./routes/index";
 import { errorHandler } from "./shared/errors/error-handler";
 import { notFound } from "./shared/middlewares/not-found";
@@ -9,6 +10,7 @@ import { requestLogger } from "./shared/middlewares/request-logger";
 
 export function createApp() {
   const app = express();
+  app.set("trust proxy", env.TRUST_PROXY);
 
   app.use(requestLogger);
 

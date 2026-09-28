@@ -15,6 +15,15 @@ export const oauthRateLimiter = rateLimit({
   handler: rateLimitHandler,
 });
 
+// Email + password sign-in and registration: slows password guessing.
+export const passwordAuthRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+
 export const refreshRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
