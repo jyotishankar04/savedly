@@ -8,7 +8,7 @@
 
 A personal memory tool that reads, organizes, and helps you find what you save — by keyword or by meaning. Free and open source, with AI features that run on your own API key.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 [![Open Source](https://img.shields.io/badge/open%20source-%E2%9D%A4-blue)](./CONTRIBUTING.md)
 
 [Overview](#overview) • [Features](#features) • [Tech stack](#tech-stack) • [Getting started](#getting-started) • [Bring your own AI key](#bring-your-own-ai-key) • [Project structure](#project-structure) • [Getting help](#getting-help)
@@ -109,4 +109,4 @@ docs/       Contributor documentation — start at docs/README.md
 - **Want to contribute code?** See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for setup and PR conventions, and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) for the ground rules.
 - **Found a security issue?** Please don't open a public issue — see [`SECURITY.md`](./SECURITY.md).
 
-This project is [MIT licensed](./LICENSE).
+This project is licensed under the [GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0). You can use, modify and self-host it freely; if you run a modified version as a network service, you must make your source code available to its users under the same license.

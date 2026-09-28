@@ -3,4 +3,4 @@
 export const GITHUB_URL = "https://github.com/jyotishankar04/saveforlatter";
 export const GITHUB_CONFIGURED = true;
 
-export const LICENSE = "MIT";
+export const LICENSE = "AGPL-3.0";
