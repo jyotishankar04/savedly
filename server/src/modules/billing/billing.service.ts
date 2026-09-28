@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { billingCustomers, billingEvents, plans, userPlanAssignments, users } from "../../db/schema";
 import { PlanAssignmentSource, PlanAssignmentStatus } from "../../db/enums";
@@ -157,26 +157,24 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
   const now = new Date();
 
   await db.transaction(async (tx) => {
-    const [current] = await tx
-      .select()
-      .from(userPlanAssignments)
-      .where(
-        and(
-          eq(userPlanAssignments.userId, userId),
-          eq(userPlanAssignments.sourceRefType, SUBSCRIPTION_REF),
-          eq(userPlanAssignments.sourceRefId, event.subscriptionId),
-        ),
-      )
-      .limit(1);
+    // Providers often send several events for one subscription at the same
+    // instant (Dodo sends subscription.active and .renewed together).
+    // Serializing per subscription stops two handlers from both seeing "no
+    // assignment yet" and inserting one each.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`billing:${event.subscriptionId}`}))`);
+
+    const refMatch = and(
+      eq(userPlanAssignments.userId, userId),
+      eq(userPlanAssignments.sourceRefType, SUBSCRIPTION_REF),
+      eq(userPlanAssignments.sourceRefId, event.subscriptionId),
+    );
+    const [current] = await tx.select().from(userPlanAssignments).where(refMatch).limit(1);
 
     switch (event.kind) {
       case "active": {
         const endsAt = event.periodEnd ? new Date(event.periodEnd.getTime() + RENEWAL_GRACE_MS) : null;
         if (current) {
-          await tx
-            .update(userPlanAssignments)
-            .set({ planId, status: PlanAssignmentStatus.ACTIVE, endsAt })
-            .where(eq(userPlanAssignments.id, current.id));
+          await tx.update(userPlanAssignments).set({ planId, status: PlanAssignmentStatus.ACTIVE, endsAt }).where(refMatch);
         } else {
           // A new subscription replaces any other subscription-bought plan
           // (e.g. switching from Own key to AI included).
@@ -215,15 +213,12 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
         await tx
           .update(userPlanAssignments)
           .set({ endsAt, status: endsAt > now ? PlanAssignmentStatus.ACTIVE : PlanAssignmentStatus.CANCELLED })
-          .where(eq(userPlanAssignments.id, current.id));
+          .where(refMatch);
         return;
       }
       case "ended": {
         if (!current) return;
-        await tx
-          .update(userPlanAssignments)
-          .set({ status: PlanAssignmentStatus.EXPIRED, endsAt: now })
-          .where(eq(userPlanAssignments.id, current.id));
+        await tx.update(userPlanAssignments).set({ status: PlanAssignmentStatus.EXPIRED, endsAt: now }).where(refMatch);
         return;
       }
     }
