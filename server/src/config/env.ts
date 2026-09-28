@@ -124,6 +124,33 @@ const envSchema = z
     // Only for a "custom" (OpenAI-compatible) provider above.
     PLATFORM_AI_BASE_URL: z.string().url().optional(),
 
+    // Billing (hosted only; ignored when SELF_HOSTED). Optional: with no
+    // provider configured, /billing returns 503 BILLING_NOT_CONFIGURED and
+    // the rest of the app is unaffected. Dodo Payments is a merchant of
+    // record (it handles sales tax/VAT/GST) and supports cards worldwide plus
+    // UPI (including UPI Autopay for subscriptions) in India.
+    BILLING_PROVIDER: z.enum(["dodo"]).optional(),
+    DODO_PAYMENTS_API_KEY: z.string().optional(),
+    // The webhook signing secret from the Dodo dashboard (starts "whsec_").
+    DODO_PAYMENTS_WEBHOOK_KEY: z.string().optional(),
+    DODO_PAYMENTS_ENVIRONMENT: z.enum(["test_mode", "live_mode"]).default("test_mode"),
+    // Which Dodo product each paid plan sells, as JSON keyed by plan key:
+    // {"own-key-monthly":"pdt_...","own-key-yearly":"pdt_...","ai-monthly":"pdt_...","ai-yearly":"pdt_..."}
+    // The price charged is the product's price in Dodo — keep the plan's
+    // display price in Admin -> Plans & Limits the same.
+    DODO_PRODUCT_IDS: z
+      .string()
+      .optional()
+      .transform((raw, ctx) => {
+        if (!raw) return {} as Record<string, string>;
+        try {
+          return z.record(z.string(), z.string()).parse(JSON.parse(raw));
+        } catch {
+          ctx.addIssue({ code: "custom", message: "DODO_PRODUCT_IDS must be a JSON object of plan key -> product id" });
+          return z.NEVER;
+        }
+      }),
+
     // Langfuse (self-hosted, see docker-compose.yml's langfuse-* services) —
     // traces every node/LLM call in the ingestion pipeline. Optional: if
     // unset, tracing is just skipped rather than failing the pipeline.

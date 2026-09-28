@@ -14,7 +14,7 @@ export function createApp() {
 
   app.use(requestLogger);
 
-  // Stripe needs the raw body for webhook signature verification — must be
+  // The payment provider's webhook needs the raw body for signature verification — must be
   // registered with express.raw() on this exact path BEFORE the global
   // express.json() below, or json() will have already consumed the stream.
   app.use("/api/v1/billing/webhook", express.raw({ type: "application/json" }));

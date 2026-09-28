@@ -20,6 +20,8 @@ import { adminRouter as announcementsAdminRoutes, publicRouter as announcementsP
 import adminRoutes from "../modules/admin";
 import instanceSettingsRoutes from "../modules/instance-settings";
 import configRoutes from "../modules/config";
+import billingRoutes from "../modules/billing";
+import { env } from "../config/env";
 import plansRoutes from "../modules/plans";
 import accountRoutes from "../modules/account";
 import importRoutes from "../modules/import";
@@ -56,6 +58,8 @@ router.use("/files", filesRoutes);
 router.use("/ai", aiRoutes);
 router.use("/ai-settings", aiSettingsRoutes);
 router.use("/plans", plansRoutes);
+// Paid plans exist only on the hosted service.
+if (!env.SELF_HOSTED) router.use("/billing", billingRoutes);
 router.use("/account", accountRoutes);
 router.use("/import", importRoutes);
 router.use("/integrations", integrationsRoutes);

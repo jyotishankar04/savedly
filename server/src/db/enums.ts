@@ -170,6 +170,8 @@ export enum PlanAssignmentStatus {
 export enum PlanAssignmentSource {
   ADMIN_MANUAL = "admin_manual",
   SIGNUP_DEFAULT = "signup_default",
+  // A paid plan bought through the billing provider (modules/billing).
+  SUBSCRIPTION = "subscription",
 }
 
 // TRANSACTIONAL = system-triggered (welcome, status-changed, share events),

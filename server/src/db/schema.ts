@@ -209,6 +209,7 @@ export const planAssignmentStatusEnum = pgEnum("plan_assignment_status", [
 export const planAssignmentSourceEnum = pgEnum("plan_assignment_source", [
   PlanAssignmentSource.ADMIN_MANUAL,
   PlanAssignmentSource.SIGNUP_DEFAULT,
+  PlanAssignmentSource.SUBSCRIPTION,
 ]);
 
 export const emailCategoryEnum = pgEnum("email_category", [
@@ -1101,6 +1102,31 @@ export const instanceSettings = pgTable("instance_settings", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
+});
+
+// -----------------------------------------------------------------------------
+// 20c. Billing (hosted only — modules/billing)
+//     billing_customers: the payment provider's customer id per user, needed
+//     to open the provider's billing portal. billing_events: every webhook
+//     event id already handled, so a replayed delivery is a no-op.
+// -----------------------------------------------------------------------------
+export const billingCustomers = pgTable("billing_customers", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  provider: varchar("provider", { length: 30 }).notNull(),
+  customerId: varchar("customer_id", { length: 255 }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export const billingEvents = pgTable("billing_events", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  provider: varchar("provider", { length: 30 }).notNull(),
+  type: varchar("type", { length: 100 }).notNull(),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // -----------------------------------------------------------------------------
