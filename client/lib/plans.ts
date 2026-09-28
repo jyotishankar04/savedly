@@ -2,11 +2,13 @@ import { apiFetch } from "@/lib/auth";
 
 export type PlanLimitType =
   | "memory_count"
-  | "ai_monthly_queries"
-  | "ai_monthly_vision_queries"
   | "storage_mb"
+  | "max_file_mb"
+  | "public_share_count"
   | "collection_count"
-  | "public_share_count";
+  | "ai_monthly_saves"
+  | "ai_monthly_queries"
+  | "ai_monthly_vision_queries";
 
 export interface Plan {
   id: string;
@@ -43,6 +45,8 @@ export interface MyPlanSummary {
   assignment: PlanAssignment | null;
   limits: PlanLimits;
   usage: PlanUsage;
+  /** A self-hosted install: one unlimited plan, no billing. */
+  selfHosted: boolean;
 }
 
 export interface PublicPlan extends Plan {
@@ -57,17 +61,21 @@ export async function listPublicPlans(): Promise<PublicPlan[]> {
   return apiFetch<PublicPlan[]>("/plans");
 }
 
+// The ai_monthly_* limits cap *included* AI — what the platform supplies on
+// its own key. Anyone's own AI key is never limited by them.
 export const PLAN_LIMIT_LABEL: Record<PlanLimitType, string> = {
   memory_count: "Memories",
-  ai_monthly_queries: "Ask SaveForLatter queries / month",
-  ai_monthly_vision_queries: "Vision analysis / month",
   storage_mb: "Storage",
-  collection_count: "Collections",
+  max_file_mb: "Largest file",
   public_share_count: "Public share links",
+  collection_count: "Collections",
+  ai_monthly_saves: "Included AI saves / month",
+  ai_monthly_queries: "Included Ask questions / month",
+  ai_monthly_vision_queries: "Included image reads / month",
 };
 
 export function formatLimitValue(limitType: PlanLimitType, value: number): string {
-  if (limitType === "storage_mb") {
+  if (limitType === "storage_mb" || limitType === "max_file_mb") {
     return value >= 1024 ? `${(value / 1024).toFixed(1)} GB` : `${value} MB`;
   }
   return value.toLocaleString();
@@ -79,13 +87,15 @@ export function formatPriceMinor(priceMinor: number, currency: string): string {
   return `${symbol}${(priceMinor / 100).toLocaleString()}`;
 }
 
-const LIMIT_ORDER: PlanLimitType[] = [
+export const LIMIT_ORDER: PlanLimitType[] = [
   "memory_count",
+  "storage_mb",
+  "max_file_mb",
+  "public_share_count",
+  "collection_count",
+  "ai_monthly_saves",
   "ai_monthly_queries",
   "ai_monthly_vision_queries",
-  "storage_mb",
-  "collection_count",
-  "public_share_count",
 ];
 
 /**

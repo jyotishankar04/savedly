@@ -16,12 +16,14 @@ import {
   ShareGrantStatus,
   ShareLinkAccess,
   ShareResourceType,
+  PlanLimitType,
 } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { hashPassword as hashSharePassword } from "../../shared/crypto/scrypt-password";
 import { notifyAccessDecision, notifyAccessRequested, notifyShareInvite } from "./share.notify";
 import type { ShareRow } from "./share.access";
 import type { CreateShareInput, ListSharesQuery, UpdateShareInput } from "./share.schema";
+import { assertWithinLimit } from "../plans/plans.service";
 
 // A denied request shouldn't be re-openable immediately — the partial
 // unique index only stops duplicate *pending* rows.
@@ -207,6 +209,12 @@ export async function updateShare(userId: string, shareId: string, patch: Update
 
   if (nextAccess === ShareLinkAccess.PASSWORD && !willHavePassword) {
     throw new AppError("Set a password before switching this link to password-protected", 400, "BAD_REQUEST");
+  }
+
+  // Only switching a link *to* public counts against the plan's public-link
+  // allowance; a link that's already public was counted when it went public.
+  if (nextAccess === ShareLinkAccess.PUBLIC && existing.linkAccess !== ShareLinkAccess.PUBLIC) {
+    await assertWithinLimit(userId, PlanLimitType.PUBLIC_SHARE_COUNT, 1);
   }
 
   const [row] = await db.update(shares).set(updates).where(eq(shares.id, shareId)).returning();

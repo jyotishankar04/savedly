@@ -127,8 +127,16 @@ export enum NotificationType {
 
 export enum PlanLimitType {
   MEMORY_COUNT = "memory_count",
+  // The three AI quotas cap *included* AI only — calls made on the platform's
+  // key. Anyone using their own key (Settings -> AI) is never limited by
+  // them. 0 = no included AI on this plan; null = unlimited.
+  // AI_MONTHLY_QUERIES is the Ask-question quota (name kept for the
+  // existing enum value).
   AI_MONTHLY_QUERIES = "ai_monthly_queries",
+  AI_MONTHLY_SAVES = "ai_monthly_saves",
   AI_MONTHLY_VISION_QUERIES = "ai_monthly_vision_queries",
+  // Largest single upload, in MB — a per-file cap, not a running total.
+  MAX_FILE_MB = "max_file_mb",
   STORAGE_MB = "storage_mb",
   COLLECTION_COUNT = "collection_count",
   // Counts shares whose link is set to "public". Free plans get a handful;

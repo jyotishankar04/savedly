@@ -1,13 +1,14 @@
 import { and, count, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { importBatches, importItems, memories } from "../../db/schema";
-import { ImportItemStatus, ImportSourceType, MemoryStatus, MemoryType } from "../../db/enums";
+import { ImportItemStatus, ImportSourceType, MemoryStatus, MemoryType, PlanLimitType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { ingestionQueue } from "../ai/ingestion/queue";
 import { normalizeUrl } from "../memory/normalize-url";
 import { parseBookmarksHtml } from "./bookmark-parser";
 import { parseUrlList } from "./url-list-parser";
 import { IMPORT_MAX_URLS, type ImportInput, type ListImportItemsQuery } from "./import.schema";
+import { assertWithinLimit } from "../plans/plans.service";
 
 interface ParsedItem {
   url: string;
@@ -50,6 +51,8 @@ export async function runImport(userId: string, input: ImportInput) {
 
   const toCreate = inBatchUnique.filter((item) => !existingSet.has(normalizeUrl(item.url) ?? ""));
   const duplicates = inBatchUnique.filter((item) => existingSet.has(normalizeUrl(item.url) ?? ""));
+
+  await assertWithinLimit(userId, PlanLimitType.MEMORY_COUNT, toCreate.length);
 
   const { batchId, created } = await db.transaction(async (tx) => {
     const [batch] = await tx

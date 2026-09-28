@@ -3,6 +3,7 @@ import { db, type DbOrTx } from "../../../db";
 import { plans, planLimits } from "../../../db/schema";
 import { PlanLimitType, PlanBillingInterval } from "../../../db/enums";
 import { AppError } from "../../../shared/errors/app-error";
+import { env } from "../../../config/env";
 import { logAdminAction } from "../../../shared/utils/audit-log";
 import { getPlanLimits } from "../../plans/plans.service";
 import type { CreatePlanInput, UpdatePlanInput } from "./plans.schema";
@@ -15,63 +16,146 @@ interface DefaultPlanSeed {
   currency: string;
   billingInterval: PlanBillingInterval;
   isDefault: boolean;
+  isActive: boolean;
   sortOrder: number;
   limits: { limitType: PlanLimitType; limitValue: number | null }[];
   features: Record<string, boolean>;
 }
 
-// This product is free and open source — no paid tiers, and no enforcement
-// left to configure: the memory/collection/upload/share/import/ai modules
-// that used to call assertWithinLimit/hasFeature/canCreateSystemCollection
-// (plans/plans.service.ts) no longer call them at all. This `plans` row (and
-// its limits/features below) is pure record-keeping now — GET /plans/me
-// still shows it on the billing settings page, nothing reads it to gate
-// anything.
-const DEFAULT_PLANS: DefaultPlanSeed[] = [
+const ALL_FEATURES: Record<string, boolean> = {
+  batchOperations: true,
+  importExport: true,
+  calendarSync: true,
+  calendarMicrosoft: true,
+  browserExtension: true,
+  directShares: true,
+  privateShareRequests: true,
+  passwordProtectedShares: true,
+  advancedSearch: true,
+  vault: true,
+  emailCampaigns: true,
+  dataExport: true,
+  aiEventDetection: true,
+};
+
+const MB_PER_GB = 1024;
+
+function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultPlanSeed["limits"] {
+  const all: Record<PlanLimitType, number | null> = {
+    [PlanLimitType.MEMORY_COUNT]: null,
+    [PlanLimitType.STORAGE_MB]: null,
+    [PlanLimitType.MAX_FILE_MB]: null,
+    [PlanLimitType.COLLECTION_COUNT]: null,
+    [PlanLimitType.PUBLIC_SHARE_COUNT]: null,
+    [PlanLimitType.AI_MONTHLY_SAVES]: null,
+    [PlanLimitType.AI_MONTHLY_QUERIES]: null,
+    [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: null,
+    ...values,
+  };
+  return Object.entries(all).map(([limitType, limitValue]) => ({ limitType: limitType as PlanLimitType, limitValue }));
+}
+
+// Hosted plans. Every plan gets every feature — they differ only by volume
+// and by how much AI the platform supplies on its own key (the AI_MONTHLY_*
+// quotas; anyone's own key is never limited). The values are starting points
+// an admin edits in Admin -> Plans & Limits without a deploy.
+//
+// Prices are deliberately NOT seeded: the paid plans start inactive at 0, and
+// stay off the pricing page until an admin sets a real price and activates
+// them.
+const OWN_KEY_LIMITS = limits({
+  [PlanLimitType.STORAGE_MB]: 25 * MB_PER_GB,
+  [PlanLimitType.MAX_FILE_MB]: 100,
+  [PlanLimitType.AI_MONTHLY_SAVES]: 0,
+  [PlanLimitType.AI_MONTHLY_QUERIES]: 0,
+  [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: 0,
+});
+const AI_LIMITS = limits({
+  [PlanLimitType.STORAGE_MB]: 25 * MB_PER_GB,
+  [PlanLimitType.MAX_FILE_MB]: 100,
+  [PlanLimitType.AI_MONTHLY_SAVES]: 2000,
+  [PlanLimitType.AI_MONTHLY_QUERIES]: 1000,
+  [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: 200,
+});
+
+const HOSTED_PLANS: DefaultPlanSeed[] = [
   {
     key: "free",
     name: "Free",
-    description: "Everything, unlimited — this product isn't sold.",
+    description: "Every feature on your own AI key, with a small monthly taste of included AI.",
     priceMinor: 0,
     currency: "usd",
     billingInterval: PlanBillingInterval.MONTHLY,
     isDefault: true,
+    isActive: true,
     sortOrder: 0,
-    limits: [
-      { limitType: PlanLimitType.MEMORY_COUNT, limitValue: null },
-      { limitType: PlanLimitType.AI_MONTHLY_QUERIES, limitValue: null },
-      { limitType: PlanLimitType.AI_MONTHLY_VISION_QUERIES, limitValue: null },
-      { limitType: PlanLimitType.STORAGE_MB, limitValue: null },
-      { limitType: PlanLimitType.COLLECTION_COUNT, limitValue: null },
-      { limitType: PlanLimitType.PUBLIC_SHARE_COUNT, limitValue: null },
-    ],
-    features: {
-      batchOperations: true,
-      importExport: true,
-      calendarSync: true,
-      calendarMicrosoft: true,
-      browserExtension: true,
-      directShares: true,
-      privateShareRequests: true,
-      passwordProtectedShares: true,
-      advancedSearch: true,
-      vault: true,
-      emailCampaigns: true,
-      dataExport: true,
-      aiEventDetection: true,
+    limits: limits({
+      [PlanLimitType.MEMORY_COUNT]: 2000,
+      [PlanLimitType.STORAGE_MB]: 1 * MB_PER_GB,
+      [PlanLimitType.MAX_FILE_MB]: 25,
+      [PlanLimitType.PUBLIC_SHARE_COUNT]: 5,
+      [PlanLimitType.AI_MONTHLY_SAVES]: 50,
+      [PlanLimitType.AI_MONTHLY_QUERIES]: 20,
+      [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: 10,
+    }),
+    features: ALL_FEATURES,
+  },
+  ...(["monthly", "yearly"] as const).flatMap((interval, i) => [
+    {
+      key: `own-key-${interval}`,
+      name: "Own key",
+      description: "Unlimited memories and 25 GB of storage. Bring your own AI key; you pay only for hosting.",
+      priceMinor: 0,
+      currency: "usd",
+      billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
+      isDefault: false,
+      isActive: false,
+      sortOrder: 1 + i,
+      limits: OWN_KEY_LIMITS,
+      features: ALL_FEATURES,
     },
+    {
+      key: `ai-${interval}`,
+      name: "AI included",
+      description: "Everything in Own key, plus AI we supply: 2,000 saves, 1,000 questions and 200 images a month.",
+      priceMinor: 0,
+      currency: "usd",
+      billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
+      isDefault: false,
+      isActive: false,
+      sortOrder: 3 + i,
+      limits: AI_LIMITS,
+      features: ALL_FEATURES,
+    },
+  ]),
+];
+
+// A self-hosted install has one plan, and nothing is limited.
+const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
+  {
+    key: "self-hosted",
+    name: "Self-hosted",
+    description: "Your own install: every feature, unlimited.",
+    priceMinor: 0,
+    currency: "usd",
+    billingInterval: PlanBillingInterval.MONTHLY,
+    isDefault: true,
+    isActive: true,
+    sortOrder: 0,
+    limits: limits({}),
+    features: ALL_FEATURES,
   },
 ];
 
 /**
  * Idempotent (onConflictDoNothing on both the plan and each limit), same
- * pattern as seedDefaultFlags — run via `pnpm db:seed` (src/db/seed.ts),
- * not automatically on boot. Never overwrites a value an admin has since
+ * pattern as seedDefaultFlags — run via `pnpm db:seed` (src/db/seed.ts), and
+ * on every start of a self-hosted container (db/bootstrap.ts). Never overwrites a value an admin has since
  * edited, unlike upsertLimits below (which is deliberately an overwrite,
  * for admin edits).
  */
 export async function seedDefaultPlans(): Promise<void> {
-  for (const seed of DEFAULT_PLANS) {
+  for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
     await db
       .insert(plans)
       .values([
@@ -83,6 +167,7 @@ export async function seedDefaultPlans(): Promise<void> {
           currency: seed.currency,
           billingInterval: seed.billingInterval,
           isDefault: seed.isDefault,
+          isActive: seed.isActive,
           sortOrder: seed.sortOrder,
           features: seed.features,
         },

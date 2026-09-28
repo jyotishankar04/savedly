@@ -139,6 +139,8 @@ export const planLimitTypeEnum = pgEnum("plan_limit_type", [
   PlanLimitType.STORAGE_MB,
   PlanLimitType.COLLECTION_COUNT,
   PlanLimitType.PUBLIC_SHARE_COUNT,
+  PlanLimitType.AI_MONTHLY_SAVES,
+  PlanLimitType.MAX_FILE_MB,
 ]);
 
 // SEMI_ANNUAL was missing here even though it's a real PlanBillingInterval
@@ -1213,9 +1215,8 @@ export const plans = pgTable(
     sortOrder: integer("sort_order").notNull().default(0),
     // Admin-editable, boolean/on-off perks distinct from the numeric
     // PlanLimitType quota system above (memory_count etc.). Record-keeping
-    // only now — nothing in the app enforces these anymore (see the note
-    // above admin/plans/plans.service.ts's DEFAULT_PLANS: the single Free
-    // plan has every limit and feature unconditionally unlimited/on).
+    // only: every plan gets every feature — plans differ only by volume and
+    // included AI (see admin/plans/plans.service.ts's DEFAULT_PLANS).
     features: jsonb("features").$type<Record<string, boolean>>().notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
