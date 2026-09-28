@@ -98,13 +98,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
       {oauth && (
         <div className="space-y-3">
           {providers?.google && (
-            <button type="button" onClick={() => (window.location.href = getProviderLoginUrl("google"))} className={providerButton}>
+            <button type="button" onClick={() => window.location.assign(getProviderLoginUrl("google"))} className={providerButton}>
               <GoogleIcon />
               Continue with Google
             </button>
           )}
           {providers?.github && (
-            <button type="button" onClick={() => (window.location.href = getProviderLoginUrl("github"))} className={providerButton}>
+            <button type="button" onClick={() => window.location.assign(getProviderLoginUrl("github"))} className={providerButton}>
               <GithubIcon />
               Continue with GitHub
             </button>

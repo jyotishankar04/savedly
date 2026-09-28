@@ -76,7 +76,8 @@ export const PLAN_LIMIT_LABEL: Record<PlanLimitType, string> = {
 
 export function formatLimitValue(limitType: PlanLimitType, value: number): string {
   if (limitType === "storage_mb" || limitType === "max_file_mb") {
-    return value >= 1024 ? `${(value / 1024).toFixed(1)} GB` : `${value} MB`;
+    // 1024 -> "1 GB", 1536 -> "1.5 GB"
+    return value >= 1024 ? `${Math.round((value / 1024) * 10) / 10} GB` : `${value} MB`;
   }
   return value.toLocaleString();
 }
@@ -105,9 +106,43 @@ export const LIMIT_ORDER: PlanLimitType[] = [
  * pricing table can never drift out of sync with what's actually enforced.
  */
 export function planLimitBullets(limits: PlanLimits): string[] {
-  return LIMIT_ORDER.filter((t) => t in limits).map((t) => {
+  const aiTypes: PlanLimitType[] = ["ai_monthly_saves", "ai_monthly_queries", "ai_monthly_vision_queries"];
+  const bullets = LIMIT_ORDER.filter((t) => t in limits && !aiTypes.includes(t) && t !== "collection_count").map((t) => {
     const value = limits[t];
+    if (t === "max_file_mb") return value == null ? "Files of any size" : `Files up to ${formatLimitValue(t, value)}`;
     const amount = value == null ? "Unlimited" : formatLimitValue(t, value);
     return `${amount} ${PLAN_LIMIT_LABEL[t].toLowerCase()}`;
   });
+
+  // Included AI reads as one line: what we supply on our key each month.
+  const saves = limits.ai_monthly_saves;
+  const asks = limits.ai_monthly_queries;
+  const images = limits.ai_monthly_vision_queries;
+  if ([saves, asks, images].every((v) => v === 0)) {
+    bullets.push("Bring your own AI key");
+  } else {
+    const parts = [
+      saves === null ? "unlimited saves" : saves ? `${saves.toLocaleString("en-US")} saves` : null,
+      asks === null ? "unlimited questions" : asks ? `${asks.toLocaleString("en-US")} questions` : null,
+      images === null ? "unlimited images" : images ? `${images.toLocaleString("en-US")} images` : null,
+    ].filter(Boolean);
+    bullets.push(`Included AI: ${parts.join(", ")} a month`);
+    bullets.push("Your own AI key works too, with no limits");
+  }
+  return bullets;
+}
+
+export async function startCheckout(planKey: string): Promise<string> {
+  const { url } = await apiFetch<{ url: string }>("/billing/checkout", { method: "POST", body: { planKey } });
+  return url;
+}
+
+export async function openBillingPortal(): Promise<string> {
+  const { url } = await apiFetch<{ url: string }>("/billing/portal", { method: "POST" });
+  return url;
+}
+
+/** A plan's tier, e.g. "ai-monthly" -> "ai". Monthly and yearly variants of one tier share it. */
+export function planTier(key: string): string {
+  return key.replace(/-(monthly|yearly|semi-annual|annual)$/, "");
 }

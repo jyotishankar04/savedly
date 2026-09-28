@@ -58,6 +58,7 @@ const sections: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: "Features", href: "/features" },
       { label: "How it works", href: "/features#how-it-works" },
+      { label: "Pricing", href: "/pricing" },
       { label: "Contribute", href: "/contribute" },
       { label: "Changelog", href: "/changelog" },
       { label: "Report a bug", href: "/report" },

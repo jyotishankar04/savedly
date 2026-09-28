@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   async redirects() {
     return [
-      { source: "/pricing", destination: "/contribute", permanent: true },
       { source: "/open-source", destination: "/contribute", permanent: true },
     ];
   },

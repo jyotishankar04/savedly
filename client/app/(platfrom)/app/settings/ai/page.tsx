@@ -54,19 +54,53 @@ import {
   type AiRole,
   type AiRoleAssignment,
 } from "@/lib/ai-settings";
+import { getMyPlan } from "@/lib/plans";
 
 const PROVIDERS: AiProvider[] = ["openrouter", "openai", "anthropic", "groq", "google", "custom"];
 const MAX_MODEL_SUGGESTIONS = 8;
 const ROLES: AiRole[] = ["fast", "reasoning", "vision", "embeddings"];
+
+/**
+ * Explains where this account's AI comes from: the plan's included AI (what
+ * we supply on our key, with a monthly allowance) and/or the user's own key,
+ * which always takes over and is never limited.
+ */
+function IncludedAiNote() {
+  const { data } = useQuery({ queryKey: ["plans", "me"], queryFn: getMyPlan });
+  const own = "Keys you add here are used only for your account and are never shared.";
+
+  if (!data || data.selfHosted) {
+    return <p className="text-[10px] text-muted-foreground leading-relaxed">Bring your own API key from any provider. {own}</p>;
+  }
+
+  const saves = data.limits.ai_monthly_saves;
+  const asks = data.limits.ai_monthly_queries;
+  const includesAi = [saves, asks].some((v) => v === null || (typeof v === "number" && v > 0));
+  if (!includesAi) {
+    return (
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        Your {data.plan.name} plan runs on your own AI key: add one below from any provider. {own}
+      </p>
+    );
+  }
+
+  const left = (limit: number | null | undefined, used = 0) =>
+    limit === null || limit === undefined ? "unlimited" : Math.max(0, limit - used).toLocaleString("en-US");
+  return (
+    <p className="text-[10px] text-muted-foreground leading-relaxed">
+      Your {data.plan.name} plan includes AI we supply: {left(saves, data.usage.ai_monthly_saves)} saves and{" "}
+      {left(asks, data.usage.ai_monthly_queries)} questions left this month. Add your own key below and it&apos;s used instead, with
+      no limits. {own}
+    </p>
+  );
+}
 
 export default function AISettingsPage() {
   return (
     <div className="space-y-10 max-w-2xl text-xs font-semibold">
       <div className="space-y-1 pb-4 border-b border-border/25">
         <h3 className="text-sm font-bold text-foreground">AI</h3>
-        <p className="text-[10px] text-muted-foreground leading-relaxed">
-          This product doesn&apos;t pay for AI on your behalf — bring your own API key from any provider, and it&apos;s used only for your account. Nothing is shared with us or anyone else.
-        </p>
+        <IncludedAiNote />
         <p className="text-[10px] text-muted-foreground leading-relaxed">
           Not sure which models to use?{" "}
           <Link href="/help/model-selection" className="text-primary hover:underline">
