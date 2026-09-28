@@ -37,7 +37,7 @@ Respond as strict JSON: {{"action": "existing"|"new"|"none", "collectionName": "
 
 /** Uses an existing collection only when it is genuinely related; otherwise creates a new one. "none" is reserved for true one-offs. */
 export async function organizeCollection(state: IngestionStateType): Promise<IngestionUpdate> {
-  const model = await getChatModel(state.userId, "fast");
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
   if (!model) {
     logNode(state.memoryId, "organizeCollection", { skipped: "AI not configured" });
     return { collectionAction: "none", collectionName: null, collectionIcon: null, collectionDescription: null };

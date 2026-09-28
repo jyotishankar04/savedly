@@ -6,6 +6,9 @@ import { db } from "../../db";
 import { threads } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
 import { logAiUsage } from "../ai-usage/usage-logger";
+import { AiRole, PlanLimitType } from "../../db/enums";
+import { isWithinLimit } from "../plans/plans.service";
+import { hasOwnCredential, platformCredential } from "./ai.providers";
 import { compiledRagGraph } from "./rag/graph";
 import { ensureCheckpointerSetup } from "./rag/checkpointer";
 import { INTERNAL_EVENT_TAG } from "./rag/internal-tag";
@@ -149,10 +152,25 @@ async function* filterInternalEvents<T extends { tags?: string[] }>(stream: Asyn
  *  wire compatibility for a future client using @ai-sdk/react's useChat. */
 export async function streamAsk(userId: string, threadId: string, query: string): Promise<Response> {
   await requireOwnedThread(userId, threadId);
-  // Logged now (not after the stream completes) — matches how the
-  // embedding:query call sites elsewhere in this module fire-and-forget
-  // logAiUsage at the point of use, not on completion of an async stream.
-  void logAiUsage({ userId, requestType: ASK_QUERY_REQUEST_TYPE, provider: "internal", model: "n/a", threadId });
+
+  // Admission for included AI happens once per question, here: someone
+  // without their own reasoning key rides on the platform's key only if the
+  // plan's monthly question allowance has room. The "ask:query" row tagged
+  // platform is both the quota count and the admission ticket every model
+  // call in this turn checks (plans.service.ts canUseIncludedAi). Awaited,
+  // not fire-and-forget, so the ticket exists before the graph runs.
+  const usesIncludedAi =
+    !(await hasOwnCredential(userId, AiRole.REASONING)) &&
+    !!platformCredential(AiRole.REASONING) &&
+    (await isWithinLimit(userId, PlanLimitType.AI_MONTHLY_QUERIES, 1));
+  await logAiUsage({
+    userId,
+    requestType: ASK_QUERY_REQUEST_TYPE,
+    provider: "internal",
+    model: "n/a",
+    threadId,
+    metadata: usesIncludedAi ? { source: "platform" } : null,
+  });
   await ensureCheckpointerSetup();
 
   const eventStream = compiledRagGraph.streamEvents(

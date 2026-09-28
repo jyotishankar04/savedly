@@ -106,6 +106,24 @@ const envSchema = z
     EMBEDDINGS_MODEL: z.string().default("text-embedding-3-small"),
     EMBEDDINGS_BASE_URL: z.string().url().optional(),
 
+    // Included AI: the platform's own chat/vision keys, used for anyone on a
+    // plan with an included-AI allowance (Free's small monthly taste, AI
+    // included) who hasn't added a key of their own. Quota-checked per plan —
+    // see plans.service.ts canUseIncludedAi. All optional: with none set,
+    // every role stays bring-your-own-key. On a self-hosted install, setting
+    // these gives everyone on the instance AI with no limits.
+    PLATFORM_AI_FAST_PROVIDER: z.enum(["openai", "anthropic", "groq", "google", "openrouter", "custom"]).optional(),
+    PLATFORM_AI_FAST_API_KEY: z.string().optional(),
+    PLATFORM_AI_FAST_MODEL: z.string().optional(),
+    PLATFORM_AI_REASONING_PROVIDER: z.enum(["openai", "anthropic", "groq", "google", "openrouter", "custom"]).optional(),
+    PLATFORM_AI_REASONING_API_KEY: z.string().optional(),
+    PLATFORM_AI_REASONING_MODEL: z.string().optional(),
+    PLATFORM_AI_VISION_PROVIDER: z.enum(["openai", "anthropic", "groq", "google", "openrouter", "custom"]).optional(),
+    PLATFORM_AI_VISION_API_KEY: z.string().optional(),
+    PLATFORM_AI_VISION_MODEL: z.string().optional(),
+    // Only for a "custom" (OpenAI-compatible) provider above.
+    PLATFORM_AI_BASE_URL: z.string().url().optional(),
+
     // Langfuse (self-hosted, see docker-compose.yml's langfuse-* services) —
     // traces every node/LLM call in the ingestion pipeline. Optional: if
     // unset, tracing is just skipped rather than failing the pipeline.

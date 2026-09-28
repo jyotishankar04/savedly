@@ -52,7 +52,7 @@ export async function detectContentType(state: IngestionStateType): Promise<Inge
     return { contentType: null, extractedFields: {}, detectedUrl: detectedUrl?.href ?? null };
   }
 
-  const model = await getChatModel(state.userId, "fast");
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
   if (!model) {
     logNode(state.memoryId, "detectContentType", { skipped: "AI not configured" });
     return { contentType: null, extractedFields: {}, detectedUrl: detectedUrl?.href ?? null };

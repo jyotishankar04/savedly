@@ -34,7 +34,7 @@ export const frontDeskNode: GraphNode<typeof RAGState> = async (state, config) =
   // be the single place that surfaces the "connect your AI key" message,
   // rather than duplicating that decision here too.
   if (!userId) return { inScope: true };
-  const classifyModel = (await getChatModel(userId, "fast"))?.withStructuredOutput(classifySchema);
+  const classifyModel = (await getChatModel(userId, "fast", { kind: "ask", threadId }))?.withStructuredOutput(classifySchema);
   if (!classifyModel) return { inScope: true };
 
   const prompt = FRONT_DESK_CLASSIFY_PROMPT.replace("{query}", query);
@@ -46,7 +46,7 @@ export const frontDeskNode: GraphNode<typeof RAGState> = async (state, config) =
   );
   if (inScope) return { inScope: true };
 
-  const declineModel = await getChatModel(userId, "fast");
+  const declineModel = await getChatModel(userId, "fast", { kind: "ask", threadId });
   if (!declineModel) return { inScope: true };
   const decline = await declineModel.invoke(
     [new SystemMessage(FRONT_DESK_DECLINE_PROMPT), ...state.messages],

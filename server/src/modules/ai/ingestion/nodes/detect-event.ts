@@ -42,7 +42,7 @@ export async function detectEvent(state: IngestionStateType): Promise<IngestionU
   }
 
   try {
-    const model = await getChatModel(state.userId, "fast");
+    const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
     if (!model) {
       return { detectedEventAt: null, eventDetectionConfidence: null };
     }

@@ -237,6 +237,73 @@ export async function assertFileSizeAllowed(userId: string, fileSizeBytes: numbe
   }
 }
 
+// ---------------------------------------------------------------------------
+// Included AI — may this call run on the platform's key?
+// ---------------------------------------------------------------------------
+
+export type IncludedAiPurpose =
+  | { kind: "save"; memoryId: string | null }
+  | { kind: "ask"; threadId: string | null }
+  | { kind: "vision" };
+
+// How long after a question is admitted its follow-up model calls (the
+// agent, grounding check, retries) still ride on that admission.
+const ASK_ADMISSION_WINDOW_MS = 15 * 60 * 1000;
+
+/**
+ * Whether a model call for this purpose may use included AI, given the
+ * user's plan quota. Only asked when the user has no key of their own for
+ * the role — their own key is never limited.
+ *
+ * - save: one memory = one unit, however many ingestion calls it takes. A
+ *   memory that already ran on included AI this month keeps going; a new
+ *   one needs room under AI_MONTHLY_SAVES.
+ * - ask: admitted once per question by streamAsk (which logs the
+ *   "ask:query" row tagged platform); calls in that thread ride on it.
+ * - vision: one per image, under AI_MONTHLY_VISION_QUERIES.
+ */
+export async function canUseIncludedAi(userId: string, purpose: IncludedAiPurpose): Promise<boolean> {
+  switch (purpose.kind) {
+    case "save": {
+      if (purpose.memoryId) {
+        const [already] = await db
+          .select({ id: aiUsageLogs.id })
+          .from(aiUsageLogs)
+          .where(
+            and(
+              eq(aiUsageLogs.memoryId, purpose.memoryId),
+              like(aiUsageLogs.requestType, "ingestion:%"),
+              platformOnly,
+              gte(aiUsageLogs.createdAt, startOfCurrentMonth()),
+            ),
+          )
+          .limit(1);
+        if (already) return true;
+      }
+      return isWithinLimit(userId, PlanLimitType.AI_MONTHLY_SAVES, 1);
+    }
+    case "ask": {
+      if (!purpose.threadId) return false;
+      const [admitted] = await db
+        .select({ id: aiUsageLogs.id })
+        .from(aiUsageLogs)
+        .where(
+          and(
+            eq(aiUsageLogs.userId, userId),
+            eq(aiUsageLogs.threadId, purpose.threadId),
+            eq(aiUsageLogs.requestType, "ask:query"),
+            platformOnly,
+            gte(aiUsageLogs.createdAt, new Date(Date.now() - ASK_ADMISSION_WINDOW_MS)),
+          ),
+        )
+        .limit(1);
+      return !!admitted;
+    }
+    case "vision":
+      return isWithinLimit(userId, PlanLimitType.AI_MONTHLY_VISION_QUERIES, 1);
+  }
+}
+
 export async function getMyPlanSummary(userId: string) {
   const { plan, assignment } = await resolveEffectivePlan(userId);
   const limits = await getPlanLimits(plan.id);
