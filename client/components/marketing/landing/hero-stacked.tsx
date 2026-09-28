@@ -135,7 +135,7 @@ export default function HeroStacked() {
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
               <p className="text-[13px] font-medium tracking-tight text-foreground/75">
-                {SHOWCASE_MODE ? "Early access — join the waitlist" : "Free & open source · no limits"}
+                {SHOWCASE_MODE ? "Early access — join the waitlist" : "Free plan · open source · self-host it"}
               </p>
             </motion.div>
 

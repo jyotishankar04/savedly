@@ -208,7 +208,7 @@ export function HeroProduct() {
             </motion.div>
             <motion.p {...rise(0.4)} className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-              {SHOWCASE_MODE ? "Early access: join the waitlist" : "Free and open source, with no limits"}
+              {SHOWCASE_MODE ? "Early access: join the waitlist" : "Free plan · open source · self-host it"}
             </motion.p>
           </div>
 

@@ -48,7 +48,8 @@ const FAQS: Faq[] = [
   },
   {
     question: "Is there a free plan?",
-    answer: "It's just free — every feature, no limits, no card required, ever. This is an open-source project, not a paid product with a free tier.",
+    answer:
+      "Yes. The Free plan has every feature on your own AI key, with no card required. Paid plans add more storage and AI we supply. You can also self-host it for free with no limits at all — it's open source.",
   },
 ];
 

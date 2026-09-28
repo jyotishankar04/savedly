@@ -9,7 +9,7 @@ import { useAuthCta } from "@/hooks/use-auth-cta";
 
 // Three facts that are true, in place of the invented social proof CTA
 // templates usually carry (there are no customer counts or ratings to cite).
-const REASSURANCES = ["No card required", "Free and open source", "Every feature, no limits"];
+const REASSURANCES = ["No card required", "Every feature on every plan", "Open source"];
 
 /**
  * The one fully blue surface on the page. It stays on the deeper brand blue

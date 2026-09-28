@@ -424,8 +424,8 @@ export const GUIDES: HelpGuide[] = [
         body: "Settings → Privacy & Data → export everything you've saved as JSON, or as an Open Knowledge Format (OKF) folder of Markdown files that any AI agent can read. You can also permanently delete your account there.",
       },
       {
-        title: "Check what's free",
-        body: "Settings → Billing is a reminder, not a paywall — this product has no paid tier, and every feature is unlimited on every account.",
+        title: "Check your plan and usage",
+        body: "Settings → Plan & usage shows your plan, how much of each limit you've used, and how much included AI is left this month. Every plan has every feature. To upgrade, pick a plan there; to change or cancel a paid plan, click Manage billing. Adding your own AI key in Settings → AI removes the AI limits.",
       },
     ],
   },

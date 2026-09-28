@@ -19,22 +19,22 @@ const FREE_HIGHLIGHTS = [
   {
     icon: Github,
     title: `${LICENSE} licensed`,
-    body: "Every line is public. Read it, fork it, self-host it — nothing is held back for a paid tier.",
+    body: "Every line is public. Read it, fork it, or self-host it with every feature unlocked.",
   },
   {
     icon: Key,
     title: "Bring your own AI key",
-    body: "Connect OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint. You pay your provider directly — we never touch that.",
+    body: "Connect OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint. You pay your provider directly, and your own key is never limited.",
   },
   {
     icon: Infinity,
-    title: "No usage limits",
-    body: "Every feature, unlimited, on every account. There's no tier to hit a wall on and get asked to upgrade.",
+    title: "Self-host with no limits",
+    body: "Run it on your own server with one command and everything is unlimited. On the hosted version, every plan has every feature too.",
   },
   {
     icon: UserGroup,
     title: "Community supported",
-    body: "No investors to please and nothing to sell you — just hosting costs, which contributions like yours help cover.",
+    body: "No investors to please. Paid plans and contributions like yours cover the servers and the AI we supply.",
   },
 ];
 
@@ -48,11 +48,11 @@ export function ContributeSection({ showDonate = false }: { showDonate?: boolean
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <div className="max-w-md">
             <h2 className="text-3xl leading-[1.08] font-semibold tracking-[-0.03em] text-balance text-foreground sm:text-[2.75rem]">
-              Help build something that isn&apos;t for sale.
+              Open source, and yours to run.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
-              This project is free and open source, kept running by the people who use it. Not a free tier with a paid one waiting
-              behind it: there isn&apos;t a paid one.
+              The code is public and you can self-host it for free. The hosted version has a free plan too, and paid plans for
+              people who want more storage or AI we supply.
             </p>
             <Link
               href={cta.href}

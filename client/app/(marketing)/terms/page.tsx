@@ -38,19 +38,26 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">2. Account registration</h2>
             <p>
-              You sign in via Google or GitHub OAuth — there&apos;s no separate password to create or manage. You&apos;re responsible for keeping access to that Google/GitHub account secure, and for telling us if you believe your SaveForLatter account has been accessed without your permission.
+              You sign in with Google or GitHub, or with an email and password where that&apos;s enabled. You&apos;re responsible for keeping those sign-in details secure, and for telling us if you believe your SaveForLatter account has been accessed without your permission.
             </p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-bold text-foreground">3. Free, open source, no paid tier</h2>
+            <h2 className="text-base font-bold text-foreground">3. Open source, free plan and paid plans</h2>
             <p>
-              This product is free and open source{LICENSE ? ` (${LICENSE} licensed)` : ""}. There is no paid tier, no subscription, and no billing — every account gets every feature with no usage limits.
+              SaveForLatter is open source{LICENSE ? ` (${LICENSE} licensed)` : ""}. You can run your own copy for free, with every feature and no limits. On the hosted service at this website, every plan includes every feature; plans differ only in storage and usage limits and in whether we supply the AI. The Free plan costs nothing. Current plans and limits are listed on the <a href="/pricing" className="text-primary hover:underline">pricing page</a>.
               {GITHUB_CONFIGURED ? (
                 <>
                   {" "}The source code is public at <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{GITHUB_URL}</a>, and you&apos;re welcome to read it, self-host it, or contribute to it under that license.
                 </>
               ) : null}
+            </p>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-base font-bold text-foreground">3a. Paying for a plan</h2>
+            <p>
+              Payments are processed by Dodo Payments, which acts as the merchant of record: it charges you, handles sales tax, VAT or GST, and issues your invoices. A paid plan renews automatically each billing period until you cancel. You can cancel at any time from Settings → Plan &amp; usage → Manage billing; you keep the paid plan until the end of the period you&apos;ve paid for, and then move to the Free plan. Your saved content is never deleted because a plan ends, but new saves and uploads follow the Free plan&apos;s limits. If you believe you were charged in error, contact us and we&apos;ll look into it.
             </p>
           </section>
 
@@ -65,7 +72,7 @@ export default function TermsPage() {
               <li>We aren&apos;t responsible for a third-party AI provider&apos;s output, availability, or behavior — an inaccurate summary or a wrong answer from a model you&apos;ve connected isn&apos;t something we control.</li>
             </ul>
             <p>
-              The one exception is embeddings (semantic search), which we cover by default at no cost to you unless you connect your own — see the Privacy Policy for the same detail there.
+              Two exceptions: embeddings (semantic search), which we cover by default at no cost to you unless you connect your own; and included AI, which some plans come with — a monthly allowance of AI processing on our own provider account, used only when you haven&apos;t connected your own key. See the Privacy Policy for how both work.
             </p>
           </section>
 
@@ -90,7 +97,7 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">7. Service provided &ldquo;as is&rdquo;</h2>
             <p>
-              This is a free, open-source service with no paid support contract or uptime guarantee behind it. We work to keep it reliable, but it&apos;s provided as-is, without warranties of any kind, and we&apos;re not liable for lost data, downtime, or indirect damages arising from its use — to the fullest extent the law allows.
+              Whether you use a free or a paid plan, the service comes with no support contract or uptime guarantee. We work to keep it reliable, but it&apos;s provided as-is, without warranties of any kind, and we&apos;re not liable for lost data, downtime, or indirect damages arising from its use — to the fullest extent the law allows.
             </p>
           </section>
 
