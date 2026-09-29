@@ -35,10 +35,18 @@ export async function getPlanLimits(planId: string, dbClient: DbOrTx = db): Prom
  * should fail loudly here rather than silently letting every limit check
  * pass as unlimited.
  */
+/**
+ * The plan a user gets right now. With several running at once (a paid
+ * subscription and an admin grant), the best one wins — ranked by the
+ * plans' sortOrder, newest first on a tie — so a grant can add to what
+ * someone pays for but never take it away: what the payment provider says
+ * they paid for is always the floor.
+ */
 export async function resolveEffectivePlan(userId: string, dbClient: DbOrTx = db) {
-  const [assignment] = await dbClient
-    .select()
+  const [row] = await dbClient
+    .select({ assignment: userPlanAssignments, plan: plans })
     .from(userPlanAssignments)
+    .innerJoin(plans, eq(plans.id, userPlanAssignments.planId))
     .where(
       and(
         eq(userPlanAssignments.userId, userId),
@@ -46,13 +54,10 @@ export async function resolveEffectivePlan(userId: string, dbClient: DbOrTx = db
         or(isNull(userPlanAssignments.endsAt), gte(userPlanAssignments.endsAt, new Date())),
       ),
     )
-    .orderBy(desc(userPlanAssignments.startsAt))
+    .orderBy(desc(plans.sortOrder), desc(userPlanAssignments.startsAt))
     .limit(1);
 
-  if (assignment) {
-    const [plan] = await dbClient.select().from(plans).where(eq(plans.id, assignment.planId)).limit(1);
-    if (plan) return { plan, assignment };
-  }
+  if (row) return { plan: row.plan, assignment: row.assignment };
 
   const [defaultPlan] = await dbClient.select().from(plans).where(eq(plans.isDefault, true)).limit(1);
   if (!defaultPlan) {

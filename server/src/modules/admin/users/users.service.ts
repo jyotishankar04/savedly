@@ -72,7 +72,10 @@ async function attachPlans<T extends { id: string }>(items: T[]): Promise<(T & {
     .select({ userId: userPlanAssignments.userId, key: plans.key, name: plans.name })
     .from(userPlanAssignments)
     .innerJoin(plans, eq(plans.id, userPlanAssignments.planId))
-    .where(and(sql`${userPlanAssignments.userId} IN ${ids}`, await activeAssignmentCondition()));
+    .where(and(sql`${userPlanAssignments.userId} IN ${ids}`, await activeAssignmentCondition()))
+    // Ascending, so the Map below keeps each user's best plan — the same
+    // rule as plans.service.ts resolveEffectivePlan.
+    .orderBy(plans.sortOrder, userPlanAssignments.startsAt);
 
   const planByUser = new Map(assignmentRows.map((r) => [r.userId, { key: r.key, name: r.name }]));
 
@@ -469,6 +472,20 @@ export async function grantPlan(userId: string, input: GrantPlanInput, adminUser
   }
   const [plan] = await db.select().from(plans).where(eq(plans.key, input.planKey)).limit(1);
   if (!plan) throw new AppError("Plan not found", 404, "NOT_FOUND");
+
+  // The best running plan wins (resolveEffectivePlan), so a grant at or
+  // below what they've paid for would do nothing. Say so instead.
+  const paid = (await billingStatus(userId).catch(() => ({ subscription: null }))).subscription;
+  if (paid && plan.sortOrder <= paid.sortOrder) {
+    const until = paid.periodEnd
+      ? ` through ${new Date(paid.periodEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+      : "";
+    throw new AppError(
+      `They've paid for ${paid.planName}${until}, so a grant can't give them less.${paid.status === "cancelled" ? " Their subscription is already cancelled and won't renew." : ""}`,
+      409,
+      "BELOW_PAID_PLAN",
+    );
+  }
 
   const before = await resolveEffectivePlan(userId);
   const now = new Date();

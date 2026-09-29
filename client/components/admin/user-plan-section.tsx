@@ -143,6 +143,9 @@ export function UserPlanSection({ userId }: { userId: string }) {
   const subMode = !!live?.changeable;
   const sameAsPaid = subMode && !!chosen && planTier(chosen.key) === planTier(live!.planKey);
   const cancelling = subMode && !!chosen && chosen.priceMinor <= 0;
+  // The best running plan wins, so a grant at or below a paid plan does nothing.
+  const belowPaid = !subMode && !!chosen && paidRank !== undefined && chosen.sortOrder <= paidRank;
+  const idleGrant = data.hasActiveGrant && !granted ? data.history.find((row) => row.source === "admin_manual" && row.status === "active") : null;
 
   return (
     <div className="space-y-3">
@@ -183,6 +186,12 @@ export function UserPlanSection({ userId }: { userId: string }) {
                 {grantRow.value.stillToComeMinor > 0
                   ? ` · ${formatMoneyMinor(grantRow.value.stillToComeMinor, grantRow.currency)} more by ${day(grantRow.endsAt)}`
                   : ""}
+              </p>
+            )}
+            {idleGrant && (
+              <p className="text-[11px] text-muted-foreground">
+                Their grant of {idleGrant.planName}
+                {idleGrant.endsAt ? ` (until ${day(idleGrant.endsAt)})` : ""} has no effect while their paid plan is bigger.
               </p>
             )}
             {granted && subscription && (
@@ -259,16 +268,16 @@ export function UserPlanSection({ userId }: { userId: string }) {
             className="h-8 text-xs"
           />
 
-          {!subMode && chosen && subscription && paidRank !== undefined && chosen.sortOrder < paidRank && (
+          {belowPaid && subscription && (
             <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-              They pay for {subscription.planName} through {day(subscription.endsAt)}. This puts them on {chosen.name} instead until the
-              grant ends; their payments and dates in Dodo stay the same.
+              They&apos;ve paid for {subscription.planName} through {day(subscription.endsAt)}, so a grant can&apos;t give them less. Pick a
+              bigger plan to give them more on top.
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3">
             <Button
               size="sm"
-              disabled={!canGrant || sameAsPaid || (cancelling && live?.cancelAtPeriodEnd)}
+              disabled={!canGrant || sameAsPaid || belowPaid || (cancelling && live?.cancelAtPeriodEnd)}
               onClick={() => (subMode ? setConfirming(true) : grant())}
             >
               {busy === "grant" && <Spinner />}
