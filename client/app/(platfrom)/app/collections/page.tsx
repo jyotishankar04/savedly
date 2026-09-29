@@ -161,7 +161,7 @@ export default function CollectionsPage() {
       ) : collections.length === 0 ? (
         <EmptyState title="No collections yet" description="Create one to start organizing your memories." />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-8">
           {collections.map((col) => (
             <div key={col.id} className="relative">
               <FolderCard

@@ -265,7 +265,7 @@ function VaultContents() {
       {header}
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-44 w-full rounded-2xl" />
           ))}
@@ -277,7 +277,7 @@ function VaultContents() {
           {collections.length > 0 && (
             <section className="space-y-4">
               <h2 className="text-sm font-medium text-muted-foreground">Collections</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-6">
                 {collections.map((col) => (
                   <div key={col.id} className="relative">
                     <FolderCard
