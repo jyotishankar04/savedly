@@ -11,6 +11,7 @@ import {
   openBillingPortal,
   PLAN_LIMIT_LABEL,
   startCheckout,
+  syncBilling,
   upgradeOptions,
   type PlanLimitType,
 } from "@/lib/plans";
@@ -49,16 +50,34 @@ function BillingSettings() {
   });
   const [pending, setPending] = useState<string | null>(null);
 
-  // Back from the provider's checkout. The plan switches when its webhook
-  // lands (usually seconds), so refetch rather than assume.
+  // Back from the provider's checkout. The webhook usually switches the plan
+  // within seconds, but it can be late (or never come), so also ask the
+  // server to read the subscription from the provider: now, then a couple of
+  // times more while the payment settles.
   const checkout = searchParams.get("checkout");
   useEffect(() => {
-    if (checkout === "success") {
-      toast.add({ title: "Thanks! Your plan updates as soon as the payment is confirmed.", type: "success" });
-      const timer = setTimeout(() => queryClient.invalidateQueries({ queryKey: ["plans", "me"] }), 4000);
-      return () => clearTimeout(timer);
+    if (checkout === "cancelled") {
+      toast.add({ title: "Checkout cancelled. Nothing was charged." });
+      return;
     }
-    if (checkout === "cancelled") toast.add({ title: "Checkout cancelled. Nothing was charged." });
+    if (checkout !== "success") return;
+    toast.add({ title: "Thanks! Your plan updates as soon as the payment is confirmed.", type: "success" });
+    let cancelled = false;
+    const timers = [0, 4000, 10000].map((delay) =>
+      setTimeout(async () => {
+        if (cancelled) return;
+        try {
+          await syncBilling();
+        } catch {
+          // The webhook still gets there; this is only a head start.
+        }
+        queryClient.invalidateQueries({ queryKey: ["plans", "me"] });
+      }, delay),
+    );
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
   }, [checkout, queryClient]);
 
   const go = async (key: string, fetchUrl: () => Promise<string>) => {
@@ -122,6 +141,31 @@ function BillingSettings() {
               </p>
             )}
           </div>
+
+          {config?.billing && !data.selfHosted && !onPaidPlan && (
+            <p className="text-[10px] text-muted-foreground font-medium">
+              Just paid and still see {data.plan.name}?{" "}
+              <button
+                type="button"
+                disabled={pending !== null}
+                onClick={async () => {
+                  setPending("sync");
+                  try {
+                    const { applied } = await syncBilling();
+                    await queryClient.invalidateQueries({ queryKey: ["plans", "me"] });
+                    if (!applied) toast.add({ title: "No active subscription found yet. It can take a minute after paying." });
+                  } catch (err) {
+                    toast.add({ title: err instanceof Error ? err.message : "Couldn't check right now.", type: "error" });
+                  } finally {
+                    setPending(null);
+                  }
+                }}
+                className="font-bold text-primary hover:underline disabled:opacity-50"
+              >
+                {pending === "sync" ? "Checking…" : "Check again"}
+              </button>
+            </p>
+          )}
 
           {config?.billing && !data.selfHosted && (
             <div className="p-5 border border-border bg-card rounded-xl space-y-3">

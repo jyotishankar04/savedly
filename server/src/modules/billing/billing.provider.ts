@@ -41,4 +41,10 @@ export interface BillingProvider {
   changePlan(subscriptionId: string, productId: string): Promise<{ paymentUrl: string | null }>;
   /** Verifies the signature and returns the event, or null for event types billing ignores. Throws on a bad signature. */
   parseWebhook(rawBody: string, headers: Record<string, string>): SubscriptionEvent | null;
+  /**
+   * The customer's live subscriptions, read straight from the provider, as
+   * "active" events — so a purchase shows up even when its webhook is late
+   * or never arrives. Looks the customer up by email when there's no id yet.
+   */
+  listLiveSubscriptions(input: { customerId: string | null; email: string }): Promise<SubscriptionEvent[]>;
 }

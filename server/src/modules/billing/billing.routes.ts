@@ -9,6 +9,8 @@ const router = Router();
 
 router.post("/checkout", authenticate, validateCheckout, BillingController.checkout);
 router.post("/portal", authenticate, BillingController.portal);
+// Pulls the user's subscriptions from the provider, for when a webhook is late.
+router.post("/sync", authenticate, BillingController.sync);
 // No authenticate — the payment provider calls this; the signature is the auth.
 router.post("/webhook", BillingController.webhook);
 

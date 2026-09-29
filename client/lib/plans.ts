@@ -176,6 +176,11 @@ export async function startCheckout(planKey: string): Promise<string> {
   return url;
 }
 
+/** Asks the server to read your subscription from the payment provider now, instead of waiting for its webhook. */
+export async function syncBilling(): Promise<{ applied: number }> {
+  return apiFetch<{ applied: number }>("/billing/sync", { method: "POST" });
+}
+
 export async function openBillingPortal(): Promise<string> {
   const { url } = await apiFetch<{ url: string }>("/billing/portal", { method: "POST" });
   return url;

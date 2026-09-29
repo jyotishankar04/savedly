@@ -180,6 +180,32 @@ export async function handleWebhook(rawBody: string, headers: Record<string, str
     logger.error({ subscriptionId: event.subscriptionId, customerId: event.customerId }, "[billing] no user for subscription");
     return;
   }
+  await applyForUser(userId, event);
+}
+
+/**
+ * Reads the user's live subscriptions from the provider and applies them —
+ * what the billing page calls on the way back from checkout, so the new plan
+ * shows even if the webhook is slow or lost. Safe to call any time: applying
+ * the same subscription again only refreshes its assignment.
+ */
+export async function syncSubscriptions(userId: string): Promise<{ applied: number }> {
+  const billing = requireProvider();
+  const [user] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!user) throw new AppError("User not found", 404, "NOT_FOUND");
+  const [customer] = await db.select().from(billingCustomers).where(eq(billingCustomers.userId, userId)).limit(1);
+
+  const events = await billing.listLiveSubscriptions({ customerId: customer?.customerId ?? null, email: user.email });
+  // Only subscriptions that are provably this user's: bought from this
+  // account (our userId in the metadata), or under a customer already linked
+  // to it. A bare email match isn't enough.
+  const mine = events.filter((e) => e.userId === userId || (!e.userId && customer?.customerId === e.customerId));
+  for (const event of mine) await applyForUser(userId, event);
+  return { applied: mine.length };
+}
+
+async function applyForUser(userId: string, event: SubscriptionEvent): Promise<void> {
+  const billing = requireProvider();
 
   await db
     .insert(billingCustomers)

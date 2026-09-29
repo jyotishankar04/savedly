@@ -64,6 +64,32 @@ export function createDodoProvider(): BillingProvider {
       return portal.link;
     },
 
+    async listLiveSubscriptions({ customerId, email }) {
+      const customerIds = customerId
+        ? [customerId]
+        : (await client.customers.list({ email, page_size: 10 })).items.map((c) => c.customer_id);
+      const events: SubscriptionEvent[] = [];
+      for (const id of customerIds) {
+        for (const status of ["active", "past_due"] as const) {
+          const page = await client.subscriptions.list({ customer_id: id, status, page_size: 20 });
+          for (const sub of page.items) {
+            events.push({
+              eventId: `sync:${sub.subscription_id}:${sub.next_billing_date}`,
+              type: `sync.${status}`,
+              kind: status === "active" ? "active" : "past_due",
+              subscriptionId: sub.subscription_id,
+              customerId: sub.customer.customer_id,
+              customerEmail: sub.customer.email ?? null,
+              productId: sub.product_id,
+              userId: (sub.metadata as Record<string, string> | null)?.userId ?? null,
+              periodEnd: sub.next_billing_date ? new Date(sub.next_billing_date) : null,
+            });
+          }
+        }
+      }
+      return events;
+    },
+
     parseWebhook(rawBody, headers) {
       // Verifies the Standard Webhooks signature (webhook-id / -timestamp /
       // -signature) against DODO_PAYMENTS_WEBHOOK_KEY; throws if it's wrong.

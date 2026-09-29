@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { createCheckout, createPortalLink, handleWebhook } from "./billing.service";
+import { createCheckout, createPortalLink, handleWebhook, syncSubscriptions } from "./billing.service";
 import type { CheckoutInput } from "./billing.schema";
 
 export class BillingController {
@@ -11,6 +11,10 @@ export class BillingController {
 
   static async portal(req: Request, res: Response) {
     res.status(200).json(ApiResponse.success(await createPortalLink(req.user!.id)));
+  }
+
+  static async sync(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await syncSubscriptions(req.user!.id)));
   }
 
   /** The provider calls this directly. The body is the raw Buffer from app.ts's express.raw() mount, needed to verify the signature. */
