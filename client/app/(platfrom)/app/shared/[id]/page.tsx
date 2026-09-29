@@ -24,6 +24,8 @@ import { timeAgo } from "@/lib/time";
 import { copyToClipboard } from "@/lib/clipboard";
 import { fillDailyViewSeries, type ShareResourceType } from "@/lib/shares";
 import { LINK_MODE_META } from "@/lib/share-display";
+import { usePlanFeature } from "@/hooks/use-plan-limit";
+import { UpgradeNote } from "@/components/plan/upgrade-note";
 import {
   useMySharesQuery,
   useShareViewSummaryQuery,
@@ -45,8 +47,11 @@ export default function ShareAnalyticsPage() {
   const share = shares?.find((item) => item.id === shareId);
 
   const summary = useShareViewSummaryQuery(shareId);
-  const viewers = useShareViewersQuery(shareId);
-  const daily = useShareViewsDailyQuery(shareId);
+  // The total count is on every plan; the daily chart and who viewed are plan features.
+  const dailyFeature = usePlanFeature("shareAnalyticsDaily");
+  const viewersFeature = usePlanFeature("shareAnalyticsViewers");
+  const viewers = useShareViewersQuery(shareId, viewersFeature.allowed);
+  const daily = useShareViewsDailyQuery(shareId, dailyFeature.allowed);
 
   if (isError) {
     return (
@@ -130,7 +135,9 @@ export default function ShareAnalyticsPage() {
       <Reveal index={4} className="rounded-surface border border-border p-4">
         <h3 className="text-xs font-bold text-foreground">Views over time</h3>
         <p className="mt-0.5 text-[10px] text-muted-foreground">Last 30 days</p>
-        {share.viewCount === 0 ? (
+        {!dailyFeature.allowed ? (
+          <UpgradeNote feature="shareAnalyticsDaily" className="py-8 justify-center" />
+        ) : share.viewCount === 0 ? (
           <p className="py-10 text-center text-xs text-muted-foreground">No views yet.</p>
         ) : (
           <ChartContainer config={viewsConfig} className="mt-3 aspect-auto h-48 w-full">
@@ -156,7 +163,9 @@ export default function ShareAnalyticsPage() {
         <h3 className="text-xs font-bold text-foreground">Who viewed this</h3>
         <p className="mt-0.5 text-[10px] text-muted-foreground">Most recent first</p>
 
-        {viewers.isLoading ? (
+        {!viewersFeature.allowed ? (
+          <UpgradeNote feature="shareAnalyticsViewers" className="py-8 justify-center" />
+        ) : viewers.isLoading ? (
           <div className="mt-3 space-y-2">
             <Skeleton className="h-8 w-full" />
             <Skeleton className="h-8 w-full" />

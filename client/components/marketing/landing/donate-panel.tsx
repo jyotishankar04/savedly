@@ -14,8 +14,8 @@ export function DonatePanel() {
       <div>
         <h3 className="text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">Help keep the servers running</h3>
         <p className="mt-3 max-w-lg leading-relaxed text-muted-foreground">
-          You bring your own AI key, so the project never pays for that. Hosting the database, storage and email still costs real money every
-          month. If SaveForLatter is useful to you, a small contribution helps keep it free for everyone.
+          Hosting the database, storage and email, and the AI we supply, costs real money every month. If SaveForLatter is useful to
+          you, a small contribution helps keep the Free plan free for everyone.
         </p>
         <a
           href={BMC_URL}

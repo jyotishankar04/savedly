@@ -69,13 +69,13 @@ function gateCopy(status: AiStatus): { title: string; body: string; action: { la
   if (status.askBlockedReason === "included-used-up") {
     return {
       title: "This month's free questions are used up",
-      body: "Add your own AI key to keep asking right away, with no limits, or move to a plan with AI included.",
+      body: "Add your own AI key to keep asking right away, with no limits.",
       action: { label: "Add an AI key", href: "/app/settings/ai" },
     };
   }
   return {
     title: "Connect an AI key to use Ask",
-    body: "Bring your own key from OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible service. It's used only for your account. Or pick a plan with AI included.",
+    body: "Bring your own key from OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible service. It's used only for your account.",
     action: { label: "Configure AI", href: "/app/settings/ai" },
   };
 }

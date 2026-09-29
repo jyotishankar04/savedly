@@ -23,13 +23,13 @@ const FREE_HIGHLIGHTS = [
   },
   {
     icon: Key,
-    title: "Bring your own AI key",
-    body: "Connect OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint. You pay your provider directly, and your own key is never limited.",
+    title: "Your AI, your way",
+    body: "On the hosted version we supply the AI. Self-host it and connect OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint instead, with no limits.",
   },
   {
     icon: Infinity,
     title: "Self-host with no limits",
-    body: "Run it on your own server with one command and everything is unlimited. On the hosted version, every plan has every feature too.",
+    body: "Run it on your own server with one command and everything is unlimited. On the hosted version, the Free plan covers the essentials.",
   },
   {
     icon: UserGroup,

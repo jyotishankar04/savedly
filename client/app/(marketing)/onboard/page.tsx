@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { getServerConfig } from "@/lib/server-config";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,9 @@ const captureChannels = [
 ];
 
 function OnboardingFlow() {
+  // Hosted plans run on AI we supply; only a self-hosted install asks for keys.
+  const { data: serverConfig } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const selfHosted = !!serverConfig?.selfHosted;
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -371,7 +375,8 @@ function OnboardingFlow() {
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
-                        Let SaveForLatter understand and organize everything for you. No tags or folders to maintain. Needs an AI key, which you can connect after setup.
+                        Let SaveForLatter understand and organize everything for you. No tags or folders to maintain.
+                        {selfHosted ? " Needs an AI key, which you can connect after setup." : ""}
                       </p>
                     </div>
                   </div>
@@ -559,6 +564,7 @@ function OnboardingFlow() {
               Enter SaveForLatter <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
             </Button>
 
+{selfHosted && (
             <div className="w-full max-w-xs rounded-xl border border-border/60 bg-muted/20 p-4 text-left space-y-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                 <HugeiconsIcon icon={Key} strokeWidth={2.25} className="h-4 w-4 text-primary" />
@@ -572,6 +578,7 @@ function OnboardingFlow() {
                 <Link href="/help" className="text-muted-foreground hover:text-foreground hover:underline">Help Center</Link>
               </div>
             </div>
+            )}
           </div>
         )}
 

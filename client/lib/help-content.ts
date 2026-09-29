@@ -184,9 +184,9 @@ export const GUIDES: HelpGuide[] = [
     slug: "ai-setup",
     actions: [{ label: "Open AI settings", href: "/app/settings/ai" }, { label: "Choose your models", href: "/help/model-selection" }],
     category: "ai",
-    summary: "Add your own AI key and assign it to each job.",
-    title: "Setting up AI (bring your own key)",
-    intro: "This product doesn't pay for AI on your behalf — every account brings its own key, used only for that account.",
+    summary: "On a self-hosted install, add your own AI key and assign it to each job.",
+    title: "Setting up AI on a self-hosted install",
+    intro: "On the hosted plans we supply the AI, so there's nothing to set up. On a self-hosted install, each account brings its own key, used only for that account (or the admin sets one up for everyone).",
     steps: [
       {
         title: "Add a provider key",
@@ -427,7 +427,7 @@ export const GUIDES: HelpGuide[] = [
       },
       {
         title: "Check your plan and usage",
-        body: "Settings → Plan & usage shows your plan, how much of each limit you've used, and how much included AI is left this month. Every plan has every feature. To upgrade, pick a plan there; to change or cancel a paid plan, click Manage billing. Adding your own AI key in Settings → AI removes the AI limits.",
+        body: "Settings → Plan & usage shows your plan, how much of each limit you've used, and how much included AI is left this month. Lite and Pro add more room, more AI and features like the private vault and bulk actions. To upgrade, pick a plan there; to change or cancel a paid plan, click Manage billing. Adding your own AI key in Settings → AI removes the AI limits.",
       },
     ],
   },

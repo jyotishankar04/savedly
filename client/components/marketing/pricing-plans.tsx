@@ -313,7 +313,10 @@ export function PricingPlans() {
                         label: `Included in ${plan.name}:`,
                         items: [
                           `Everything in ${below?.name ?? freeName}`,
-                          ...planLimitBullets(plan.limits, plan.features),
+                          // Only the limits that change from the plan below.
+                          ...planLimitBullets(plan.limits, plan.features).filter(
+                            (line) => !below || !planLimitBullets(below.limits, below.features).includes(line),
+                          ),
                           ...planFeatureBullets(plan.features, below?.features),
                         ],
                       },

@@ -43,7 +43,6 @@ export default function PrivacyPage() {
               <li><strong>Saved memories:</strong> the URLs, text, files, and voice recordings you explicitly choose to save, plus the AI-generated summaries, tags, and enrichment computed from them (see Section 3).</li>
               <li><strong>Account info:</strong> your name, email, and avatar as provided by Google or GitHub OAuth. We never see or store a password — sign-in is handled entirely by whichever provider you choose.</li>
               <li><strong>Payments:</strong> if you buy a paid plan, Dodo Payments (our merchant of record) collects your payment details — card, UPI or other method — and we never see or store them. We keep only the customer and subscription identifiers Dodo gives us and the status of your plan.</li>
-              <li><strong>AI provider keys:</strong> if you connect your own OpenAI, Anthropic, Groq, Google, or other API key under Settings → AI, that key is encrypted at rest (AES-256-GCM) and used only to make AI calls on your behalf. We never display it back to you in full once saved, and it&apos;s never used for any account but yours.</li>
               <li><strong>Usage metadata:</strong> device/browser info, IP address, and basic activity logs (e.g. login timestamps), used for security and to keep the service running reliably.</li>
               <li><strong>Content you share with others:</strong> if you create a share link or invite someone to a memory or collection, the information needed to fulfill that (e.g. the invitee&apos;s email) is stored until you revoke it.</li>
             </ul>
@@ -52,10 +51,10 @@ export default function PrivacyPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">3. How AI processing works</h2>
             <p>
-              AI features (summaries, tags, image analysis, semantic search, the Ask assistant) are bring-your-own-key: when you connect a provider under Settings → AI, the relevant piece of your saved content is sent to <em>that provider</em> — the one you chose and pay — to be processed. We don&apos;t see or store that provider&apos;s response to you beyond what&apos;s written back into your account (the summary, tags, or answer itself).
+              On the hosted service, AI features (summaries, tags, image analysis, semantic search, the Ask assistant) run on AI provider accounts we operate. When something needs AI, the relevant piece of your content (what you save, or the question you ask along with the saved content it draws on) is sent to that provider to be processed, and the result (the summary, tags, or answer) is written back into your account. We don&apos;t keep the provider&apos;s response beyond that.
             </p>
             <p>
-              Two exceptions. Embeddings (what powers semantic search): unless you&apos;ve configured your own embeddings key, we use our own default provider to generate them at no cost to you, since it&apos;s inexpensive to run. And included AI: on paid plans, and on the Free plan when you haven&apos;t connected your own key for that task, the content being processed (what you save, or the question you ask along with the saved content it draws on) is sent to an AI provider on our account. On plans where you bring your own key, connecting it under Settings → AI switches that task to your provider at any time.
+              If you self-host SaveForLatter, your install sends this content to the AI provider you or your admin configure instead, and none of it reaches us.
             </p>
             <p>
               <strong>We do not use your saved content, your questions, or your AI provider responses to train any model — ours or anyone else&apos;s.</strong>

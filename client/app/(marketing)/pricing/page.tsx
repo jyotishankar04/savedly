@@ -6,7 +6,7 @@ import { PricingPlans } from "@/components/marketing/pricing-plans";
 export const metadata: Metadata = {
   title: "Pricing — SaveForLatter",
   description:
-    "Self-host SaveForLatter for free, or use the hosted version: free on your own AI key, or a paid plan for more storage and AI we supply.",
+    "Self-host SaveForLatter for free, or use the hosted version: a Free plan with AI we supply, or Lite and Pro for more room, more AI and more features.",
 };
 
 export default function PricingPage() {

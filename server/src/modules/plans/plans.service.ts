@@ -240,17 +240,18 @@ export async function assertFileSizeAllowed(userId: string, fileSizeBytes: numbe
 // ---------------------------------------------------------------------------
 
 export const PLAN_FEATURES = {
-  vault: "The private vault",
-  passwordProtectedShares: "Password-protected links",
-  directShares: "Inviting people to a share",
-  privateShareRequests: "Links people request access to",
-  shareAnalyticsDaily: "Daily view charts for shares",
-  shareAnalyticsViewers: "Seeing who viewed a share",
-  insightsFullHistory: "A full year of insights",
-  calendarSync: "Calendar sync",
+  // Read mid-sentence: "Your plan doesn't include <label>."
+  vault: "the private vault",
+  passwordProtectedShares: "password-protected links",
+  directShares: "inviting people to a share",
+  privateShareRequests: "links people request access to",
+  shareAnalyticsDaily: "daily view charts for shares",
+  shareAnalyticsViewers: "seeing who viewed a share",
+  insightsFullHistory: "a full year of insights",
+  calendarSync: "calendar sync",
   calendarMicrosoft: "Microsoft Calendar sync",
-  aiEventDetection: "Finding events in what you save",
-  batchOperations: "Bulk actions",
+  aiEventDetection: "finding events in what you save",
+  batchOperations: "bulk actions",
 } as const;
 export type PlanFeature = keyof typeof PLAN_FEATURES;
 
@@ -270,7 +271,7 @@ export async function assertFeature(userId: string, feature: PlanFeature): Promi
     .orderBy(plans.sortOrder)
     .limit(1);
   const upgrade = cheapest ? ` Upgrade to ${cheapest.name} to use it.` : "";
-  throw new AppError(`${PLAN_FEATURES[feature]} isn't on your plan.${upgrade}`, 403, "PLAN_FEATURE_REQUIRED", {
+  throw new AppError(`Your plan doesn't include ${PLAN_FEATURES[feature]}.${upgrade}`, 403, "PLAN_FEATURE_REQUIRED", {
     feature,
     plan: cheapest?.name ?? null,
   });

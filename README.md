@@ -21,7 +21,7 @@ A personal memory tool that reads, organizes, and helps you find what you save �
 
 Send SaveForLatter a link, a note, an image, a document, or a voice memo, and it's read, summarized, tagged, and made searchable — automatically, the same pipeline every time, whatever format it came in. Ask it a question in plain English and it answers from what you've actually saved, citing exactly which memory it came from.
 
-Self-host it for free with every feature unlimited, or use the hosted version: the Free plan has every feature on your own AI key, and paid plans add more room and AI we supply. Your own AI key is never limited.
+Self-host it for free with every feature unlocked and your own AI key, or use the hosted version, where we supply the AI: the Free plan covers the essentials, and Lite and Pro add more room, more AI and features like the private vault.
 
 ## Features
 
@@ -33,10 +33,10 @@ Self-host it for free with every feature unlimited, or use the hosted version: t
 - **Sharing** — public, password-protected, or invite-only links, with per-person access requests
 - **Vault** — a PIN-gated space for memories you'd rather keep out of your regular views
 - **Calendar sync** — connect Google Calendar or Outlook; AI-detected events push in one click
-- **Bring your own AI key** — OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint
+- **Your own AI key when you self-host** — OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint (the hosted version supplies the AI)
 
 > [!NOTE]
-> Semantic search works out of the box even without a key of your own — embeddings are the one AI role the project covers by default, since they're inexpensive to run. Everything else (summaries, tags, the Ask assistant) needs your own key. See [Bring your own AI key](#bring-your-own-ai-key).
+> On a self-hosted install, semantic search works without a key of your own once the admin sets an instance-wide embeddings key. Everything else (summaries, tags, the Ask assistant) needs a key: each person's own, or one the admin sets up for everyone. See [Bring your own AI key](#bring-your-own-ai-key).
 
 ## Tech stack
 
@@ -91,7 +91,7 @@ Sign in, then head to **Settings → AI** to connect a provider key — that's w
 
 ## Bring your own AI key
 
-AI features are intentionally not something this project pays for on your behalf. Connect a key from **Settings → AI**:
+On a self-hosted install, connect a key from **Settings → AI** (on the hosted version we supply the AI, so there's nothing to connect):
 
 | Role | What it powers | Providers |
 |---|---|---|
