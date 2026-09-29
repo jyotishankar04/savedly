@@ -110,6 +110,11 @@ export function formatLimitValue(limitType: PlanLimitType, value: number): strin
   return value.toLocaleString();
 }
 
+/** An amount of money, where 0 is "$0" (formatPriceMinor calls a zero price "Free"). */
+export function formatMoneyMinor(amountMinor: number, currency: string): string {
+  return amountMinor === 0 ? formatPriceMinor(100, currency).replace(/1$/, "0") : formatPriceMinor(amountMinor, currency);
+}
+
 export function formatPriceMinor(priceMinor: number, currency: string): string {
   if (priceMinor === 0) return "Free";
   const symbol = currency === "usd" ? "$" : currency === "inr" ? "₹" : currency.toUpperCase() + " ";

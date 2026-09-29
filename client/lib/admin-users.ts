@@ -108,6 +108,9 @@ export interface UserPlanHistoryRow {
   endsAt: string | null;
   reason: string | null;
   assignedByEmail: string | null;
+  currency: string;
+  /** Admin grants only: what it's worth at the plan's price. */
+  value: { monthlyMinor: number; givenSoFarMinor: number; stillToComeMinor: number } | null;
 }
 
 export interface AdminUserPlan {

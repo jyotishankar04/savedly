@@ -10,6 +10,8 @@ import { validateCreatePlan, validateUpdatePlan } from "./plans.validator";
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, AdminPlansController.list);
+// What admins have given away as plan grants, in money.
+router.get("/grants/summary", authenticate, requireAdmin, AdminPlansController.grantsSummary);
 router.post("/", authenticate, requireAdmin, validateCreatePlan, AdminPlansController.create);
 router.patch("/:id", authenticate, requireAdmin, validateUpdatePlan, AdminPlansController.update);
 

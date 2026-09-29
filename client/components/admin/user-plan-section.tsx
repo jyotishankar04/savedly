@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/lib/auth";
 import { listAdminPlans } from "@/lib/admin-plans";
-import { planTier } from "@/lib/plans";
+import { formatMoneyMinor, planTier } from "@/lib/plans";
 import { getUserPlan, grantUserPlan, removeUserPlanGrant, type PlanSource } from "@/lib/admin-users";
 
 type Duration = "1m" | "3m" | "1y" | "none" | "custom";
@@ -153,6 +153,15 @@ export function UserPlanSection({ userId }: { userId: string }) {
                   ? `Dodo subscription · paid through ${day(current.endsAt)}`
                   : "Nobody has paid for or given them a plan."}
             </p>
+            {granted && grantRow?.value && grantRow.value.monthlyMinor > 0 && (
+              <p className="text-[11px] font-medium text-foreground">
+                Worth {formatMoneyMinor(grantRow.value.monthlyMinor, grantRow.currency)} a month ·{" "}
+                {formatMoneyMinor(grantRow.value.givenSoFarMinor, grantRow.currency)} given so far
+                {grantRow.value.stillToComeMinor > 0
+                  ? ` · ${formatMoneyMinor(grantRow.value.stillToComeMinor, grantRow.currency)} more by ${day(grantRow.endsAt)}`
+                  : ""}
+              </p>
+            )}
             {granted && subscription && (
               <p className="text-[11px] text-muted-foreground">
                 They also pay for {subscription.planName} (through {day(subscription.endsAt)}), and go back to it when this grant ends.
@@ -253,6 +262,7 @@ export function UserPlanSection({ userId }: { userId: string }) {
                   </span>
                   <span className="font-mono text-[10px] text-muted-foreground">
                     {day(row.startsAt)} → {row.endsAt ? day(row.endsAt) : "no end"} · {row.status}
+                    {row.value && row.value.givenSoFarMinor > 0 ? ` · ${formatMoneyMinor(row.value.givenSoFarMinor, row.currency)}` : ""}
                   </span>
                 </li>
               ))}

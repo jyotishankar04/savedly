@@ -34,3 +34,29 @@ export async function createPlan(input: UpsertPlanInput): Promise<AdminPlan> {
 export async function updatePlan(id: string, input: Partial<UpsertPlanInput>): Promise<AdminPlan> {
   return apiFetch<AdminPlan>(`/admin/plans/${id}`, { method: "PATCH", body: input });
 }
+
+export interface PlanGrantsSummary {
+  grants: number;
+  activeGrants: number;
+  openEndedGrants: number;
+  totals: { currency: string; givenSoFarMinor: number; monthlyNowMinor: number; stillToComeMinor: number }[];
+  byAdmin: { email: string; grants: number; givenSoFarMinor: number; currency: string }[];
+  active: {
+    id: string;
+    userId: string | null;
+    userEmail: string | null;
+    planName: string;
+    startsAt: string;
+    endsAt: string | null;
+    reason: string | null;
+    assignedByEmail: string | null;
+    currency: string;
+    monthlyMinor: number;
+    givenSoFarMinor: number;
+  }[];
+}
+
+/** What admins have given away as plan grants, valued at plan prices. */
+export function getPlanGrantsSummary(): Promise<PlanGrantsSummary> {
+  return apiFetch<PlanGrantsSummary>("/admin/plans/grants/summary");
+}

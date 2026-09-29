@@ -9,6 +9,7 @@ import { getUsageSummary } from "@/lib/ai-usage";
 import { listUsers } from "@/lib/admin-users";
 import { getServerConfig } from "@/lib/server-config";
 import { formatBytes, getSystemStatus, type SystemStatus } from "@/lib/admin-system";
+import { PlanGrantsPanel } from "@/components/admin/plan-grants-panel";
 
 function StatTile({ label, value, href }: { label: string; value: string; href: string }) {
   return (
@@ -153,6 +154,8 @@ export default function AdminOverviewPage() {
           <StatTile label="Tokens (7d)" value={usage ? usage.totals.totalTokens.toLocaleString() : "—"} href="/admin/ai-usage" />
         </div>
       )}
+
+      {config && !selfHosted && <PlanGrantsPanel />}
     </div>
   );
 }

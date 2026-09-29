@@ -12,6 +12,7 @@ import { isPasswordAuthEnabled } from "../../feature-flags/feature-flags.service
 import { assignAdminRole, assignDefaultRole } from "../../auth/auth.service";
 import { sendEmail } from "../../email";
 import { resolveEffectivePlan } from "../../plans/plans.service";
+import { valueGrant } from "../plans/plan-grants.service";
 import { userStatusChangedEmailTemplate } from "../../../shared/mailer/templates";
 import type { CreateUserInput, GrantPlanInput, ListUsersQuery, SetUserPasswordInput, UpdateUserRolesInput, UpdateUserStatusInput } from "./users.schema";
 
@@ -393,7 +394,7 @@ export async function getUserPlan(userId: string) {
   if (!user) throw new AppError("User not found", 404, "NOT_FOUND");
 
   const { plan, assignment } = await resolveEffectivePlan(userId);
-  const history = await db
+  const rows = await db
     .select({
       id: userPlanAssignments.id,
       planKey: plans.key,
@@ -404,12 +405,21 @@ export async function getUserPlan(userId: string) {
       endsAt: userPlanAssignments.endsAt,
       reason: userPlanAssignments.reason,
       assignedByEmail: sql<string | null>`(select email from users a where a.id = ${userPlanAssignments.assignedBy})`,
+      priceMinor: plans.priceMinor,
+      currency: plans.currency,
+      billingInterval: plans.billingInterval,
     })
     .from(userPlanAssignments)
     .innerJoin(plans, eq(plans.id, userPlanAssignments.planId))
     .where(eq(userPlanAssignments.userId, userId))
     .orderBy(desc(userPlanAssignments.startsAt))
     .limit(20);
+  const history = rows.map(({ priceMinor, billingInterval, ...row }) => {
+    // What an admin grant has been worth — see plan-grants.service.ts.
+    if (row.source !== PlanAssignmentSource.ADMIN_MANUAL) return { ...row, value: null };
+    const value = valueGrant({ priceMinor, billingInterval, startsAt: row.startsAt, endsAt: row.endsAt, status: row.status });
+    return { ...row, value: { monthlyMinor: value.monthlyMinor, givenSoFarMinor: value.givenSoFarMinor, stillToComeMinor: value.stillToComeMinor } };
+  });
 
   const now = new Date();
   const live = (row: (typeof history)[number]) =>
