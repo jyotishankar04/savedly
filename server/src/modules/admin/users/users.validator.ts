@@ -1,6 +1,7 @@
 import { validate } from "../../../shared/middlewares/validate";
 import {
   createUserSchema,
+  grantPlanSchema,
   listUsersQuerySchema,
   setUserPasswordSchema,
   updateUserRolesSchema,
@@ -12,3 +13,4 @@ export const validateUpdateUserRoles = validate(updateUserRolesSchema);
 export const validateUpdateUserStatus = validate(updateUserStatusSchema);
 export const validateCreateUser = validate(createUserSchema);
 export const validateSetUserPassword = validate(setUserPasswordSchema);
+export const validateGrantPlan = validate(grantPlanSchema);

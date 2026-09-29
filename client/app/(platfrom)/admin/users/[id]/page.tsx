@@ -28,6 +28,7 @@ import { ApiError } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { getUsageForUser } from "@/lib/ai-usage";
 import { toast } from "@/components/ui/toast";
+import { UserPlanSection } from "@/components/admin/user-plan-section";
 
 const ASSIGNABLE_ROLES = ["user", "admin"];
 // Next inlines NODE_ENV at build time. In a hosted production build, delete is
@@ -190,6 +191,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           </SelectContent>
         </Select>
       </div>
+
+      {/* A self-hosted install has one unlimited plan — nothing to change. */}
+      {!selfHosted && <UserPlanSection userId={user.id} />}
 
       <div className="space-y-2">
         <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">AI usage (last 30 days)</h3>

@@ -30,7 +30,21 @@ export const setUserPasswordSchema = z.object({
   password: z.string().min(8, "Use at least 8 characters").max(200),
 });
 
+// An admin grant: the user is on `planKey` from now until `endsAt` (null =
+// no end), whatever they pay for. Never touches billing.
+export const grantPlanSchema = z.object({
+  planKey: z.string().trim().min(1).max(50),
+  endsAt: z
+    .string()
+    .datetime()
+    .nullable()
+    .optional()
+    .refine((v) => !v || new Date(v) > new Date(), "The end date has to be in the future"),
+  reason: z.string().trim().max(300).optional(),
+});
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type GrantPlanInput = z.infer<typeof grantPlanSchema>;
 export type SetUserPasswordInput = z.infer<typeof setUserPasswordSchema>;
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
 export type UpdateUserRolesInput = z.infer<typeof updateUserRolesSchema>;

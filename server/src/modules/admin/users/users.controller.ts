@@ -5,7 +5,10 @@ import {
   createUserByAdmin,
   deleteUserForDev,
   getUserDetail,
+  getUserPlan,
+  grantPlan,
   listUsers,
+  removePlanGrant,
   setUserPassword,
   updateUserRoles,
   updateUserStatus,
@@ -41,6 +44,18 @@ export class UsersController {
   static async setPassword(req: Request, res: Response) {
     await setUserPassword(req.params.id as string, req.body, req.user!.id, req.ip);
     res.status(200).json(ApiResponse.success({ updated: true }));
+  }
+
+  static async getPlan(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await getUserPlan(req.params.id as string)));
+  }
+
+  static async grantPlan(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await grantPlan(req.params.id as string, req.body, req.user!.id, req.ip)));
+  }
+
+  static async removePlanGrant(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await removePlanGrant(req.params.id as string, req.user!.id, req.ip)));
   }
 
   static async deleteUser(req: Request, res: Response) {
