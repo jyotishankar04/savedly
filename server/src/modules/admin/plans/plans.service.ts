@@ -41,7 +41,7 @@ const ALL_FEATURES: Record<string, boolean> = {
 const MB_PER_GB = 1024;
 
 function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultPlanSeed["limits"] {
-  const all: Record<PlanLimitType, number | null> = {
+  const all: Partial<Record<PlanLimitType, number | null>> = {
     [PlanLimitType.MEMORY_COUNT]: null,
     [PlanLimitType.STORAGE_MB]: null,
     [PlanLimitType.MAX_FILE_MB]: null,
@@ -49,7 +49,6 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
     [PlanLimitType.PUBLIC_SHARE_COUNT]: null,
     [PlanLimitType.AI_MONTHLY_SAVES]: null,
     [PlanLimitType.AI_MONTHLY_QUERIES]: null,
-    [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: null,
     ...values,
   };
   return Object.entries(all).map(([limitType, limitValue]) => ({ limitType: limitType as PlanLimitType, limitValue }));
@@ -68,7 +67,6 @@ const AI_LIMITS = limits({
   [PlanLimitType.MAX_FILE_MB]: 100,
   [PlanLimitType.AI_MONTHLY_SAVES]: 2000,
   [PlanLimitType.AI_MONTHLY_QUERIES]: 1000,
-  [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: 200,
 });
 
 const HOSTED_PLANS: DefaultPlanSeed[] = [
@@ -89,7 +87,6 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
       [PlanLimitType.PUBLIC_SHARE_COUNT]: 5,
       [PlanLimitType.AI_MONTHLY_SAVES]: 50,
       [PlanLimitType.AI_MONTHLY_QUERIES]: 20,
-      [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: 10,
     }),
     features: ALL_FEATURES,
   },
@@ -97,7 +94,7 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
   ...(["monthly", "yearly"] as const).map((interval, i) => ({
     key: `ai-${interval}`,
     name: "AI included",
-    description: "Unlimited memories, 25 GB of storage, and AI we supply: 2,000 saves, 1,000 questions and 200 images a month.",
+    description: "Unlimited memories, 25 GB of storage, and AI we supply: AI processing for 2,000 saves and 1,000 Ask questions a month.",
     priceMinor: 0,
     currency: "usd",
     billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
@@ -114,6 +111,7 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
 // deletes them), so anyone still assigned one keeps resolving to it until
 // their subscription ends, but nobody new can buy it.
 const RETIRED_HOSTED_PLAN_KEYS = ["own-key-monthly", "own-key-yearly"];
+const RETIRED_LIMIT_TYPES = [PlanLimitType.AI_MONTHLY_VISION_QUERIES];
 
 // A self-hosted install has one plan, and nothing is limited.
 const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
@@ -157,6 +155,9 @@ export async function resetPlanDefaults(): Promise<string[]> {
       .returning({ key: plans.key });
     touched.push(...retired.map((p) => `${p.key} (retired)`));
   }
+  // Image reads used to have their own allowance; they're part of AI
+  // processing for a save now, so the old limit rows go.
+  await db.delete(planLimits).where(inArray(planLimits.limitType, RETIRED_LIMIT_TYPES));
   for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
     await db
       .insert(plans)

@@ -143,7 +143,8 @@ export interface AiStatus {
   /** managed: the plan supplies all AI (AI included), nothing to set up. own-key: the user brings keys. */
   mode: "managed" | "own-key";
   roles: Record<"fast" | "reasoning" | "vision", AiSource>;
-  included: { saves: AiAllowance; questions: AiAllowance; images: AiAllowance } | null;
+  /** saves: AI processing, one per saved item (reading images included). */
+  included: { saves: AiAllowance; questions: AiAllowance } | null;
   /** The server has its own AI keys, so included AI can actually run. */
   includedReady: boolean;
   askAvailable: boolean;

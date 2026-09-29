@@ -72,7 +72,8 @@ function IncludedAiNote({ status }: { status: AiStatus | undefined }) {
   }
   return (
     <p className="text-[10px] text-muted-foreground leading-relaxed">
-      Your plan includes some AI we supply: {left(included.saves)} saves and {left(included.questions)} questions left this month. Add your
+      Your plan includes some AI we supply: AI processing for {left(included.saves)} saves and {left(included.questions)} Ask
+      questions left this month. Add your
       own key below and it&apos;s used instead, with no limits. {own}
     </p>
   );
@@ -84,9 +85,8 @@ const left = (a: AiAllowance) => (a.limit === null ? "unlimited" : Math.max(0, a
 function ManagedAiPanel({ status }: { status: AiStatus }) {
   const rows = status.included
     ? [
-        { label: "Saves read and organized", a: status.included.saves },
+        { label: "AI processing (saves)", a: status.included.saves },
         { label: "Ask questions", a: status.included.questions },
-        { label: "Images read", a: status.included.images },
       ]
     : [];
   return (

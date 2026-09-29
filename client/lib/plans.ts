@@ -7,8 +7,7 @@ export type PlanLimitType =
   | "public_share_count"
   | "collection_count"
   | "ai_monthly_saves"
-  | "ai_monthly_queries"
-  | "ai_monthly_vision_queries";
+  | "ai_monthly_queries";
 
 export interface Plan {
   id: string;
@@ -69,9 +68,9 @@ export const PLAN_LIMIT_LABEL: Record<PlanLimitType, string> = {
   max_file_mb: "Largest file",
   public_share_count: "Public share links",
   collection_count: "Collections",
-  ai_monthly_saves: "Included AI saves / month",
+  // One per saved item, every step of reading and filing it (images included).
+  ai_monthly_saves: "Included AI processing (saves) / month",
   ai_monthly_queries: "Included Ask questions / month",
-  ai_monthly_vision_queries: "Included image reads / month",
 };
 
 export function formatLimitValue(limitType: PlanLimitType, value: number): string {
@@ -98,7 +97,6 @@ export const LIMIT_ORDER: PlanLimitType[] = [
   "collection_count",
   "ai_monthly_saves",
   "ai_monthly_queries",
-  "ai_monthly_vision_queries",
 ];
 
 /**
@@ -107,16 +105,17 @@ export const LIMIT_ORDER: PlanLimitType[] = [
  * used instead of a hand-written per-plan feature list so the marketing
  * pricing table can never drift out of sync with what's actually enforced.
  */
-function aiParts(saves?: number | null, asks?: number | null, images?: number | null): string[] {
-  return [
-    saves === null ? "unlimited saves" : saves ? `${saves.toLocaleString("en-US")} saves` : null,
-    asks === null ? "unlimited questions" : asks ? `${asks.toLocaleString("en-US")} questions` : null,
-    images === null ? "unlimited images" : images ? `${images.toLocaleString("en-US")} images` : null,
+/** "AI processing for 2,000 saves and 1,000 Ask questions". */
+function aiSummary(saves?: number | null, asks?: number | null): string {
+  const parts = [
+    saves === null ? "AI processing for unlimited saves" : saves ? `AI processing for ${saves.toLocaleString("en-US")} saves` : null,
+    asks === null ? "unlimited Ask questions" : asks ? `${asks.toLocaleString("en-US")} Ask questions` : null,
   ].filter((p): p is string => !!p);
+  return parts.join(" and ");
 }
 
 export function planLimitBullets(limits: PlanLimits, features: Record<string, boolean> = {}): string[] {
-  const aiTypes: PlanLimitType[] = ["ai_monthly_saves", "ai_monthly_queries", "ai_monthly_vision_queries"];
+  const aiTypes: PlanLimitType[] = ["ai_monthly_saves", "ai_monthly_queries"];
   const bullets = LIMIT_ORDER.filter((t) => t in limits && !aiTypes.includes(t) && t !== "collection_count").map((t) => {
     const value = limits[t];
     if (t === "max_file_mb") return value == null ? "Files of any size" : `Files up to ${formatLimitValue(t, value)}`;
@@ -127,15 +126,14 @@ export function planLimitBullets(limits: PlanLimits, features: Record<string, bo
   // Included AI reads as one line: what we supply on our key each month.
   const saves = limits.ai_monthly_saves;
   const asks = limits.ai_monthly_queries;
-  const images = limits.ai_monthly_vision_queries;
-  if ([saves, asks, images].every((v) => v === 0)) {
+  if ([saves, asks].every((v) => v === 0)) {
     bullets.push("Bring your own AI key");
   } else if (features.managedAi) {
     // AI included: we supply all of it, so there are no keys to bring.
-    bullets.push(`AI included: ${aiParts(saves, asks, images).join(", ")} a month`);
+    bullets.push(`${aiSummary(saves, asks)} a month`);
     bullets.push("Nothing to set up: no AI keys needed");
   } else {
-    bullets.push(`Included AI: ${aiParts(saves, asks, images).join(", ")} a month`);
+    bullets.push(`${aiSummary(saves, asks)} a month, on us`);
     bullets.push("Your own AI key works too, with no limits");
   }
   return bullets;

@@ -273,8 +273,9 @@ export async function getEmbeddings(userId: string): Promise<ResolvedEmbeddings 
   }
 }
 
-export async function getVisionModels(userId: string): Promise<BaseChatModel[]> {
-  const resolved = await resolveCredential(userId, AiRole.VISION, { kind: "vision" });
+/** Reading an image is part of processing a save, so it counts against the same allowance. */
+export async function getVisionModels(userId: string, memoryId: string | null): Promise<BaseChatModel[]> {
+  const resolved = await resolveCredential(userId, AiRole.VISION, { kind: "save", memoryId });
   if (!resolved) return [];
   return [buildChatModel(resolved.credential, "vision", resolved.platform)];
 }

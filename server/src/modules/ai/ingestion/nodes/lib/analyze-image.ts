@@ -48,7 +48,7 @@ export async function analyzeImage(imageUrl: string, usage: UsageContext): Promi
         { type: "image_url", image_url: { url: await toModelImageUrl(imageUrl) } },
       ],
     });
-    return (await invokeWithFallback(await getVisionModels(usage.userId), [message], usage)).trim();
+    return (await invokeWithFallback(await getVisionModels(usage.userId, usage.memoryId ?? null), [message], usage)).trim();
   } catch (err) {
     logger.warn({ err, imageUrl }, "analyzeImage: failed to analyze image");
     return "";

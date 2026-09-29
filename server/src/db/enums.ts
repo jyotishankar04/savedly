@@ -127,13 +127,16 @@ export enum NotificationType {
 
 export enum PlanLimitType {
   MEMORY_COUNT = "memory_count",
-  // The three AI quotas cap *included* AI only — calls made on the platform's
+  // The AI quotas cap *included* AI only — calls made on the platform's
   // key. Anyone using their own key (Settings -> AI) is never limited by
   // them. 0 = no included AI on this plan; null = unlimited.
-  // AI_MONTHLY_QUERIES is the Ask-question quota (name kept for the
-  // existing enum value).
+  // AI_MONTHLY_SAVES is "AI processing": one per saved item, every step
+  // (image reading included). AI_MONTHLY_QUERIES is the Ask-question quota
+  // (name kept for the existing enum value).
   AI_MONTHLY_QUERIES = "ai_monthly_queries",
   AI_MONTHLY_SAVES = "ai_monthly_saves",
+  // Retired: image reads count as AI processing for their save now. Kept
+  // only because Postgres can't drop an enum value; nothing sets or reads it.
   AI_MONTHLY_VISION_QUERIES = "ai_monthly_vision_queries",
   // Largest single upload, in MB — a per-file cap, not a running total.
   MAX_FILE_MB = "max_file_mb",

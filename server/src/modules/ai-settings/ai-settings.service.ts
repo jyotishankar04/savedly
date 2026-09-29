@@ -197,7 +197,6 @@ export interface AiStatus {
   included: {
     saves: { limit: number | null; used: number };
     questions: { limit: number | null; used: number };
-    images: { limit: number | null; used: number };
   } | null;
   /** Whether this server has its own AI keys set up (Admin -> Infrastructure -> Included AI), so included AI can actually run. */
   includedReady: boolean;
@@ -217,13 +216,13 @@ export async function getAiStatus(userId: string): Promise<AiStatus> {
     limit: limits[type] ?? null,
     used: await getCurrentUsage(userId, type),
   });
-  const [saves, questions, images] = await Promise.all([
+  // Saves cover every step of processing one, reading images included.
+  const [saves, questions] = await Promise.all([
     allowance(PlanLimitType.AI_MONTHLY_SAVES),
     allowance(PlanLimitType.AI_MONTHLY_QUERIES),
-    allowance(PlanLimitType.AI_MONTHLY_VISION_QUERIES),
   ]);
   const hasAllowance = (a: { limit: number | null }) => a.limit === null || a.limit > 0;
-  const includedOffered = hasAllowance(saves) || hasAllowance(questions) || hasAllowance(images);
+  const includedOffered = hasAllowance(saves) || hasAllowance(questions);
 
   const source = async (role: AiRole.FAST | AiRole.REASONING | AiRole.VISION, a: { limit: number | null }): Promise<AiSource> => {
     if (await hasOwnCredential(userId, role)) return "own";
@@ -232,7 +231,7 @@ export async function getAiStatus(userId: string): Promise<AiStatus> {
   const roles = {
     fast: await source(AiRole.FAST, saves),
     reasoning: await source(AiRole.REASONING, questions),
-    vision: await source(AiRole.VISION, images),
+    vision: await source(AiRole.VISION, saves),
   };
 
   const questionsLeft = roles.reasoning === "included" && (await isWithinLimit(userId, PlanLimitType.AI_MONTHLY_QUERIES, 1));
@@ -245,7 +244,7 @@ export async function getAiStatus(userId: string): Promise<AiStatus> {
   return {
     mode: managed ? "managed" : "own-key",
     roles,
-    included: includedOffered ? { saves, questions, images } : null,
+    included: includedOffered ? { saves, questions } : null,
     includedReady: !!(await platformCredential(AiRole.REASONING)),
     askAvailable,
     askBlockedReason: askAvailable ? null : roles.reasoning === "included" ? "included-used-up" : "no-ai",

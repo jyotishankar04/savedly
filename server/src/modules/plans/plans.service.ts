@@ -136,22 +136,7 @@ export async function getCurrentUsage(userId: string, limitType: PlanLimitType, 
         );
       return row?.value ?? 0;
     }
-    case PlanLimitType.AI_MONTHLY_VISION_QUERIES: {
-      // "ingestion:vision" rows only, one per image actually analyzed
-      // (process-image-vision.ts and parse-web-content.ts's image branch).
-      const [row] = await dbClient
-        .select({ value: sql<number>`count(*)::int` })
-        .from(aiUsageLogs)
-        .where(
-          and(
-            eq(aiUsageLogs.userId, userId),
-            eq(aiUsageLogs.requestType, "ingestion:vision"),
-            platformOnly,
-            gte(aiUsageLogs.createdAt, startOfCurrentMonth()),
-          ),
-        );
-      return row?.value ?? 0;
-    }
+    case PlanLimitType.AI_MONTHLY_VISION_QUERIES: // retired: part of AI_MONTHLY_SAVES now
     case PlanLimitType.MAX_FILE_MB:
       // A per-file cap, checked against each upload's size — there's no
       // running total to report.
@@ -254,8 +239,7 @@ export async function planHasManagedAi(userId: string, dbClient: DbOrTx = db): P
 
 export type IncludedAiPurpose =
   | { kind: "save"; memoryId: string | null }
-  | { kind: "ask"; threadId: string | null }
-  | { kind: "vision" };
+  | { kind: "ask"; threadId: string | null };
 
 // How long after a question is admitted its follow-up model calls (the
 // agent, grounding check, retries) still ride on that admission.
@@ -266,12 +250,12 @@ const ASK_ADMISSION_WINDOW_MS = 15 * 60 * 1000;
  * user's plan quota. Only asked when the user has no key of their own for
  * the role — their own key is never limited.
  *
- * - save: one memory = one unit, however many ingestion calls it takes. A
- *   memory that already ran on included AI this month keeps going; a new
- *   one needs room under AI_MONTHLY_SAVES.
+ * - save: one memory = one unit of AI processing, however many ingestion
+ *   calls it takes — reading an image included. A memory that already ran
+ *   on included AI this month keeps going; a new one needs room under
+ *   AI_MONTHLY_SAVES.
  * - ask: admitted once per question by streamAsk (which logs the
  *   "ask:query" row tagged platform); calls in that thread ride on it.
- * - vision: one per image, under AI_MONTHLY_VISION_QUERIES.
  */
 export async function canUseIncludedAi(userId: string, purpose: IncludedAiPurpose): Promise<boolean> {
   switch (purpose.kind) {
@@ -310,8 +294,6 @@ export async function canUseIncludedAi(userId: string, purpose: IncludedAiPurpos
         .limit(1);
       return !!admitted;
     }
-    case "vision":
-      return isWithinLimit(userId, PlanLimitType.AI_MONTHLY_VISION_QUERIES, 1);
   }
 }
 

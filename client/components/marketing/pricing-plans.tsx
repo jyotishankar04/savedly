@@ -44,7 +44,7 @@ const FAQ = [
   },
   {
     q: "What is included AI?",
-    a: "SaveForLatter reads, summarizes, tags and files what you save, and answers your questions. That needs an AI model. With included AI we run it on our own account, up to your plan's monthly allowance, so you don't need an AI key of your own.",
+    a: "SaveForLatter reads, summarizes, tags and files what you save, and answers your questions. That needs an AI model. With included AI we run it on our own account, up to your plan's monthly allowance, so you don't need an AI key of your own. AI processing counts each item you save once, however many steps it takes, reading images included. Ask questions have their own allowance.",
   },
   {
     q: "Do I need my own AI key?",
