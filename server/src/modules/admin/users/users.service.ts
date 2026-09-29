@@ -1,15 +1,18 @@
 import { and, count, desc, eq, gte, ilike, isNull, or, sql } from "drizzle-orm";
 import { db } from "../../../db";
 import { collections, memories, plans, roles, users, userPlanAssignments, userRoles } from "../../../db/schema";
-import { EmailCategory, EmailTemplateKey, PlanAssignmentStatus } from "../../../db/enums";
+import { EmailCategory, EmailTemplateKey, PlanAssignmentStatus, UserStatus } from "../../../db/enums";
 import { AppError } from "../../../shared/errors/app-error";
 import { logAdminAction } from "../../../shared/utils/audit-log";
 import { logger } from "../../../shared/utils/logger";
 import { env } from "../../../config/env";
-import { hardDeleteAccount } from "../../account/account.service";
+import { hardDeleteAccount, revokeAllSessionsForUser } from "../../account/account.service";
+import { hashPassword } from "../../../shared/crypto/scrypt-password";
+import { isPasswordAuthEnabled } from "../../feature-flags/feature-flags.service";
+import { assignAdminRole, assignDefaultRole } from "../../auth/auth.service";
 import { sendEmail } from "../../email";
 import { userStatusChangedEmailTemplate } from "../../../shared/mailer/templates";
-import type { ListUsersQuery, UpdateUserRolesInput, UpdateUserStatusInput } from "./users.schema";
+import type { CreateUserInput, ListUsersQuery, SetUserPasswordInput, UpdateUserRolesInput, UpdateUserStatusInput } from "./users.schema";
 
 export interface AdminUserListItem {
   id: string;
@@ -284,8 +287,75 @@ export async function updateUserStatus(
  * sessions and vector-store entries are cleaned up the same way as a real
  * account deletion.
  */
+/**
+ * An admin adds an account directly: name, email, a temporary password to
+ * pass on, and a role. Works even with public signups off — that's the
+ * point on a private self-hosted install. Needs email + password sign-in
+ * (always on when self-hosted).
+ */
+export async function createUserByAdmin(input: CreateUserInput, adminUserId: string, ipAddress?: string) {
+  if (!(await isPasswordAuthEnabled())) {
+    throw new AppError("Email and password sign-in is turned off", 409, "PASSWORD_AUTH_DISABLED");
+  }
+  const email = input.email.trim().toLowerCase();
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+  if (existing) throw new AppError("An account with this email already exists", 409, "EMAIL_TAKEN");
+
+  const [user] = await db
+    .insert(users)
+    .values({
+      email,
+      name: input.name.trim(),
+      status: UserStatus.ACTIVE,
+      emailVerified: false,
+      passwordHash: await hashPassword(input.password),
+    })
+    .returning();
+  await assignDefaultRole(user.id);
+  if (input.role === "admin") await assignAdminRole(user.id);
+
+  await logAdminAction({
+    adminUserId,
+    action: "user.created",
+    targetType: "user",
+    targetId: user.id,
+    beforeValue: null,
+    afterValue: { email, role: input.role },
+    ipAddress,
+  });
+  return { id: user.id, email: user.email, name: user.name };
+}
+
+/**
+ * Sets a new password for someone (e.g. they forgot it and email is off), and
+ * signs them out everywhere so the old password's sessions end.
+ */
+export async function setUserPassword(userId: string, input: SetUserPasswordInput, adminUserId: string, ipAddress?: string) {
+  if (!(await isPasswordAuthEnabled())) {
+    throw new AppError("Email and password sign-in is turned off", 409, "PASSWORD_AUTH_DISABLED");
+  }
+  const [target] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!target) throw new AppError("User not found", 404, "NOT_FOUND");
+
+  await db.update(users).set({ passwordHash: await hashPassword(input.password), updatedAt: new Date() }).where(eq(users.id, userId));
+  if (userId !== adminUserId) await revokeAllSessionsForUser(userId);
+
+  // Never the password itself.
+  await logAdminAction({
+    adminUserId,
+    action: "user.password.set",
+    targetType: "user",
+    targetId: userId,
+    beforeValue: null,
+    afterValue: null,
+    ipAddress,
+  });
+}
+
 export async function deleteUserForDev(userId: string, adminUserId: string, ipAddress?: string) {
-  if (env.NODE_ENV === "production") {
+  // A self-hosted install runs with NODE_ENV=production, and its admin is the
+  // operator, so deleting accounts is theirs to do.
+  if (env.NODE_ENV === "production" && !env.SELF_HOSTED) {
     throw new AppError("Deleting users from the admin panel is disabled in production", 403, "FORBIDDEN");
   }
   if (userId === adminUserId) {

@@ -22,14 +22,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCurrentUserQuery } from "@/context/UserContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { deleteUser, getUser, updateUserRoles, updateUserStatus, type AdminUser } from "@/lib/admin-users";
+import { deleteUser, getUser, setUserPassword, updateUserRoles, updateUserStatus, type AdminUser } from "@/lib/admin-users";
+import { getServerConfig } from "@/lib/server-config";
+import { ApiError } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
 import { getUsageForUser } from "@/lib/ai-usage";
 import { toast } from "@/components/ui/toast";
 
 const ASSIGNABLE_ROLES = ["user", "admin"];
-// Next inlines NODE_ENV at build time, so this whole block is absent from a
-// production bundle; the server independently refuses the request too.
-const SHOW_DEV_DELETE = process.env.NODE_ENV !== "production";
+// Next inlines NODE_ENV at build time. In a hosted production build, delete is
+// only offered on a self-hosted install; the server enforces the same rule.
+const IS_DEV_BUILD = process.env.NODE_ENV !== "production";
 const STATUS_OPTIONS: AdminUser["status"][] = ["active", "inactive", "suspended", "banned"];
 
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -38,6 +41,11 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
   const router = useRouter();
   const { data: currentUser } = useCurrentUserQuery();
   const [pending, setPending] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  const { data: config } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const selfHosted = !!config?.selfHosted;
+  const canDelete = IS_DEV_BUILD || selfHosted;
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ["admin", "users", id],
@@ -77,6 +85,23 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
       toast.add({ title: `Status updated to ${status}.`, type: "success" });
     } catch {
       toast.add({ title: "Failed to update status.", type: "error" });
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPending("password");
+    try {
+      await setUserPassword(id, newPassword);
+      setNewPassword("");
+      toast.add({
+        title: currentUser?.id === id ? "Password changed." : "Password set. They're signed out everywhere.",
+        type: "success",
+      });
+    } catch (err) {
+      toast.add({ title: err instanceof ApiError ? err.message : "Failed to set password.", type: "error" });
     } finally {
       setPending(null);
     }
@@ -184,11 +209,42 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         )}
       </div>
 
-      {SHOW_DEV_DELETE && currentUser?.id !== user.id && (
-        <div className="space-y-2 rounded-lg border border-destructive/30 p-4">
-          <h3 className="text-xs font-bold text-destructive uppercase tracking-wide">Danger zone (dev only)</h3>
+      {selfHosted && (
+        <form onSubmit={handleSetPassword} className="space-y-2">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Password</h3>
           <p className="text-[11px] text-muted-foreground">
-            Permanently deletes this account and all its data immediately. Not available in production.
+            {currentUser?.id === user.id
+              ? "Set a new password for your own account."
+              : "Set a new password when they've forgotten theirs. It signs them out on every device; send them the new one."}
+          </p>
+          <div className="flex gap-2 max-w-sm">
+            <Input
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password"
+              minLength={8}
+              required
+              autoComplete="new-password"
+              aria-label="New password"
+              className="font-mono"
+            />
+            <Button type="submit" variant="outline" disabled={pending === "password" || newPassword.length < 8}>
+              Set password
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {canDelete && currentUser?.id !== user.id && (
+        <div className="space-y-2 rounded-lg border border-destructive/30 p-4">
+          <h3 className="text-xs font-bold text-destructive uppercase tracking-wide">
+            {selfHosted ? "Danger zone" : "Danger zone (dev only)"}
+          </h3>
+          <p className="text-[11px] text-muted-foreground">
+            {selfHosted
+              ? "Permanently deletes this account and everything it saved, right away."
+              : "Permanently deletes this account and all its data immediately. Not available in production."}
           </p>
           <AlertDialog>
             <AlertDialogTrigger

@@ -76,7 +76,22 @@ export async function updateUserStatus(id: string, status: AdminUser["status"]):
   });
 }
 
-/** Dev-only: the server rejects this in production. */
+/** Dev builds and self-hosted installs only: hosted production rejects it. */
 export async function deleteUser(id: string): Promise<void> {
   await apiFetch<void>(`/admin/users/${id}`, { method: "DELETE" });
+}
+
+/** An admin adds an account directly with a temporary password (works with public signups off). */
+export async function createUser(input: {
+  name: string;
+  email: string;
+  password: string;
+  role: "user" | "admin";
+}): Promise<{ id: string; email: string; name: string | null }> {
+  return apiFetch(`/admin/users`, { method: "POST", body: input });
+}
+
+/** Sets a new password for a user and signs them out everywhere. */
+export async function setUserPassword(id: string, password: string): Promise<void> {
+  await apiFetch(`/admin/users/${id}/password`, { method: "PUT", body: { password } });
 }

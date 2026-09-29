@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -22,6 +23,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { cn } from "@/lib/utils";
+import { getServerConfig } from "@/lib/server-config";
+import { getSystemStatus } from "@/lib/admin-system";
 import { LogoMark } from "@/components/logo";
 import { logout } from "@/lib/auth";
 import { usePlanLabel } from "@/hooks/use-plan-limit";
@@ -79,6 +82,27 @@ const NAV_LEAVES: NavLeaf[] = (() => {
   });
 })();
 
+/**
+ * The nav for this install. A self-hosted install has one unlimited plan, so
+ * Plans & Limits is hidden; Emails (bulk announcements) is hidden there too
+ * until email is set up.
+ */
+function useAdminNav() {
+  const { data: config } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const selfHosted = !!config?.selfHosted;
+  const { data: system } = useQuery({ queryKey: ["admin", "system"], queryFn: getSystemStatus, enabled: selfHosted });
+  const hidden = new Set<string>();
+  if (selfHosted) {
+    hidden.add("/admin/plans-limits");
+    if (!system?.services.email) hidden.add("/admin/emails");
+  }
+  const keep = (leaf: NavLeaf) => !hidden.has(leaf.href);
+  return {
+    navEntries: NAV_ENTRIES.filter((entry) => isGroup(entry) || keep(entry)),
+    navLeaves: NAV_LEAVES.filter(keep),
+  };
+}
+
 function isActive(pathname: string, href: string): boolean {
   return href === "/admin" ? pathname === href : pathname.startsWith(href);
 }
@@ -127,6 +151,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const { user } = useUser();
   // The billing plan, not the RBAC role — an admin is still on some plan.
   const planLabel = usePlanLabel();
+  const { navEntries, navLeaves } = useAdminNav();
 
   const handleLogout = () => {
     logout().finally(() => router.push("/"));
@@ -144,7 +169,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
-          {NAV_ENTRIES.map((entry) =>
+          {navEntries.map((entry) =>
             isGroup(entry) ? (
               <div key={entry.label} className="space-y-0.5">
                 <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-sidebar-foreground/45">
@@ -208,7 +233,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_LEAVES.map((link) =>
+            {navLeaves.map((link) =>
               isActive(pathname, link.href) ? (
                 <span key={link.href} className="text-xs font-bold text-foreground">
                   {link.label}
@@ -254,7 +279,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             <HugeiconsIcon icon={ArrowLeft} strokeWidth={2.25} className="h-3.5 w-3.5" />
           </Link>
           <span className="h-4 w-px bg-border shrink-0" />
-          {NAV_LEAVES.map((link) => {
+          {navLeaves.map((link) => {
             const active = isActive(pathname, link.href);
             return (
               <Link

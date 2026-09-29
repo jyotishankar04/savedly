@@ -19,6 +19,19 @@ export const updateUserStatusSchema = z.object({
   status: z.enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BANNED, UserStatus.SUSPENDED]),
 });
 
+export const createUserSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+  email: z.string().trim().email("Enter a valid email").max(255),
+  password: z.string().min(8, "Use at least 8 characters").max(200),
+  role: z.enum(["user", "admin"]).default("user"),
+});
+
+export const setUserPasswordSchema = z.object({
+  password: z.string().min(8, "Use at least 8 characters").max(200),
+});
+
+export type CreateUserInput = z.infer<typeof createUserSchema>;
+export type SetUserPasswordInput = z.infer<typeof setUserPasswordSchema>;
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
 export type UpdateUserRolesInput = z.infer<typeof updateUserRolesSchema>;
 export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;

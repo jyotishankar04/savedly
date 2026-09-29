@@ -1,7 +1,15 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../../shared/response/api-response";
 import type { ListUsersQuery } from "./users.schema";
-import { deleteUserForDev, getUserDetail, listUsers, updateUserRoles, updateUserStatus } from "./users.service";
+import {
+  createUserByAdmin,
+  deleteUserForDev,
+  getUserDetail,
+  listUsers,
+  setUserPassword,
+  updateUserRoles,
+  updateUserStatus,
+} from "./users.service";
 
 export class UsersController {
   static async listUsers(req: Request, res: Response) {
@@ -23,6 +31,16 @@ export class UsersController {
   static async updateStatus(req: Request, res: Response) {
     const result = await updateUserStatus(req.params.id as string, req.body, req.user!.id, req.ip);
     res.status(200).json(ApiResponse.success(result));
+  }
+
+  static async createUser(req: Request, res: Response) {
+    const user = await createUserByAdmin(req.body, req.user!.id, req.ip);
+    res.status(201).json(ApiResponse.success(user));
+  }
+
+  static async setPassword(req: Request, res: Response) {
+    await setUserPassword(req.params.id as string, req.body, req.user!.id, req.ip);
+    res.status(200).json(ApiResponse.success({ updated: true }));
   }
 
   static async deleteUser(req: Request, res: Response) {
