@@ -7,6 +7,7 @@ import { validateCheckout, validateUpgradePreview } from "./billing.validator";
 // self-hosted install.
 const router = Router();
 
+router.get("/status", authenticate, BillingController.status);
 router.post("/checkout", authenticate, validateCheckout, BillingController.checkout);
 // What a subscriber's upgrade will charge now, shown before they confirm.
 router.post("/upgrade-preview", authenticate, validateUpgradePreview, BillingController.upgradePreview);

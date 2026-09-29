@@ -1,12 +1,16 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { createCheckout, createPortalLink, handleWebhook, previewUpgrade, syncSubscriptions } from "./billing.service";
+import { billingStatus, createCheckout, createPortalLink, handleWebhook, previewUpgrade, syncSubscriptions } from "./billing.service";
 import type { CheckoutInput, UpgradePreviewInput } from "./billing.schema";
 
 export class BillingController {
   static async checkout(req: Request, res: Response) {
     const { planKey, confirmUpgrade } = req.body as CheckoutInput;
     res.status(200).json(ApiResponse.success(await createCheckout(req.user!.id, planKey, confirmUpgrade === true)));
+  }
+
+  static async status(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await billingStatus(req.user!.id)));
   }
 
   static async upgradePreview(req: Request, res: Response) {

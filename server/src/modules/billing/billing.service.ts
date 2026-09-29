@@ -88,6 +88,49 @@ async function currentSubscription(userId: string) {
  * one; moving down is done in the provider's billing portal.
  */
 /**
+ * The paid subscription a user's plan rests on, with its live state from the
+ * provider. Only an active (or past-due) one can be changed in place; a
+ * cancelled one still gives access until its period ends but can't be
+ * changed, so moving up means a new checkout.
+ */
+async function paidSubscription(userId: string) {
+  const current = await currentSubscription(userId);
+  const ref = current?.assignment.sourceRefId;
+  if (!current || !ref) return null;
+  const live = await callProvider("subscription lookup", () => requireProvider().getSubscription(ref));
+  const status = live?.kind ?? "ended";
+  return { ...current, subscriptionId: ref, status, changeable: status === "active" || status === "past_due" };
+}
+
+/** What Settings -> Plan & usage needs to offer the right way up. */
+export async function billingStatus(userId: string) {
+  const sub = await paidSubscription(userId);
+  if (!sub) return { subscription: null };
+  return {
+    subscription: {
+      planKey: sub.plan.key,
+      planName: sub.plan.name,
+      sortOrder: sub.plan.sortOrder,
+      status: sub.status,
+      /** Renews on, or (cancelled) access ends on. */
+      periodEnd: sub.assignment.endsAt,
+      /** True when moving up changes this subscription in place (and charges the saved card). */
+      changeable: sub.changeable,
+    },
+  };
+}
+
+/** A cancelled subscription can't move up in place; buying a plan at or below it would only cut its paid time short. */
+function assertAboveCancelled(target: { sortOrder: number }, sub: { plan: { name: string; sortOrder: number }; assignment: { endsAt: Date | null } }) {
+  if (target.sortOrder <= sub.plan.sortOrder) {
+    const until = sub.assignment.endsAt
+      ? ` until ${sub.assignment.endsAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+      : "";
+    throw new AppError(`You already have ${sub.plan.name}${until}. It's cancelled, so it won't renew.`, 409, "NOT_AN_UPGRADE");
+  }
+}
+
+/**
  * What upgrading to `planKey` costs right now. A subscriber moves up in
  * place and the saved card is charged the prorated difference immediately,
  * so the client shows this and asks before calling createCheckout with
@@ -97,11 +140,14 @@ async function currentSubscription(userId: string) {
 export async function previewUpgrade(userId: string, planKey: string) {
   const billing = requireProvider();
   const { plan, productId } = await buyablePlan(planKey);
-  const current = await currentSubscription(userId);
+  const current = await paidSubscription(userId);
   if (!current) return { mode: "checkout" as const, planName: plan.name };
+  if (!current.changeable) {
+    assertAboveCancelled(plan, current);
+    return { mode: "checkout" as const, planName: plan.name };
+  }
   assertIsUpgrade(plan, current.plan);
-  const subscriptionId = current.assignment.sourceRefId;
-  if (!subscriptionId) throw new AppError("Couldn't find your subscription", 409, "NO_SUBSCRIPTION");
+  const { subscriptionId } = current;
   const charge = await callProvider("plan change preview", () => billing.previewChangePlan(subscriptionId, productId));
   return {
     mode: "change" as const,
@@ -147,16 +193,16 @@ export async function createCheckout(userId: string, planKey: string, confirmUpg
 
   const base = `${env.FRONTEND_URL.replace(/\/$/, "")}/app/settings/billing`;
 
-  const current = await currentSubscription(userId);
-  if (current) {
+  const current = await paidSubscription(userId);
+  if (current && !current.changeable) assertAboveCancelled(plan, current);
+  if (current?.changeable) {
     assertIsUpgrade(plan, current.plan);
     // Moving up charges the saved card on the spot, with no payment page —
     // never without the person having seen the amount and agreed.
     if (!confirmUpgrade) {
       throw new AppError("Confirm the upgrade charge first.", 409, "UPGRADE_NEEDS_CONFIRMATION");
     }
-    const subscriptionId = current.assignment.sourceRefId;
-    if (!subscriptionId) throw new AppError("Couldn't find your subscription", 409, "NO_SUBSCRIPTION");
+    const { subscriptionId } = current;
     // The provider sends subscription.plan_changed, which moves the
     // assignment to the new plan (applySubscriptionEvent, same subscription).
     const { paymentUrl } = await callProvider("plan change", () => billing.changePlan(subscriptionId, productId));

@@ -13,6 +13,8 @@ import {
   startCheckout,
   syncBilling,
   upgradeOptions,
+  getBillingStatus,
+  type Plan,
   type PlanLimitType,
 } from "@/lib/plans";
 import { getServerConfig } from "@/lib/server-config";
@@ -50,6 +52,11 @@ function BillingSettings() {
     enabled: !!config?.billing,
   });
   const [pending, setPending] = useState<string | null>(null);
+  const { data: billing } = useQuery({
+    queryKey: ["billing", "status"],
+    queryFn: getBillingStatus,
+    enabled: !!config?.billing && !!data && !data.selfHosted,
+  });
 
   // Back from the provider's checkout. The webhook usually switches the plan
   // within seconds, but it can be late (or never come), so also ask the
@@ -75,6 +82,7 @@ function BillingSettings() {
           // The webhook still gets there; this is only a head start.
         }
         queryClient.invalidateQueries({ queryKey: ["plans", "me"] });
+        queryClient.invalidateQueries({ queryKey: ["billing", "status"] });
       }, delay),
     );
     return () => {
@@ -94,9 +102,34 @@ function BillingSettings() {
   };
 
   const onPaidPlan = !!data && !data.plan.isDefault;
-  // Only plans above the current one — a subscriber moves up here, and down
-  // in the provider's billing portal.
-  const upgrades = upgradeOptions(data?.plan, plans ?? []);
+  const sub = billing?.subscription ?? null;
+  // Moving up changes an active subscription in place (the saved card is
+  // charged, so it's confirmed first). Without one — no subscription, or a
+  // cancelled one, which can't be changed — it's a new checkout.
+  const inPlace = !!sub?.changeable;
+  // Offer only what's above what they already have: the plan they're shown
+  // (which may be an admin grant) or the one they still pay for, whichever
+  // ranks higher. That's also what the server accepts.
+  const paidPlan = sub ? (plans?.find((p) => p.key === sub.planKey) ?? null) : null;
+  const floor: Plan | null | undefined = inPlace
+    ? paidPlan
+    : paidPlan && data && paidPlan.sortOrder > data.plan.sortOrder
+      ? paidPlan
+      : data?.plan;
+  const upgrades = upgradeOptions(floor, plans ?? []);
+  const until = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "");
+  const source = data?.assignment?.source;
+  const planNote = !data
+    ? null
+    : source === "admin_manual"
+      ? `Given to you${data.assignment?.endsAt ? ` until ${until(data.assignment.endsAt)}` : ""}${sub ? `, then back to your paid ${sub.planName}` : ""}`
+      : source === "subscription" && sub
+        ? sub.status === "cancelled"
+          ? `Cancelled · yours until ${until(sub.periodEnd)}`
+          : sub.status === "past_due"
+            ? `Payment failed · we'll keep trying until ${until(sub.periodEnd)}`
+            : `Renews ${until(sub.periodEnd)}`
+        : null;
 
   return (
     <div className="space-y-6 max-w-3xl text-xs font-semibold">
@@ -121,11 +154,7 @@ function BillingSettings() {
                 <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Your plan</span>
                 <p className="text-sm font-bold text-foreground mt-0.5">{data.plan.name}</p>
               </div>
-              {data.assignment?.endsAt && (
-                <span className="text-[10px] text-muted-foreground">
-                  Renews or ends {new Date(data.assignment.endsAt).toLocaleDateString()}
-                </span>
-              )}
+              {planNote && <span className="text-[10px] text-muted-foreground text-right">{planNote}</span>}
             </div>
 
             {data.plan.description && <p className="text-[11px] text-muted-foreground font-medium">{data.plan.description}</p>}
@@ -156,6 +185,8 @@ function BillingSettings() {
                   try {
                     const { applied } = await syncBilling();
                     await queryClient.invalidateQueries({ queryKey: ["plans", "me"] });
+                    queryClient.invalidateQueries({ queryKey: ["billing", "status"] });
+        queryClient.invalidateQueries({ queryKey: ["billing", "status"] });
                     if (!applied) toast.add({ title: "No active subscription found yet. It can take a minute after paying." });
                   } catch (err) {
                     toast.add({ title: err instanceof Error ? err.message : "Couldn't check right now.", type: "error" });
@@ -174,9 +205,9 @@ function BillingSettings() {
             <div className="p-5 border border-border bg-card rounded-xl space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
-                  {onPaidPlan ? (upgrades.length ? "Move up" : "Your plan") : "Upgrade"}
+                  {upgrades.length ? (inPlace ? "Move up" : "Upgrade") : "Subscription"}
                 </span>
-                {onPaidPlan && (
+                {sub && (
                   <button
                     type="button"
                     onClick={() => go("portal", openBillingPortal)}
@@ -190,23 +221,25 @@ function BillingSettings() {
               </div>
               {upgrades.length > 0 ? (
                 <UpgradePlans
-                  current={data.plan}
+                  current={floor}
                   options={upgrades}
                   pending={pending}
                   onChoose={(plan) =>
                     // Someone who already pays is charged on the spot, so they
                     // see the amount first; everyone else pays on the checkout page.
-                    onPaidPlan ? setConfirmingPlan(plan.key) : go(plan.key, () => startCheckout(plan.key))
+                    inPlace ? setConfirmingPlan(plan.key) : go(plan.key, () => startCheckout(plan.key))
                   }
                 />
               ) : (
                 <p className="text-[10px] text-muted-foreground font-medium">
-                  {onPaidPlan
-                    ? "You're on our biggest plan. To change or cancel it, use Manage billing."
-                    : "Paid plans aren't available yet."}
+                  {sub?.status === "cancelled"
+                    ? `You have ${sub.planName} until ${until(sub.periodEnd)}. It's cancelled, so it won't renew.`
+                    : onPaidPlan
+                      ? "You're on our biggest plan. To change or cancel it, use Manage billing."
+                      : "Paid plans aren't available yet."}
                 </p>
               )}
-              {onPaidPlan && upgrades.length > 0 && (
+              {inPlace && upgrades.length > 0 && (
                 <p className="text-[10px] text-muted-foreground font-medium">
                   Moving up switches your current subscription and charges only the difference for the rest of this period. To move to a
                   smaller plan or cancel, use Manage billing.

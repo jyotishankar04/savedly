@@ -205,6 +205,24 @@ export async function previewUpgrade(planKey: string): Promise<UpgradePreview> {
   return apiFetch<UpgradePreview>("/billing/upgrade-preview", { method: "POST", body: { planKey } });
 }
 
+export interface BillingStatus {
+  /** The paid subscription the user's plan rests on, with its live state from the provider. */
+  subscription: {
+    planKey: string;
+    planName: string;
+    sortOrder: number;
+    status: "active" | "past_due" | "cancelled" | "ended";
+    /** Renews on, or (cancelled) access ends on. */
+    periodEnd: string | null;
+    /** True when moving up changes this subscription in place and charges the saved card. */
+    changeable: boolean;
+  } | null;
+}
+
+export async function getBillingStatus(): Promise<BillingStatus> {
+  return apiFetch<BillingStatus>("/billing/status");
+}
+
 /** Asks the server to read your subscription from the payment provider now, instead of waiting for its webhook. */
 export async function syncBilling(): Promise<{ applied: number }> {
   return apiFetch<{ applied: number }>("/billing/sync", { method: "POST" });
