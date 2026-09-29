@@ -99,7 +99,13 @@ async function paidSubscription(userId: string) {
   if (!current || !ref) return null;
   const live = await callProvider("subscription lookup", () => requireProvider().getSubscription(ref));
   const status = live?.kind ?? "ended";
-  return { ...current, subscriptionId: ref, status, changeable: status === "active" || status === "past_due" };
+  return {
+    ...current,
+    subscriptionId: ref,
+    status,
+    cancelAtPeriodEnd: !!live?.cancelAtPeriodEnd,
+    changeable: status === "active" || status === "past_due",
+  };
 }
 
 /** What Settings -> Plan & usage needs to offer the right way up. */
@@ -116,6 +122,8 @@ export async function billingStatus(userId: string) {
       periodEnd: sub.assignment.endsAt,
       /** True when moving up changes this subscription in place (and charges the saved card). */
       changeable: sub.changeable,
+      /** Still active, but set not to renew. */
+      cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
     },
   };
 }
@@ -219,6 +227,61 @@ export async function createCheckout(userId: string, planKey: string, confirmUpg
       cancelUrl: `${base}?checkout=cancelled`,
     }),
   );
+}
+
+/**
+ * Admin -> a user's plan, for someone paying through the provider: acts on
+ * the real subscription, so billing and the app agree. A paid plan switches
+ * the subscription with nothing charged now (the new price applies from the
+ * next renewal); Free sets it to cancel at the end of the paid period. Any
+ * admin grant is ended so it can't hide the paid plan. Returns null when
+ * the user has no subscription that can be changed (the caller grants).
+ */
+export async function adminChangeSubscription(userId: string, planKey: string) {
+  if (!getProvider()) return null;
+  const sub = await paidSubscription(userId);
+  if (!sub?.changeable) return null;
+  const billing = requireProvider();
+
+  const [target] = await db.select().from(plans).where(eq(plans.key, planKey)).limit(1);
+  if (!target) throw new AppError("Plan not found", 404, "NOT_FOUND");
+
+  let outcome: { action: "switched" | "cancelling"; planName: string };
+  if (target.priceMinor <= 0) {
+    await callProvider("cancel at period end", () => billing.cancelAtPeriodEnd(sub.subscriptionId));
+    outcome = { action: "cancelling", planName: sub.plan.name };
+  } else {
+    // Keep their billing interval: someone paying yearly moves to the yearly
+    // version of the chosen plan.
+    const tier = target.key.replace(/-(monthly|yearly|semi-annual|annual)$/, "");
+    const [sameInterval] = await db
+      .select()
+      .from(plans)
+      .where(and(eq(plans.isActive, true), eq(plans.billingInterval, sub.plan.billingInterval), sql`${plans.key} like ${`${tier}-%`}`))
+      .limit(1);
+    const plan = sameInterval ?? target;
+    const productId = env.DODO_PRODUCT_IDS[plan.key];
+    if (!productId) throw new AppError(`${plan.name} can't be sold yet (no product for it)`, 409, "PLAN_NOT_AVAILABLE");
+    if (plan.key !== sub.plan.key) {
+      await callProvider("admin plan change", () => billing.changePlan(sub.subscriptionId, productId, "next_renewal"));
+    }
+    outcome = { action: "switched", planName: plan.name };
+  }
+
+  // The app follows the provider now, not when the webhook lands.
+  const latest = await callProvider("subscription lookup", () => billing.getSubscription(sub.subscriptionId));
+  if (latest) await applyForUser(userId, latest);
+  await db
+    .update(userPlanAssignments)
+    .set({ status: PlanAssignmentStatus.CANCELLED, endsAt: new Date() })
+    .where(
+      and(
+        eq(userPlanAssignments.userId, userId),
+        eq(userPlanAssignments.source, PlanAssignmentSource.ADMIN_MANUAL),
+        eq(userPlanAssignments.status, PlanAssignmentStatus.ACTIVE),
+      ),
+    );
+  return outcome;
 }
 
 export async function createPortalLink(userId: string): Promise<{ url: string }> {

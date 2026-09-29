@@ -33,6 +33,7 @@ interface DodoSubscriptionData {
   metadata?: Record<string, string> | null;
   next_billing_date?: string | null;
   expires_at?: string | null;
+  cancel_at_next_billing_date?: boolean | null;
 }
 
 export function createDodoProvider(): BillingProvider {
@@ -59,15 +60,23 @@ export function createDodoProvider(): BillingProvider {
       return { url: session.checkout_url };
     },
 
-    async changePlan(subscriptionId, productId) {
+    async changePlan(subscriptionId, productId, billing = "prorated") {
       const result = await client.subscriptions.changePlan(subscriptionId, {
         product_id: productId,
         quantity: 1,
-        // Charge the difference for the rest of the current period now; the
-        // next renewal bills the new plan's full price.
-        proration_billing_mode: "prorated_immediately",
+        // prorated: charge the difference for the rest of the current period
+        // now; the next renewal bills the new plan's full price.
+        // next_renewal: nothing now; the next renewal bills the new price.
+        proration_billing_mode: billing === "prorated" ? "prorated_immediately" : "do_not_bill",
       });
       return { paymentUrl: result.payment_link ?? null };
+    },
+
+    async cancelAtPeriodEnd(subscriptionId) {
+      await client.subscriptions.update(subscriptionId, {
+        cancel_at_next_billing_date: true,
+        cancel_reason: "cancelled_by_merchant",
+      });
     },
 
     async previewChangePlan(subscriptionId, productId) {
@@ -146,5 +155,6 @@ function fromSubscription(sub: DodoSubscriptionData & { status: string }): Subsc
     productId: sub.product_id,
     userId: sub.metadata?.userId ?? null,
     periodEnd: periodEnd ? new Date(periodEnd) : null,
+    cancelAtPeriodEnd: !!sub.cancel_at_next_billing_date,
   };
 }

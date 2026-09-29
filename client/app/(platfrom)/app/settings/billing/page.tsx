@@ -126,6 +126,8 @@ function BillingSettings() {
       : source === "subscription" && sub
         ? sub.status === "cancelled"
           ? `Cancelled · yours until ${until(sub.periodEnd)}`
+          : sub.cancelAtPeriodEnd
+            ? `Cancels ${until(sub.periodEnd)} · yours until then`
           : sub.status === "past_due"
             ? `Payment failed · we'll keep trying until ${until(sub.periodEnd)}`
             : `Renews ${until(sub.periodEnd)}`

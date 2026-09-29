@@ -216,6 +216,8 @@ export interface BillingStatus {
     periodEnd: string | null;
     /** True when moving up changes this subscription in place and charges the saved card. */
     changeable: boolean;
+    /** Still active, but set not to renew. */
+    cancelAtPeriodEnd: boolean;
   } | null;
 }
 

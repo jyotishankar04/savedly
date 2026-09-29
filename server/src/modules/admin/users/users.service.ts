@@ -13,6 +13,7 @@ import { assignAdminRole, assignDefaultRole } from "../../auth/auth.service";
 import { sendEmail } from "../../email";
 import { resolveEffectivePlan } from "../../plans/plans.service";
 import { valueGrant } from "../plans/plan-grants.service";
+import { adminChangeSubscription, billingStatus } from "../../billing/billing.service";
 import { userStatusChangedEmailTemplate } from "../../../shared/mailer/templates";
 import type { CreateUserInput, GrantPlanInput, ListUsersQuery, SetUserPasswordInput, UpdateUserRolesInput, UpdateUserStatusInput } from "./users.schema";
 
@@ -425,7 +426,14 @@ export async function getUserPlan(userId: string) {
   const live = (row: (typeof history)[number]) =>
     row.status === PlanAssignmentStatus.ACTIVE && (!row.endsAt || row.endsAt > now);
 
+  // The live Dodo subscription, when there's a provider: whether the admin
+  // form changes it (active) or can only grant over it (cancelled / none).
+  const billing = await billingStatus(userId)
+    .then((b) => b.subscription)
+    .catch(() => null);
+
   return {
+    billing,
     current: {
       planKey: plan.key,
       planName: plan.name,
@@ -443,6 +451,22 @@ export async function getUserPlan(userId: string) {
 export async function grantPlan(userId: string, input: GrantPlanInput, adminUserId: string, ipAddress?: string) {
   const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
   if (!user) throw new AppError("User not found", 404, "NOT_FOUND");
+
+  // Someone paying through Dodo: change the real subscription instead of
+  // laying a grant over it, so billing and the app never disagree.
+  const changed = await adminChangeSubscription(userId, input.planKey);
+  if (changed) {
+    await logAdminAction({
+      adminUserId,
+      action: changed.action === "cancelling" ? "user.subscription.cancel_at_period_end" : "user.subscription.plan_changed",
+      targetType: "user",
+      targetId: userId,
+      beforeValue: null,
+      afterValue: { plan: changed.planName, reason: input.reason ?? null },
+      ipAddress,
+    });
+    return getUserPlan(userId);
+  }
   const [plan] = await db.select().from(plans).where(eq(plans.key, input.planKey)).limit(1);
   if (!plan) throw new AppError("Plan not found", 404, "NOT_FOUND");
 

@@ -1,4 +1,5 @@
 import { apiFetch, apiFetchRaw } from "@/lib/auth";
+import type { BillingStatus } from "@/lib/plans";
 
 export interface AdminUser {
   id: string;
@@ -114,6 +115,8 @@ export interface UserPlanHistoryRow {
 }
 
 export interface AdminUserPlan {
+  /** Their live Dodo subscription: when `changeable`, the admin form changes it instead of granting. */
+  billing: BillingStatus["subscription"];
   current: { planKey: string; planName: string; source: PlanSource | null; endsAt: string | null; reason: string | null };
   /** The paid subscription underneath, if any — what they fall back to when a grant ends. */
   subscription: UserPlanHistoryRow | null;

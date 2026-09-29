@@ -5,6 +5,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/lib/auth";
@@ -72,6 +82,7 @@ export function UserPlanSection({ userId }: { userId: string }) {
   const [customDate, setCustomDate] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState<"grant" | "remove" | null>(null);
+  const [confirming, setConfirming] = useState(false);
   // Tomorrow, fixed at mount: the earliest a custom end date can be.
   const [minCustomDate] = useState(() => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10));
 
@@ -126,6 +137,12 @@ export function UserPlanSection({ userId }: { userId: string }) {
   const source = current.source ?? "signup_default";
   const granted = source === "admin_manual";
   const grantRow = granted ? data.history.find((row) => row.source === "admin_manual" && row.status === "active") : null;
+  // They pay through Dodo and it can still be changed: the form acts on the
+  // subscription itself (switch plan, or cancel at period end), not a grant.
+  const live = data.billing;
+  const subMode = !!live?.changeable;
+  const sameAsPaid = subMode && !!chosen && planTier(chosen.key) === planTier(live!.planKey);
+  const cancelling = subMode && !!chosen && chosen.priceMinor <= 0;
 
   return (
     <div className="space-y-3">
@@ -152,7 +169,11 @@ export function UserPlanSection({ userId }: { userId: string }) {
               {granted
                 ? `${grantRow?.assignedByEmail ? `By ${grantRow.assignedByEmail}` : "By an admin"} · ${current.endsAt ? `until ${day(current.endsAt)}` : "no end date"}${current.reason ? ` · "${current.reason}"` : ""}`
                 : source === "subscription"
-                  ? `Dodo subscription · paid through ${day(current.endsAt)}`
+                  ? data.billing?.cancelAtPeriodEnd
+                    ? `Dodo subscription · cancels ${day(data.billing.periodEnd)}, no more charges`
+                    : data.billing?.status === "cancelled"
+                      ? `Dodo subscription · cancelled, theirs until ${day(data.billing.periodEnd)}`
+                      : `Dodo subscription · renews ${day(current.endsAt)}`
                   : "Nobody has paid for or given them a plan."}
             </p>
             {granted && grantRow?.value && grantRow.value.monthlyMinor > 0 && (
@@ -180,7 +201,7 @@ export function UserPlanSection({ userId }: { userId: string }) {
 
         {/* Give a plan */}
         <div className="space-y-3 border-t border-border pt-4">
-          <p className="text-[11px] font-semibold text-foreground">Give a plan</p>
+          <p className="text-[11px] font-semibold text-foreground">{subMode ? "Change their subscription" : "Give a plan"}</p>
 
           <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Plan">
             {choices.map((p) => (
@@ -200,6 +221,7 @@ export function UserPlanSection({ userId }: { userId: string }) {
             ))}
           </div>
 
+          {!subMode && (
           <div className="flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="How long">
             {DURATIONS.map((d) => (
               <button
@@ -227,6 +249,7 @@ export function UserPlanSection({ userId }: { userId: string }) {
               />
             )}
           </div>
+          )}
 
           <Input
             value={reason}
@@ -236,19 +259,35 @@ export function UserPlanSection({ userId }: { userId: string }) {
             className="h-8 text-xs"
           />
 
-          {chosen && subscription && paidRank !== undefined && chosen.sortOrder < paidRank && (
+          {!subMode && chosen && subscription && paidRank !== undefined && chosen.sortOrder < paidRank && (
             <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
               They pay for {subscription.planName} through {day(subscription.endsAt)}. This puts them on {chosen.name} instead until the
               grant ends; their payments and dates in Dodo stay the same.
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <Button size="sm" disabled={!canGrant} onClick={grant}>
+            <Button
+              size="sm"
+              disabled={!canGrant || sameAsPaid || (cancelling && live?.cancelAtPeriodEnd)}
+              onClick={() => (subMode ? setConfirming(true) : grant())}
+            >
               {busy === "grant" && <Spinner />}
-              {chosen ? `Move to ${chosen.name}` : "Pick a plan"}
+              {!chosen
+                ? "Pick a plan"
+                : sameAsPaid
+                  ? `Already on ${chosen.name}`
+                  : cancelling
+                    ? live?.cancelAtPeriodEnd
+                      ? "Already cancelling"
+                      : "Cancel at period end"
+                    : subMode
+                      ? `Switch to ${chosen.name}`
+                      : `Move to ${chosen.name}`}
             </Button>
             <p className="text-[10px] text-muted-foreground">
-              Takes effect now. It doesn&apos;t change billing: a Dodo subscription keeps charging until it&apos;s cancelled in Dodo.
+              {subMode
+                ? "Changes their Dodo subscription, so billing and the app stay the same."
+                : "Takes effect now. It doesn't change billing: a Dodo subscription keeps charging until it's cancelled in Dodo."}
             </p>
           </div>
         </div>
@@ -278,6 +317,35 @@ export function UserPlanSection({ userId }: { userId: string }) {
           </details>
         )}
       </div>
+      {subMode && chosen && live && (
+        <AlertDialog open={confirming} onOpenChange={(open) => !busy && setConfirming(open)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                {cancelling ? "Cancel their subscription at period end?" : `Switch them to ${chosen.name}?`}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                {cancelling
+                  ? `Their ${live.planName} subscription won't renew. They keep ${live.planName} until ${day(live.periodEnd)} and aren't charged again.`
+                  : `Their Dodo subscription moves from ${live.planName} to ${chosen.name} now, keeping the same billing period. Nothing is charged today; their next renewal on ${day(live.periodEnd)} is at ${chosen.name}'s price.`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={busy !== null}>Not now</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={busy !== null}
+                onClick={async () => {
+                  await grant();
+                  setConfirming(false);
+                }}
+              >
+                {busy === "grant" && <Spinner />}
+                {cancelling ? "Cancel at period end" : `Switch to ${chosen.name}`}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
