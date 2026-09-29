@@ -1,5 +1,6 @@
 import type { ToolRuntime } from "@langchain/core/tools";
 import { listCollections } from "../../../collection/collection.service";
+import { collectionNameKey } from "../../ingestion/nodes/organize-collection";
 import type { ragToolContextSchema } from "./search-memories";
 
 // Small helpers the Ask tools share.
@@ -33,8 +34,11 @@ export async function resolveCollectionId(userId: string, nameOrId: string): Pro
     if (byId) return { id: byId.id, name: byId.name };
   }
   const wanted = nameOrId.trim().toLowerCase();
+  const wantedKey = collectionNameKey(nameOrId);
   const match =
-    collections.find((c) => c.name.toLowerCase() === wanted) ?? collections.find((c) => c.name.toLowerCase().includes(wanted));
+    collections.find((c) => c.name.toLowerCase() === wanted) ??
+    collections.find((c) => collectionNameKey(c.name) === wantedKey) ??
+    collections.find((c) => c.name.toLowerCase().includes(wanted));
   if (!match) {
     const names = collections.map((c) => c.name).join(", ") || "none yet";
     throw new Error(`No collection called "${nameOrId}". The user's collections: ${names}.`);
