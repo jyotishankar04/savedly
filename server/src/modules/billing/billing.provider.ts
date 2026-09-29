@@ -39,6 +39,8 @@ export interface BillingProvider {
    * customer to confirm the charge, else null (the saved method was charged).
    */
   changePlan(subscriptionId: string, productId: string): Promise<{ paymentUrl: string | null }>;
+  /** What changePlan would charge right now (prorated, tax included), without changing anything. */
+  previewChangePlan(subscriptionId: string, productId: string): Promise<{ amountMinor: number; taxMinor: number | null; currency: string }>;
   /** Verifies the signature and returns the event, or null for event types billing ignores. Throws on a bad signature. */
   parseWebhook(rawBody: string, headers: Record<string, string>): SubscriptionEvent | null;
   /**

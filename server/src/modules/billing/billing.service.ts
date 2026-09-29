@@ -35,6 +35,17 @@ async function callProvider<T>(what: string, fn: () => Promise<T>): Promise<T> {
     return await fn();
   } catch (err) {
     logger.error({ err }, `[billing] ${what} failed`);
+    // A 4xx is the provider refusing the request (e.g. changing a cancelled
+    // subscription), not an outage — say why instead of "try again".
+    const status = (err as { status?: number }).status;
+    if (status && status >= 400 && status < 500) {
+      const reason = String((err as Error).message ?? "").replace(/^\d{3}\s*/, "").trim();
+      throw new AppError(
+        reason ? `The payment provider couldn't do that: ${reason}.` : "The payment provider couldn't do that.",
+        409,
+        "BILLING_REQUEST_REJECTED",
+      );
+    }
     throw new AppError("The payment provider isn't responding. Please try again in a minute.", 502, "BILLING_PROVIDER_ERROR");
   }
 }
@@ -76,14 +87,60 @@ async function currentSubscription(userId: string) {
  * moving up changes their existing subscription instead of opening a second
  * one; moving down is done in the provider's billing portal.
  */
-export async function createCheckout(userId: string, planKey: string): Promise<{ url: string }> {
+/**
+ * What upgrading to `planKey` costs right now. A subscriber moves up in
+ * place and the saved card is charged the prorated difference immediately,
+ * so the client shows this and asks before calling createCheckout with
+ * confirmUpgrade. Someone without a subscription goes through checkout
+ * instead, where the provider shows the price itself.
+ */
+export async function previewUpgrade(userId: string, planKey: string) {
   const billing = requireProvider();
+  const { plan, productId } = await buyablePlan(planKey);
+  const current = await currentSubscription(userId);
+  if (!current) return { mode: "checkout" as const, planName: plan.name };
+  assertIsUpgrade(plan, current.plan);
+  const subscriptionId = current.assignment.sourceRefId;
+  if (!subscriptionId) throw new AppError("Couldn't find your subscription", 409, "NO_SUBSCRIPTION");
+  const charge = await callProvider("plan change preview", () => billing.previewChangePlan(subscriptionId, productId));
+  return {
+    mode: "change" as const,
+    planName: plan.name,
+    fromPlanName: current.plan.name,
+    billingInterval: plan.billingInterval,
+    /** Charged to the saved card now: the prorated difference, tax included. */
+    chargeNowMinor: charge.amountMinor,
+    taxMinor: charge.taxMinor,
+    currency: charge.currency.toLowerCase(),
+    /** What each renewal costs after this. */
+    renewalMinor: plan.priceMinor,
+    renewalCurrency: plan.currency,
+  };
+}
 
+async function buyablePlan(planKey: string) {
   const [plan] = await db.select().from(plans).where(eq(plans.key, planKey)).limit(1);
   const productId = env.DODO_PRODUCT_IDS[planKey];
   if (!plan || !plan.isActive || plan.priceMinor <= 0 || !productId) {
     throw new AppError("That plan isn't available to buy", 404, "PLAN_NOT_AVAILABLE");
   }
+  return { plan, productId };
+}
+
+function assertIsUpgrade(target: { sortOrder: number }, current: { sortOrder: number }) {
+  if (target.sortOrder <= current.sortOrder) {
+    throw new AppError(
+      "You're already on this plan or a bigger one. To move to a smaller plan, use Manage billing.",
+      409,
+      "NOT_AN_UPGRADE",
+    );
+  }
+}
+
+export async function createCheckout(userId: string, planKey: string, confirmUpgrade = false): Promise<{ url: string }> {
+  const billing = requireProvider();
+
+  const { plan, productId } = await buyablePlan(planKey);
 
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) throw new AppError("User not found", 404, "NOT_FOUND");
@@ -92,12 +149,11 @@ export async function createCheckout(userId: string, planKey: string): Promise<{
 
   const current = await currentSubscription(userId);
   if (current) {
-    if (plan.sortOrder <= current.plan.sortOrder) {
-      throw new AppError(
-        "You're already on this plan or a bigger one. To move to a smaller plan, use Manage billing.",
-        409,
-        "NOT_AN_UPGRADE",
-      );
+    assertIsUpgrade(plan, current.plan);
+    // Moving up charges the saved card on the spot, with no payment page —
+    // never without the person having seen the amount and agreed.
+    if (!confirmUpgrade) {
+      throw new AppError("Confirm the upgrade charge first.", 409, "UPGRADE_NEEDS_CONFIRMATION");
     }
     const subscriptionId = current.assignment.sourceRefId;
     if (!subscriptionId) throw new AppError("Couldn't find your subscription", 409, "NO_SUBSCRIPTION");

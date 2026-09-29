@@ -143,6 +143,12 @@ export function PricingPlans() {
       router.push("/auth/signup");
       return;
     }
+    // A subscriber's upgrade charges their saved card at once, so it's
+    // confirmed in Settings, where the exact amount is shown first.
+    if (current) {
+      router.push(`/app/settings/billing?upgrade=${encodeURIComponent(plan.key)}`);
+      return;
+    }
     setPending(plan.key);
     try {
       window.location.assign(await startCheckout(plan.key));

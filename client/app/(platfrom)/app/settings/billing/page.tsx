@@ -22,6 +22,7 @@ import { QueryErrorState } from "@/components/query-error-state";
 import { SupportProjectCard } from "@/components/support-project-card";
 import { cn } from "@/lib/utils";
 import { UpgradePlans } from "@/components/plan/upgrade-plans";
+import { UpgradeConfirmDialog } from "@/components/plan/upgrade-confirm-dialog";
 
 // Limits with no running total (a per-file cap) show the cap only.
 const NO_USAGE: PlanLimitType[] = ["max_file_mb"];
@@ -55,6 +56,8 @@ function BillingSettings() {
   // server to read the subscription from the provider: now, then a couple of
   // times more while the payment settles.
   const checkout = searchParams.get("checkout");
+  // A subscriber who clicked Upgrade on the pricing page lands here to confirm.
+  const [confirmingPlan, setConfirmingPlan] = useState<string | null>(searchParams.get("upgrade"));
   useEffect(() => {
     if (checkout === "cancelled") {
       toast.add({ title: "Checkout cancelled. Nothing was charged." });
@@ -190,7 +193,11 @@ function BillingSettings() {
                   current={data.plan}
                   options={upgrades}
                   pending={pending}
-                  onChoose={(plan) => go(plan.key, () => startCheckout(plan.key))}
+                  onChoose={(plan) =>
+                    // Someone who already pays is charged on the spot, so they
+                    // see the amount first; everyone else pays on the checkout page.
+                    onPaidPlan ? setConfirmingPlan(plan.key) : go(plan.key, () => startCheckout(plan.key))
+                  }
                 />
               ) : (
                 <p className="text-[10px] text-muted-foreground font-medium">
@@ -207,6 +214,13 @@ function BillingSettings() {
               )}
             </div>
           )}
+
+          <UpgradeConfirmDialog
+            planKey={confirmingPlan}
+            busy={pending !== null}
+            onClose={() => setConfirmingPlan(null)}
+            onConfirm={(key) => go(key, () => startCheckout(key, true))}
+          />
 
           <SupportProjectCard />
         </div>

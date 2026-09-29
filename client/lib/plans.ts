@@ -171,9 +171,33 @@ export function planLimitBullets(limits: PlanLimits, features: Record<string, bo
   return bullets;
 }
 
-export async function startCheckout(planKey: string): Promise<string> {
-  const { url } = await apiFetch<{ url: string }>("/billing/checkout", { method: "POST", body: { planKey } });
+/**
+ * Starts buying `planKey`. For someone who already pays, this upgrades the
+ * subscription in place and charges the saved card at once — so pass
+ * confirmUpgrade only after showing them previewUpgrade's amount.
+ */
+export async function startCheckout(planKey: string, confirmUpgrade = false): Promise<string> {
+  const { url } = await apiFetch<{ url: string }>("/billing/checkout", { method: "POST", body: { planKey, confirmUpgrade } });
   return url;
+}
+
+export type UpgradePreview =
+  | { mode: "checkout"; planName: string }
+  | {
+      mode: "change";
+      planName: string;
+      fromPlanName: string;
+      billingInterval: Plan["billingInterval"];
+      chargeNowMinor: number;
+      taxMinor: number | null;
+      currency: string;
+      renewalMinor: number;
+      renewalCurrency: string;
+    };
+
+/** What upgrading to `planKey` would charge right now (nothing is charged). */
+export async function previewUpgrade(planKey: string): Promise<UpgradePreview> {
+  return apiFetch<UpgradePreview>("/billing/upgrade-preview", { method: "POST", body: { planKey } });
 }
 
 /** Asks the server to read your subscription from the payment provider now, instead of waiting for its webhook. */

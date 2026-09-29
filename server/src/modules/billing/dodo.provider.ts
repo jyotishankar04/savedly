@@ -59,6 +59,16 @@ export function createDodoProvider(): BillingProvider {
       return { paymentUrl: result.payment_link ?? null };
     },
 
+    async previewChangePlan(subscriptionId, productId) {
+      const preview = await client.subscriptions.previewChangePlan(subscriptionId, {
+        product_id: productId,
+        quantity: 1,
+        proration_billing_mode: "prorated_immediately",
+      });
+      const { summary } = preview.immediate_charge;
+      return { amountMinor: summary.total_amount, taxMinor: summary.tax ?? null, currency: summary.currency };
+    },
+
     async customerPortalUrl(customerId) {
       const portal = await client.customers.customerPortal.create(customerId);
       return portal.link;
