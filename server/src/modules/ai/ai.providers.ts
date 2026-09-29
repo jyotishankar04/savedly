@@ -15,7 +15,7 @@ import { logger } from "../../shared/utils/logger";
 import { env } from "../../config/env";
 import { createUsageCallback, PLATFORM_AI_TAG } from "../ai-usage/usage-logger";
 import { getSection } from "../instance-settings/instance-settings.service";
-import { canUseIncludedAi, type IncludedAiPurpose } from "../plans/plans.service";
+import { canUseIncludedAi, planHasManagedAi, type IncludedAiPurpose } from "../plans/plans.service";
 
 export interface UsageContext {
   userId: string | null;
@@ -49,6 +49,10 @@ export interface ProviderCredentialInput {
  * memory/request over it.
  */
 async function ownCredential(userId: string, role: AiRole): Promise<ProviderCredentialInput | null> {
+  // On a plan with managed AI (AI included), the user's saved keys are kept
+  // but not used — everything runs on included AI.
+  if (await planHasManagedAi(userId)) return null;
+
   const [row] = await db
     .select({
       provider: aiCredentials.provider,

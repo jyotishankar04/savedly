@@ -2,6 +2,7 @@ import { AIMessage, SystemMessage } from "@langchain/core/messages";
 import type { GraphNode } from "@langchain/langgraph";
 import { getChatModel, platformCredential } from "../../ai.providers";
 import { AiRole } from "../../../../db/enums";
+import { planHasManagedAi } from "../../../plans/plans.service";
 import { withUsage } from "../../../ai-usage/usage-logger";
 import { tools } from "../tools";
 import { AGENT_SYSTEM_PROMPT } from "../prompts";
@@ -12,6 +13,9 @@ const NOT_CONFIGURED_MESSAGE =
 
 const INCLUDED_AI_USED_UP_MESSAGE =
   "You've used this month's included questions. Add your own API key under Settings → AI to keep asking right away, or upgrade your plan for more.";
+
+const MANAGED_AI_USED_UP_MESSAGE =
+  "You've used this month's included questions. They reset at the start of next month; you can also move to a bigger plan in Settings → Plan & usage.";
 
 export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
   // userId travels via LangGraph's `context` (set at streamAsk's invocation),
@@ -24,7 +28,12 @@ export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
     // Included AI exists for this role but the plan's allowance is spent (or
     // the plan has none) — say that, rather than implying nothing is set up.
     const quotaIsTheReason = !!userId && !!platformCredential(AiRole.REASONING);
-    return { messages: [new AIMessage(quotaIsTheReason ? INCLUDED_AI_USED_UP_MESSAGE : NOT_CONFIGURED_MESSAGE)] };
+    const message = !quotaIsTheReason
+      ? NOT_CONFIGURED_MESSAGE
+      : (await planHasManagedAi(userId!))
+        ? MANAGED_AI_USED_UP_MESSAGE
+        : INCLUDED_AI_USED_UP_MESSAGE;
+    return { messages: [new AIMessage(message)] };
   }
   // bindTools is typed optional on BaseChatModel (not every implementation
   // supports tool calling) — every concrete model getChatModel can return

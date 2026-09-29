@@ -125,7 +125,8 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
       isActive: true,
       sortOrder: 3 + i,
       limits: AI_LIMITS,
-      features: ALL_FEATURES,
+      // AI is part of the plan: always ours, nothing for the user to set up.
+      features: { ...ALL_FEATURES, managedAi: true },
     },
   ]),
 ];

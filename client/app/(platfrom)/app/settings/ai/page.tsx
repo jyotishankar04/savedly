@@ -53,66 +53,136 @@ import {
   type AiProvider,
   type AiRole,
   type AiRoleAssignment,
+  AI_STATUS_QUERY_KEY,
+  getAiStatus,
+  type AiAllowance,
+  type AiStatus,
 } from "@/lib/ai-settings";
-import { getMyPlan } from "@/lib/plans";
 
 const PROVIDERS: AiProvider[] = ["openrouter", "openai", "anthropic", "groq", "google", "custom"];
 const MAX_MODEL_SUGGESTIONS = 8;
 const ROLES: AiRole[] = ["fast", "reasoning", "vision", "embeddings"];
 
-/**
- * Explains where this account's AI comes from: the plan's included AI (what
- * we supply on our key, with a monthly allowance) and/or the user's own key,
- * which always takes over and is never limited.
- */
-function IncludedAiNote() {
-  const { data } = useQuery({ queryKey: ["plans", "me"], queryFn: getMyPlan });
+/** Own-key mode: one line on the plan's small included-AI allowance, if it has one. */
+function IncludedAiNote({ status }: { status: AiStatus | undefined }) {
   const own = "Keys you add here are used only for your account and are never shared.";
-
-  if (!data || data.selfHosted) {
+  const included = status?.included;
+  if (!included || !status?.includedReady) {
     return <p className="text-[10px] text-muted-foreground leading-relaxed">Bring your own API key from any provider. {own}</p>;
   }
-
-  const saves = data.limits.ai_monthly_saves;
-  const asks = data.limits.ai_monthly_queries;
-  const includesAi = [saves, asks].some((v) => v === null || (typeof v === "number" && v > 0));
-  if (!includesAi) {
-    return (
-      <p className="text-[10px] text-muted-foreground leading-relaxed">
-        Your {data.plan.name} plan runs on your own AI key: add one below from any provider. {own}
-      </p>
-    );
-  }
-
-  const left = (limit: number | null | undefined, used = 0) =>
-    limit === null || limit === undefined ? "unlimited" : Math.max(0, limit - used).toLocaleString("en-US");
   return (
     <p className="text-[10px] text-muted-foreground leading-relaxed">
-      Your {data.plan.name} plan includes AI we supply: {left(saves, data.usage.ai_monthly_saves)} saves and{" "}
-      {left(asks, data.usage.ai_monthly_queries)} questions left this month. Add your own key below and it&apos;s used instead, with
-      no limits. {own}
+      Your plan includes some AI we supply: {left(included.saves)} saves and {left(included.questions)} questions left this month. Add your
+      own key below and it&apos;s used instead, with no limits. {own}
     </p>
   );
 }
 
-export default function AISettingsPage() {
+const left = (a: AiAllowance) => (a.limit === null ? "unlimited" : Math.max(0, a.limit - a.used).toLocaleString("en-US"));
+
+/** Managed mode (AI included): nothing to configure — show what the plan supplies and how much is left. */
+function ManagedAiPanel({ status }: { status: AiStatus }) {
+  const rows = status.included
+    ? [
+        { label: "Saves read and organized", a: status.included.saves },
+        { label: "Ask questions", a: status.included.questions },
+        { label: "Images read", a: status.included.images },
+      ]
+    : [];
   return (
-    <div className="space-y-10 max-w-2xl text-xs font-semibold">
-      <div className="space-y-1 pb-4 border-b border-border/25">
-        <h3 className="text-sm font-bold text-foreground">AI</h3>
-        <IncludedAiNote />
-        <p className="text-[10px] text-muted-foreground leading-relaxed">
-          Not sure which models to use?{" "}
-          <Link href="/help/model-selection" className="text-primary hover:underline">
-            Compare models and prices
+    <section className="space-y-3">
+      <div className="p-5 border border-border bg-card rounded-xl space-y-4">
+        <div>
+          <h4 className="text-foreground text-xs font-bold">AI is included in your plan</h4>
+          <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed font-medium">
+            We choose fast, capable models and run them for you: reading and filing what you save, answering your questions, and reading
+            images. There&apos;s nothing to set up.
+          </p>
+        </div>
+
+        {!status.includedReady && (
+          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+            AI isn&apos;t available on this server yet. It starts working as soon as it&apos;s set up; nothing is needed from you.
+          </p>
+        )}
+
+        <div className="space-y-3">
+          {rows.map(({ label, a }) => {
+            const pct = a.limit === null || a.limit === 0 ? 0 : Math.min(100, Math.round((a.used / a.limit) * 100));
+            return (
+              <div key={label} className="space-y-1.5">
+                <div className="flex items-center justify-between gap-3 text-[10px]">
+                  <span className="text-foreground">{label} this month</span>
+                  <span className="text-muted-foreground font-mono tabular-nums">
+                    {a.limit === null ? "Unlimited" : `${a.used.toLocaleString("en-US")} / ${a.limit.toLocaleString("en-US")}`}
+                  </span>
+                </div>
+                {a.limit !== null && a.limit > 0 && (
+                  <div className="h-1 rounded-full bg-muted overflow-hidden" aria-hidden>
+                    <div
+                      className={cn("h-full rounded-full", pct >= 90 ? "bg-destructive" : pct >= 75 ? "bg-amber-500" : "bg-primary")}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
+          Allowances reset at the start of each month.{" "}
+          <Link href="/app/settings/billing" className="text-primary hover:underline">
+            See your plan
           </Link>
           .
         </p>
       </div>
 
-      <ProviderKeysSection />
-      <ModelRolesSection />
-      <AiFeatureToggles />
+      {status.savedKeysIgnored > 0 && (
+        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
+          You have {status.savedKeysIgnored} saved API {status.savedKeysIgnored === 1 ? "key" : "keys"} from before. {status.savedKeysIgnored === 1 ? "It's" : "They're"} kept
+          but not used while AI is included in your plan, and {status.savedKeysIgnored === 1 ? "is" : "are"} used again if you move to a plan
+          where you bring your own key.
+        </p>
+      )}
+    </section>
+  );
+}
+
+export default function AISettingsPage() {
+  const { data: status, isLoading } = useQuery({ queryKey: AI_STATUS_QUERY_KEY, queryFn: getAiStatus });
+  const managed = status?.mode === "managed";
+
+  return (
+    <div className="space-y-10 max-w-2xl text-xs font-semibold">
+      <div className="space-y-1 pb-4 border-b border-border/25">
+        <h3 className="text-sm font-bold text-foreground">AI</h3>
+        {managed ? (
+          <p className="text-[10px] text-muted-foreground leading-relaxed">Your plan includes AI, so there are no keys or models to manage.</p>
+        ) : (
+          <>
+            <IncludedAiNote status={status} />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Not sure which models to use?{" "}
+              <Link href="/help/model-selection" className="text-primary hover:underline">
+                Compare models and prices
+              </Link>
+              .
+            </p>
+          </>
+        )}
+      </div>
+
+      {isLoading ? null : managed && status ? (
+        <ManagedAiPanel status={status} />
+      ) : (
+        <>
+          <ProviderKeysSection />
+          <ModelRolesSection />
+        </>
+      )}
+      <AiFeatureToggles managed={managed} />
     </div>
   );
 }
@@ -404,7 +474,7 @@ function RoleForm({
   const assignMutation = useMutation({
     mutationFn: () => assignRole(role, { credentialId, model }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ai-settings", "roles"] });
+      queryClient.invalidateQueries({ queryKey: ["ai-settings"] });
       toast.add({ title: `${ROLE_LABEL[role]} configured and verified.`, type: "success" });
     },
     onError: (err) => {
@@ -415,7 +485,7 @@ function RoleForm({
   const unassignMutation = useMutation({
     mutationFn: () => unassignRole(role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ai-settings", "roles"] });
+      queryClient.invalidateQueries({ queryKey: ["ai-settings"] });
       setCredentialId("");
       setModel("");
       toast.add({ title: `${ROLE_LABEL[role]} unconfigured.`, type: "success" });
@@ -556,14 +626,18 @@ function RoleForm({
 // switched on at all)
 // -----------------------------------------------------------------------------
 
-function AiFeatureToggles() {
+function AiFeatureToggles({ managed = false }: { managed?: boolean }) {
   const { value: ai, loading, error, set } = useSettingsGroup("ai");
 
   return (
     <section className="space-y-3">
       <div>
         <h4 className="text-foreground text-xs font-bold">Features</h4>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Which AI-powered capabilities are switched on (still requires the relevant role above to be configured).</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          {managed
+            ? "Which AI-powered capabilities are switched on."
+            : "Which AI-powered capabilities are switched on (still requires the relevant role above to be configured)."}
+        </p>
       </div>
 
       {loading && <HugeiconsIcon icon={Loader2} strokeWidth={2.25} className="h-4 w-4 animate-spin text-muted-foreground" />}

@@ -28,5 +28,6 @@ router.delete("/roles/:role", authenticate, validateRoleParams, AiSettingsContro
 
 router.post("/test", authenticate, validateTestConnection, AiSettingsController.testConnection);
 router.get("/platform-defaults", authenticate, AiSettingsController.platformDefaults);
+router.get("/status", authenticate, AiSettingsController.status);
 
 export default router;

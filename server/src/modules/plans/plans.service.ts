@@ -237,6 +237,17 @@ export async function assertFileSizeAllowed(userId: string, fileSizeBytes: numbe
   }
 }
 
+/**
+ * Plans with the `managedAi` feature (AI included) supply all of a user's AI
+ * on the platform's key: their own keys are kept but not used, and they can't
+ * add new ones. Never true on a self-hosted install.
+ */
+export async function planHasManagedAi(userId: string, dbClient: DbOrTx = db): Promise<boolean> {
+  if (env.SELF_HOSTED) return false;
+  const { plan } = await resolveEffectivePlan(userId, dbClient);
+  return plan.features?.managedAi === true;
+}
+
 // ---------------------------------------------------------------------------
 // Included AI — may this call run on the platform's key?
 // ---------------------------------------------------------------------------

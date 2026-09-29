@@ -116,7 +116,9 @@ function BillingSettings() {
 
             {!data.selfHosted && (
               <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
-                The AI allowances cover AI we supply. Add your own key in Settings &gt; AI and your saves and questions are never limited.
+                {data.plan.features?.managedAi
+                  ? "AI is included in your plan: we run it for you, up to these monthly allowances."
+                  : "The AI allowances cover AI we supply. Add your own key in Settings > AI and your saves and questions are never limited."}
               </p>
             )}
           </div>

@@ -107,7 +107,15 @@ export const LIMIT_ORDER: PlanLimitType[] = [
  * used instead of a hand-written per-plan feature list so the marketing
  * pricing table can never drift out of sync with what's actually enforced.
  */
-export function planLimitBullets(limits: PlanLimits): string[] {
+function aiParts(saves?: number | null, asks?: number | null, images?: number | null): string[] {
+  return [
+    saves === null ? "unlimited saves" : saves ? `${saves.toLocaleString("en-US")} saves` : null,
+    asks === null ? "unlimited questions" : asks ? `${asks.toLocaleString("en-US")} questions` : null,
+    images === null ? "unlimited images" : images ? `${images.toLocaleString("en-US")} images` : null,
+  ].filter((p): p is string => !!p);
+}
+
+export function planLimitBullets(limits: PlanLimits, features: Record<string, boolean> = {}): string[] {
   const aiTypes: PlanLimitType[] = ["ai_monthly_saves", "ai_monthly_queries", "ai_monthly_vision_queries"];
   const bullets = LIMIT_ORDER.filter((t) => t in limits && !aiTypes.includes(t) && t !== "collection_count").map((t) => {
     const value = limits[t];
@@ -122,13 +130,12 @@ export function planLimitBullets(limits: PlanLimits): string[] {
   const images = limits.ai_monthly_vision_queries;
   if ([saves, asks, images].every((v) => v === 0)) {
     bullets.push("Bring your own AI key");
+  } else if (features.managedAi) {
+    // AI included: we supply all of it, so there are no keys to bring.
+    bullets.push(`AI included: ${aiParts(saves, asks, images).join(", ")} a month`);
+    bullets.push("Nothing to set up: no AI keys needed");
   } else {
-    const parts = [
-      saves === null ? "unlimited saves" : saves ? `${saves.toLocaleString("en-US")} saves` : null,
-      asks === null ? "unlimited questions" : asks ? `${asks.toLocaleString("en-US")} questions` : null,
-      images === null ? "unlimited images" : images ? `${images.toLocaleString("en-US")} images` : null,
-    ].filter(Boolean);
-    bullets.push(`Included AI: ${parts.join(", ")} a month`);
+    bullets.push(`Included AI: ${aiParts(saves, asks, images).join(", ")} a month`);
     bullets.push("Your own AI key works too, with no limits");
   }
   return bullets;

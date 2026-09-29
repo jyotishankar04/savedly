@@ -48,8 +48,8 @@ const FAQ = [
     a: "SaveForLatter reads, summarizes, tags and files what you save, and answers your questions. That needs an AI model. With included AI we run it on our own account, up to your plan's monthly allowance, so you don't need an AI key of your own.",
   },
   {
-    q: "Is my own AI key limited?",
-    a: "No. Add a key from OpenAI, Anthropic, Google Gemini, Groq, OpenRouter or any OpenAI-compatible service in Settings, and it's used instead of included AI, with no limits on any plan.",
+    q: "Do I need my own AI key?",
+    a: "Not on AI included: we supply all the AI, so there's nothing to set up. On Free and Own key you add a key from OpenAI, Anthropic, Google Gemini, Groq, OpenRouter or any OpenAI-compatible service in Settings, and your own key is never limited.",
   },
   {
     q: "What happens when I reach a limit?",
@@ -295,7 +295,7 @@ export function PricingPlans() {
                     tagline={TAGLINES[planTier(plan.key)] ?? plan.description ?? ""}
                     price={price}
                     priceNote={note}
-                    groups={[{ label: `Included in ${plan.name}:`, items: [`Everything in ${freeName}`, ...planLimitBullets(plan.limits)] }]}
+                    groups={[{ label: `Included in ${plan.name}:`, items: [`Everything in ${freeName}`, ...planLimitBullets(plan.limits, plan.features)] }]}
                     action={
                       <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={buttonClass}>
                         {pending === plan.key && <Spinner />}

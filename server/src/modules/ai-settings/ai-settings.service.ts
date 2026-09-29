@@ -6,7 +6,9 @@ import { AppError } from "../../shared/errors/app-error";
 import { env } from "../../config/env";
 import { decryptToken, encryptToken } from "../../shared/crypto/token-cipher";
 import { listProviderModels, type ProviderModelList } from "./model-catalog";
-import { testRoleCredential, type TestCredentialResult } from "../ai/ai.providers";
+import { hasOwnCredential, platformCredential, testRoleCredential, type TestCredentialResult } from "../ai/ai.providers";
+import { getCurrentUsage, getPlanLimits, isWithinLimit, planHasManagedAi, resolveEffectivePlan } from "../plans/plans.service";
+import { PlanLimitType } from "../../db/enums";
 import type { AssignRoleInput, CreateCredentialInput, TestConnectionInput, UpdateCredentialInput } from "./ai-settings.schema";
 
 /** Which roles the platform covers by default, without any user-configured key — right now just embeddings (see .env.example). Surfaced so the settings UI can show "provided by default" instead of "not set". */
@@ -51,7 +53,14 @@ export async function listCredentials(userId: string): Promise<CredentialSummary
   return rows.map(toCredentialSummary);
 }
 
+async function assertCanManageKeys(userId: string): Promise<void> {
+  if (await planHasManagedAi(userId)) {
+    throw new AppError("AI is included in your plan, so there's nothing to set up.", 403, "AI_MANAGED_BY_PLAN");
+  }
+}
+
 export async function createCredential(userId: string, input: CreateCredentialInput): Promise<CredentialSummary> {
+  await assertCanManageKeys(userId);
   const [row] = await db
     .insert(aiCredentials)
     .values({
@@ -118,6 +127,7 @@ export async function listRoleAssignments(userId: string): Promise<RoleAssignmen
  * just replaces the previous credential/model pair.
  */
 export async function assignRole(userId: string, role: AiRole, input: AssignRoleInput): Promise<RoleAssignmentSummary> {
+  await assertCanManageKeys(userId);
   const credential = await requireOwnedCredential(userId, input.credentialId);
 
   if (role === AiRole.EMBEDDINGS && EMBEDDINGS_INCOMPATIBLE_PROVIDERS.has(credential.provider)) {
@@ -170,4 +180,75 @@ export async function listCredentialModels(userId: string, id: string): Promise<
     credential.baseUrl,
     `${credential.id}:${credential.updatedAt.getTime()}`,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Where this account's AI comes from — drives Settings -> AI and every AI
+// surface's "is Ask available?" check.
+// ---------------------------------------------------------------------------
+
+export type AiSource = "own" | "included" | "none";
+
+export interface AiStatus {
+  /** managed: the plan supplies all AI (AI included). ownKey: the user brings keys, maybe with a small included allowance. */
+  mode: "managed" | "own-key";
+  roles: Record<"fast" | "reasoning" | "vision", AiSource>;
+  /** The plan's monthly included-AI allowance (null limit = unlimited), or null when the plan includes none. */
+  included: {
+    saves: { limit: number | null; used: number };
+    questions: { limit: number | null; used: number };
+    images: { limit: number | null; used: number };
+  } | null;
+  /** Whether this server has its own AI keys set up (PLATFORM_AI_*), so included AI can actually run. */
+  includedReady: boolean;
+  askAvailable: boolean;
+  /** Why Ask is unavailable: no key and no included AI, or this month's included questions are used up. */
+  askBlockedReason: "no-ai" | "included-used-up" | null;
+  /** How many of their own keys are saved but unused because the plan manages AI. */
+  savedKeysIgnored: number;
+}
+
+export async function getAiStatus(userId: string): Promise<AiStatus> {
+  const managed = await planHasManagedAi(userId);
+  const { plan } = await resolveEffectivePlan(userId);
+  const limits = await getPlanLimits(plan.id);
+
+  const allowance = async (type: PlanLimitType) => ({
+    limit: limits[type] ?? null,
+    used: await getCurrentUsage(userId, type),
+  });
+  const [saves, questions, images] = await Promise.all([
+    allowance(PlanLimitType.AI_MONTHLY_SAVES),
+    allowance(PlanLimitType.AI_MONTHLY_QUERIES),
+    allowance(PlanLimitType.AI_MONTHLY_VISION_QUERIES),
+  ]);
+  const hasAllowance = (a: { limit: number | null }) => a.limit === null || a.limit > 0;
+  const includedOffered = hasAllowance(saves) || hasAllowance(questions) || hasAllowance(images);
+
+  const source = async (role: AiRole.FAST | AiRole.REASONING | AiRole.VISION, a: { limit: number | null }): Promise<AiSource> => {
+    if (await hasOwnCredential(userId, role)) return "own";
+    return platformCredential(role) && hasAllowance(a) ? "included" : "none";
+  };
+  const roles = {
+    fast: await source(AiRole.FAST, saves),
+    reasoning: await source(AiRole.REASONING, questions),
+    vision: await source(AiRole.VISION, images),
+  };
+
+  const questionsLeft = roles.reasoning === "included" && (await isWithinLimit(userId, PlanLimitType.AI_MONTHLY_QUERIES, 1));
+  const askAvailable = roles.reasoning === "own" || questionsLeft;
+
+  const savedKeysIgnored = managed
+    ? (await db.select({ id: aiCredentials.id }).from(aiCredentials).where(eq(aiCredentials.userId, userId))).length
+    : 0;
+
+  return {
+    mode: managed ? "managed" : "own-key",
+    roles,
+    included: includedOffered ? { saves, questions, images } : null,
+    includedReady: !!platformCredential(AiRole.REASONING),
+    askAvailable,
+    askBlockedReason: askAvailable ? null : roles.reasoning === "included" ? "included-used-up" : "no-ai",
+    savedKeysIgnored,
+  };
 }
