@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getMyPlan,
   formatLimitValue,
-  formatPriceMinor,
   LIMIT_ORDER,
   listPublicPlans,
   openBillingPortal,
@@ -21,6 +20,7 @@ import { toast } from "@/components/ui/toast";
 import { QueryErrorState } from "@/components/query-error-state";
 import { SupportProjectCard } from "@/components/support-project-card";
 import { cn } from "@/lib/utils";
+import { UpgradePlans } from "@/components/plan/upgrade-plans";
 
 // Limits with no running total (a per-file cap) show the cap only.
 const NO_USAGE: PlanLimitType[] = ["max_file_mb"];
@@ -83,7 +83,7 @@ function BillingSettings() {
         <p className="text-[10px] text-muted-foreground">
           {data?.selfHosted
             ? "This is your own install: every feature, with no limits."
-            : "Every plan includes every feature. Plans differ only in how much you can store and how much AI we supply."}
+            : "Plans differ in how much you can store, how much AI we supply each month, and which features they unlock."}
         </p>
       </div>
 
@@ -117,7 +117,7 @@ function BillingSettings() {
             {!data.selfHosted && (
               <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
                 {data.plan.features?.managedAi
-                  ? "AI is included in your plan: we run it for you, up to these monthly allowances."
+                  ? "We run the AI for you, up to these monthly allowances. They reset on the 1st."
                   : "The AI allowances cover AI we supply. Add your own key in Settings > AI and your saves and questions are never limited."}
               </p>
             )}
@@ -142,25 +142,12 @@ function BillingSettings() {
                 )}
               </div>
               {upgrades.length > 0 ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {upgrades.map((plan) => (
-                    <button
-                      key={plan.key}
-                      type="button"
-                      onClick={() => go(plan.key, () => startCheckout(plan.key))}
-                      disabled={pending !== null}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 text-left hover:border-primary/40 hover:bg-primary/[0.03] transition-colors disabled:opacity-50"
-                    >
-                      <span>
-                        <span className="block text-xs font-bold text-foreground">{plan.name}</span>
-                        <span className="block text-[10px] text-muted-foreground font-medium">
-                          {formatPriceMinor(plan.priceMinor, plan.currency)} {plan.billingInterval === "yearly" ? "per year" : "per month"}
-                        </span>
-                      </span>
-                      {pending === plan.key ? <Spinner /> : <span className="text-[10px] font-bold text-primary">Choose</span>}
-                    </button>
-                  ))}
-                </div>
+                <UpgradePlans
+                  current={data.plan}
+                  options={upgrades}
+                  pending={pending}
+                  onChoose={(plan) => go(plan.key, () => startCheckout(plan.key))}
+                />
               ) : (
                 <p className="text-[10px] text-muted-foreground font-medium">
                   {onPaidPlan

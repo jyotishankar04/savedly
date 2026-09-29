@@ -4,6 +4,7 @@ import { users } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
 import { hashPassword, verifyPassword } from "../../shared/crypto/scrypt-password";
 import type { SetPinInput } from "./vault.schema";
+import { assertFeature } from "../plans/plans.service";
 
 export interface VaultStatus {
   hasPin: boolean;
@@ -25,6 +26,9 @@ export async function setVaultPin(userId: string, input: SetPinInput): Promise<v
   if (row?.vaultPinHash) {
     const ok = await verifyPassword(input.currentPin ?? "", row.vaultPinHash);
     if (!ok) throw new AppError("Current PIN is incorrect", 401, "VAULT_PIN_INCORRECT");
+  } else {
+    // Setting up a vault needs the plan; changing an existing PIN never does.
+    await assertFeature(userId, "vault");
   }
 
   const vaultPinHash = await hashPassword(input.newPin);

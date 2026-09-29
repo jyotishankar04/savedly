@@ -17,6 +17,8 @@ import { listCollections } from "@/lib/collections";
 import { useQuery } from "@tanstack/react-query";
 import { useLockVaultMutation, useSetVaultPinMutation, useUnlockVaultMutation, useVaultStatusQuery } from "@/hooks/use-vault";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePlanFeature } from "@/hooks/use-plan-limit";
 import type { Collection, Memory } from "@/types/memory";
 import { PageHeader, EmptyState } from "@/components/app-page";
 
@@ -117,6 +119,23 @@ function GateShell({ title, description, children }: { title: string; descriptio
 }
 
 function SetupGate() {
+  const vault = usePlanFeature("vault");
+  if (!vault.allowed) {
+    return (
+      <GateShell
+        title="Keep things private in the vault"
+        description={`The vault hides what you put in it everywhere else until you enter your PIN. It's on ${vault.requiredPlan ?? "paid plans"} and up.`}
+      >
+        <Button size="lg" className="w-full rounded-full" render={<Link href="/app/settings/billing" />} nativeButton={false}>
+          See plans
+        </Button>
+      </GateShell>
+    );
+  }
+  return <SetupForm />;
+}
+
+function SetupForm() {
   const [pin, setPin] = React.useState("");
   const [confirm, setConfirm] = React.useState("");
   const setPinMutation = useSetVaultPinMutation();

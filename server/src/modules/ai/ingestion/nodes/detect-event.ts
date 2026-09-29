@@ -6,6 +6,7 @@ import { logger } from "../../../../shared/utils/logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
+import { planHasFeature } from "../../../plans/plans.service";
 
 interface EventDetection {
   hasEvent: boolean;
@@ -37,7 +38,9 @@ Respond as strict JSON: {{"hasEvent": true or false, "eventAt": "ISO string or n
 // never flip the memory to FAILED.
 export async function detectEvent(state: IngestionStateType): Promise<IngestionUpdate> {
   const noContent = !state.rawContent && !state.correctedCaption && !state.caption;
-  if (noContent) {
+  // Finding events is a plan feature; without it this step is skipped (and
+  // costs no AI).
+  if (noContent || !(await planHasFeature(state.userId, "aiEventDetection"))) {
     return { detectedEventAt: null, eventDetectionConfidence: null };
   }
 

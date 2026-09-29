@@ -16,7 +16,7 @@ import type {
   ListMemoriesQuery,
   UpdateMemoryInput,
 } from "./memory.schema";
-import { assertWithinLimit } from "../plans/plans.service";
+import { assertFeature, assertWithinLimit } from "../plans/plans.service";
 
 export interface MemoryListItem {
   id: string;
@@ -727,6 +727,8 @@ export async function updateMemory(
   id: string,
   input: UpdateMemoryInput,
 ): Promise<MemoryDetail> {
+  // Moving into the vault needs the plan; taking something out never does.
+  if (input.isVaulted === true) await assertFeature(userId, "vault");
   await db.transaction(async (tx) => {
     const columns: Record<string, unknown> = { updatedAt: new Date() };
     if (input.title !== undefined) columns.title = input.title;

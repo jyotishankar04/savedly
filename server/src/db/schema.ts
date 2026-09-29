@@ -141,6 +141,7 @@ export const planLimitTypeEnum = pgEnum("plan_limit_type", [
   PlanLimitType.PUBLIC_SHARE_COUNT,
   PlanLimitType.AI_MONTHLY_SAVES,
   PlanLimitType.MAX_FILE_MB,
+  PlanLimitType.IMPORT_MONTHLY_COUNT,
 ]);
 
 // SEMI_ANNUAL was missing here even though it's a real PlanBillingInterval

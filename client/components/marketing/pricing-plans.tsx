@@ -15,29 +15,37 @@ import { cn } from "@/lib/utils";
 import { GITHUB_URL } from "@/lib/open-source";
 import { useCurrentUserQuery } from "@/context/UserContext";
 import { getServerConfig } from "@/lib/server-config";
-import { formatPriceMinor, getMyPlan, listPublicPlans, planLimitBullets, planTier, startCheckout, type PublicPlan } from "@/lib/plans";
+import {
+  formatPriceMinor,
+  getMyPlan,
+  listPublicPlans,
+  planFeatureBullets,
+  planLimitBullets,
+  planTier,
+  PLAN_TIER_TAGLINE,
+  startCheckout,
+  type PublicPlan,
+} from "@/lib/plans";
 
 // Short card taglines per tier; anything else falls back to the plan's own description.
 const TAGLINES: Record<string, string> = {
-  free: "For everyone, on your own AI key.",
-  lite: "AI we supply, for lighter use.",
-  ai: "More room, and we supply the AI.",
+  ...PLAN_TIER_TAGLINE,
 };
 
-const EVERY_FEATURE = "Every feature: capture, search by meaning, Ask, vault, sharing, import and export";
+const ESSENTIALS = "Capture, search by meaning, Ask, collections, tags, sharing and export";
 const INSTALL_COMMAND = "curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh";
 
 const FACTS = [
   { value: "AGPL-3.0", label: "Open source" },
-  { value: "Every feature", label: "On every plan" },
-  { value: "Your AI key", label: "Never limited" },
+  { value: "Free plan", label: "No card needed" },
+  { value: "No AI keys", label: "We supply the AI" },
   { value: "1 command", label: "To self-host" },
 ];
 
 const FAQ = [
   {
     q: "Is SaveForLatter free?",
-    a: "Yes. The hosted Free plan has every feature on your own AI key, with no card required. Self-hosting is free too, with no limits at all. Paid plans add more room and AI we supply.",
+    a: "Yes. The hosted Free plan has the essentials and some AI we supply each month, with no card required. Self-hosting is free too, with every feature and no limits. Lite and Pro add more room, more AI and more features.",
   },
   {
     q: "What's the difference between Cloud and self-hosted?",
@@ -49,11 +57,11 @@ const FAQ = [
   },
   {
     q: "Do I need my own AI key?",
-    a: "Not on a paid plan: Lite and AI included supply all the AI, so there's nothing to set up. On Free you add a key from OpenAI, Anthropic, Google Gemini, Groq, OpenRouter or any OpenAI-compatible service in Settings, and your own key is never limited.",
+    a: "No. On every hosted plan we supply the AI, so there's nothing to set up. If you'd rather use your own key from OpenAI, Anthropic, Google Gemini, Groq, OpenRouter or any OpenAI-compatible service, self-host SaveForLatter: it's free, and your own key is never limited.",
   },
   {
     q: "What happens when I reach a limit?",
-    a: "Nothing breaks. When included AI runs out, new saves are still stored, just without AI processing until next month or until you add your own key. At the storage limit only new file uploads stop. Your existing library is never deleted.",
+    a: "Nothing breaks. When included AI runs out, new saves are still stored, just without AI processing until next month or until you upgrade. At the storage limit only new file uploads stop. Your existing library is never deleted.",
   },
   {
     q: "How do I pay, and can I cancel?",
@@ -170,7 +178,7 @@ export function PricingPlans() {
           Pricing for your second brain
         </h1>
         <p className="mt-6 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
-          Free on your own AI key, more room and AI we supply on paid plans, or run it yourself for free. Every plan has every feature.
+          Start free with AI we supply, move up for more room and features, or run it yourself for free with everything unlocked.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a
@@ -278,7 +286,7 @@ export function PricingPlans() {
                   name={free.name}
                   tagline={TAGLINES.free}
                   price="Free forever"
-                  groups={[{ label: `Included in ${free.name}:`, items: [EVERY_FEATURE, ...planLimitBullets(free.limits)] }]}
+                  groups={[{ label: `Included in ${free.name}:`, items: [ESSENTIALS, ...planLimitBullets(free.limits, free.features)] }]}
                   action={
                     <Link href={user ? "/app" : "/auth/signup"} className={buttonClass}>
                       {user ? "Go to your library" : "Get started"}
@@ -287,8 +295,10 @@ export function PricingPlans() {
                 />
               )}
 
-              {paid.map((plan) => {
+              {paid.map((plan, i) => {
                 const { price, note } = formatPerMonth(plan);
+                // Each card builds on the one below it: Lite on Free, Pro on Lite.
+                const below = i === 0 ? free : paid[i - 1];
                 const isCurrent = plan.key === current?.key;
                 const buyable = !!config?.billing && plan.priceMinor > 0 && !isCurrent;
                 return (
@@ -298,7 +308,16 @@ export function PricingPlans() {
                     tagline={TAGLINES[planTier(plan.key)] ?? plan.description ?? ""}
                     price={price}
                     priceNote={note}
-                    groups={[{ label: `Included in ${plan.name}:`, items: [`Everything in ${freeName}`, ...planLimitBullets(plan.limits, plan.features)] }]}
+                    groups={[
+                      {
+                        label: `Included in ${plan.name}:`,
+                        items: [
+                          `Everything in ${below?.name ?? freeName}`,
+                          ...planLimitBullets(plan.limits, plan.features),
+                          ...planFeatureBullets(plan.features, below?.features),
+                        ],
+                      },
+                    ]}
                     action={
                       <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={buttonClass}>
                         {pending === plan.key && <Spinner />}

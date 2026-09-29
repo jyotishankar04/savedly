@@ -36,7 +36,39 @@ const ALL_FEATURES: Record<string, boolean> = {
   emailCampaigns: true,
   dataExport: true,
   aiEventDetection: true,
+  shareAnalyticsDaily: true,
+  shareAnalyticsViewers: true,
+  insightsFullHistory: true,
 };
+
+// What each hosted plan unlocks (plans.service.ts PLAN_FEATURES). Every
+// hosted plan runs on AI we supply (managedAi): hosted users never add keys.
+const FREE_FEATURES: Record<string, boolean> = {
+  ...ALL_FEATURES,
+  vault: false,
+  passwordProtectedShares: false,
+  directShares: false,
+  privateShareRequests: false,
+  shareAnalyticsDaily: false,
+  shareAnalyticsViewers: false,
+  insightsFullHistory: false,
+  calendarSync: false,
+  calendarMicrosoft: false,
+  aiEventDetection: false,
+  batchOperations: false,
+  managedAi: true,
+};
+const LITE_FEATURES: Record<string, boolean> = {
+  ...FREE_FEATURES,
+  vault: true,
+  passwordProtectedShares: true,
+  shareAnalyticsDaily: true,
+  insightsFullHistory: true,
+  calendarSync: true,
+  aiEventDetection: true,
+  batchOperations: true,
+};
+const PRO_FEATURES: Record<string, boolean> = { ...ALL_FEATURES, managedAi: true };
 
 const MB_PER_GB = 1024;
 
@@ -49,28 +81,29 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
     [PlanLimitType.PUBLIC_SHARE_COUNT]: null,
     [PlanLimitType.AI_MONTHLY_SAVES]: null,
     [PlanLimitType.AI_MONTHLY_QUERIES]: null,
+    [PlanLimitType.IMPORT_MONTHLY_COUNT]: null,
     ...values,
   };
   return Object.entries(all).map(([limitType, limitValue]) => ({ limitType: limitType as PlanLimitType, limitValue }));
 }
 
-// Hosted plans. Every plan gets every feature — they differ only by volume
-// and by how much AI the platform supplies on its own key (the AI_MONTHLY_*
-// quotas; anyone's own key is never limited). The values are starting points
-// an admin edits in Admin -> Plans & Limits without a deploy.
+// Hosted plans: Free, Lite and Pro. They differ by volume, by how much AI the
+// platform supplies each month (the AI_MONTHLY_* quotas), and by features
+// (FREE/LITE/PRO_FEATURES). The values are starting points an admin edits in
+// Admin -> Plans & Limits without a deploy.
 //
 // Prices are deliberately NOT seeded: paid plans start at 0, which the
 // pricing page shows as "Price coming soon" and checkout refuses, until an
 // admin sets the real price (matching the payment provider's product).
-// Lite: half of AI included, for lighter use at a lower price.
 const LITE_LIMITS = limits({
-  [PlanLimitType.STORAGE_MB]: 10 * MB_PER_GB,
+  [PlanLimitType.STORAGE_MB]: 5 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 50,
+  [PlanLimitType.PUBLIC_SHARE_COUNT]: 100,
   [PlanLimitType.AI_MONTHLY_SAVES]: 500,
   [PlanLimitType.AI_MONTHLY_QUERIES]: 250,
 });
-const AI_LIMITS = limits({
-  [PlanLimitType.STORAGE_MB]: 25 * MB_PER_GB,
+const PRO_LIMITS = limits({
+  [PlanLimitType.STORAGE_MB]: 15 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 100,
   [PlanLimitType.AI_MONTHLY_SAVES]: 2000,
   [PlanLimitType.AI_MONTHLY_QUERIES]: 1000,
@@ -80,7 +113,7 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
   {
     key: "free",
     name: "Free",
-    description: "Every feature on your own AI key, with a small monthly taste of included AI.",
+    description: "The essentials, with AI we supply: AI processing for 100 saves and 30 Ask questions a month.",
     priceMinor: 0,
     currency: "usd",
     billingInterval: PlanBillingInterval.MONTHLY,
@@ -89,24 +122,26 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
     sortOrder: 0,
     limits: limits({
       [PlanLimitType.MEMORY_COUNT]: 2000,
-      [PlanLimitType.STORAGE_MB]: 1 * MB_PER_GB,
+      [PlanLimitType.STORAGE_MB]: 500,
       [PlanLimitType.MAX_FILE_MB]: 25,
+      [PlanLimitType.COLLECTION_COUNT]: 20,
       [PlanLimitType.PUBLIC_SHARE_COUNT]: 5,
-      [PlanLimitType.AI_MONTHLY_SAVES]: 50,
-      [PlanLimitType.AI_MONTHLY_QUERIES]: 20,
+      [PlanLimitType.AI_MONTHLY_SAVES]: 100,
+      [PlanLimitType.AI_MONTHLY_QUERIES]: 30,
+      [PlanLimitType.IMPORT_MONTHLY_COUNT]: 1,
     }),
-    features: ALL_FEATURES,
+    features: FREE_FEATURES,
   },
-  // Two paid plans, each billed monthly or yearly. Both supply the AI
-  // (managedAi); Lite has half the room and allowance. sortOrder ranks
-  // upgrades: Lite monthly < Lite yearly < AI included monthly < yearly.
+  // Two paid plans, each billed monthly or yearly. sortOrder ranks upgrades:
+  // Lite monthly < Lite yearly < Pro monthly < Pro yearly. Pro keeps its
+  // original "ai-*" keys (payment product IDs and assignments point at them).
   ...(["monthly", "yearly"] as const).flatMap((interval, i) => {
     const billingInterval = interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY;
     return [
       {
         key: `lite-${interval}`,
         name: "Lite",
-        description: "Unlimited memories, 10 GB of storage, and AI we supply: AI processing for 500 saves and 250 Ask questions a month.",
+        description: "Unlimited memories, 5 GB of storage, the private vault and bulk actions, and AI processing for 500 saves and 250 Ask questions a month.",
         priceMinor: 0,
         currency: "usd",
         billingInterval,
@@ -114,21 +149,20 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
         isActive: true,
         sortOrder: 1 + i,
         limits: LITE_LIMITS,
-        features: { ...ALL_FEATURES, managedAi: true },
+        features: LITE_FEATURES,
       },
       {
         key: `ai-${interval}`,
-        name: "AI included",
-        description: "Unlimited memories, 25 GB of storage, and AI we supply: AI processing for 2,000 saves and 1,000 Ask questions a month.",
+        name: "Pro",
+        description: "Everything, with 15 GB of storage, unlimited public links, and AI processing for 2,000 saves and 1,000 Ask questions a month.",
         priceMinor: 0,
         currency: "usd",
         billingInterval,
         isDefault: false,
         isActive: true,
         sortOrder: 3 + i,
-        limits: AI_LIMITS,
-        // AI is part of the plan: always ours, nothing for the user to set up.
-        features: { ...ALL_FEATURES, managedAi: true },
+        limits: PRO_LIMITS,
+        features: PRO_FEATURES,
       },
     ];
   }),

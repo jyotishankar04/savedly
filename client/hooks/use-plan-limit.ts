@@ -1,5 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMyPlan, formatLimitValue, PLAN_LIMIT_LABEL, type PlanLimitType } from "@/lib/plans";
+import {
+  getMyPlan,
+  formatLimitValue,
+  listPublicPlans,
+  PLAN_FEATURE_LABEL,
+  PLAN_LIMIT_LABEL,
+  type PlanFeature,
+  type PlanLimitType,
+} from "@/lib/plans";
 
 export const myPlanQueryKey = ["plans", "me"];
 
@@ -70,17 +78,33 @@ export function usePlanLabel(): { loading: boolean; label: string; isFree: boole
 
 export interface PlanFeatureStatus {
   loading: boolean;
+  /** True while loading, so nothing flashes locked for someone who has it. */
+  allowed: boolean;
+  /** Same as `allowed` (older name). */
   enabled: boolean;
+  /** The user's current plan. */
   planName: string | null;
+  /** The cheapest plan that has it, for "Upgrade to Lite" copy. */
+  requiredPlan: string | null;
+  label: string;
 }
 
-/** Boolean counterpart to usePlanLimit — for admin-configured on/off perks (plans.features), not countable quotas. */
-export function usePlanFeature(key: string): PlanFeatureStatus {
+/**
+ * Whether the user's plan unlocks `feature` (plan.features). Every feature is
+ * on for a self-hosted install. The server enforces the same rule; this is
+ * only so the UI can say so before anyone clicks.
+ */
+export function usePlanFeature(feature: PlanFeature | (string & {})): PlanFeatureStatus {
   const { data, isLoading } = useMyPlanQuery();
-
+  const { data: plans } = useQuery({ queryKey: ["plans", "public"], queryFn: listPublicPlans, enabled: !!data && !data.selfHosted });
+  const allowed = !data || data.selfHosted || data.plan.features?.[feature] === true;
+  const requiredPlan = allowed ? null : (plans?.find((p) => p.features?.[feature])?.name ?? null);
   return {
     loading: isLoading,
-    enabled: Boolean(data?.plan.features?.[key]),
+    allowed,
+    enabled: allowed,
     planName: data?.plan.name ?? null,
+    requiredPlan,
+    label: PLAN_FEATURE_LABEL[feature as PlanFeature] ?? feature,
   };
 }

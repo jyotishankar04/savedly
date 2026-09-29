@@ -7,7 +7,8 @@ export type PlanLimitType =
   | "public_share_count"
   | "collection_count"
   | "ai_monthly_saves"
-  | "ai_monthly_queries";
+  | "ai_monthly_queries"
+  | "import_monthly_count";
 
 export interface Plan {
   id: string;
@@ -60,8 +61,8 @@ export async function listPublicPlans(): Promise<PublicPlan[]> {
   return apiFetch<PublicPlan[]>("/plans");
 }
 
-// The ai_monthly_* limits cap *included* AI — what the platform supplies on
-// its own key. Anyone's own AI key is never limited by them.
+// The ai_monthly_* limits cap the AI we supply each month (hosted plans have
+// no own keys; a self-hosted install has no limits at all).
 export const PLAN_LIMIT_LABEL: Record<PlanLimitType, string> = {
   memory_count: "Memories",
   storage_mb: "Storage",
@@ -69,9 +70,37 @@ export const PLAN_LIMIT_LABEL: Record<PlanLimitType, string> = {
   public_share_count: "Public share links",
   collection_count: "Collections",
   // One per saved item, every step of reading and filing it (images included).
-  ai_monthly_saves: "Included AI processing (saves) / month",
-  ai_monthly_queries: "Included Ask questions / month",
+  ai_monthly_saves: "AI processing (saves) / month",
+  ai_monthly_queries: "Ask questions / month",
+  import_monthly_count: "Imports / month",
 };
+
+/**
+ * What a plan unlocks beyond volume — keys of plan.features, mirroring the
+ * server's PLAN_FEATURES (server/src/modules/plans/plans.service.ts). In the
+ * order the pricing page lists them.
+ */
+export const PLAN_FEATURE_LABEL = {
+  vault: "Private vault, PIN-protected",
+  batchOperations: "Bulk actions",
+  aiEventDetection: "Events found in what you save",
+  calendarSync: "Google Calendar sync",
+  calendarMicrosoft: "Microsoft Calendar sync",
+  passwordProtectedShares: "Password-protected links",
+  directShares: "Invite people to what you share",
+  privateShareRequests: "Links people request access to",
+  shareAnalyticsDaily: "Daily views on shared links",
+  shareAnalyticsViewers: "See who viewed your links",
+  insightsFullHistory: "A full year of insights",
+} as const;
+export type PlanFeature = keyof typeof PLAN_FEATURE_LABEL;
+
+/** Feature lines for a pricing card: what `features` adds over `base` (the tier below). */
+export function planFeatureBullets(features: Record<string, boolean>, base: Record<string, boolean> = {}): string[] {
+  return (Object.keys(PLAN_FEATURE_LABEL) as PlanFeature[])
+    .filter((f) => features[f] && !base[f])
+    .map((f) => PLAN_FEATURE_LABEL[f]);
+}
 
 export function formatLimitValue(limitType: PlanLimitType, value: number): string {
   if (limitType === "storage_mb" || limitType === "max_file_mb") {
@@ -97,6 +126,7 @@ export const LIMIT_ORDER: PlanLimitType[] = [
   "collection_count",
   "ai_monthly_saves",
   "ai_monthly_queries",
+  "import_monthly_count",
 ];
 
 /**
@@ -116,9 +146,12 @@ function aiSummary(saves?: number | null, asks?: number | null): string {
 
 export function planLimitBullets(limits: PlanLimits, features: Record<string, boolean> = {}): string[] {
   const aiTypes: PlanLimitType[] = ["ai_monthly_saves", "ai_monthly_queries"];
-  const bullets = LIMIT_ORDER.filter((t) => t in limits && !aiTypes.includes(t) && t !== "collection_count").map((t) => {
+  const bullets = LIMIT_ORDER.filter((t) => t in limits && !aiTypes.includes(t)).map((t) => {
     const value = limits[t];
     if (t === "max_file_mb") return value == null ? "Files of any size" : `Files up to ${formatLimitValue(t, value)}`;
+    if (t === "import_monthly_count") {
+      return value == null ? "Unlimited imports" : `${value} ${value === 1 ? "import" : "imports"} a month`;
+    }
     const amount = value == null ? "Unlimited" : formatLimitValue(t, value);
     return `${amount} ${PLAN_LIMIT_LABEL[t].toLowerCase()}`;
   });
@@ -129,9 +162,8 @@ export function planLimitBullets(limits: PlanLimits, features: Record<string, bo
   if ([saves, asks].every((v) => v === 0)) {
     bullets.push("Bring your own AI key");
   } else if (features.managedAi) {
-    // AI included: we supply all of it, so there are no keys to bring.
+    // We supply all of it, so there are no keys to bring.
     bullets.push(`${aiSummary(saves, asks)} a month`);
-    bullets.push("Nothing to set up: no AI keys needed");
   } else {
     bullets.push(`${aiSummary(saves, asks)} a month, on us`);
     bullets.push("Your own AI key works too, with no limits");
@@ -148,6 +180,13 @@ export async function openBillingPortal(): Promise<string> {
   const { url } = await apiFetch<{ url: string }>("/billing/portal", { method: "POST" });
   return url;
 }
+
+/** One-line pitch per tier (planTier), shared by the pricing page and Settings -> Plan & usage. */
+export const PLAN_TIER_TAGLINE: Record<string, string> = {
+  free: "The essentials, with AI we supply.",
+  lite: "More room, the vault and bulk actions.",
+  ai: "Everything, with the most room.",
+};
 
 /** A plan's tier, e.g. "ai-monthly" -> "ai". Monthly and yearly variants of one tier share it. */
 export function planTier(key: string): string {

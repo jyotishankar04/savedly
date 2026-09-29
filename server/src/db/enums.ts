@@ -140,6 +140,8 @@ export enum PlanLimitType {
   AI_MONTHLY_VISION_QUERIES = "ai_monthly_vision_queries",
   // Largest single upload, in MB — a per-file cap, not a running total.
   MAX_FILE_MB = "max_file_mb",
+  // Imports (bookmark files, Pocket/Raindrop exports...) started this month.
+  IMPORT_MONTHLY_COUNT = "import_monthly_count",
   STORAGE_MB = "storage_mb",
   COLLECTION_COUNT = "collection_count",
   // Counts shares whose link is set to "public". Free plans get a handful;

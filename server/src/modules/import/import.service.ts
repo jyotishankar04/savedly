@@ -21,6 +21,7 @@ export async function runImport(userId: string, input: ImportInput) {
   if (parsed.length === 0) {
     throw new AppError("No URLs found in the file", 422, "IMPORT_EMPTY");
   }
+  await assertWithinLimit(userId, PlanLimitType.IMPORT_MONTHLY_COUNT, 1);
 
   // Dedupe within the batch itself first — two identical lines in one paste
   // must not create two memory rows.

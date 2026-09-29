@@ -14,6 +14,9 @@ const NOT_CONFIGURED_MESSAGE =
 const INCLUDED_AI_USED_UP_MESSAGE =
   "You've used this month's included questions. Add your own API key under Settings → AI to keep asking right away, or upgrade your plan for more.";
 
+// Hosted, where AI is always ours: the server's AI isn't set up (or is down).
+const MANAGED_AI_UNAVAILABLE_MESSAGE = "Ask isn't available right now. Please try again in a little while.";
+
 const MANAGED_AI_USED_UP_MESSAGE =
   "You've used this month's included questions. They reset at the start of next month; you can also move to a bigger plan in Settings → Plan & usage.";
 
@@ -28,11 +31,14 @@ export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
     // Included AI exists for this role but the plan's allowance is spent (or
     // the plan has none) — say that, rather than implying nothing is set up.
     const quotaIsTheReason = !!userId && !!(await platformCredential(AiRole.REASONING));
-    const message = !quotaIsTheReason
-      ? NOT_CONFIGURED_MESSAGE
-      : (await planHasManagedAi(userId!))
+    const managed = !!userId && (await planHasManagedAi(userId));
+    const message = quotaIsTheReason
+      ? managed
         ? MANAGED_AI_USED_UP_MESSAGE
-        : INCLUDED_AI_USED_UP_MESSAGE;
+        : INCLUDED_AI_USED_UP_MESSAGE
+      : managed
+        ? MANAGED_AI_UNAVAILABLE_MESSAGE
+        : NOT_CONFIGURED_MESSAGE;
     return { messages: [new AIMessage(message)] };
   }
   // bindTools is typed optional on BaseChatModel (not every implementation

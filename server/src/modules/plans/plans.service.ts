@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, isNull, like, or, sql, sum } from "drizzle-orm";
 import { db, type DbOrTx } from "../../db";
-import { attachments, collections, memories, aiUsageLogs, plans, planLimits, shares, userPlanAssignments } from "../../db/schema";
+import { attachments, collections, memories, aiUsageLogs, importBatches, plans, planLimits, shares, userPlanAssignments } from "../../db/schema";
 import { CollectionSource, PlanAssignmentStatus, PlanLimitType, ShareLinkAccess } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { env } from "../../config/env";
@@ -136,6 +136,13 @@ export async function getCurrentUsage(userId: string, limitType: PlanLimitType, 
         );
       return row?.value ?? 0;
     }
+    case PlanLimitType.IMPORT_MONTHLY_COUNT: {
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(*)::int` })
+        .from(importBatches)
+        .where(and(eq(importBatches.userId, userId), gte(importBatches.createdAt, startOfCurrentMonth())));
+      return row?.value ?? 0;
+    }
     case PlanLimitType.AI_MONTHLY_VISION_QUERIES: // retired: part of AI_MONTHLY_SAVES now
     case PlanLimitType.MAX_FILE_MB:
       // A per-file cap, checked against each upload's size — there's no
@@ -179,6 +186,9 @@ const LIMIT_MESSAGES: Partial<Record<PlanLimitType, (limit: number, plan: string
   [PlanLimitType.STORAGE_MB]: (n, p) => `This file would go over the ${p} plan's ${formatMb(n)} of storage.`,
   [PlanLimitType.PUBLIC_SHARE_COUNT]: (n, p) =>
     `The ${p} plan includes ${n} public ${n === 1 ? "link" : "links"}. Make one private or upgrade for more.`,
+  [PlanLimitType.COLLECTION_COUNT]: (n, p) => `The ${p} plan includes ${n} collections of your own. Upgrade for unlimited.`,
+  [PlanLimitType.IMPORT_MONTHLY_COUNT]: (n, p) =>
+    `The ${p} plan includes ${n} ${n === 1 ? "import" : "imports"} a month. Upgrade for unlimited imports, or try again next month.`,
 };
 
 function formatMb(mb: number): string {
@@ -220,6 +230,50 @@ export async function assertFileSizeAllowed(userId: string, fileSizeBytes: numbe
       limitValue: maxMb,
     });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Plan features — what a plan unlocks beyond volume. Stored in plans.features;
+// every one is on for a self-hosted install. Gating only ever blocks adding
+// something new: whatever someone already has (vault items, shares, calendar
+// links) stays readable and removable after a downgrade.
+// ---------------------------------------------------------------------------
+
+export const PLAN_FEATURES = {
+  vault: "The private vault",
+  passwordProtectedShares: "Password-protected links",
+  directShares: "Inviting people to a share",
+  privateShareRequests: "Links people request access to",
+  shareAnalyticsDaily: "Daily view charts for shares",
+  shareAnalyticsViewers: "Seeing who viewed a share",
+  insightsFullHistory: "A full year of insights",
+  calendarSync: "Calendar sync",
+  calendarMicrosoft: "Microsoft Calendar sync",
+  aiEventDetection: "Finding events in what you save",
+  batchOperations: "Bulk actions",
+} as const;
+export type PlanFeature = keyof typeof PLAN_FEATURES;
+
+export async function planHasFeature(userId: string, feature: PlanFeature, dbClient: DbOrTx = db): Promise<boolean> {
+  if (env.SELF_HOSTED) return true;
+  const { plan } = await resolveEffectivePlan(userId, dbClient);
+  return plan.features?.[feature] === true;
+}
+
+/** Throws 403 PLAN_FEATURE_REQUIRED, naming the cheapest active plan that has the feature. */
+export async function assertFeature(userId: string, feature: PlanFeature): Promise<void> {
+  if (await planHasFeature(userId, feature)) return;
+  const [cheapest] = await db
+    .select({ name: plans.name })
+    .from(plans)
+    .where(and(eq(plans.isActive, true), sql`${plans.features} ->> ${feature} = 'true'`))
+    .orderBy(plans.sortOrder)
+    .limit(1);
+  const upgrade = cheapest ? ` Upgrade to ${cheapest.name} to use it.` : "";
+  throw new AppError(`${PLAN_FEATURES[feature]} isn't on your plan.${upgrade}`, 403, "PLAN_FEATURE_REQUIRED", {
+    feature,
+    plan: cheapest?.name ?? null,
+  });
 }
 
 /**

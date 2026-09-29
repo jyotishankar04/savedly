@@ -23,7 +23,7 @@ import { hashPassword as hashSharePassword } from "../../shared/crypto/scrypt-pa
 import { notifyAccessDecision, notifyAccessRequested, notifyShareInvite } from "./share.notify";
 import type { ShareRow } from "./share.access";
 import type { CreateShareInput, ListSharesQuery, UpdateShareInput } from "./share.schema";
-import { assertWithinLimit } from "../plans/plans.service";
+import { assertFeature, assertWithinLimit } from "../plans/plans.service";
 
 // A denied request shouldn't be re-openable immediately — the partial
 // unique index only stops duplicate *pending* rows.
@@ -211,6 +211,17 @@ export async function updateShare(userId: string, shareId: string, patch: Update
     throw new AppError("Set a password before switching this link to password-protected", 400, "BAD_REQUEST");
   }
 
+  // Switching a link to a plan feature needs the plan; a link that already
+  // works that way keeps working after a downgrade, and can always be made
+  // public (within the public-link allowance) or turned off.
+  const addsPassword =
+    (nextAccess === ShareLinkAccess.PASSWORD && existing.linkAccess !== ShareLinkAccess.PASSWORD) ||
+    (typeof patch.password === "string" && !existing.passwordHash);
+  if (addsPassword) await assertFeature(userId, "passwordProtectedShares");
+  if (nextAccess === ShareLinkAccess.REQUEST && existing.linkAccess !== ShareLinkAccess.REQUEST) {
+    await assertFeature(userId, "privateShareRequests");
+  }
+
   // Only switching a link *to* public counts against the plan's public-link
   // allowance; a link that's already public was counted when it went public.
   if (nextAccess === ShareLinkAccess.PUBLIC && existing.linkAccess !== ShareLinkAccess.PUBLIC) {
@@ -352,6 +363,7 @@ export async function listGrants(userId: string, shareId: string): Promise<Grant
  */
 export async function inviteByEmail(userId: string, shareId: string, email: string): Promise<GrantResponse> {
   const share = await loadOwnedShare(userId, shareId);
+  await assertFeature(userId, "directShares");
 
   const [owner] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
   if (owner?.email.toLowerCase() === email) {
