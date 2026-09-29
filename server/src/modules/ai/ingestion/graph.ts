@@ -100,7 +100,9 @@ const builder = new StateGraph(IngestionState)
   .addNode("generateAiInsights", optional("generateAiInsights", generateAiInsights))
   .addNode("organizeCollection", optional("organizeCollection", organizeCollection))
   .addNode("semanticChunker", semanticChunker)
-  .addNode("generateEmbeddings", generateEmbeddings)
+  // Optional too: a bad or missing embeddings key never fails a save — the
+  // memory is kept, just not findable by meaning until it's re-indexed.
+  .addNode("generateEmbeddings", optional("generateEmbeddings", generateEmbeddings))
   .addNode("upsertVectors", upsertVectors)
   .addConditionalEdges(START, routeMediaType, {
     parseWebContent: "parseWebContent",

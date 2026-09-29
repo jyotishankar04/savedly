@@ -45,3 +45,19 @@ export function saveInstanceSection(id: string, values: Record<string, SettingVa
 export function testInstanceSection(id: string, values: Record<string, SettingValue | null>): Promise<{ ok: boolean; message: string }> {
   return apiFetch(`/admin/instance-settings/${id}/test`, { method: "POST", body: values });
 }
+
+export interface ReindexStatus {
+  /** Memories not indexed for search by meaning (every memory when `exact` is false: Upstash can't be counted). */
+  count: number;
+  exact: boolean;
+  running: boolean;
+}
+
+export function getReindexStatus(): Promise<ReindexStatus> {
+  return apiFetch<ReindexStatus>("/admin/instance-settings/embeddings/reindex");
+}
+
+/** Starts re-indexing in the background: embeddings only, no one's AI allowance is spent. */
+export function startReindex(): Promise<ReindexStatus> {
+  return apiFetch<ReindexStatus>("/admin/instance-settings/embeddings/reindex", { method: "POST" });
+}

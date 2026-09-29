@@ -12,7 +12,8 @@
     "contract:emit": "prisma-cli contract emit",
     "db:seed": "tsx src/db/seed.ts",
     "db:bootstrap": "tsx src/db/bootstrap.ts",
-    "db:plans:reset": "tsx src/db/reset-plans.ts"
+    "db:plans:reset": "tsx src/db/reset-plans.ts",
+    "db:reindex": "tsx src/db/reindex.ts"
   },
   "dependencies": {
     "@ai-sdk/langchain": "^3.0.86",

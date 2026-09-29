@@ -6,6 +6,7 @@ import { logAdminAction } from "../../shared/utils/audit-log";
 import { getSectionDef, type SectionId } from "./instance-settings.registry";
 import { describeSections, mergeCandidate, saveSection } from "./instance-settings.service";
 import { testSection } from "./instance-settings.tester";
+import { countMemoriesToReindex, isReindexRunning, reindexMemories } from "../ai/ingestion/reembed";
 
 function sectionParam(req: Request): SectionId {
   const id = req.params.section as string;
@@ -47,6 +48,29 @@ export class InstanceSettingsController {
     });
 
     res.status(200).json(ApiResponse.success((await describeSections()).find((s) => s.id === id)));
+  }
+
+  /** How many memories aren't indexed for search by meaning yet. */
+  static async reindexStatus(_req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success({ ...(await countMemoriesToReindex()), running: isReindexRunning() }));
+  }
+
+  /** Starts re-indexing in the background (embeddings only) and returns straight away. */
+  static async reindex(req: Request, res: Response) {
+    const before = await countMemoriesToReindex();
+    if (!isReindexRunning()) {
+      void reindexMemories();
+      await logAdminAction({
+        adminUserId: req.user!.id,
+        action: "search.reindex_started",
+        targetType: "instance_settings",
+        targetId: "embeddings",
+        beforeValue: null,
+        afterValue: { memories: before.count },
+        ipAddress: req.ip,
+      });
+    }
+    res.status(202).json(ApiResponse.success({ ...before, running: true }));
   }
 
   static async test(req: Request, res: Response) {

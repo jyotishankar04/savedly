@@ -347,8 +347,9 @@ export const SECTIONS: SectionDef[] = [
     id: "embeddings",
     title: "Embeddings",
     description:
-      "One key for the whole instance so search by meaning works for everyone, even before they add their own AI key. Anyone who adds their own embeddings key in Settings -> AI uses theirs instead.",
+      "The key that powers search by meaning for everyone. Left empty, it uses the Included AI key when that's OpenAI (text-embedding-3-small). On a self-hosted install, anyone who adds their own embeddings key in Settings -> AI uses theirs instead.",
     testable: true,
+    hostedEditable: true,
     fields: [
       {
         name: "provider",

@@ -12,6 +12,8 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import {
   getInstanceSettings,
+  getReindexStatus,
+  startReindex,
   saveInstanceSection,
   testInstanceSection,
   type SettingField,
@@ -152,6 +154,8 @@ function SectionCard({ section, editable, callbackUrl }: { section: SettingSecti
         )}
       </div>
 
+      {section.id === "embeddings" && <ReindexPanel />}
+
       <div className="space-y-3 p-3 border border-border rounded-xl">
         {section.fields.filter(visible).map((field) => (
           <FieldRow key={field.name} field={field} value={draft[field.name]} editable={editable} onChange={(v) => set(field.name, v)} />
@@ -260,3 +264,65 @@ function FieldRow({
     </div>
   );
 }
+
+/**
+ * Embeddings card: how many memories aren't findable by meaning yet, and a
+ * button to index them (embeddings only, so nobody's AI allowance is spent).
+ */
+function ReindexPanel() {
+  const queryClient = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["admin", "reindex"],
+    queryFn: getReindexStatus,
+    // Poll while it runs, so the count goes down on its own.
+    refetchInterval: (query) => (query.state.data?.running ? 3000 : false),
+  });
+  const [starting, setStarting] = useState(false);
+
+  if (!data) return null;
+  const done = data.exact && data.count === 0;
+
+  const start = async () => {
+    setStarting(true);
+    try {
+      await startReindex();
+      await queryClient.invalidateQueries({ queryKey: ["admin", "reindex"] });
+    } catch (err) {
+      toast.add({ title: err instanceof Error ? err.message : "Couldn't start re-indexing.", type: "error" });
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-[11px]",
+        done ? "bg-muted/60 text-muted-foreground" : "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+      )}
+    >
+      <span className="flex items-center gap-1.5 font-medium">
+        <HugeiconsIcon icon={done ? CheckmarkCircle02Icon : AlertCircleIcon} strokeWidth={2} className="h-3.5 w-3.5 shrink-0" />
+        {data.running
+          ? `Indexing… ${data.exact ? `${data.count.toLocaleString()} left` : ""}`
+          : done
+            ? "Every memory is indexed for search by meaning."
+            : data.exact
+              ? `${data.count.toLocaleString()} ${data.count === 1 ? "memory isn't" : "memories aren't"} indexed for search by meaning.`
+              : "Re-index every memory in the vector store."}
+      </span>
+      {!done && (
+        <button
+          type="button"
+          onClick={start}
+          disabled={starting || data.running}
+          className="inline-flex h-7 items-center gap-1.5 rounded-full border border-current/30 px-3 text-[10px] font-bold hover:bg-background/40 disabled:opacity-50"
+        >
+          {(starting || data.running) && <Spinner />}
+          Re-index
+        </button>
+      )}
+    </div>
+  );
+}
+

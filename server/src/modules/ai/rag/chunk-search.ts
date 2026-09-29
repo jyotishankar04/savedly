@@ -5,6 +5,7 @@ import { getEmbeddings } from "../ai.providers";
 import { getVectorStore } from "../vector-store";
 import { rrfMerge, SEMANTIC_SIMILARITY_FLOOR } from "../search/rrf";
 import { MIN_SEMANTIC_QUERY_LENGTH } from "../search/semantic-search";
+import { lexicalSearch } from "../search/lexical-search";
 import { logAiUsage } from "../../ai-usage/usage-logger";
 import { logger } from "../../../shared/utils/logger";
 
@@ -44,6 +45,7 @@ async function chunkLexicalSearch(userId: string, queryText: string, limit: numb
     INNER JOIN memories m ON m.id = mc.memory_id
     WHERE mc.user_id = ${userId}
       AND m.in_trash = false
+      AND m.is_vaulted = false
       AND to_tsvector('english', mc.chunk_content) @@ ${tsQuery}
     ORDER BY score DESC
     LIMIT ${limit}
@@ -116,7 +118,7 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
   }
 
   const topMemoryIds = [...bestChunkByMemory.keys()].slice(0, limit);
-  if (topMemoryIds.length === 0) return [];
+  if (topMemoryIds.length === 0) return memoryKeywordFallback(userId, query, limit);
 
   const memoryRows = await db
     .select({
@@ -150,4 +152,55 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
   }
 
   return results;
+}
+
+/**
+ * When no chunk matches — typically because nothing has embeddings yet, so
+ * memory_chunks is empty — search whole memories by keyword (the
+ * trigger-maintained memories.fts_tokens) and hand back their summary and
+ * text as the passage. Ask can still answer from exact words that way.
+ */
+async function memoryKeywordFallback(userId: string, query: string, limit: number): Promise<RetrievedMemory[]> {
+  const hits = await lexicalSearch(
+    query,
+    [eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false)],
+    limit,
+  ).catch((err) => {
+    logger.warn({ err, userId }, "[ask] keyword fallback failed");
+    return [];
+  });
+  if (hits.length === 0) return [];
+
+  const rows = await db
+    .select({
+      id: memories.id,
+      title: memories.title,
+      type: memories.type,
+      source: memories.source,
+      url: memories.url,
+      faviconUrl: memories.faviconUrl,
+      description: memories.description,
+      content: memories.content,
+    })
+    .from(memories)
+    .where(and(eq(memories.userId, userId), inArray(memories.id, hits.map((h) => h.memoryId))));
+  const byId = new Map(rows.map((row) => [row.id, row]));
+
+  return hits.flatMap((hit) => {
+    const memory = byId.get(hit.memoryId);
+    if (!memory) return [];
+    const snippet = [memory.description, memory.content].filter(Boolean).join("\n\n").slice(0, 1500);
+    return [
+      {
+        memoryId: memory.id,
+        title: memory.title,
+        type: memory.type,
+        source: memory.source,
+        url: memory.url,
+        faviconUrl: memory.faviconUrl,
+        snippet,
+        score: hit.score,
+      },
+    ];
+  });
 }

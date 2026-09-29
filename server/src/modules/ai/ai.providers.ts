@@ -138,17 +138,28 @@ async function resolveCredential(
   return { credential: platform, platform: true };
 }
 
+// OpenAI's small embeddings model: 1536 dimensions, matching EMBEDDING_DIMENSIONS.
+const FALLBACK_EMBEDDINGS_MODEL = "text-embedding-3-small";
+
 async function platformEmbeddingsCredential(): Promise<ProviderCredentialInput | null> {
-  // EMBEDDINGS_* in env, or Admin -> Infrastructure -> Embeddings on a
-  // self-hosted install.
+  // EMBEDDINGS_* in env, or Admin -> Infrastructure -> Embeddings.
   const settings = await getSection("embeddings");
-  if (!settings.apiKey) return null;
-  return {
-    provider: String(settings.provider) as AiCredentialProvider,
-    apiKey: String(settings.apiKey),
-    baseUrl: settings.baseUrl ? String(settings.baseUrl) : null,
-    model: String(settings.model),
-  };
+  if (settings.apiKey) {
+    return {
+      provider: String(settings.provider) as AiCredentialProvider,
+      apiKey: String(settings.apiKey),
+      baseUrl: settings.baseUrl ? String(settings.baseUrl) : null,
+      model: String(settings.model),
+    };
+  }
+  // No embeddings key of its own: reuse the Included AI key when it's
+  // OpenAI's, so search by meaning works as soon as included AI does. Other
+  // providers' embedding models differ in size, so they need Embeddings set.
+  const included = await platformCredential(AiRole.REASONING);
+  if (included?.provider === AiCredentialProvider.OPENAI) {
+    return { provider: AiCredentialProvider.OPENAI, apiKey: included.apiKey, baseUrl: null, model: FALLBACK_EMBEDDINGS_MODEL };
+  }
+  return null;
 }
 
 function openAiCompatBaseUrl(credential: ProviderCredentialInput): string | undefined {

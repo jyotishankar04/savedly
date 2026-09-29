@@ -10,6 +10,9 @@ import { InstanceSettingsController } from "./instance-settings.controller";
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, InstanceSettingsController.list);
+// Re-index memories for search by meaning (before /:section so it isn't taken as one).
+router.get("/embeddings/reindex", authenticate, requireAdmin, InstanceSettingsController.reindexStatus);
+router.post("/embeddings/reindex", authenticate, requireAdmin, InstanceSettingsController.reindex);
 router.put("/:section", authenticate, requireAdmin, InstanceSettingsController.update);
 router.post("/:section/test", authenticate, requireAdmin, InstanceSettingsController.test);
 
