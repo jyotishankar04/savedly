@@ -36,7 +36,7 @@ export type CreateCalendarEventResult = z.infer<typeof resultSchema>;
  * event" dialog's POST /integrations/calendar/events by calling the exact
  * same service function, so a user asking "add a meeting tomorrow at 3pm"
  * and one filling in the app's own form get identical behavior (saved as a
- * real Memora memory, pushed to any connected calendar).
+ * real SaveForLatter memory, pushed to any connected calendar).
  */
 export const createCalendarEventTool = tool(
   async (
@@ -52,7 +52,7 @@ export const createCalendarEventTool = tool(
   {
     name: "create_calendar_event",
     description:
-      "Create a calendar event, reminder, or appointment for the user — e.g. \"add a meeting with John tomorrow at 3pm\", \"remind me to call the dentist next Monday at 10am\", \"schedule lunch with Sarah on Friday at noon\". Resolve any relative date/time to an absolute ISO 8601 datetime yourself, using today's date given in your system prompt, before calling this. The event is always saved in Memora with its date attached, and automatically synced to Google Calendar and/or Outlook if the user has connected one — tell the user which of those it was pushed to (from `pushedTo`) and, if any weren't connected (`notConnected`), mention they can connect one from the Integrations page for it to sync there too.",
+      "Create a calendar event, reminder, or appointment for the user — e.g. \"add a meeting with John tomorrow at 3pm\", \"remind me to call the dentist next Monday at 10am\", \"schedule lunch with Sarah on Friday at noon\". Resolve any relative date/time to an absolute ISO 8601 datetime yourself, using today's date given in your system prompt, before calling this. The event is always saved in SaveForLatter with its date attached, and automatically synced to Google Calendar and/or Outlook if the user has connected one — tell the user which of those it was pushed to (from `pushedTo`) and, if any weren't connected (`notConnected`), mention they can connect one from the Integrations page for it to sync there too.",
     schema: inputSchema,
   },
 );

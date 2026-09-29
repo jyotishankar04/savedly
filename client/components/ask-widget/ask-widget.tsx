@@ -25,6 +25,7 @@ import { AiConfiguredGate } from "@/components/ai-configured-gate";
 import { cn } from "@/lib/utils";
 import { HelpActions } from "@/components/ask/help-actions";
 import { AskEmptyState } from "@/components/ask/ask-empty-state";
+import { toolActivityLabel } from "@/lib/ask-tools";
 import {
   MessageScroller,
   MessageScrollerContent,
@@ -394,6 +395,17 @@ export function AskWidget() {
                         </div>
                       );
                     }
+                  }
+                  if (
+                    part.type === "dynamic-tool" &&
+                    (part.state === "input-streaming" || part.state === "input-available") &&
+                    toolActivityLabel(part.toolName)
+                  ) {
+                    return (
+                      <div key={i} className="text-[11px] text-muted-foreground shimmer">
+                        {toolActivityLabel(part.toolName)}
+                      </div>
+                    );
                   }
                   return null;
                 })}

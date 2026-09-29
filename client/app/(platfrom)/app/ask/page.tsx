@@ -48,6 +48,7 @@ import { HelpActions } from "@/components/ask/help-actions";
 import { AskEmptyState } from "@/components/ask/ask-empty-state";
 import type { MemoryType } from "@/types/memory";
 import { Attachment, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentTitle, AttachmentTrigger } from "@/components/ui/attachment";
+import { toolActivityLabel } from "@/lib/ask-tools";
 
 /** search_memories (topic/keyword) and search_memories_by_date (a day or
  * date range, see the server's rag/tools/search-memories-by-date.ts) both
@@ -599,6 +600,17 @@ export default function AskPage() {
                               return (
                                 <span key={i} className="shimmer text-xs text-muted-foreground px-2.5">
                                   Checking the Help Center&hellip;
+                                </span>
+                              );
+                            }
+                            if (
+                              part.type === "dynamic-tool" &&
+                              (part.state === "input-streaming" || part.state === "input-available") &&
+                              toolActivityLabel(part.toolName)
+                            ) {
+                              return (
+                                <span key={i} className="shimmer text-xs text-muted-foreground px-2.5">
+                                  {toolActivityLabel(part.toolName)}
                                 </span>
                               );
                             }

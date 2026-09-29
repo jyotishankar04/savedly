@@ -1,7 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { AIMessage, HumanMessage, ToolMessage, type AIMessageChunk, type BaseMessage } from "@langchain/core/messages";
 import { toUIMessageStream } from "@ai-sdk/langchain";
-import { createUIMessageStreamResponse } from "ai";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import { db } from "../../db";
 import { threads } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
@@ -10,6 +11,7 @@ import { AiRole, PlanLimitType } from "../../db/enums";
 import { isWithinLimit } from "../plans/plans.service";
 import { hasOwnCredential, platformCredential } from "./ai.providers";
 import { compiledRagGraph } from "./rag/graph";
+import { askUnavailableMessage } from "./rag/nodes/agent";
 import { ensureCheckpointerSetup } from "./rag/checkpointer";
 import { INTERNAL_EVENT_TAG } from "./rag/internal-tag";
 import type { CreateThreadInput } from "./ai.schema";
@@ -159,10 +161,25 @@ export async function streamAsk(userId: string, threadId: string, query: string)
   // platform is both the quota count and the admission ticket every model
   // call in this turn checks (plans.service.ts canUseIncludedAi). Awaited,
   // not fire-and-forget, so the ticket exists before the graph runs.
+  const ownKey = await hasOwnCredential(userId, AiRole.REASONING);
   const usesIncludedAi =
-    !(await hasOwnCredential(userId, AiRole.REASONING)) &&
-    !!(await platformCredential(AiRole.REASONING)) &&
-    (await isWithinLimit(userId, PlanLimitType.AI_MONTHLY_QUERIES, 1));
+    !ownKey && !!(await platformCredential(AiRole.REASONING)) && (await isWithinLimit(userId, PlanLimitType.AI_MONTHLY_QUERIES, 1));
+
+  // No way to answer (the plan's questions are used up, or no AI at all):
+  // say why right away. Not counted as a question, and the graph isn't run —
+  // its fallback message would never reach the stream.
+  if (!ownKey && !usesIncludedAi) {
+    const message = await askUnavailableMessage(userId);
+    return createUIMessageStreamResponse({
+      stream: createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: "text-start", id: "unavailable" });
+          writer.write({ type: "text-delta", id: "unavailable", delta: message });
+          writer.write({ type: "text-end", id: "unavailable" });
+        },
+      }),
+    });
+  }
   await logAiUsage({
     userId,
     requestType: ASK_QUERY_REQUEST_TYPE,
@@ -182,7 +199,7 @@ export async function streamAsk(userId: string, threadId: string, query: string)
     {
       version: "v2",
       configurable: { thread_id: threadId },
-      context: { userId },
+      context: { userId, turnId: randomUUID() },
     },
   );
 

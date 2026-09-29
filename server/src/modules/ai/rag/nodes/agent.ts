@@ -21,6 +21,26 @@ const MANAGED_AI_UNAVAILABLE_MESSAGE = "Ask isn't available right now. Please tr
 const MANAGED_AI_USED_UP_MESSAGE =
   "You've used this month's included questions. They reset at the start of next month; you can also move to a bigger plan in Settings → Plan & usage.";
 
+/**
+ * Why Ask can't answer right now, in the user's terms: the plan's included
+ * questions are spent, or AI isn't available at all. Also used by streamAsk
+ * to reply before running the graph, since a fixed message returned from a
+ * node never reaches the client stream (only model output is streamed).
+ */
+export async function askUnavailableMessage(userId: string | null): Promise<string> {
+  // Included AI exists for this role but the plan's allowance is spent (or
+  // the plan has none) — say that, rather than implying nothing is set up.
+  const quotaIsTheReason = !!userId && !!(await platformCredential(AiRole.REASONING));
+  const managed = !!userId && (await planHasManagedAi(userId));
+  return quotaIsTheReason
+    ? managed
+      ? MANAGED_AI_USED_UP_MESSAGE
+      : INCLUDED_AI_USED_UP_MESSAGE
+    : managed
+      ? MANAGED_AI_UNAVAILABLE_MESSAGE
+      : NOT_CONFIGURED_MESSAGE;
+}
+
 export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
   // userId travels via LangGraph's `context` (set at streamAsk's invocation),
   // not RAGState — it's per-turn identity, not checkpointed conversation state.
@@ -29,18 +49,7 @@ export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
 
   const model = userId ? await getChatModel(userId, "reasoning", { kind: "ask", threadId }) : null;
   if (!model) {
-    // Included AI exists for this role but the plan's allowance is spent (or
-    // the plan has none) — say that, rather than implying nothing is set up.
-    const quotaIsTheReason = !!userId && !!(await platformCredential(AiRole.REASONING));
-    const managed = !!userId && (await planHasManagedAi(userId));
-    const message = quotaIsTheReason
-      ? managed
-        ? MANAGED_AI_USED_UP_MESSAGE
-        : INCLUDED_AI_USED_UP_MESSAGE
-      : managed
-        ? MANAGED_AI_UNAVAILABLE_MESSAGE
-        : NOT_CONFIGURED_MESSAGE;
-    return { messages: [new AIMessage(message)] };
+    return { messages: [new AIMessage(await askUnavailableMessage(userId))] };
   }
   // bindTools is typed optional on BaseChatModel (not every implementation
   // supports tool calling) — every concrete model getChatModel can return

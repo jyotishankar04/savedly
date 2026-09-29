@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db";
 import { attachments, collectionMemories, collections, memories, memoryTags, tags } from "../../db/schema";
 import { MemoryStatus, PlanLimitType, type MemoryType } from "../../db/enums";
@@ -174,7 +174,7 @@ function toListItem(
  */
 async function buildFilterConditions(
   userId: string,
-  query: Pick<ListMemoriesQuery, "type" | "isFavorite" | "isArchived" | "inTrash" | "isVaulted" | "collectionId" | "tag">,
+  query: Pick<ListMemoriesQuery, "type" | "isFavorite" | "isArchived" | "inTrash" | "isVaulted" | "collectionId" | "tag" | "site">,
 ): Promise<SQL[] | null> {
   const conditions: SQL[] = [
     eq(memories.userId, userId),
@@ -189,6 +189,10 @@ async function buildFilterConditions(
 
   if (query.type) conditions.push(eq(memories.type, query.type as MemoryType));
   if (query.isFavorite !== undefined) conditions.push(eq(memories.isFavorite, query.isFavorite));
+  if (query.site) {
+    const pattern = `%${query.site.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+    conditions.push(or(ilike(memories.source, pattern), ilike(memories.url, pattern))!);
+  }
 
   if (query.collectionId) {
     const rows = await db

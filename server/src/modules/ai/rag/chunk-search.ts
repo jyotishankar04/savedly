@@ -6,6 +6,7 @@ import { getVectorStore } from "../vector-store";
 import { rrfMerge, SEMANTIC_SIMILARITY_FLOOR } from "../search/rrf";
 import { MIN_SEMANTIC_QUERY_LENGTH } from "../search/semantic-search";
 import { lexicalSearch } from "../search/lexical-search";
+import { semanticSearch } from "../search/semantic-search";
 import { logAiUsage } from "../../ai-usage/usage-logger";
 import { logger } from "../../../shared/utils/logger";
 
@@ -118,7 +119,7 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
   }
 
   const topMemoryIds = [...bestChunkByMemory.keys()].slice(0, limit);
-  if (topMemoryIds.length === 0) return memoryKeywordFallback(userId, query, limit);
+  if (topMemoryIds.length === 0) return memoryLevelResults(userId, query, limit, new Set());
 
   const memoryRows = await db
     .select({
@@ -151,6 +152,12 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
     });
   }
 
+  // Memories with no chunks (a link saved with little page text) can only be
+  // found at the memory level — top up with those when chunks came up short.
+  if (results.length < limit) {
+    const extra = await memoryLevelResults(userId, query, limit - results.length, new Set(results.map((r) => r.memoryId)));
+    results.push(...extra);
+  }
   return results;
 }
 
@@ -160,15 +167,23 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
  * trigger-maintained memories.fts_tokens) and hand back their summary and
  * text as the passage. Ask can still answer from exact words that way.
  */
-async function memoryKeywordFallback(userId: string, query: string, limit: number): Promise<RetrievedMemory[]> {
-  const hits = await lexicalSearch(
-    query,
-    [eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false)],
-    limit,
-  ).catch((err) => {
-    logger.warn({ err, userId }, "[ask] keyword fallback failed");
-    return [];
-  });
+async function memoryLevelResults(userId: string, query: string, limit: number, exclude: Set<string>): Promise<RetrievedMemory[]> {
+  const filters = [eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false)];
+  // Whole memories, by meaning (document embeddings) and by keyword.
+  const [semantic, lexical] = await Promise.all([
+    semanticSearch(userId, query, limit * 2).catch(() => []),
+    lexicalSearch(query, filters, limit * 2).catch((err) => {
+      logger.warn({ err, userId }, "[ask] memory-level keyword search failed");
+      return [];
+    }),
+  ]);
+  const hits = rrfMerge(
+    semantic.filter((h) => h.score >= SEMANTIC_SIMILARITY_FLOOR),
+    lexical,
+  )
+    .filter((h) => !exclude.has(h.memoryId))
+    .slice(0, limit)
+    .map((h) => ({ memoryId: h.memoryId, score: h.rrfScore }));
   if (hits.length === 0) return [];
 
   const rows = await db
@@ -183,7 +198,14 @@ async function memoryKeywordFallback(userId: string, query: string, limit: numbe
       content: memories.content,
     })
     .from(memories)
-    .where(and(eq(memories.userId, userId), inArray(memories.id, hits.map((h) => h.memoryId))));
+    .where(
+      and(
+        eq(memories.userId, userId),
+        inArray(memories.id, hits.map((h) => h.memoryId)),
+        eq(memories.inTrash, false),
+        eq(memories.isVaulted, false),
+      ),
+    );
   const byId = new Map(rows.map((row) => [row.id, row]));
 
   return hits.flatMap((hit) => {
