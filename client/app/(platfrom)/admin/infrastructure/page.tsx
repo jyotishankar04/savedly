@@ -22,8 +22,8 @@ import {
 // Admin -> Infrastructure: file storage, vector store, email, embeddings and
 // OAuth for a self-hosted install. Rendered straight from the server's field
 // metadata (server/src/modules/instance-settings/instance-settings.registry.ts).
-// Hosted production is configured only through env, so there every field
-// reads "Set by environment" and nothing is editable.
+// Hosted production is configured through env, so there only the sections
+// marked editable (Included AI) can be changed; the rest are read-only.
 
 export default function AdminInfrastructurePage() {
   const { data, isLoading, isError } = useQuery({ queryKey: ["admin", "instance-settings"], queryFn: getInstanceSettings });
@@ -46,15 +46,15 @@ export default function AdminInfrastructurePage() {
         <p className="text-xs text-muted-foreground leading-relaxed">
           {data.selfHosted
             ? "Everything works out of the box with local disk, the built-in vector store and no email. Change any of it here. A value set with an environment variable always wins and can't be edited on this page."
-            : "This server is configured through environment variables, so these settings are read-only here."}
+            : "This server is configured through environment variables. Included AI can be changed here; everything else is read-only."}
         </p>
       </div>
 
-      {data.sections.map((section) => (
+      {sortSections(data).map((section) => (
         <SectionCard
           key={section.id}
           section={section}
-          editable={data.selfHosted}
+          editable={section.editable}
           callbackUrl={
             section.id === "googleAuth" ? data.callbackUrls.google : section.id === "githubAuth" ? data.callbackUrls.github : undefined
           }
@@ -62,6 +62,12 @@ export default function AdminInfrastructurePage() {
       ))}
     </div>
   );
+}
+
+/** On hosted production, the one section you can change goes first. */
+function sortSections(data: { selfHosted: boolean; sections: SettingSection[] }): SettingSection[] {
+  if (data.selfHosted) return data.sections;
+  return [...data.sections.filter((s) => s.editable), ...data.sections.filter((s) => !s.editable)];
 }
 
 type Draft = Record<string, SettingValue | null>;

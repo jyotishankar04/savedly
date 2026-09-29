@@ -199,7 +199,7 @@ export interface AiStatus {
     questions: { limit: number | null; used: number };
     images: { limit: number | null; used: number };
   } | null;
-  /** Whether this server has its own AI keys set up (PLATFORM_AI_*), so included AI can actually run. */
+  /** Whether this server has its own AI keys set up (Admin -> Infrastructure -> Included AI), so included AI can actually run. */
   includedReady: boolean;
   askAvailable: boolean;
   /** Why Ask is unavailable: no key and no included AI, or this month's included questions are used up. */
@@ -227,7 +227,7 @@ export async function getAiStatus(userId: string): Promise<AiStatus> {
 
   const source = async (role: AiRole.FAST | AiRole.REASONING | AiRole.VISION, a: { limit: number | null }): Promise<AiSource> => {
     if (await hasOwnCredential(userId, role)) return "own";
-    return platformCredential(role) && hasAllowance(a) ? "included" : "none";
+    return (await platformCredential(role)) && hasAllowance(a) ? "included" : "none";
   };
   const roles = {
     fast: await source(AiRole.FAST, saves),
@@ -246,7 +246,7 @@ export async function getAiStatus(userId: string): Promise<AiStatus> {
     mode: managed ? "managed" : "own-key",
     roles,
     included: includedOffered ? { saves, questions, images } : null,
-    includedReady: !!platformCredential(AiRole.REASONING),
+    includedReady: !!(await platformCredential(AiRole.REASONING)),
     askAvailable,
     askBlockedReason: askAvailable ? null : roles.reasoning === "included" ? "included-used-up" : "no-ai",
     savedKeysIgnored,

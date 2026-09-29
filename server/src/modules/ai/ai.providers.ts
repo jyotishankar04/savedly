@@ -86,16 +86,28 @@ export async function hasOwnCredential(userId: string, role: AiRole): Promise<bo
 }
 
 /**
- * The platform's own key for a chat/vision role (PLATFORM_AI_* in env) —
- * "included AI" for plans with an allowance. Null when not configured.
+ * The platform's own key for a chat/vision role — "included AI" for plans
+ * with an allowance. Set in Admin -> Infrastructure -> Included AI (or
+ * PLATFORM_AI_* in env, which wins). A role left without its own key reuses
+ * the Ask (reasoning) key when the provider is the same. Null when the role is off.
  */
-export function platformCredential(role: AiRole.FAST | AiRole.REASONING | AiRole.VISION): ProviderCredentialInput | null {
-  const prefix = role === AiRole.FAST ? "FAST" : role === AiRole.REASONING ? "REASONING" : "VISION";
-  const provider = env[`PLATFORM_AI_${prefix}_PROVIDER`];
-  const apiKey = env[`PLATFORM_AI_${prefix}_API_KEY`];
-  const model = env[`PLATFORM_AI_${prefix}_MODEL`];
+export async function platformCredential(role: AiRole.FAST | AiRole.REASONING | AiRole.VISION): Promise<ProviderCredentialInput | null> {
+  return platformCredentialFrom(await getSection("includedAi"), role);
+}
+
+/** platformCredential over a given section — also used to test unsaved settings. */
+export function platformCredentialFrom(
+  settings: Record<string, unknown>,
+  role: AiRole.FAST | AiRole.REASONING | AiRole.VISION,
+): ProviderCredentialInput | null {
+  const str = (name: string) => (settings[name] ? String(settings[name]) : undefined);
+  const provider = str(`${role}Provider`);
+  const model = str(`${role}Model`);
+  const sameAsAsk = provider === str("reasoningProvider");
+  const apiKey = str(`${role}ApiKey`) ?? (sameAsAsk ? str("reasoningApiKey") : undefined);
+  const baseUrl = str(`${role}BaseUrl`) ?? (sameAsAsk ? str("reasoningBaseUrl") : undefined);
   if (!provider || !apiKey || !model) return null;
-  return { provider: provider as AiCredentialProvider, apiKey, model, baseUrl: env.PLATFORM_AI_BASE_URL ?? null };
+  return { provider: provider as AiCredentialProvider, apiKey, model, baseUrl: baseUrl ?? null };
 }
 
 // Tag carried by every model built on the platform key; the usage logger
@@ -120,7 +132,7 @@ async function resolveCredential(
   const own = await ownCredential(userId, role);
   if (own) return { credential: own, platform: false };
   if (!purpose) return null;
-  const platform = platformCredential(role);
+  const platform = await platformCredential(role);
   if (!platform) return null;
   if (!(await canUseIncludedAi(userId, purpose))) return null;
   return { credential: platform, platform: true };

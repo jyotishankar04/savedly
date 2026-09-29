@@ -5,7 +5,8 @@ import { InstanceSettingsController } from "./instance-settings.controller";
 
 // Mounted at /admin/instance-settings by ../../routes/index.ts. The list is
 // readable on any install (hosted production shows every field as "Set by
-// environment"); saving is refused unless SELF_HOSTED — see saveSection.
+// environment"); saving is refused unless SELF_HOSTED or the section is
+// hostedEditable — see saveSection.
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, InstanceSettingsController.list);

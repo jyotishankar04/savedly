@@ -57,6 +57,11 @@ function SelfHostedSystem({ system }: { system: SystemStatus }) {
             <ServiceRow label="Search index" value={services.vectorStore} ok />
             <ServiceRow label="Email" value={services.email ? "On" : "Off"} ok={services.email} />
             <ServiceRow
+              label="AI for everyone"
+              value={services.sharedAi ? "Set up" : "Each person's own key"}
+              ok={services.sharedAi}
+            />
+            <ServiceRow
               label="Embeddings for everyone"
               value={services.embeddingsKey ? "Set up" : "Each person's own key"}
               ok={services.embeddingsKey}

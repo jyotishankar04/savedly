@@ -3,7 +3,8 @@ import { z } from "zod";
 // Everything a self-hosted admin can configure from Admin -> Configuration ->
 // Infrastructure, one section per external service. Each field says which
 // env var(s) can set it (env always wins over the settings table) and whether
-// it's a secret (encrypted at rest, never sent back to the client).
+// it's a secret (encrypted at rest, never sent back to the client). Hosted
+// production is env-only, except sections marked `hostedEditable`.
 //
 // The client renders the settings page straight from this metadata (see
 // instance-settings.service.ts's describeSections), so adding a field here is
@@ -43,9 +44,15 @@ export interface SectionDef {
   schema: z.ZodType;
   /** Whether a Test connection button makes sense for this section. */
   testable: boolean;
+  /**
+   * Also editable (and read from the table) on hosted production, for things
+   * the team changes over time without a redeploy — like which models
+   * included AI runs on.
+   */
+  hostedEditable?: boolean;
 }
 
-export type SectionId = "storage" | "vector" | "email" | "embeddings" | "googleAuth" | "githubAuth";
+export type SectionId = "storage" | "vector" | "email" | "embeddings" | "includedAi" | "googleAuth" | "githubAuth";
 
 const env = (name: string) => {
   const value = process.env[name];
@@ -65,6 +72,83 @@ const r2Endpoint = () => {
   const accountId = env("R2_ACCOUNT_ID");
   return accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined;
 };
+
+const AI_PROVIDERS = ["openai", "anthropic", "google", "groq", "openrouter", "custom"] as const;
+
+// Included AI: one provider/key/model per role, mirroring PLATFORM_AI_* in
+// env. Fields are named `${role}Provider`, `${role}ApiKey`, `${role}Model`,
+// `${role}BaseUrl`; ai.providers.ts platformCredential reads them.
+const INCLUDED_AI_ROLES = [
+  { role: "reasoning", env: "REASONING", label: "Ask", placeholder: "Model name, for example gpt-5-mini" },
+  { role: "fast", env: "FAST", label: "Saving", placeholder: "Model name, for example gpt-5-nano" },
+  { role: "vision", env: "VISION", label: "Images", placeholder: "Model name, for example gpt-5-mini" },
+] as const;
+
+function includedAiFields(): FieldDef[] {
+  return INCLUDED_AI_ROLES.flatMap(({ role, env: prefix, label, placeholder }): FieldDef[] => {
+    const on = { field: `${role}Provider`, equals: AI_PROVIDERS };
+    return [
+      {
+        name: `${role}Provider`,
+        label: `${label}: provider`,
+        kind: "select",
+        options: [
+          { value: "", label: "Off" },
+          { value: "openai", label: "OpenAI" },
+          { value: "anthropic", label: "Anthropic" },
+          { value: "google", label: "Google Gemini" },
+          { value: "groq", label: "Groq" },
+          { value: "openrouter", label: "OpenRouter" },
+          { value: "custom", label: "OpenAI-compatible (custom URL)" },
+        ],
+        help:
+          role === "reasoning"
+            ? "Answers questions in Ask."
+            : role === "fast"
+              ? "Reads, summarizes and tags everything saved."
+              : "Reads text in and describes saved images.",
+        fromEnv: () => env(`PLATFORM_AI_${prefix}_PROVIDER`),
+      },
+      {
+        name: `${role}ApiKey`,
+        label: `${label}: API key`,
+        kind: "password",
+        secret: true,
+        showWhen: on,
+        help: role === "reasoning" ? undefined : "Leave blank to reuse the Ask key when the provider is the same.",
+        fromEnv: () => env(`PLATFORM_AI_${prefix}_API_KEY`),
+      },
+      { name: `${role}Model`, label: `${label}: model`, kind: "text", placeholder, showWhen: on, fromEnv: () => env(`PLATFORM_AI_${prefix}_MODEL`) },
+      {
+        name: `${role}BaseUrl`,
+        label: `${label}: base URL`,
+        kind: "text",
+        showWhen: { field: `${role}Provider`, equals: ["custom"] },
+        fromEnv: () => env("PLATFORM_AI_BASE_URL"),
+      },
+    ];
+  });
+}
+
+const includedAiSchema = z
+  .record(z.string(), z.unknown())
+  .superRefine((v, ctx) => {
+    for (const { role, label } of INCLUDED_AI_ROLES) {
+      const provider = v[`${role}Provider`];
+      if (!provider) continue;
+      if (!AI_PROVIDERS.includes(provider as (typeof AI_PROVIDERS)[number])) {
+        ctx.addIssue({ code: "custom", message: `${label}: pick a provider`, path: [`${role}Provider`] });
+      }
+      if (!v[`${role}Model`]) ctx.addIssue({ code: "custom", message: `${label}: enter a model`, path: [`${role}Model`] });
+      const reusesAskKey = role !== "reasoning" && provider === v.reasoningProvider && !!v.reasoningApiKey;
+      if (!v[`${role}ApiKey`] && !reusesAskKey) {
+        ctx.addIssue({ code: "custom", message: `${label}: add an API key`, path: [`${role}ApiKey`] });
+      }
+      if (provider === "custom" && !v[`${role}BaseUrl`]) {
+        ctx.addIssue({ code: "custom", message: `${label}: a custom provider needs a base URL`, path: [`${role}BaseUrl`] });
+      }
+    }
+  });
 
 export const SECTIONS: SectionDef[] = [
   {
@@ -300,6 +384,17 @@ export const SECTIONS: SectionDef[] = [
         message: "Base URL is required for a custom provider",
         path: ["baseUrl"],
       }),
+  },
+  {
+    id: "includedAi",
+    title: "Included AI",
+    description:
+      "The server's own AI keys. Anyone without a key of their own uses these: on hosted plans, within their plan's monthly allowance; on a self-hosted install, with no limit. Set a role to Off to leave it bring-your-own-key. Changes apply right away.",
+    testable: true,
+    hostedEditable: true,
+    fields: includedAiFields(),
+    defaults: {},
+    schema: includedAiSchema,
   },
   {
     id: "googleAuth",

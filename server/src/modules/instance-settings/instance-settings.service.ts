@@ -18,8 +18,8 @@ interface StoredSection {
 // One process runs the API and every worker, so an in-memory cache plus a
 // version counter is enough: a save bumps the version, and consumers that
 // build a client from these settings (storage, vector store, mailer) rebuild
-// it the next time they see a new version. Hosted production never gets here
-// with a DB read — see readStored.
+// it the next time they see a new version. Hosted production only reads the
+// table for hostedEditable sections — see readStored.
 let version = 0;
 const cache = new Map<SectionId, StoredSection>();
 
@@ -27,9 +27,14 @@ export function settingsVersion(): number {
   return version;
 }
 
+/** Whether the settings table applies to this section on this server. */
+function isEditable(def: SectionDef): boolean {
+  return env.SELF_HOSTED || !!def.hostedEditable;
+}
+
 async function readStored(id: SectionId): Promise<StoredSection> {
-  // Hosted production is configured only through env — the table is never read.
-  if (!env.SELF_HOSTED) return { value: {}, secrets: {} };
+  // Hosted production is configured through env, except hostedEditable sections.
+  if (!isEditable(getSectionDef(id)!)) return { value: {}, secrets: {} };
 
   const cached = cache.get(id);
   if (cached) return cached;
@@ -70,7 +75,7 @@ function resolveWithSources(def: SectionDef, stored: StoredSection) {
   return { values, sources };
 }
 
-/** The effective configuration for one section: env, then settings (self-hosted only), then defaults. */
+/** The effective configuration for one section: env, then settings (self-hosted or hostedEditable), then defaults. */
 export async function getSection<T extends ResolvedSection = ResolvedSection>(id: SectionId): Promise<T> {
   const def = getSectionDef(id)!;
   return resolveWithSources(def, await readStored(id)).values as T;
@@ -86,6 +91,7 @@ export async function describeSections() {
         title: def.title,
         description: def.description,
         testable: def.testable,
+        editable: isEditable(def),
         fields: def.fields.map((f) => ({
           name: f.name,
           label: f.label,
@@ -118,6 +124,7 @@ export async function mergeCandidate(id: SectionId, input: Record<string, unknow
 
   for (const field of def.fields) {
     if (!(field.name in input)) continue;
+    if (field.fromEnv?.() !== undefined) continue; // env wins; the page shows it locked
     const raw = input[field.name];
     if (field.secret) {
       if (raw === undefined || raw === null) continue;
@@ -134,10 +141,10 @@ export async function mergeCandidate(id: SectionId, input: Record<string, unknow
 }
 
 export async function saveSection(id: SectionId, input: Record<string, unknown>, adminUserId: string) {
-  if (!env.SELF_HOSTED) {
+  const def = getSectionDef(id)!;
+  if (!isEditable(def)) {
     throw new AppError("Infrastructure is configured through environment variables on this server", 409, "SETTINGS_MANAGED_BY_ENV");
   }
-  const def = getSectionDef(id)!;
   const { merged, next } = await mergeCandidate(id, input);
 
   const parsed = def.schema.safeParse(merged);

@@ -23,6 +23,8 @@ export interface SettingSection {
   title: string;
   description: string;
   testable: boolean;
+  /** Self-hosted: every section. Hosted production: only the ones the team changes at runtime (Included AI). */
+  editable: boolean;
   fields: SettingField[];
 }
 

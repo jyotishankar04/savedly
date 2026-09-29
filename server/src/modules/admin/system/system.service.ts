@@ -66,7 +66,7 @@ export async function getSystemStatus() {
       vectorStore: vector.provider === "upstash" ? "Upstash Vector" : "Built-in Postgres",
       email: !!email.enabled,
       embeddingsKey: !!embeddings.apiKey,
-      sharedAi: !!platformCredential(AiRole.REASONING),
+      sharedAi: !!(await platformCredential(AiRole.REASONING)),
       googleSignIn: !!google,
       githubSignIn: !!github,
     },

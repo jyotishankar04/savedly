@@ -161,7 +161,7 @@ export async function streamAsk(userId: string, threadId: string, query: string)
   // not fire-and-forget, so the ticket exists before the graph runs.
   const usesIncludedAi =
     !(await hasOwnCredential(userId, AiRole.REASONING)) &&
-    !!platformCredential(AiRole.REASONING) &&
+    !!(await platformCredential(AiRole.REASONING)) &&
     (await isWithinLimit(userId, PlanLimitType.AI_MONTHLY_QUERIES, 1));
   await logAiUsage({
     userId,

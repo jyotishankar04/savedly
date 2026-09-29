@@ -109,9 +109,11 @@ const envSchema = z
     // Included AI: the platform's own chat/vision keys, used for anyone on a
     // plan with an included-AI allowance (Free's small monthly taste, AI
     // included) who hasn't added a key of their own. Quota-checked per plan —
-    // see plans.service.ts canUseIncludedAi. All optional: with none set,
-    // every role stays bring-your-own-key. On a self-hosted install, setting
-    // these gives everyone on the instance AI with no limits.
+    // see plans.service.ts canUseIncludedAi. Normally set in Admin ->
+    // Infrastructure -> Included AI (editable on hosted production too, so
+    // models can change without a redeploy); a value here overrides and
+    // locks that field. All optional: with none set, every role stays
+    // bring-your-own-key. On a self-hosted install, everyone gets AI with no limits.
     PLATFORM_AI_FAST_PROVIDER: z.enum(["openai", "anthropic", "groq", "google", "openrouter", "custom"]).optional(),
     PLATFORM_AI_FAST_API_KEY: z.string().optional(),
     PLATFORM_AI_FAST_MODEL: z.string().optional(),

@@ -27,7 +27,7 @@ export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
   if (!model) {
     // Included AI exists for this role but the plan's allowance is spent (or
     // the plan has none) — say that, rather than implying nothing is set up.
-    const quotaIsTheReason = !!userId && !!platformCredential(AiRole.REASONING);
+    const quotaIsTheReason = !!userId && !!(await platformCredential(AiRole.REASONING));
     const message = !quotaIsTheReason
       ? NOT_CONFIGURED_MESSAGE
       : (await planHasManagedAi(userId!))
