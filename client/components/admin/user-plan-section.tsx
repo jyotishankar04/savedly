@@ -24,7 +24,7 @@ const DURATIONS: { value: Duration; label: string }[] = [
 
 const SOURCE_LABEL: Record<PlanSource, string> = {
   subscription: "Paid",
-  admin_manual: "Given by an admin",
+  admin_manual: "Set by an admin",
   signup_default: "Default",
 };
 
@@ -76,6 +76,8 @@ export function UserPlanSection({ userId }: { userId: string }) {
   const [minCustomDate] = useState(() => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10));
 
   const chosen = choices.find((p) => p.key === planKey);
+  // Ranked against the plan they pay for, to warn before putting them below it.
+  const paidRank = plans?.find((p) => p.key === data?.subscription?.planKey)?.sortOrder;
   const canGrant = !!chosen && (duration !== "custom" || !!customDate) && busy === null;
 
   const refresh = (next: unknown) => {
@@ -234,6 +236,12 @@ export function UserPlanSection({ userId }: { userId: string }) {
             className="h-8 text-xs"
           />
 
+          {chosen && subscription && paidRank !== undefined && chosen.sortOrder < paidRank && (
+            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+              They pay for {subscription.planName} through {day(subscription.endsAt)}. This puts them on {chosen.name} instead until the
+              grant ends; their payments and dates in Dodo stay the same.
+            </p>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <Button size="sm" disabled={!canGrant} onClick={grant}>
               {busy === "grant" && <Spinner />}
@@ -256,7 +264,7 @@ export function UserPlanSection({ userId }: { userId: string }) {
                   <span className="text-foreground">
                     <span className="font-semibold">{row.planName}</span>{" "}
                     <span className="text-muted-foreground">
-                      · {row.source === "admin_manual" && row.assignedByEmail ? `Given by ${row.assignedByEmail}` : SOURCE_LABEL[row.source]}
+                      · {row.source === "admin_manual" && row.assignedByEmail ? `Set by ${row.assignedByEmail}` : SOURCE_LABEL[row.source]}
                       {row.reason ? ` · "${row.reason}"` : ""}
                     </span>
                   </span>

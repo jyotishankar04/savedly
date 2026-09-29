@@ -122,7 +122,7 @@ function BillingSettings() {
   const planNote = !data
     ? null
     : source === "admin_manual"
-      ? `Given to you${data.assignment?.endsAt ? ` until ${until(data.assignment.endsAt)}` : ""}${sub ? `, then back to your paid ${sub.planName}` : ""}`
+      ? `Set by an admin${data.assignment?.endsAt ? ` until ${until(data.assignment.endsAt)}` : ""}${sub ? `, then back to your paid ${sub.planName}` : ""}`
       : source === "subscription" && sub
         ? sub.status === "cancelled"
           ? `Cancelled · yours until ${until(sub.periodEnd)}`
@@ -174,7 +174,8 @@ function BillingSettings() {
             )}
           </div>
 
-          {config?.billing && !data.selfHosted && !onPaidPlan && (
+          {/* Only for someone who looks unpaid: no subscription, and no plan set by an admin. */}
+          {config?.billing && !data.selfHosted && !onPaidPlan && !sub && source !== "admin_manual" && (
             <p className="text-[10px] text-muted-foreground font-medium">
               Just paid and still see {data.plan.name}?{" "}
               <button
