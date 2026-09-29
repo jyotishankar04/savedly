@@ -33,9 +33,9 @@ export default function TagDetailPage() {
         </div>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{name}</h1>
-          <p className="mt-1 text-[15px] text-muted-foreground">
+          <div className="mt-1 text-[15px] text-muted-foreground">
             {isLoading ? <Skeleton className="inline-block h-4 w-28 align-middle" /> : `${memories.length} saved ${memories.length === 1 ? "memory" : "memories"}`}
-          </p>
+          </div>
         </div>
       </div>
 

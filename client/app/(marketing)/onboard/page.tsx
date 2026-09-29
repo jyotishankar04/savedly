@@ -69,7 +69,7 @@ function OnboardingFlow() {
   // login. useCurrentUserQuery only surfaces a real 401 as an error; a
   // transient network/server hiccup (e.g. the dev server mid-restart) gets a
   // few retries first instead of an instant redirect.
-  const { isLoading: isAuthLoading, isError: isAuthError } = useCurrentUserQuery();
+  const { data: currentUser, isLoading: isAuthLoading, isError: isAuthError } = useCurrentUserQuery();
   const setCurrentUser = useSetCurrentUser();
 
   useEffect(() => {
@@ -77,6 +77,17 @@ function OnboardingFlow() {
       router.replace("/auth/login");
     }
   }, [isAuthLoading, isAuthError, router]);
+
+  // Someone who already finished onboarding (a stale bookmark, a back-button
+  // press after step 7, a shared link) shouldn't be able to silently redo it
+  // — it would overwrite their saved preferences and file another "first
+  // memory" from whatever's left in the last step's box. Send them where
+  // onboarding itself would have sent them.
+  useEffect(() => {
+    if (currentUser?.onboardingCompleted) {
+      router.replace(nextDestination);
+    }
+  }, [currentUser?.onboardingCompleted, nextDestination, router]);
 
   const completeOnboardingMutation = useMutation({
     mutationFn: completeOnboarding,
