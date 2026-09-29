@@ -595,6 +595,9 @@ export const userSettings = pgTable("user_settings", {
   notifyProductUpdates: boolean("notify_product_updates").notNull().default(false),
   theme: settingsThemeEnum("theme").notNull().default(SettingsTheme.SYSTEM),
   accentColor: accentColorEnum("accent_color").notNull().default(AccentColor.BLUE),
+  // IANA name ("Asia/Kolkata"), set from the browser. Event detection reads
+  // "3 pm" in this zone; null = unknown, treated as UTC.
+  timezone: varchar("timezone", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

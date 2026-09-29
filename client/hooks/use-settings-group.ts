@@ -1,9 +1,10 @@
 "use client";
 
+import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSettings, updateSettings, type Settings, type SettingsPatch } from "@/lib/settings";
 
-type Group = Omit<Settings, "connectedAccounts">;
+type Group = Omit<Settings, "connectedAccounts" | "timezone">;
 
 export const settingsQueryKey = ["settings"] as const;
 
@@ -53,4 +54,29 @@ export function useSettingsGroup<K extends keyof Group>(group: K) {
     (mutation.error instanceof Error ? mutation.error.message : null);
 
   return { value: settings?.[group] ?? null, loading: isLoading, error, set };
+}
+
+/**
+ * Keeps the server's copy of the user's time zone in step with their
+ * browser, so "3 pm" in a saved note is read as 3 pm where they are
+ * (server event detection). Sends only when it's missing or has changed.
+ */
+export function useSyncTimeZone() {
+  const queryClient = useQueryClient();
+  const { data } = useSettingsQuery();
+  React.useEffect(() => {
+    if (!data) return;
+    let zone: string | undefined;
+    try {
+      zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      return;
+    }
+    if (!zone || zone === data.timezone) return;
+    updateSettings({ timezone: zone })
+      .then((updated) => queryClient.setQueryData(settingsQueryKey, updated))
+      .catch(() => {
+        // Not worth bothering anyone over; it's retried on the next visit.
+      });
+  }, [data, queryClient]);
 }

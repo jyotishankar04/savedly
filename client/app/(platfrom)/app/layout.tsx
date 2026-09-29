@@ -21,7 +21,7 @@ import { usePlanLabel, usePlanLimit } from "@/hooks/use-plan-limit";
 import { useRecentEventNotificationsQuery, useUnreadCountQuery } from "@/hooks/use-notifications";
 import type { AppNotification } from "@/lib/notifications";
 import type { Collection } from "@/types/memory";
-import { EventDetectedPopup } from "@/components/memory/event-detected-popup";
+import { LiveEventDetectedPopup } from "@/components/memory/event-detected-popup";
 import { useLockVaultMutation } from "@/hooks/use-vault";
 import { PlanLimitNotice, ProBadge, LimitDot } from "@/components/plan-limit-notice";
 import { detectMemoryType, deriveTitle, splitLinkAndCaption } from "@/lib/detect-memory-type";
@@ -70,6 +70,7 @@ import { NextStepProvider, NextStep } from "nextstepjs";
 import { useNextAdapter } from "nextstepjs/adapters/next";
 import { productTourSteps, TourCard, TourAutoStart } from "@/components/product-tour";
 import { AskWidget } from "@/components/ask-widget/ask-widget";
+import { useSyncTimeZone } from "@/hooks/use-settings-group";
 
 /** Exact-matches Home ("/app"); prefix-matches everything else, so a nav
  * item for a list route (Tags, Collections, Memories) stays highlighted on
@@ -354,6 +355,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   // Rides the same 60s poll as the bell badge (no websocket in this app);
   // the email sent alongside this notification already covers the case
   // where the user isn't around to see it live.
+  // So event detection reads "3 pm" in the user's own time zone.
+  useSyncTimeZone();
   const { data: recentNotifications } = useRecentEventNotificationsQuery();
   const seenEventPopupIds = useRef<Set<string>>(new Set());
   const [eventPopupNotification, setEventPopupNotification] = useState<AppNotification | null>(null);
@@ -1523,7 +1526,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       </Dialog>
 
       {eventPopupNotification && (
-        <EventDetectedPopup
+        <LiveEventDetectedPopup
           notification={eventPopupNotification}
           onClose={() => setEventPopupNotification(null)}
         />
