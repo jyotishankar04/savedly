@@ -48,6 +48,17 @@ export function createDodoProvider(): BillingProvider {
       return { url: session.checkout_url };
     },
 
+    async changePlan(subscriptionId, productId) {
+      const result = await client.subscriptions.changePlan(subscriptionId, {
+        product_id: productId,
+        quantity: 1,
+        // Charge the difference for the rest of the current period now; the
+        // next renewal bills the new plan's full price.
+        proration_billing_mode: "prorated_immediately",
+      });
+      return { paymentUrl: result.payment_link ?? null };
+    },
+
     async customerPortalUrl(customerId) {
       const portal = await client.customers.customerPortal.create(customerId);
       return portal.link;

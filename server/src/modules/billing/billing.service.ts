@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ne, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { billingCustomers, billingEvents, plans, userPlanAssignments, users } from "../../db/schema";
 import { PlanAssignmentSource, PlanAssignmentStatus } from "../../db/enums";
@@ -50,6 +50,32 @@ async function customerIdFor(userId: string): Promise<string | null> {
   return row?.customerId ?? null;
 }
 
+/** The user's live, provider-billed subscription and its plan, if they have one. */
+async function currentSubscription(userId: string) {
+  const [row] = await db
+    .select({ assignment: userPlanAssignments, plan: plans })
+    .from(userPlanAssignments)
+    .innerJoin(plans, eq(plans.id, userPlanAssignments.planId))
+    .where(
+      and(
+        eq(userPlanAssignments.userId, userId),
+        eq(userPlanAssignments.source, PlanAssignmentSource.SUBSCRIPTION),
+        eq(userPlanAssignments.status, PlanAssignmentStatus.ACTIVE),
+        gte(userPlanAssignments.endsAt, new Date()),
+      ),
+    )
+    .orderBy(desc(userPlanAssignments.startsAt))
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Buy a plan, or move up from the one you pay for. Plans rank by sortOrder
+ * (Free < Own key monthly < Own key yearly < AI included monthly < AI
+ * included yearly — admin-editable). A subscriber can only move up here, and
+ * moving up changes their existing subscription instead of opening a second
+ * one; moving down is done in the provider's billing portal.
+ */
 export async function createCheckout(userId: string, planKey: string): Promise<{ url: string }> {
   const billing = requireProvider();
 
@@ -63,6 +89,24 @@ export async function createCheckout(userId: string, planKey: string): Promise<{
   if (!user) throw new AppError("User not found", 404, "NOT_FOUND");
 
   const base = `${env.FRONTEND_URL.replace(/\/$/, "")}/app/settings/billing`;
+
+  const current = await currentSubscription(userId);
+  if (current) {
+    if (plan.sortOrder <= current.plan.sortOrder) {
+      throw new AppError(
+        "You're already on this plan or a bigger one. To move to a smaller plan, use Manage billing.",
+        409,
+        "NOT_AN_UPGRADE",
+      );
+    }
+    const subscriptionId = current.assignment.sourceRefId;
+    if (!subscriptionId) throw new AppError("Couldn't find your subscription", 409, "NO_SUBSCRIPTION");
+    // The provider sends subscription.plan_changed, which moves the
+    // assignment to the new plan (applySubscriptionEvent, same subscription).
+    const { paymentUrl } = await callProvider("plan change", () => billing.changePlan(subscriptionId, productId));
+    return { url: paymentUrl ?? `${base}?checkout=success` };
+  }
+
   const customerId = await customerIdFor(userId);
   return callProvider("checkout", () =>
     billing.createCheckout({

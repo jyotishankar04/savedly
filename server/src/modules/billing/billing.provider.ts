@@ -33,6 +33,12 @@ export interface BillingProvider {
     cancelUrl: string;
   }): Promise<{ url: string }>;
   customerPortalUrl(customerId: string): Promise<string>;
+  /**
+   * Moves an existing subscription to another product, billing the prorated
+   * difference now. Returns a payment page when the provider needs the
+   * customer to confirm the charge, else null (the saved method was charged).
+   */
+  changePlan(subscriptionId: string, productId: string): Promise<{ paymentUrl: string | null }>;
   /** Verifies the signature and returns the event, or null for event types billing ignores. Throws on a bad signature. */
   parseWebhook(rawBody: string, headers: Record<string, string>): SubscriptionEvent | null;
 }

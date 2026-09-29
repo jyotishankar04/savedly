@@ -11,8 +11,8 @@ import {
   listPublicPlans,
   openBillingPortal,
   PLAN_LIMIT_LABEL,
-  planTier,
   startCheckout,
+  upgradeOptions,
   type PlanLimitType,
 } from "@/lib/plans";
 import { getServerConfig } from "@/lib/server-config";
@@ -72,10 +72,9 @@ function BillingSettings() {
   };
 
   const onPaidPlan = !!data && !data.plan.isDefault;
-  // Priced paid plans only — an unpriced one can't be bought yet.
-  const upgrades = (plans ?? []).filter(
-    (p) => !p.isDefault && p.priceMinor > 0 && planTier(p.key) !== planTier(data?.plan.key ?? ""),
-  );
+  // Only plans above the current one — a subscriber moves up here, and down
+  // in the provider's billing portal.
+  const upgrades = upgradeOptions(data?.plan, plans ?? []);
 
   return (
     <div className="space-y-6 max-w-3xl text-xs font-semibold">
@@ -126,7 +125,7 @@ function BillingSettings() {
             <div className="p-5 border border-border bg-card rounded-xl space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
-                  {onPaidPlan ? "Change or manage your plan" : "Upgrade"}
+                  {onPaidPlan ? (upgrades.length ? "Move up" : "Your plan") : "Upgrade"}
                 </span>
                 {onPaidPlan && (
                   <button
@@ -161,7 +160,17 @@ function BillingSettings() {
                   ))}
                 </div>
               ) : (
-                !onPaidPlan && <p className="text-[10px] text-muted-foreground font-medium">Paid plans aren&apos;t available yet.</p>
+                <p className="text-[10px] text-muted-foreground font-medium">
+                  {onPaidPlan
+                    ? "You're on our biggest plan. To change or cancel it, use Manage billing."
+                    : "Paid plans aren't available yet."}
+                </p>
+              )}
+              {onPaidPlan && upgrades.length > 0 && (
+                <p className="text-[10px] text-muted-foreground font-medium">
+                  Moving up switches your current subscription and charges only the difference for the rest of this period. To move to a
+                  smaller plan or cancel, use Manage billing.
+                </p>
               )}
             </div>
           )}

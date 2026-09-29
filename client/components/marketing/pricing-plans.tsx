@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { GITHUB_URL } from "@/lib/open-source";
 import { useCurrentUserQuery } from "@/context/UserContext";
 import { getServerConfig } from "@/lib/server-config";
-import { formatPriceMinor, listPublicPlans, planLimitBullets, planTier, startCheckout, type PublicPlan } from "@/lib/plans";
+import { formatPriceMinor, getMyPlan, listPublicPlans, planLimitBullets, planTier, startCheckout, type PublicPlan } from "@/lib/plans";
 
 // Short card taglines per tier; anything else falls back to the plan's own description.
 const TAGLINES: Record<string, string> = {
@@ -88,13 +88,22 @@ export function PricingPlans() {
   const { data: user } = useCurrentUserQuery();
   const { data: config } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
   const { data: plans, isLoading } = useQuery({ queryKey: ["plans", "public"], queryFn: listPublicPlans });
+  const { data: myPlan } = useQuery({ queryKey: ["plans", "me"], queryFn: getMyPlan, enabled: !!user });
   const [tab, setTab] = useState<Tab>("cloud");
-  const [yearly, setYearly] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
+
+  // A subscriber is only offered plans above theirs (sortOrder: Own key
+  // monthly < Own key yearly < AI included monthly < AI included yearly) —
+  // the server refuses anything else. Their own plan stays, marked current.
+  const current = myPlan && !myPlan.plan.isDefault ? myPlan.plan : null;
+
+  // Someone on a monthly plan sees the yearly view first: that's the move up.
+  const [yearlyChoice, setYearlyChoice] = useState<boolean | null>(null);
+  const yearly = yearlyChoice ?? current?.billingInterval === "monthly";
 
   const { free, paid, hasYearly, savingPct } = useMemo(() => {
     const all = plans ?? [];
-    const paidPlans = all.filter((p) => !p.isDefault);
+    const paidPlans = all.filter((p) => !p.isDefault && (!current || p.sortOrder >= current.sortOrder));
     const tiers = [...new Set(paidPlans.map((p) => planTier(p.key)))];
     // The saving is computed from real prices, and only shown when both are set.
     const savings = tiers
@@ -116,7 +125,7 @@ export function PricingPlans() {
         return variants.find((p) => p.billingInterval === interval) ?? variants[0];
       }),
     };
-  }, [plans, yearly]);
+  }, [plans, yearly, current]);
 
   async function buy(plan: PublicPlan) {
     if (!user) {
@@ -232,10 +241,25 @@ export function PricingPlans() {
                 Billed yearly
                 {savingPct > 0 && <span className="ml-1.5 font-medium text-primary">Save up to {savingPct}%</span>}
               </span>
-              <Switch checked={yearly} onCheckedChange={setYearly} aria-label="Billed yearly" />
+              <Switch checked={yearly} onCheckedChange={setYearlyChoice} aria-label="Billed yearly" />
             </label>
           )}
         </div>
+
+        {tab === "cloud" && current && (
+          <p className="mt-5 text-sm text-muted-foreground">
+            You&apos;re on <span className="font-medium text-foreground">{current.name}</span> (
+            {current.billingInterval === "yearly" ? "yearly" : "monthly"}).{" "}
+            {(plans ?? []).some((p) => !p.isDefault && p.priceMinor > 0 && p.sortOrder > current.sortOrder)
+              ? "Here's what's above it. Moving up changes your current subscription and charges only the difference."
+              : "That's our biggest plan."}{" "}
+            To move to a smaller plan or cancel, use{" "}
+            <Link href="/app/settings/billing" className="text-primary hover:underline">
+              Manage billing
+            </Link>
+            .
+          </p>
+        )}
 
         <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {tab === "cloud" ? (
@@ -246,7 +270,7 @@ export function PricingPlans() {
                 </div>
               )}
 
-              {free && (
+              {free && !current && (
                 <PlanCard
                   name={free.name}
                   tagline={TAGLINES.free}
@@ -262,7 +286,8 @@ export function PricingPlans() {
 
               {paid.map((plan) => {
                 const { price, note } = formatPerMonth(plan);
-                const buyable = !!config?.billing && plan.priceMinor > 0;
+                const isCurrent = plan.key === current?.key;
+                const buyable = !!config?.billing && plan.priceMinor > 0 && !isCurrent;
                 return (
                   <PlanCard
                     key={plan.key}
@@ -274,7 +299,7 @@ export function PricingPlans() {
                     action={
                       <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={buttonClass}>
                         {pending === plan.key && <Spinner />}
-                        {buyable ? "Upgrade" : "Coming soon"}
+                        {isCurrent ? "Current plan" : buyable ? "Upgrade" : "Coming soon"}
                       </button>
                     }
                   />

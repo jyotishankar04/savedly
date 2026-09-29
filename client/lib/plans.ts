@@ -85,7 +85,9 @@ export function formatLimitValue(limitType: PlanLimitType, value: number): strin
 export function formatPriceMinor(priceMinor: number, currency: string): string {
   if (priceMinor === 0) return "Free";
   const symbol = currency === "usd" ? "$" : currency === "inr" ? "₹" : currency.toUpperCase() + " ";
-  return `${symbol}${(priceMinor / 100).toLocaleString()}`;
+  // Whole amounts stay short ("$9"); anything else shows cents ("$7.50").
+  const amount = priceMinor % 100 === 0 ? (priceMinor / 100).toLocaleString("en-US") : (priceMinor / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `${symbol}${amount}`;
 }
 
 export const LIMIT_ORDER: PlanLimitType[] = [
@@ -145,4 +147,16 @@ export async function openBillingPortal(): Promise<string> {
 /** A plan's tier, e.g. "ai-monthly" -> "ai". Monthly and yearly variants of one tier share it. */
 export function planTier(key: string): string {
   return key.replace(/-(monthly|yearly|semi-annual|annual)$/, "");
+}
+
+/**
+ * The plans worth offering someone on `current`: every priced paid plan for
+ * a Free user; only plans ranked above theirs (sortOrder — Own key monthly <
+ * Own key yearly < AI included monthly < AI included yearly) for a
+ * subscriber. Mirrors the server, which refuses anything else at checkout.
+ */
+export function upgradeOptions(current: Plan | null | undefined, plans: PublicPlan[]): PublicPlan[] {
+  const paid = plans.filter((p) => !p.isDefault && p.priceMinor > 0);
+  if (!current || current.isDefault) return paid;
+  return paid.filter((p) => p.sortOrder > current.sortOrder);
 }
