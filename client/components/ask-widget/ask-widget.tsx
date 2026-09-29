@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import { HelpActions } from "@/components/ask/help-actions";
 import { AskEmptyState } from "@/components/ask/ask-empty-state";
 import { toolActivityLabel } from "@/lib/ask-tools";
+import { EventResultCard, isEventToolName, parseEventToolOutput } from "@/components/ask/event-result-card";
 import {
   MessageScroller,
   MessageScrollerContent,
@@ -410,6 +411,17 @@ export function AskWidget() {
                   return null;
                 })}
               </div>
+              {/* An event Ask added or moved: a card with buttons to open it. */}
+              {!isUser &&
+                message.parts.map((part, i) => {
+                  if (part.type !== "dynamic-tool" || !isEventToolName(part.toolName) || part.state !== "output-available") return null;
+                  const event = parseEventToolOutput(part.output);
+                  return event ? (
+                    <div key={`event-${i}`} className="max-w-[92%]" onClick={() => setIsOpen(false)}>
+                      <EventResultCard event={event} compact />
+                    </div>
+                  ) : null;
+                })}
               {!isUser && hasText && !(isBusy && isLastMessage) && (
                 <div className="max-w-[92%]">
                   <HelpActions parts={message.parts} compact onNavigate={() => setIsOpen(false)} />

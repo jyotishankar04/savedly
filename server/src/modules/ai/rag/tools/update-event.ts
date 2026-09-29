@@ -1,6 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { updateEventForMemory, updateExternalCalendarEvent } from "../../../integrations/calendar/calendar.service";
+import { eventLinksForMemory, updateEventForMemory, updateExternalCalendarEvent } from "../../../integrations/calendar/calendar.service";
+import { getMemoryById } from "../../../memory/memory.service";
 import { assertTarget, eventTargetSchema } from "./event-target";
 import { requireUserId, type RagRuntime } from "./shared";
 
@@ -17,17 +18,28 @@ export const updateEventTool = tool(
     assertTarget(input);
     const startAt = input.start ? new Date(input.start).toISOString() : undefined;
 
+    // Same shape as create_calendar_event's result, so the Ask UI shows the
+    // moved event as a card too.
     if (input.memoryId) {
       // Updates the memory's date and any synced Google/Outlook copy.
       await updateEventForMemory(userId, input.memoryId, { title: input.title, startAt, durationMinutes: input.durationMinutes });
-      return { updated: true, memoryId: input.memoryId, start: startAt ?? null };
+      const memory = await getMemoryById(userId, input.memoryId);
+      const start = memory.eventAt ? memory.eventAt.toISOString() : (startAt ?? null);
+      return {
+        updated: true,
+        memoryId: memory.id,
+        title: memory.title,
+        startAt: start,
+        endAt: start ? new Date(new Date(start).getTime() + (input.durationMinutes ?? 60) * 60_000).toISOString() : null,
+        links: await eventLinksForMemory(userId, memory.id),
+      };
     }
     if (!startAt || !input.title) {
       throw new Error("To change a calendar-only event, give its new start and title (from list_upcoming_events, changed as asked).");
     }
     const endAt = new Date(new Date(startAt).getTime() + (input.durationMinutes ?? 60) * 60_000).toISOString();
     await updateExternalCalendarEvent(userId, input.provider!, input.externalEventId!, { title: input.title, description: null, startAt, endAt });
-    return { updated: true, provider: input.provider, start: startAt, end: endAt };
+    return { updated: true, memoryId: null, title: input.title, startAt, endAt, provider: input.provider, links: [] };
   },
   {
     name: "update_event",

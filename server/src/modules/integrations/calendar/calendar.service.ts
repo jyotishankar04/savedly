@@ -9,6 +9,7 @@ import { createMemory, getMemoryById, updateMemory } from "../../memory/memory.s
 import {
   createGoogleCalendarEvent,
   deleteGoogleCalendarEvent,
+  getGoogleAccountEmail,
   isGoogleCalendarConfigured,
   listGoogleCalendarEvents,
   refreshGoogleAccessToken,
@@ -46,14 +47,41 @@ export interface CalendarConnectionSummary {
   expiresAt: Date;
 }
 
+// Connections already tried for a missing account email this process, so a
+// connection that can't tell us doesn't cost a Google call on every read.
+const emailLookupTried = new Set<string>();
+
+/** Fills in which account a connection belongs to, for ones saved without it. Best effort. */
+async function backfillAccountEmail(userId: string, provider: CalendarProviderKey): Promise<string | null> {
+  const key = `${userId}:${provider}`;
+  if (emailLookupTried.has(key) || provider !== "google") return null;
+  emailLookupTried.add(key);
+  try {
+    const accessToken = await getValidAccessToken(userId, provider);
+    const email = accessToken ? await getGoogleAccountEmail(accessToken) : null;
+    if (email) {
+      await db
+        .update(calendarConnections)
+        .set({ providerAccountEmail: email })
+        .where(and(eq(calendarConnections.userId, userId), eq(calendarConnections.provider, toEnumValue(provider))));
+    }
+    return email;
+  } catch (err) {
+    logger.warn({ err, provider }, "[calendar] couldn't look up the connected account's email");
+    return null;
+  }
+}
+
 export async function getConnections(userId: string): Promise<CalendarConnectionSummary[]> {
   const rows = await db.select().from(calendarConnections).where(eq(calendarConnections.userId, userId));
-  return rows.map((row) => ({
-    provider: row.provider as CalendarProviderKey,
-    connectedAt: row.createdAt,
-    providerAccountEmail: row.providerAccountEmail,
-    expiresAt: row.accessTokenExpiresAt,
-  }));
+  return Promise.all(
+    rows.map(async (row) => ({
+      provider: row.provider as CalendarProviderKey,
+      connectedAt: row.createdAt,
+      providerAccountEmail: row.providerAccountEmail ?? (await backfillAccountEmail(userId, row.provider as CalendarProviderKey)),
+      expiresAt: row.accessTokenExpiresAt,
+    })),
+  );
 }
 
 export async function connectCalendar(
@@ -173,6 +201,20 @@ export async function pushMemoryToCalendar(
     });
 
   return { htmlLink: created.htmlLink };
+}
+
+/** Where a memory's event lives on each connected calendar, to open it there. */
+export async function eventLinksForMemory(
+  userId: string,
+  memoryId: string,
+): Promise<{ provider: CalendarProviderKey; htmlLink: string }[]> {
+  const rows = await db
+    .select({ provider: calendarEventLinks.provider, htmlLink: calendarEventLinks.externalHtmlLink })
+    .from(calendarEventLinks)
+    .where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
+  return rows.flatMap((row) =>
+    row.htmlLink ? [{ provider: (row.provider === CalendarProvider.GOOGLE ? "google" : "microsoft") as CalendarProviderKey, htmlLink: row.htmlLink }] : [],
+  );
 }
 
 export async function bestEffortRevoke(provider: CalendarProviderKey, refreshToken: string | null): Promise<void> {
@@ -298,8 +340,11 @@ export interface CreateStandaloneEventResult {
   memoryId: string;
   title: string;
   startAt: string;
+  endAt: string;
   pushedTo: CalendarProviderKey[];
   notConnected: CalendarProviderKey[];
+  /** The event on each calendar it was pushed to, to open it there. */
+  links: { provider: CalendarProviderKey; htmlLink: string }[];
 }
 
 /**
@@ -331,6 +376,7 @@ export async function createStandaloneCalendarEvent(
   const connections = await getConnections(userId);
   const pushedTo: CalendarProviderKey[] = [];
   const notConnected: CalendarProviderKey[] = [];
+  const links: CreateStandaloneEventResult["links"] = [];
 
   for (const provider of ["google", "microsoft"] as const) {
     if (!connections.some((c) => c.provider === provider)) {
@@ -338,7 +384,7 @@ export async function createStandaloneCalendarEvent(
       continue;
     }
     try {
-      await pushMemoryToCalendar(userId, provider, {
+      const { htmlLink } = await pushMemoryToCalendar(userId, provider, {
         id: created.id,
         title: input.title,
         description: input.description ?? null,
@@ -347,13 +393,22 @@ export async function createStandaloneCalendarEvent(
         endAt: endDate,
       });
       pushedTo.push(provider);
+      if (htmlLink) links.push({ provider, htmlLink });
     } catch (err) {
       logger.warn({ err, provider, memoryId: created.id }, "[calendar] createStandaloneCalendarEvent push failed");
       notConnected.push(provider);
     }
   }
 
-  return { memoryId: created.id, title: input.title, startAt: startDate.toISOString(), pushedTo, notConnected };
+  return {
+    memoryId: created.id,
+    title: input.title,
+    startAt: startDate.toISOString(),
+    endAt: endDate.toISOString(),
+    pushedTo,
+    notConnected,
+    links,
+  };
 }
 
 async function callProviderUpdate(

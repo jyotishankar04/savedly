@@ -26,7 +26,9 @@ import type {
 // which is required to reliably get a refresh_token back.
 
 const GOOGLE_CALENDAR_CALLBACK_URL = `${env.SERVER_URL}/api/v1/integrations/calendar/google/callback`;
-const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+// "openid email" so the userinfo call below can say which Google account
+// was connected; calendar.events alone doesn't include the address.
+const GOOGLE_CALENDAR_SCOPE = "openid email https://www.googleapis.com/auth/calendar.events";
 
 export async function isGoogleCalendarConfigured(): Promise<boolean> {
   return isTokenCipherConfigured() && !!(await getOAuthCredentials("google"));
@@ -74,14 +76,7 @@ export async function exchangeGoogleCalendarCode(code: string): Promise<Calendar
     scope: string;
   };
 
-  let accountEmail: string | null = null;
-  const profileResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-    headers: { Authorization: `Bearer ${tokenBody.access_token}` },
-  });
-  if (profileResponse.ok) {
-    const profile = (await profileResponse.json()) as { email?: string };
-    accountEmail = profile.email ?? null;
-  }
+  const accountEmail = await getGoogleAccountEmail(tokenBody.access_token);
 
   return {
     accessToken: tokenBody.access_token,
@@ -90,6 +85,28 @@ export async function exchangeGoogleCalendarCode(code: string): Promise<Calendar
     scope: tokenBody.scope,
     accountEmail,
   };
+}
+
+/**
+ * Which Google account a token belongs to. userinfo needs the "email"
+ * scope; connections made before it was requested fall back to the primary
+ * calendar's name, which is the account's address unless renamed.
+ */
+export async function getGoogleAccountEmail(accessToken: string): Promise<string | null> {
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  const profile = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers }).catch(() => null);
+  if (profile?.ok) {
+    const body = (await profile.json()) as { email?: string };
+    if (body.email) return body.email;
+  }
+  const events = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1&fields=summary", {
+    headers,
+  }).catch(() => null);
+  if (events?.ok) {
+    const body = (await events.json()) as { summary?: string };
+    if (body.summary?.includes("@")) return body.summary;
+  }
+  return null;
 }
 
 export async function refreshGoogleAccessToken(refreshToken: string): Promise<CalendarTokenRefresh> {
