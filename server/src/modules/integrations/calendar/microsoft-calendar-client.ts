@@ -198,6 +198,7 @@ export async function listMicrosoftCalendarEvents(
       subject?: string;
       bodyPreview?: string;
       webLink: string;
+      isAllDay?: boolean;
       start: { dateTime: string };
       end: { dateTime: string };
     }>;
@@ -213,5 +214,6 @@ export async function listMicrosoftCalendarEvents(
     htmlLink: item.webLink,
     startAt: `${item.start.dateTime}Z`,
     endAt: `${item.end.dateTime}Z`,
+    allDay: item.isAllDay ?? false,
   }));
 }

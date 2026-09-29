@@ -33,6 +33,8 @@ export interface MemoryListItem {
   trashedAt: Date | null;
   isVaulted: boolean;
   eventAt: Date | null;
+  /** How long the event runs, in minutes; null means 1 hour. */
+  eventDurationMinutes: number | null;
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -145,6 +147,7 @@ function toListItem(
     trashedAt: row.trashedAt,
     isVaulted: row.isVaulted,
     eventAt: row.eventAt,
+    eventDurationMinutes: row.eventDurationMinutes,
     tags: memoryTagsList,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

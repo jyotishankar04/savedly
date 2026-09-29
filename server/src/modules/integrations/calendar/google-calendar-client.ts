@@ -233,5 +233,6 @@ export async function listGoogleCalendarEvents(
     htmlLink: item.htmlLink,
     startAt: item.start.dateTime ?? `${item.start.date}T00:00:00.000Z`,
     endAt: item.end.dateTime ?? `${item.end.date}T00:00:00.000Z`,
+    allDay: !item.start.dateTime,
   }));
 }

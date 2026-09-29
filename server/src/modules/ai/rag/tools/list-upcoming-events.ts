@@ -24,6 +24,12 @@ export const listUpcomingEventsTool = tool(
       new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(
         new Date(iso),
       );
+    // All-day dates are midnight UTC, not instants: format them in UTC so they don't shift a day.
+    const utcDay = (iso: string) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }).format(new Date(iso));
+    const allDayLabel = (startIso: string, endIso: string) => {
+      const lastDay = new Date(new Date(endIso).getTime() - DAY_MS).toISOString();
+      return lastDay.slice(0, 10) <= startIso.slice(0, 10) ? `${utcDay(startIso)}, all day` : `${utcDay(startIso)} – ${utcDay(lastDay)}, all day`;
+    };
     return {
       timeZone,
       from: firstDay,
@@ -34,7 +40,7 @@ export const listUpcomingEventsTool = tool(
           title: e.title,
           start: e.startAt,
           end: e.endAt,
-          when: `${local(e.startAt)} – ${local(e.endAt)}`,
+          when: e.allDay ? allDayLabel(e.startAt, e.endAt) : `${local(e.startAt)} – ${local(e.endAt)}`,
           from: e.source === "memora" ? "saved in SaveForLatter" : e.source === "google" ? "Google Calendar" : "Outlook",
           memoryId: e.memoryId,
           provider: e.source === "memora" ? null : e.source,

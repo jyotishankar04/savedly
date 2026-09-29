@@ -702,6 +702,9 @@ export const memories = pgTable(
     // action, which builds a Google/Outlook link or .ics file client-side —
     // no calendar OAuth involved.
     eventAt: timestamp("event_at", { withTimezone: true }),
+    // How long that event runs, in minutes. Null means the 1-hour default —
+    // set by the calendar when an event is created, moved or resized there.
+    eventDurationMinutes: integer("event_duration_minutes"),
     // AI-inferred, never user-set — the ingestion pipeline's DetectEvent
     // node's guess at a date/time this memory is "about," if any. Distinct
     // from eventAt above (user-owned/confirmed, drives the real calendar

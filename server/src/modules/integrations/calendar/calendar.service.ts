@@ -241,6 +241,8 @@ export interface MergedCalendarEvent {
   memoryId: string | null;
   /** The provider's own event id, for a provider-sourced event with no memoryId — needed to edit/delete it directly since there's no memory to key off. Null for a memora-only event. */
   externalEventId: string | null;
+  /** A whole-day event: startAt/endAt are midnight UTC of its dates (end exclusive). */
+  allDay: boolean;
 }
 
 /**
@@ -272,6 +274,7 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
           htmlLink: event.htmlLink,
           memoryId: null, // filled in below once calendar_event_links is loaded
           externalEventId: event.externalEventId,
+          allDay: event.allDay,
         }));
       } catch (err) {
         // One provider having a bad day (expired grant, transient 5xx)
@@ -298,7 +301,7 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
   }
 
   const memoraRows = await db
-    .select({ id: memories.id, title: memories.title, description: memories.description, eventAt: memories.eventAt })
+    .select({ id: memories.id, title: memories.title, description: memories.description, eventAt: memories.eventAt, eventDurationMinutes: memories.eventDurationMinutes })
     .from(memories)
     .where(
       and(
@@ -318,13 +321,22 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
       title: row.title,
       description: row.description,
       startAt: row.eventAt!.toISOString(),
-      endAt: new Date(row.eventAt!.getTime() + 60 * 60 * 1000).toISOString(),
+      endAt: new Date(row.eventAt!.getTime() + (row.eventDurationMinutes ?? 60) * 60 * 1000).toISOString(),
       htmlLink: null,
       memoryId: row.id,
       externalEventId: null,
+      allDay: false,
     }));
 
   return [...providerEvents, ...memoraEvents].sort((a, b) => a.startAt.localeCompare(b.startAt));
+}
+
+/** Stores how long a note's event runs; null falls back to 1 hour. */
+async function setEventDuration(userId: string, memoryId: string, minutes: number | null): Promise<void> {
+  await db
+    .update(memories)
+    .set({ eventDurationMinutes: minutes })
+    .where(and(eq(memories.id, memoryId), eq(memories.userId, userId)));
 }
 
 export interface CreateStandaloneEventInput {
@@ -368,6 +380,7 @@ export async function createStandaloneCalendarEvent(
     captureMethod: "server",
   });
   await updateMemory(userId, created.id, { eventAt: input.startAt });
+  await setEventDuration(userId, created.id, input.durationMinutes ?? null);
 
   const durationMs = (input.durationMinutes ?? 60) * 60 * 1000;
   const startDate = new Date(input.startAt);
@@ -456,6 +469,7 @@ export async function updateEventForMemory(userId: string, memoryId: string, inp
   if (input.description !== undefined) patch.description = input.description ?? "";
   if (input.startAt !== undefined) patch.eventAt = input.startAt;
   if (Object.keys(patch).length > 0) await updateMemory(userId, memoryId, patch);
+  if (input.durationMinutes !== undefined) await setEventDuration(userId, memoryId, input.durationMinutes);
 
   const links = await db.select().from(calendarEventLinks).where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
   if (links.length === 0) return;
@@ -465,10 +479,8 @@ export async function updateEventForMemory(userId: string, memoryId: string, inp
   const startDate = input.startAt ? new Date(input.startAt) : memory.eventAt;
   if (!startDate) return; // nothing to sync if the memory has no date at all
 
-  // No duration is stored anywhere (memories.eventAt is a single instant) —
-  // an edit that doesn't specify one falls back to the same 1h default
-  // createStandaloneCalendarEvent uses when creating.
-  const durationMs = (input.durationMinutes ?? 60) * 60 * 1000;
+  // An edit that doesn't change the length keeps the stored one (1 hour when none was ever set).
+  const durationMs = (input.durationMinutes ?? memory.eventDurationMinutes ?? 60) * 60 * 1000;
   const endDate = new Date(startDate.getTime() + durationMs);
 
   for (const link of links) {
@@ -513,6 +525,7 @@ export async function deleteEventForMemory(userId: string, memoryId: string): Pr
 
   await db.delete(calendarEventLinks).where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
   await updateMemory(userId, memoryId, { eventAt: null });
+  await setEventDuration(userId, memoryId, null);
 }
 
 /**
