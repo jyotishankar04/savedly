@@ -15,6 +15,17 @@ const KIND_BY_TYPE: Record<string, SubscriptionEventKind> = {
   "subscription.expired": "ended",
 };
 
+// A subscription's current status, read from the API rather than an event.
+const KIND_BY_STATUS: Record<string, SubscriptionEventKind | undefined> = {
+  active: "active",
+  past_due: "past_due",
+  cancelled: "cancelled",
+  on_hold: "ended",
+  paused: "ended",
+  failed: "ended",
+  expired: "ended",
+};
+
 interface DodoSubscriptionData {
   subscription_id: string;
   product_id: string;
@@ -83,21 +94,17 @@ export function createDodoProvider(): BillingProvider {
         for (const status of ["active", "past_due"] as const) {
           const page = await client.subscriptions.list({ customer_id: id, status, page_size: 20 });
           for (const sub of page.items) {
-            events.push({
-              eventId: `sync:${sub.subscription_id}:${sub.next_billing_date}`,
-              type: `sync.${status}`,
-              kind: status === "active" ? "active" : "past_due",
-              subscriptionId: sub.subscription_id,
-              customerId: sub.customer.customer_id,
-              customerEmail: sub.customer.email ?? null,
-              productId: sub.product_id,
-              userId: (sub.metadata as Record<string, string> | null)?.userId ?? null,
-              periodEnd: sub.next_billing_date ? new Date(sub.next_billing_date) : null,
-            });
+            const event = fromSubscription(sub as unknown as DodoSubscriptionData & { status: string });
+            if (event) events.push(event);
           }
         }
       }
       return events;
+    },
+
+    async getSubscription(subscriptionId) {
+      const sub = await client.subscriptions.retrieve(subscriptionId);
+      return fromSubscription(sub as unknown as DodoSubscriptionData & { status: string });
     },
 
     parseWebhook(rawBody, headers) {
@@ -121,5 +128,23 @@ export function createDodoProvider(): BillingProvider {
         periodEnd: periodEnd ? new Date(periodEnd) : null,
       };
     },
+  };
+}
+
+/** A subscription's current state as an event (sync, and re-reads after a webhook). */
+function fromSubscription(sub: DodoSubscriptionData & { status: string }): SubscriptionEvent | null {
+  const kind = KIND_BY_STATUS[sub.status];
+  if (!kind) return null; // pending: not paid for yet
+  const periodEnd = sub.next_billing_date ?? sub.expires_at ?? null;
+  return {
+    eventId: `state:${sub.subscription_id}:${sub.status}:${periodEnd}`,
+    type: `state.${sub.status}`,
+    kind,
+    subscriptionId: sub.subscription_id,
+    customerId: sub.customer.customer_id,
+    customerEmail: sub.customer.email ?? null,
+    productId: sub.product_id,
+    userId: sub.metadata?.userId ?? null,
+    periodEnd: periodEnd ? new Date(periodEnd) : null,
   };
 }

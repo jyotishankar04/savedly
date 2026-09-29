@@ -231,6 +231,18 @@ export async function handleWebhook(rawBody: string, headers: Record<string, str
     .returning({ id: billingEvents.id });
   if (!fresh) return; // already handled
 
+  // Deliveries arrive late and out of order (a retried "active" can land after
+  // a later "plan_changed"), so the event only says which subscription
+  // changed: what's applied is how the provider has it right now. If that
+  // read fails, the event itself is the best there is.
+  const delivered = event;
+  const latest = await billing.getSubscription(delivered.subscriptionId).catch((err) => {
+    logger.warn({ err, subscriptionId: delivered.subscriptionId }, "[billing] couldn't re-read subscription; using the event");
+    return undefined;
+  });
+  if (latest === null) return; // nothing to act on yet (e.g. pending)
+  if (latest) event = { ...latest, eventId: delivered.eventId, type: delivered.type, userId: delivered.userId ?? latest.userId };
+
   const userId = await resolveUser(event);
   if (!userId) {
     logger.error({ subscriptionId: event.subscriptionId, customerId: event.customerId }, "[billing] no user for subscription");
@@ -256,6 +268,30 @@ export async function syncSubscriptions(userId: string): Promise<{ applied: numb
   // account (our userId in the metadata), or under a customer already linked
   // to it. A bare email match isn't enough.
   const mine = events.filter((e) => e.userId === userId || (!e.userId && customer?.customerId === e.customerId));
+
+  // Also re-read every subscription the user's plan already rests on, so a
+  // stale assignment (a lost or out-of-order webhook) is corrected too —
+  // including one that's been cancelled, which the live list leaves out.
+  const linked = await db
+    .select({ ref: userPlanAssignments.sourceRefId })
+    .from(userPlanAssignments)
+    .where(
+      and(
+        eq(userPlanAssignments.userId, userId),
+        eq(userPlanAssignments.sourceRefType, SUBSCRIPTION_REF),
+        eq(userPlanAssignments.status, PlanAssignmentStatus.ACTIVE),
+      ),
+    );
+  const seen = new Set(mine.map((e) => e.subscriptionId));
+  for (const { ref } of linked) {
+    if (!ref || seen.has(ref)) continue;
+    const current = await callProvider("subscription lookup", () => billing.getSubscription(ref));
+    if (current) {
+      mine.push(current);
+      seen.add(ref);
+    }
+  }
+
   for (const event of mine) await applyForUser(userId, event);
   return { applied: mine.length };
 }
@@ -330,15 +366,17 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
       }
       case "past_due":
         // The provider is retrying the charge; access continues until the
-        // assignment's endsAt (period end + grace).
+        // assignment's endsAt (period end + grace), on the plan it's for.
+        if (current) await tx.update(userPlanAssignments).set({ planId }).where(refMatch);
         return;
       case "cancelled": {
         if (!current) return;
-        // Paid-for time is kept: access runs to the end of the period.
+        // Paid-for time is kept: access runs to the end of the period, on the
+        // plan the subscription was on when it was cancelled.
         const endsAt = event.periodEnd && event.periodEnd > now ? event.periodEnd : now;
         await tx
           .update(userPlanAssignments)
-          .set({ endsAt, status: endsAt > now ? PlanAssignmentStatus.ACTIVE : PlanAssignmentStatus.CANCELLED })
+          .set({ planId, endsAt, status: endsAt > now ? PlanAssignmentStatus.ACTIVE : PlanAssignmentStatus.CANCELLED })
           .where(refMatch);
         return;
       }

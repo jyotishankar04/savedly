@@ -49,4 +49,6 @@ export interface BillingProvider {
    * or never arrives. Looks the customer up by email when there's no id yet.
    */
   listLiveSubscriptions(input: { customerId: string | null; email: string }): Promise<SubscriptionEvent[]>;
+  /** One subscription as it is right now, or null when there's nothing to act on (e.g. still pending). */
+  getSubscription(subscriptionId: string): Promise<SubscriptionEvent | null>;
 }
