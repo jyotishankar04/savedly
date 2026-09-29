@@ -48,6 +48,8 @@ import { HelpActions } from "@/components/ask/help-actions";
 import { AskEmptyState } from "@/components/ask/ask-empty-state";
 import type { MemoryType } from "@/types/memory";
 import { Attachment, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentTitle, AttachmentTrigger } from "@/components/ui/attachment";
+import { toolActivityLabel } from "@/lib/ask-tools";
+import { EventResultCard, isEventToolName, parseEventToolOutput } from "@/components/ask/event-result-card";
 
 /** search_memories (topic/keyword) and search_memories_by_date (a day or
  * date range, see the server's rag/tools/search-memories-by-date.ts) both
@@ -602,8 +604,30 @@ export default function AskPage() {
                                 </span>
                               );
                             }
+                            if (
+                              part.type === "dynamic-tool" &&
+                              (part.state === "input-streaming" || part.state === "input-available") &&
+                              toolActivityLabel(part.toolName)
+                            ) {
+                              return (
+                                <span key={i} className="shimmer text-xs text-muted-foreground px-2.5">
+                                  {toolActivityLabel(part.toolName)}
+                                </span>
+                              );
+                            }
                             return null;
                           })}
+                          {/* An event Ask added or moved: a card under the reply with buttons to open it. */}
+                          {message.role === "assistant" &&
+                            message.parts.map((part, i) => {
+                              if (part.type !== "dynamic-tool" || !isEventToolName(part.toolName) || part.state !== "output-available") return null;
+                              const event = parseEventToolOutput(part.output);
+                              return event ? (
+                                <div key={`event-${i}`} className="px-1">
+                                  <EventResultCard event={event} />
+                                </div>
+                              ) : null;
+                            })}
                           {message.role === "assistant" && hasText && !(isBusy && isLastMessage) && <HelpActions parts={message.parts} />}
                           {showGenerating && (
                             <span className="shimmer text-xs text-muted-foreground px-2.5">

@@ -1,6 +1,7 @@
 import { HumanMessage } from "@langchain/core/messages";
 import { getVisionModels, invokeWithFallback, type UsageContext } from "../../../ai.providers";
 import { logger } from "../../../../../shared/utils/logger";
+import { toModelImageUrl } from "../../../../../shared/storage";
 
 // "Screen type" exists so a generic query like "terminal images" or "code
 // editor screenshots" reliably finds this memory even though the user never
@@ -44,10 +45,10 @@ export async function analyzeImage(imageUrl: string, usage: UsageContext): Promi
     const message = new HumanMessage({
       content: [
         { type: "text", text: PROMPT },
-        { type: "image_url", image_url: { url: imageUrl } },
+        { type: "image_url", image_url: { url: await toModelImageUrl(imageUrl) } },
       ],
     });
-    return (await invokeWithFallback(await getVisionModels(usage.userId), [message], usage)).trim();
+    return (await invokeWithFallback(await getVisionModels(usage.userId, usage.memoryId ?? null), [message], usage)).trim();
   } catch (err) {
     logger.warn({ err, imageUrl }, "analyzeImage: failed to analyze image");
     return "";

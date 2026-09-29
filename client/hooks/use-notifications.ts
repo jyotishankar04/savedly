@@ -26,8 +26,8 @@ export const useUnreadCountQuery = () =>
   useQuery({
     queryKey: notificationKeys.unreadCount,
     queryFn: getUnreadCount,
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: pollInterval,
+    staleTime: 3_000,
   });
 
 function useNotificationMutation<T>(fn: (arg: T) => Promise<unknown>) {
@@ -43,16 +43,30 @@ export const useMarkReadMutation = () => useNotificationMutation(markNotificatio
 export const useMarkAllReadMutation = () => useNotificationMutation(() => markAllNotificationsRead());
 export const useDeleteNotificationMutation = () => useNotificationMutation(deleteNotification);
 
+// Right after a save, its "is this an event?" notice arrives within seconds
+// (ingestion takes ~10-30s), so notifications are checked every few seconds
+// for a short while instead of waiting for the minute-long poll.
+const FAST_POLL_MS = 5_000;
+const FAST_WINDOW_MS = 2 * 60_000;
+let fastUntil = 0;
+
+/** Call after saving (or re-processing) a memory: checks notifications often for the next two minutes. */
+export function expectNotificationsSoon(): void {
+  fastUntil = Date.now() + FAST_WINDOW_MS;
+}
+
+const pollInterval = () => (Date.now() < fastUntil ? FAST_POLL_MS : 60_000);
+
 /**
- * Feeds AppShell's live "want to add this to your calendar?" popup. Same
- * polling cadence and rationale as useUnreadCountQuery above — there's no
- * websocket, so a detected event surfaces here within one 60s tick of
- * ingestion finishing while the user happens to be on the site at all.
+ * Feeds AppShell's live "want to add this to your calendar?" popup. No
+ * websocket in this app: polled once a minute, and every few seconds just
+ * after a save (expectNotificationsSoon), so a detected event pops up while
+ * the user is still around.
  */
 export const useRecentEventNotificationsQuery = () =>
   useQuery({
     queryKey: notificationKeys.list("unread"),
     queryFn: () => listNotifications("unread"),
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: pollInterval,
+    staleTime: 3_000,
   });

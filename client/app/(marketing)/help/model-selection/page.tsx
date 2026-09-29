@@ -198,7 +198,7 @@ export default function ModelSelectionPage() {
             </nav>
             <h1 className="text-4xl md:text-5xl font-medium tracking-tight leading-[1.15]">Choosing your AI models</h1>
             <p className="text-muted-foreground text-sm md:text-base max-w-2xl leading-relaxed">
-              SaveForLatter uses your own AI key, so you choose the models and pay your provider directly. Pick what matters most to you and we&apos;ll suggest a model for each part of the app. Prices are live.
+              When you self-host SaveForLatter, you use your own AI key, so you choose the models and pay your provider directly. Pick what matters most to you and we&apos;ll suggest a model for each part of the app. Prices are live.
             </p>
           </div>
 

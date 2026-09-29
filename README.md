@@ -8,7 +8,7 @@
 
 A personal memory tool that reads, organizes, and helps you find what you save — by keyword or by meaning. Free and open source, with AI features that run on your own API key.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 [![Open Source](https://img.shields.io/badge/open%20source-%E2%9D%A4-blue)](./CONTRIBUTING.md)
 
 [Overview](#overview) • [Features](#features) • [Tech stack](#tech-stack) • [Getting started](#getting-started) • [Bring your own AI key](#bring-your-own-ai-key) • [Project structure](#project-structure) • [Getting help](#getting-help)
@@ -21,7 +21,7 @@ A personal memory tool that reads, organizes, and helps you find what you save �
 
 Send SaveForLatter a link, a note, an image, a document, or a voice memo, and it's read, summarized, tagged, and made searchable — automatically, the same pipeline every time, whatever format it came in. Ask it a question in plain English and it answers from what you've actually saved, citing exactly which memory it came from.
 
-There's no paid tier. Every feature is unlimited on every account, the code is public, and AI processing runs on a provider account you connect yourself rather than one we pay for on your behalf.
+Self-host it for free with every feature unlocked and your own AI key, or use the hosted version, where we supply the AI: the Free plan covers the essentials, and Lite and Pro add more room, more AI and features like the private vault.
 
 ## Features
 
@@ -33,10 +33,10 @@ There's no paid tier. Every feature is unlimited on every account, the code is p
 - **Sharing** — public, password-protected, or invite-only links, with per-person access requests
 - **Vault** — a PIN-gated space for memories you'd rather keep out of your regular views
 - **Calendar sync** — connect Google Calendar or Outlook; AI-detected events push in one click
-- **Bring your own AI key** — OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint
+- **Your own AI key when you self-host** — OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint (the hosted version supplies the AI)
 
 > [!NOTE]
-> Semantic search works out of the box even without a key of your own — embeddings are the one AI role the project covers by default, since they're inexpensive to run. Everything else (summaries, tags, the Ask assistant) needs your own key. See [Bring your own AI key](#bring-your-own-ai-key).
+> On a self-hosted install, semantic search works without a key of your own once the admin sets an instance-wide embeddings key. Everything else (summaries, tags, the Ask assistant) needs a key: each person's own, or one the admin sets up for everyone. See [Bring your own AI key](#bring-your-own-ai-key).
 
 ## Tech stack
 
@@ -47,6 +47,16 @@ There's no paid tier. Every feature is unlimited on every account, the code is p
 | `extension/` | Vite + React, Chrome Manifest V3 *(built, not yet published)* |
 
 This is a monorepo of independent apps with **no root workspace** linking them — each has its own `pnpm-workspace.yaml` and lockfile. `cd` into an app directory before installing or running anything.
+
+## Self-host
+
+Run your own SaveForLatter with one command. You need Docker and Git:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh
+```
+
+Then open <http://localhost:3000> and create your admin account. It works out of the box with local file storage, the built-in vector store and no email; connect R2/S3, Upstash, SMTP or Google/GitHub sign-in later from **Admin** > **Infrastructure**, or with environment variables. Every feature is unlimited on a self-hosted install. See the [self-hosting guide](./docs/SELF_HOSTING.md).
 
 ## Getting started
 
@@ -81,7 +91,7 @@ Sign in, then head to **Settings → AI** to connect a provider key — that's w
 
 ## Bring your own AI key
 
-AI features are intentionally not something this project pays for on your behalf. Connect a key from **Settings → AI**:
+On a self-hosted install, connect a key from **Settings → AI** (on the hosted version we supply the AI, so there's nothing to connect):
 
 | Role | What it powers | Providers |
 |---|---|---|
@@ -109,4 +119,4 @@ docs/       Contributor documentation — start at docs/README.md
 - **Want to contribute code?** See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for setup and PR conventions, and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) for the ground rules.
 - **Found a security issue?** Please don't open a public issue — see [`SECURITY.md`](./SECURITY.md).
 
-This project is [MIT licensed](./LICENSE).
+This project is licensed under the [GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0). You can use, modify and self-host it freely; if you run a modified version as a network service, you must make your source code available to its users under the same license.

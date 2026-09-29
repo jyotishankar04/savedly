@@ -13,7 +13,7 @@ export function SupportProjectCard({ className }: { className?: string }) {
         <div>
           <h4 className="text-xs font-bold text-foreground">Help keep the servers running</h4>
           <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-            This product is free and open source, and always will be — you bring your own AI key, so we never spend on that. But hosting the database, storage, and email that make it work still costs real money every month. If it&apos;s useful to you, a small contribution helps keep the lights on.
+            SaveForLatter is open source, and the Free plan stays free. Hosting the database, storage, email and the AI we supply costs real money every month. If it&apos;s useful to you, a small contribution helps keep the lights on.
           </p>
         </div>
       </div>

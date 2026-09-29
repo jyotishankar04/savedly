@@ -8,6 +8,7 @@ import { useMemoryQuery, useUpdateMemoryMutation } from "@/context/MemoryContext
 import { useDeleteNotificationMutation, useMarkReadMutation } from "@/hooks/use-notifications";
 import { eventDetectedRefs, type AppNotification } from "@/lib/notifications";
 import { AddToCalendarDialog } from "./add-to-calendar-dialog";
+import { useNextStep } from "nextstepjs";
 
 interface EventDetectedPopupProps {
   notification: AppNotification;
@@ -114,4 +115,16 @@ export function EventDetectedPopup({ notification, onClose }: EventDetectedPopup
       </DialogContent>
     </Dialog>
   );
+}
+
+/**
+ * AppShell's live popup, held back while the product tour is on screen: the
+ * tour's overlay sits above every dialog and swallows its clicks, so the
+ * popup would show but "Yes, add it" couldn't be pressed. It appears as
+ * soon as the tour is finished or skipped. Must render inside NextStepProvider.
+ */
+export function LiveEventDetectedPopup(props: EventDetectedPopupProps) {
+  const { isNextStepVisible } = useNextStep();
+  if (isNextStepVisible) return null;
+  return <EventDetectedPopup {...props} />;
 }

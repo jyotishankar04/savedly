@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, PlusIcon as Plus, Search01Icon as Search, XIcon as X, StarIcon as Star, GridIcon as Grid, ListIcon as List, MoreHorizontalIcon as MoreHorizontal } from "@hugeicons/core-free-icons";
+import { PlusIcon as Plus, Search01Icon as Search, XIcon as X, StarIcon as Star, GridIcon as Grid, ListIcon as List, MoreHorizontalIcon as MoreHorizontal } from "@hugeicons/core-free-icons";
+import { LogoMark } from "@/components/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -77,7 +78,7 @@ export default function MemoriesPage() {
     <div className="flex h-full w-full overflow-hidden relative">
 
       {/* Memories content list */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0 min-w-0">
       <div className="px-4 py-8 sm:px-6 md:py-10 space-y-6">
 
         <div className="mx-auto md:max-w-10/12 space-y-6">
@@ -287,7 +288,7 @@ export default function MemoriesPage() {
             </button>
           </div>
 
-          <ScrollArea className="flex-1 min-h-0">
+          <ScrollArea className="flex-1 min-h-0 min-w-0">
           <div className="p-5 space-y-6 text-[13px] leading-relaxed">
 
             <MemoryThumbnail item={selectedMemory} className="rounded-lg" />
@@ -331,7 +332,7 @@ export default function MemoriesPage() {
 
             <div className="space-y-2 border-t border-border pt-4">
               <div className="flex items-center gap-1.5 text-primary">
-                <HugeiconsIcon icon={Sparkles} strokeWidth={2} className="h-4 w-4" />
+                <LogoMark ticks={false} className="h-4 w-4" />
                 <span className="text-xs font-medium">AI summary</span>
               </div>
               <p className="text-[13px] text-muted-foreground">

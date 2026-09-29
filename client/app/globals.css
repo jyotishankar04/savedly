@@ -65,20 +65,20 @@
   --foreground: oklch(0.9851 0 0);
   --card: oklch(0.2393 0 0);
   --card-foreground: oklch(0.9851 0 0);
-  --popover: oklch(0.2752 0.0034 228.9166);
+  --popover: oklch(0.2752 0 0);
   --popover-foreground: oklch(0.9851 0 0);
   --primary: oklch(0.6187 0.2067 259.2316);
   --primary-foreground: oklch(0.9851 0 0);
-  --secondary: oklch(0.2752 0.0034 228.9166);
+  --secondary: oklch(0.2752 0 0);
   --secondary-foreground: oklch(0.9851 0 0);
-  --muted: oklch(0.2752 0.0034 228.9166);
-  --muted-foreground: oklch(83.881% 0.00307 264.752);
-  --accent: oklch(0.3402 0.0369 254.9549);
+  --muted: oklch(0.2752 0 0);
+  --muted-foreground: oklch(0.8388 0 0);
+  --accent: oklch(0.3100 0 0);
   --accent-foreground: oklch(0.9851 0 0);
   --destructive: oklch(0.7022 0.1892 22.2279);
   --destructive-foreground: oklch(0.9851 0 0);
   --border: oklch(0.2393 0 0);
-  --input: oklch(0.3299 0.0322 257.6775);
+  --input: oklch(0.3299 0 0);
   --ring: oklch(0.4475 0.1432 258.6866);
   --chart-1: oklch(0.8088 0.0991 251.7533);
   --chart-2: oklch(0.6207 0.1894 259.9358);
@@ -89,9 +89,9 @@
   --sidebar-foreground: oklch(0.9851 0 0);
   --sidebar-primary: oklch(0.6187 0.2067 259.2316);
   --sidebar-primary-foreground: oklch(0.9851 0 0);
-  --sidebar-accent: oklch(0.2752 0.0034 228.9166);
+  --sidebar-accent: oklch(0.2752 0 0);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
-  --sidebar-border: oklch(0.2752 0.0034 228.9166);
+  --sidebar-border: oklch(0.2752 0 0);
   --sidebar-ring: oklch(0.6187 0.2067 259.2316);
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
@@ -258,4 +258,13 @@
 
 @utility scrollbar-gutter-stable {
   scrollbar-gutter: stable;
+}
+/* Landing page: dashes travelling along the hero's memory-type lines, and
+   the progress hairline under the auto-advancing screen tab. */
+@keyframes signal-flow {
+  to { stroke-dashoffset: -28; }
+}
+@keyframes tab-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }

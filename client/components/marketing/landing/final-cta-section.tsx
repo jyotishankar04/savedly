@@ -1,84 +1,66 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { motion, useReducedMotion } from "motion/react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowRight01Icon as ArrowRightIcon, CheckIcon as CheckIcon } from "@hugeicons/core-free-icons";
 import { SHOWCASE_MODE } from "@/lib/showcase";
 import { useAuthCta } from "@/hooks/use-auth-cta";
 
-// Adapted from a pasted CTA reference. Real fixes needed before any of the
-// content mattered:
-// - react-icons (FiArrowRight/FaStar/FaCircle) isn't installed here —
-//   lucide's ArrowRight/Check instead, both already used elsewhere on this
-//   page.
-// - @/components/base-ui/{badge,button} don't exist in this repo — swapped
-//   for @/components/ui/{badge,button}.
-// - Button's `asChild` isn't this project's API (components.json's style
-//   is base-ui-flavoured, not Radix Slot) — the render/nativeButton pattern
-//   already used everywhere else on this page instead.
-//
-// The bigger change: the reference's social proof ("Trusted by 12,000+
-// teams", 4 invented avatar initials, a 5-star rating, "Loved by 12k+
-// engineers & designers") is fabricated — this product is pre-launch, no
-// customer base exists to cite, matching every other place on this page a
-// reference has assumed social proof that isn't real (the hero's own
-// avatar-stack decision, the changelog's launch claims, etc.). Replaced
-// with three things that are actually true instead of an invented crowd.
-const REASSURANCES = ["No card required", "Free and open source", "Every feature, no limits"];
+// Three facts that are true, in place of the invented social proof CTA
+// templates usually carry (there are no customer counts or ratings to cite).
+const REASSURANCES = ["No card required", "No AI keys needed", "Open source"];
 
+/**
+ * The one fully blue surface on the page. It stays on the deeper brand blue
+ * (#1447E6, light theme's --primary) in dark mode too: the dark theme's
+ * brighter primary only reaches ~3.6:1 against white body text.
+ */
 export function FinalCtaSection() {
   const cta = useAuthCta();
+  const reduce = useReducedMotion();
 
   return (
-    <section className="relative flex w-full items-center justify-center overflow-hidden px-6 py-20 sm:py-28 md:px-12">
-      {/* Dot-grid texture, faded to nothing toward the top — decorative
-          only, not theme-token-dependent (a fixed low-opacity dot on
-          either background reads fine in both modes without needing a
-          --border-style fix like the borders elsewhere on this page). */}
-      <div className="absolute inset-0 z-0 h-full w-full bg-transparent [background-image:radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.15)_1px,transparent_0)] [background-size:20px_20px] [mask-image:linear-gradient(to_bottom,transparent,black_40%)] dark:[background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.12)_1px,transparent_0)]" />
-
-      <div className="relative z-10 w-full max-w-2xl text-center">
-        <div className="mb-7 flex justify-center">
-          <Badge variant="secondary" className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-            </span>
-            {SHOWCASE_MODE ? "Early access — join the waitlist" : "Free & open source · no limits"}
-          </Badge>
-        </div>
-
-        <h2 className="mb-5 text-4xl leading-[1.08] font-normal tracking-tight text-foreground sm:text-5xl md:text-6xl">
-          Save anything.
-          <br />
-          Ask it <span className="text-primary italic">anything.</span>
+    <section className="bg-background px-5 py-16 sm:px-6 md:py-24">
+      <motion.div
+        initial={{ opacity: 0, clipPath: "inset(12% 6% 12% 6% round 32px)" }}
+        whileInView={{ opacity: 1, clipPath: "inset(0% 0% 0% 0% round 32px)" }}
+        viewport={{ once: true, margin: "-10% 0px" }}
+        transition={reduce ? { duration: 0 } : { duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[#1447E6] px-7 py-16 text-white sm:px-12 sm:py-20 lg:px-16 lg:py-24"
+      >
+        <h2 className="max-w-3xl text-4xl leading-[1.04] font-semibold tracking-[-0.035em] text-balance sm:text-5xl lg:text-[4rem]">
+          Save the next thing you&apos;d lose. Ask for it back whenever you need it.
         </h2>
-
-        <p className="mx-auto mb-10 max-w-md text-base leading-relaxed text-muted-foreground">
-          Articles, PDFs, screenshots, voice notes — read, tagged, and searchable
-          the moment you save them.
+        <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/85">
+          Articles, PDFs, screenshots and voice notes, read and tagged and searchable the moment you save them.
         </p>
 
-        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-          <Button size="lg" render={<Link href={cta.href} />} nativeButton={false} className="group w-full gap-2 sm:w-auto">
-            {cta.label}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Button>
-          <Button size="lg" variant="outline" render={<Link href="/features" />} nativeButton={false} className="w-full sm:w-auto">
+        <div className="mt-10 flex flex-wrap items-center gap-3">
+          <Link
+            href={cta.href}
+            className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-[15px] font-medium text-[#0B1B4D] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1447E6] active:translate-y-0"
+          >
+            {SHOWCASE_MODE && !cta.isAuthenticated ? "Join the waitlist" : cta.label}
+            <HugeiconsIcon icon={ArrowRightIcon} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+          <Link
+            href="/features"
+            className="inline-flex h-12 items-center rounded-full px-6 text-[15px] font-medium text-white ring-1 ring-white/45 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
             See how it works
-          </Button>
+          </Link>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
+        <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/85">
           {REASSURANCES.map((item) => (
-            <span key={item} className="flex items-center gap-1.5">
-              <Check className="h-3 w-3 text-primary" strokeWidth={2.5} />
+            <li key={item} className="flex items-center gap-1.5">
+              <HugeiconsIcon icon={CheckIcon} className="h-3.5 w-3.5" strokeWidth={2.5} />
               {item}
-            </span>
+            </li>
           ))}
-        </div>
-      </div>
+        </ul>
+      </motion.div>
     </section>
   );
 }

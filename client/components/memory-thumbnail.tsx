@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles } from "@hugeicons/core-free-icons";
+import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import type { Memory } from "@/types/memory";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
@@ -80,7 +80,7 @@ export function MemoryThumbnail({ item, className }: { item: Memory; className?:
           </div>
 
           <div className="absolute top-1.5 right-1.5 flex items-center gap-1 rounded-full border border-primary/20 bg-background/90 px-1.5 py-0.5 text-[8px] font-bold text-primary shadow-sm backdrop-blur-sm">
-            <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-2.5 w-2.5 animate-pulse" />
+            <LogoMark ticks={false} className="h-3 w-3 animate-pulse" />
             <span>Processing</span>
           </div>
         </>

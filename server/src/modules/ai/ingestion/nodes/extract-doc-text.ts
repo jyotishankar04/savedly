@@ -1,3 +1,4 @@
+import { readFileUrl } from "../../../../shared/storage";
 import { extractPdfContent } from "./lib/parse-pdf";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
@@ -16,8 +17,8 @@ export async function extractDocText(state: IngestionStateType): Promise<Ingesti
   }
 
   try {
-    const response = await fetch(state.attachmentUrl, { signal: AbortSignal.timeout(15000) });
-    const data = await response.arrayBuffer();
+    const bytes = await readFileUrl(state.attachmentUrl);
+    const data = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     const rawContent = await extractPdfContent(
       data,
       { userId: state.userId, requestType: "ingestion:pdf_summary", memoryId: state.memoryId },

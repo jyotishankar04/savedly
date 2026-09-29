@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { corsOptions } from "./config/cors";
+import { env } from "./config/env";
 import routes from "./routes/index";
 import { errorHandler } from "./shared/errors/error-handler";
 import { notFound } from "./shared/middlewares/not-found";
@@ -9,10 +10,11 @@ import { requestLogger } from "./shared/middlewares/request-logger";
 
 export function createApp() {
   const app = express();
+  app.set("trust proxy", env.TRUST_PROXY);
 
   app.use(requestLogger);
 
-  // Stripe needs the raw body for webhook signature verification — must be
+  // The payment provider's webhook needs the raw body for signature verification — must be
   // registered with express.raw() on this exact path BEFORE the global
   // express.json() below, or json() will have already consumed the stream.
   app.use("/api/v1/billing/webhook", express.raw({ type: "application/json" }));

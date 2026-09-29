@@ -5,7 +5,9 @@ import { chunkHybridSearch } from "../chunk-search";
 // A zod object (not a plain TS interface) so ToolRuntime's context generic
 // resolves it via its InteropZodObject branch — a bare interface didn't
 // type-check (runtime.context.userId came back as a property of `{}`).
-export const ragToolContextSchema = z.object({ userId: z.string() });
+// turnId: one per question (streamAsk), so a tool can tell calls in the
+// same answer apart from later ones.
+export const ragToolContextSchema = z.object({ userId: z.string(), turnId: z.string().optional() });
 export type RAGToolContext = z.infer<typeof ragToolContextSchema>;
 
 // Doubles as the documented shape a future client-side generative-UI
@@ -60,7 +62,7 @@ export const searchMemoriesTool = tool(
   {
     name: "search_memories",
     description:
-      "Search the user's saved memories (links, notes, images, documents, voice memos they've captured) for content relevant to a question. Returns an empty `memories` array if nothing relevant is found — in that case, tell the user honestly rather than guessing.",
+      "Search the user's saved memories (links, notes, images, documents, voice memos they've captured) for content relevant to a question. Returns an empty `memories` array if nothing relevant is found — in that case, tell the user honestly rather than guessing. Not for \"things like / related to / similar to <a specific memory>\": searching for that memory only returns the memory itself — call find_related instead.",
     schema: inputSchema,
   },
 );

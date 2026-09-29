@@ -9,6 +9,7 @@ import { createMemory, getMemoryById, updateMemory } from "../../memory/memory.s
 import {
   createGoogleCalendarEvent,
   deleteGoogleCalendarEvent,
+  getGoogleAccountEmail,
   isGoogleCalendarConfigured,
   listGoogleCalendarEvents,
   refreshGoogleAccessToken,
@@ -31,8 +32,8 @@ export type CalendarProviderKey = "google" | "microsoft";
 // about-to-expire token.
 const REFRESH_SKEW_MS = 5 * 60 * 1000;
 
-function isProviderConfigured(provider: CalendarProviderKey): boolean {
-  return provider === "google" ? isGoogleCalendarConfigured() : isMicrosoftCalendarConfigured();
+async function isProviderConfigured(provider: CalendarProviderKey): Promise<boolean> {
+  return provider === "google" ? await isGoogleCalendarConfigured() : isMicrosoftCalendarConfigured();
 }
 
 function toEnumValue(provider: CalendarProviderKey): CalendarProvider {
@@ -46,14 +47,41 @@ export interface CalendarConnectionSummary {
   expiresAt: Date;
 }
 
+// Connections already tried for a missing account email this process, so a
+// connection that can't tell us doesn't cost a Google call on every read.
+const emailLookupTried = new Set<string>();
+
+/** Fills in which account a connection belongs to, for ones saved without it. Best effort. */
+async function backfillAccountEmail(userId: string, provider: CalendarProviderKey): Promise<string | null> {
+  const key = `${userId}:${provider}`;
+  if (emailLookupTried.has(key) || provider !== "google") return null;
+  emailLookupTried.add(key);
+  try {
+    const accessToken = await getValidAccessToken(userId, provider);
+    const email = accessToken ? await getGoogleAccountEmail(accessToken) : null;
+    if (email) {
+      await db
+        .update(calendarConnections)
+        .set({ providerAccountEmail: email })
+        .where(and(eq(calendarConnections.userId, userId), eq(calendarConnections.provider, toEnumValue(provider))));
+    }
+    return email;
+  } catch (err) {
+    logger.warn({ err, provider }, "[calendar] couldn't look up the connected account's email");
+    return null;
+  }
+}
+
 export async function getConnections(userId: string): Promise<CalendarConnectionSummary[]> {
   const rows = await db.select().from(calendarConnections).where(eq(calendarConnections.userId, userId));
-  return rows.map((row) => ({
-    provider: row.provider as CalendarProviderKey,
-    connectedAt: row.createdAt,
-    providerAccountEmail: row.providerAccountEmail,
-    expiresAt: row.accessTokenExpiresAt,
-  }));
+  return Promise.all(
+    rows.map(async (row) => ({
+      provider: row.provider as CalendarProviderKey,
+      connectedAt: row.createdAt,
+      providerAccountEmail: row.providerAccountEmail ?? (await backfillAccountEmail(userId, row.provider as CalendarProviderKey)),
+      expiresAt: row.accessTokenExpiresAt,
+    })),
+  );
 }
 
 export async function connectCalendar(
@@ -142,7 +170,7 @@ export async function pushMemoryToCalendar(
   provider: CalendarProviderKey,
   memory: PushableMemory,
 ): Promise<{ htmlLink: string }> {
-  if (!isProviderConfigured(provider)) {
+  if (!(await isProviderConfigured(provider))) {
     throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
   }
 
@@ -175,6 +203,20 @@ export async function pushMemoryToCalendar(
   return { htmlLink: created.htmlLink };
 }
 
+/** Where a memory's event lives on each connected calendar, to open it there. */
+export async function eventLinksForMemory(
+  userId: string,
+  memoryId: string,
+): Promise<{ provider: CalendarProviderKey; htmlLink: string }[]> {
+  const rows = await db
+    .select({ provider: calendarEventLinks.provider, htmlLink: calendarEventLinks.externalHtmlLink })
+    .from(calendarEventLinks)
+    .where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
+  return rows.flatMap((row) =>
+    row.htmlLink ? [{ provider: (row.provider === CalendarProvider.GOOGLE ? "google" : "microsoft") as CalendarProviderKey, htmlLink: row.htmlLink }] : [],
+  );
+}
+
 export async function bestEffortRevoke(provider: CalendarProviderKey, refreshToken: string | null): Promise<void> {
   if (provider !== "google" || !refreshToken) return;
   try {
@@ -199,6 +241,8 @@ export interface MergedCalendarEvent {
   memoryId: string | null;
   /** The provider's own event id, for a provider-sourced event with no memoryId — needed to edit/delete it directly since there's no memory to key off. Null for a memora-only event. */
   externalEventId: string | null;
+  /** A whole-day event: startAt/endAt are midnight UTC of its dates (end exclusive). */
+  allDay: boolean;
 }
 
 /**
@@ -230,6 +274,7 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
           htmlLink: event.htmlLink,
           memoryId: null, // filled in below once calendar_event_links is loaded
           externalEventId: event.externalEventId,
+          allDay: event.allDay,
         }));
       } catch (err) {
         // One provider having a bad day (expired grant, transient 5xx)
@@ -256,7 +301,7 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
   }
 
   const memoraRows = await db
-    .select({ id: memories.id, title: memories.title, description: memories.description, eventAt: memories.eventAt })
+    .select({ id: memories.id, title: memories.title, description: memories.description, eventAt: memories.eventAt, eventDurationMinutes: memories.eventDurationMinutes })
     .from(memories)
     .where(
       and(
@@ -276,13 +321,22 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
       title: row.title,
       description: row.description,
       startAt: row.eventAt!.toISOString(),
-      endAt: new Date(row.eventAt!.getTime() + 60 * 60 * 1000).toISOString(),
+      endAt: new Date(row.eventAt!.getTime() + (row.eventDurationMinutes ?? 60) * 60 * 1000).toISOString(),
       htmlLink: null,
       memoryId: row.id,
       externalEventId: null,
+      allDay: false,
     }));
 
   return [...providerEvents, ...memoraEvents].sort((a, b) => a.startAt.localeCompare(b.startAt));
+}
+
+/** Stores how long a note's event runs; null falls back to 1 hour. */
+async function setEventDuration(userId: string, memoryId: string, minutes: number | null): Promise<void> {
+  await db
+    .update(memories)
+    .set({ eventDurationMinutes: minutes })
+    .where(and(eq(memories.id, memoryId), eq(memories.userId, userId)));
 }
 
 export interface CreateStandaloneEventInput {
@@ -298,8 +352,11 @@ export interface CreateStandaloneEventResult {
   memoryId: string;
   title: string;
   startAt: string;
+  endAt: string;
   pushedTo: CalendarProviderKey[];
   notConnected: CalendarProviderKey[];
+  /** The event on each calendar it was pushed to, to open it there. */
+  links: { provider: CalendarProviderKey; htmlLink: string }[];
 }
 
 /**
@@ -323,6 +380,7 @@ export async function createStandaloneCalendarEvent(
     captureMethod: "server",
   });
   await updateMemory(userId, created.id, { eventAt: input.startAt });
+  await setEventDuration(userId, created.id, input.durationMinutes ?? null);
 
   const durationMs = (input.durationMinutes ?? 60) * 60 * 1000;
   const startDate = new Date(input.startAt);
@@ -331,6 +389,7 @@ export async function createStandaloneCalendarEvent(
   const connections = await getConnections(userId);
   const pushedTo: CalendarProviderKey[] = [];
   const notConnected: CalendarProviderKey[] = [];
+  const links: CreateStandaloneEventResult["links"] = [];
 
   for (const provider of ["google", "microsoft"] as const) {
     if (!connections.some((c) => c.provider === provider)) {
@@ -338,7 +397,7 @@ export async function createStandaloneCalendarEvent(
       continue;
     }
     try {
-      await pushMemoryToCalendar(userId, provider, {
+      const { htmlLink } = await pushMemoryToCalendar(userId, provider, {
         id: created.id,
         title: input.title,
         description: input.description ?? null,
@@ -347,13 +406,22 @@ export async function createStandaloneCalendarEvent(
         endAt: endDate,
       });
       pushedTo.push(provider);
+      if (htmlLink) links.push({ provider, htmlLink });
     } catch (err) {
       logger.warn({ err, provider, memoryId: created.id }, "[calendar] createStandaloneCalendarEvent push failed");
       notConnected.push(provider);
     }
   }
 
-  return { memoryId: created.id, title: input.title, startAt: startDate.toISOString(), pushedTo, notConnected };
+  return {
+    memoryId: created.id,
+    title: input.title,
+    startAt: startDate.toISOString(),
+    endAt: endDate.toISOString(),
+    pushedTo,
+    notConnected,
+    links,
+  };
 }
 
 async function callProviderUpdate(
@@ -401,6 +469,7 @@ export async function updateEventForMemory(userId: string, memoryId: string, inp
   if (input.description !== undefined) patch.description = input.description ?? "";
   if (input.startAt !== undefined) patch.eventAt = input.startAt;
   if (Object.keys(patch).length > 0) await updateMemory(userId, memoryId, patch);
+  if (input.durationMinutes !== undefined) await setEventDuration(userId, memoryId, input.durationMinutes);
 
   const links = await db.select().from(calendarEventLinks).where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
   if (links.length === 0) return;
@@ -410,10 +479,8 @@ export async function updateEventForMemory(userId: string, memoryId: string, inp
   const startDate = input.startAt ? new Date(input.startAt) : memory.eventAt;
   if (!startDate) return; // nothing to sync if the memory has no date at all
 
-  // No duration is stored anywhere (memories.eventAt is a single instant) —
-  // an edit that doesn't specify one falls back to the same 1h default
-  // createStandaloneCalendarEvent uses when creating.
-  const durationMs = (input.durationMinutes ?? 60) * 60 * 1000;
+  // An edit that doesn't change the length keeps the stored one (1 hour when none was ever set).
+  const durationMs = (input.durationMinutes ?? memory.eventDurationMinutes ?? 60) * 60 * 1000;
   const endDate = new Date(startDate.getTime() + durationMs);
 
   for (const link of links) {
@@ -458,6 +525,7 @@ export async function deleteEventForMemory(userId: string, memoryId: string): Pr
 
   await db.delete(calendarEventLinks).where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
   await updateMemory(userId, memoryId, { eventAt: null });
+  await setEventDuration(userId, memoryId, null);
 }
 
 /**
@@ -474,7 +542,7 @@ export async function updateExternalCalendarEvent(
   externalEventId: string,
   input: { title: string; description: string | null; startAt: string; endAt: string },
 ): Promise<void> {
-  if (!isProviderConfigured(provider)) {
+  if (!(await isProviderConfigured(provider))) {
     throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
   }
   const accessToken = await getValidAccessToken(userId, provider);
@@ -490,7 +558,7 @@ export async function updateExternalCalendarEvent(
 }
 
 export async function deleteExternalCalendarEvent(userId: string, provider: CalendarProviderKey, externalEventId: string): Promise<void> {
-  if (!isProviderConfigured(provider)) {
+  if (!(await isProviderConfigured(provider))) {
     throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
   }
   const accessToken = await getValidAccessToken(userId, provider);

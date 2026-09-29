@@ -46,7 +46,7 @@ export async function classifyIntent(state: IngestionStateType): Promise<Ingesti
       .filter(Boolean)
       .join(" | ") || "(none available)";
 
-  const model = await getChatModel(state.userId, "fast");
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
   if (!model) {
     logNode(state.memoryId, "classifyIntent", { skipped: "AI not configured" });
     return { resourceCategory: null, inferredIntent: null, intentConfidence: null };

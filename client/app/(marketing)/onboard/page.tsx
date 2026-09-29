@@ -4,8 +4,10 @@ import React, { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
-import { useMutation } from "@tanstack/react-query";
+import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { getServerConfig } from "@/lib/server-config";
+import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { completeOnboarding } from "@/lib/user";
@@ -37,6 +39,9 @@ const captureChannels = [
 ];
 
 function OnboardingFlow() {
+  // Hosted plans run on AI we supply; only a self-hosted install asks for keys.
+  const { data: serverConfig } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const selfHosted = !!serverConfig?.selfHosted;
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -64,7 +69,7 @@ function OnboardingFlow() {
   // login. useCurrentUserQuery only surfaces a real 401 as an error; a
   // transient network/server hiccup (e.g. the dev server mid-restart) gets a
   // few retries first instead of an instant redirect.
-  const { isLoading: isAuthLoading, isError: isAuthError } = useCurrentUserQuery();
+  const { data: currentUser, isLoading: isAuthLoading, isError: isAuthError } = useCurrentUserQuery();
   const setCurrentUser = useSetCurrentUser();
 
   useEffect(() => {
@@ -72,6 +77,17 @@ function OnboardingFlow() {
       router.replace("/auth/login");
     }
   }, [isAuthLoading, isAuthError, router]);
+
+  // Someone who already finished onboarding (a stale bookmark, a back-button
+  // press after step 7, a shared link) shouldn't be able to silently redo it
+  // — it would overwrite their saved preferences and file another "first
+  // memory" from whatever's left in the last step's box. Send them where
+  // onboarding itself would have sent them.
+  useEffect(() => {
+    if (currentUser?.onboardingCompleted) {
+      router.replace(nextDestination);
+    }
+  }, [currentUser?.onboardingCompleted, nextDestination, router]);
 
   const completeOnboardingMutation = useMutation({
     mutationFn: completeOnboarding,
@@ -360,7 +376,7 @@ function OnboardingFlow() {
                 >
                   <div className="flex items-start gap-3.5">
                     <div className="p-1 rounded-lg bg-primary/10 text-primary mt-0.5 shrink-0">
-                      <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-4.5 w-4.5 fill-current" />
+                      <LogoMark ticks={false} className="h-[18px] w-[18px]" />
                     </div>
                     <div className="pr-6">
                       <div className="flex items-center gap-2">
@@ -370,7 +386,8 @@ function OnboardingFlow() {
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
-                        Let SaveForLatter understand and organize everything for you. No tags or folders to maintain. Needs an AI key, which you can connect after setup.
+                        Let SaveForLatter understand and organize everything for you. No tags or folders to maintain.
+                        {selfHosted ? " Needs an AI key, which you can connect after setup." : ""}
                       </p>
                     </div>
                   </div>
@@ -536,7 +553,7 @@ function OnboardingFlow() {
             <div className="relative w-16 h-16 flex items-center justify-center">
               <div className="absolute inset-0 bg-primary/25 rounded-full blur-xl animate-pulse" />
               <div className="w-14 h-14 rounded-2xl border border-primary/40 flex items-center justify-center bg-card shadow-md">
-                <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-7 w-7 text-primary" />
+                <LogoMark className="h-9 w-9" />
               </div>
             </div>
 
@@ -558,6 +575,7 @@ function OnboardingFlow() {
               Enter SaveForLatter <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
             </Button>
 
+{selfHosted && (
             <div className="w-full max-w-xs rounded-xl border border-border/60 bg-muted/20 p-4 text-left space-y-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                 <HugeiconsIcon icon={Key} strokeWidth={2.25} className="h-4 w-4 text-primary" />
@@ -571,6 +589,7 @@ function OnboardingFlow() {
                 <Link href="/help" className="text-muted-foreground hover:text-foreground hover:underline">Help Center</Link>
               </div>
             </div>
+            )}
           </div>
         )}
 

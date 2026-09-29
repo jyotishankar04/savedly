@@ -37,7 +37,7 @@ export const checkGroundingNode: GraphNode<typeof RAGState> = async (state, conf
   // No AI configured — nothing meaningful to check the answer against (and
   // agentNode's reply in that case is already just the "connect your AI
   // key" message), so treat as grounded rather than looping pointlessly.
-  const groundingModel = userId ? (await getChatModel(userId, "fast"))?.withStructuredOutput(groundingSchema) : null;
+  const groundingModel = userId ? (await getChatModel(userId, "fast", { kind: "ask", threadId }))?.withStructuredOutput(groundingSchema) : null;
   if (!groundingModel) return { grounded: true };
 
   const toolResults = collectToolResultsText(state.messages);

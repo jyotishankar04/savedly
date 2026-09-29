@@ -129,3 +129,31 @@ export const ROLE_DESCRIPTION: Record<AiRole, string> = {
 
 
 export const EMBEDDINGS_INCOMPATIBLE_PROVIDERS: AiProvider[] = ["groq", "anthropic"];
+
+export type AiSource = "own" | "included" | "none";
+
+export interface AiAllowance {
+  /** null = unlimited */
+  limit: number | null;
+  used: number;
+}
+
+/** Where this account's AI comes from — see server ai-settings.service.ts getAiStatus. */
+export interface AiStatus {
+  /** managed: the plan supplies all AI (AI included), nothing to set up. own-key: the user brings keys. */
+  mode: "managed" | "own-key";
+  roles: Record<"fast" | "reasoning" | "vision", AiSource>;
+  /** saves: AI processing, one per saved item (reading images included). */
+  included: { saves: AiAllowance; questions: AiAllowance } | null;
+  /** The server has its own AI keys, so included AI can actually run. */
+  includedReady: boolean;
+  askAvailable: boolean;
+  askBlockedReason: "no-ai" | "included-used-up" | null;
+  savedKeysIgnored: number;
+}
+
+export const AI_STATUS_QUERY_KEY = ["ai-settings", "status"] as const;
+
+export async function getAiStatus(): Promise<AiStatus> {
+  return apiFetch<AiStatus>("/ai-settings/status");
+}

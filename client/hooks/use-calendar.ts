@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createCalendarEvent,
   deleteCalendarEventForMemory,
@@ -50,6 +50,9 @@ export const useCalendarEventsQuery = (range: { from: string; to: string }) =>
   useQuery({
     queryKey: calendarKeys.events(range.from, range.to),
     queryFn: () => listCalendarEvents(range.from, range.to),
+    enabled: Boolean(range.from && range.to),
+    // Paging to the next week keeps the last week's events on screen until the new ones arrive, instead of blanking the grid.
+    placeholderData: keepPreviousData,
   });
 
 export function useCreateCalendarEventMutation() {

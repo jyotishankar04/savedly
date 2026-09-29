@@ -46,6 +46,10 @@ export class AiSettingsController {
     res.status(200).json(ApiResponse.success(result));
   }
 
+  static async status(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await service.getAiStatus(req.user!.id)));
+  }
+
   static async platformDefaults(_req: Request, res: Response) {
     res.status(200).json(ApiResponse.success(service.getPlatformDefaults()));
   }

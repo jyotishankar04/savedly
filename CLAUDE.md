@@ -58,7 +58,9 @@ Follow `src/modules/health/` as the minimal reference implementation. **Note:** 
 Errors: throw `AppError(message, statusCode)` (`src/shared/errors/app-error.ts`); the global `errorHandler` middleware (registered last in `src/app.ts`) converts it to the JSON error response. Unmatched routes fall through to `notFound` (`src/shared/middlewares/not-found.ts`).
 
 ### Config
-- `src/config/env.ts` validates `process.env` with Zod at startup (fails fast on missing vars) — currently requires `DATABASE_URL`, `REDIS_URL`, `MAILHOG_URL`, `BETTER_AUTH_SECRET`, `FRONTEND_URL`. Copy `server/.env.example` and extend it; adding a new required var means adding it to this schema too.
+- `src/config/env.ts` validates `process.env` with Zod at startup (fails fast on missing vars). Copy `server/.env.example` and extend it; adding a new required var means adding it to this schema too. `SELF_HOSTED=true` (the root `docker-compose.yml`) generates secrets on first boot and makes OAuth/R2/SMTP optional; hosted production leaves it false and is configured only through env.
+- Infrastructure that a self-hosted admin can change at runtime (storage, vector store, email, embeddings, OAuth) is read through `modules/instance-settings/` (`getSection`: env > DB setting > default; the DB is never read unless `SELF_HOSTED`). Don't read those env vars directly — add a field to `instance-settings.registry.ts`.
+- `pnpm build` typechecks and bundles `src/server.ts` + `src/db/bootstrap.ts` with esbuild into `dist/` (tsc's output doesn't run under Node ESM: no `.js` import extensions).
 - `src/config/cors.ts` — CORS is currently wide open (`origin: true, credentials: true`).
 - `src/db/index.ts` — Drizzle client over a `pg.Pool`; `src/db/schema.ts` is the single schema file (tables + `pgEnum` + `defineRelations`); enum string values live in `src/db/enums.ts` and are reused by the pgEnum definitions — add new enum values there, not inline.
 

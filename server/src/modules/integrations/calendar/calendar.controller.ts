@@ -43,8 +43,8 @@ import { and, eq } from "drizzle-orm";
 import { CalendarProvider } from "../../../db/enums";
 import { decryptToken } from "../../../shared/crypto/token-cipher";
 
-function isConfigured(provider: CalendarProviderKey): boolean {
-  return provider === "google" ? isGoogleCalendarConfigured() : isMicrosoftCalendarConfigured();
+async function isConfigured(provider: CalendarProviderKey): Promise<boolean> {
+  return provider === "google" ? await isGoogleCalendarConfigured() : isMicrosoftCalendarConfigured();
 }
 
 function providerLabel(provider: CalendarProviderKey): string {
@@ -52,12 +52,12 @@ function providerLabel(provider: CalendarProviderKey): string {
 }
 
 async function initiateConnect(req: Request, res: Response, provider: CalendarProviderKey) {
-  if (!isConfigured(provider)) {
+  if (!(await isConfigured(provider))) {
     return res.status(503).json(ApiResponse.error("CALENDAR_NOT_CONFIGURED", `${providerLabel(provider)} Calendar isn't configured yet`));
   }
 
   const state = signCalendarStateToken({ typ: "calendar_connect", userId: req.user!.id, provider });
-  const url = provider === "google" ? buildGoogleCalendarAuthUrl(state) : buildMicrosoftCalendarAuthUrl(state);
+  const url = provider === "google" ? await buildGoogleCalendarAuthUrl(state) : buildMicrosoftCalendarAuthUrl(state);
   res.redirect(url);
 }
 

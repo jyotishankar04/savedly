@@ -47,7 +47,8 @@ export function LimitDot({ className }: { className?: string }) {
 }
 
 /** Small pill marking an action as gated by plan limits — sits next to a disabled button's label. */
-export function ProBadge({ className }: { className?: string }) {
+/** A small plan tag ("Pro" by default) on something the current plan doesn't include. */
+export function ProBadge({ className, label = "Pro" }: { className?: string; label?: string | null }) {
   return (
     <span
       className={cn(
@@ -56,7 +57,7 @@ export function ProBadge({ className }: { className?: string }) {
       )}
     >
       <HugeiconsIcon icon={Crown} strokeWidth={2.5} className="h-2.5 w-2.5" />
-      Pro
+      {label ?? "Pro"}
     </span>
   );
 }

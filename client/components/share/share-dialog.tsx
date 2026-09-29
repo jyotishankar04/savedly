@@ -129,6 +129,11 @@ function ShareBody({
     privateShareRequests: requestMode.enabled,
     passwordProtectedShares: passwordMode.enabled,
   };
+  // Which plan to name on a locked option ("Lite", "Pro").
+  const neededPlan: Record<string, string | null> = {
+    privateShareRequests: requestMode.requiredPlan,
+    passwordProtectedShares: passwordMode.requiredPlan,
+  };
 
   const saved: ShareLinkAccess = share?.linkAccess ?? "disabled";
 
@@ -166,7 +171,7 @@ function ShareBody({
 
   return (
     <div className="space-y-5 text-xs">
-      <PeopleSection share={share} ensureShare={ensureShare} enabled={directShares.enabled} loading={directShares.loading} onClose={onClose} />
+      <PeopleSection share={share} ensureShare={ensureShare} enabled={directShares.enabled} loading={directShares.loading} requiredPlan={directShares.requiredPlan} onClose={onClose} />
 
       <section className="space-y-2">
         <p className="font-semibold text-foreground">General access</p>
@@ -178,6 +183,7 @@ function ShareBody({
               selected={linkAccess === mode.value}
               // Public is free but capped; the paid modes are feature-gated.
               locked={mode.feature ? !unlocked[mode.feature] : false}
+              lockedPlan={mode.feature ? neededPlan[mode.feature] : null}
               atLimit={mode.value === "public" && linkAccess !== "public" && publicShares.isAtLimit}
               quota={
                 mode.value === "public" && !publicShares.isUnlimited && publicShares.limit != null
@@ -208,6 +214,7 @@ function ModeRow({
   mode,
   selected,
   locked,
+  lockedPlan,
   atLimit,
   quota,
   pending,
@@ -217,6 +224,7 @@ function ModeRow({
   mode: (typeof LINK_MODES)[number];
   selected: boolean;
   locked: boolean;
+  lockedPlan: string | null;
   atLimit: boolean;
   quota: string | null;
   pending: boolean;
@@ -244,7 +252,7 @@ function ModeRow({
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 font-semibold text-foreground">
           {mode.label}
-          {locked && <ProBadge />}
+          {locked && <ProBadge label={lockedPlan} />}
         </span>
         <span className="block text-[11px] text-muted-foreground">{mode.hint}</span>
         {quota && <span className="block text-[10px] text-muted-foreground/70">{quota}</span>}
@@ -270,12 +278,14 @@ function PeopleSection({
   ensureShare,
   enabled,
   loading,
+  requiredPlan,
   onClose,
 }: {
   share: Share | null;
   ensureShare: () => Promise<Share>;
   enabled: boolean;
   loading: boolean;
+  requiredPlan: string | null;
   onClose: () => void;
 }) {
   const [email, setEmail] = React.useState("");
@@ -309,7 +319,7 @@ function PeopleSection({
     <section className="space-y-2">
       <div className="flex items-center gap-1.5 font-semibold text-foreground">
         Share with people
-        {!enabled && <ProBadge />}
+        {!enabled && <ProBadge label={requiredPlan} />}
       </div>
 
       {enabled ? (

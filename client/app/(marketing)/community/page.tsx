@@ -30,7 +30,7 @@ export default function CommunityPage() {
             Join the Community.
           </h1>
           <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            Connect with thousands of researchers, developers, and writers designing clean workflows to capture and search digital memory.
+            Connect with other researchers, developers, and writers designing clean workflows to capture and search digital memory.
           </p>
         </div>
 

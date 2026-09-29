@@ -1,12 +1,39 @@
-import nodemailer from "nodemailer";
-import { env } from "../../config/env";
+import nodemailer, { type Transporter } from "nodemailer";
+import { getSection, settingsVersion } from "../../modules/instance-settings/instance-settings.service";
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: env.SMTP_PORT,
-  secure: env.SMTP_SECURE,
-  auth: env.SMTP_USERNAME ? { user: env.SMTP_USERNAME, pass: env.SMTP_PASSWORD } : undefined,
-});
+export interface SmtpSettings {
+  enabled: boolean;
+  host?: string;
+  port?: number;
+  secure?: boolean;
+  username?: string;
+  password?: string;
+  fromAddress?: string;
+  fromName?: string;
+}
+
+export function createTransport(settings: SmtpSettings): Transporter {
+  return nodemailer.createTransport({
+    host: settings.host,
+    port: settings.port,
+    secure: !!settings.secure,
+    auth: settings.username ? { user: settings.username, pass: settings.password } : undefined,
+  });
+}
+
+let active: { version: number; settings: SmtpSettings; transporter: Transporter | null } | null = null;
+
+async function current() {
+  if (active && active.version === settingsVersion()) return active;
+  const settings = (await getSection("email")) as unknown as SmtpSettings;
+  active = { version: settingsVersion(), settings, transporter: settings.enabled ? createTransport(settings) : null };
+  return active;
+}
+
+/** False on a self-hosted install until an admin sets up SMTP — every email then quietly skips. */
+export async function isEmailEnabled(): Promise<boolean> {
+  return (await current()).settings.enabled;
+}
 
 export interface SendMailInput {
   to: string;
@@ -22,8 +49,10 @@ export interface SendMailInput {
  * (email.service.ts), not here.
  */
 export async function sendMail(input: SendMailInput): Promise<void> {
+  const { settings, transporter } = await current();
+  if (!transporter) throw new Error("Email isn't configured on this server");
   await transporter.sendMail({
-    from: `"${env.SMTP_FROM_NAME}" <${env.SMTP_FROM_ADDRESS}>`,
+    from: `"${settings.fromName}" <${settings.fromAddress}>`,
     to: input.to,
     subject: input.subject,
     html: input.html,

@@ -226,6 +226,19 @@ export function Navbar() {
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
+              {/* Pricing */}
+              <NavigationMenuItem>
+                <Link
+                  href="/pricing"
+                  className={cn(
+                    "inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-all duration-300",
+                    "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  Pricing
+                </Link>
+              </NavigationMenuItem>
+
               {/* Contribute */}
               <NavigationMenuItem>
                 <Link
@@ -386,6 +399,12 @@ export function Navbar() {
                         className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
                       >
                         How it works
+                      </Link>
+                      <Link
+                        href="/pricing"
+                        className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
+                      >
+                        Pricing
                       </Link>
                       <Link
                         href="/contribute"

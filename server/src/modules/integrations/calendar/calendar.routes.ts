@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../../../shared/middlewares/authenticate";
+import { requireFeature } from "../../plans/require-feature";
 import { CalendarController } from "./calendar.controller";
 import {
   validateCreateEvent,
@@ -21,7 +22,7 @@ router.get("/connections", authenticate, CalendarController.listConnections);
 // The in-app calendar view — merges connected providers' real events with
 // any Memora memory that has an eventAt but isn't (yet) pushed anywhere.
 router.get("/events", authenticate, validateListEventsQuery, CalendarController.listEvents);
-router.post("/events", authenticate, validateCreateEvent, CalendarController.createEvent);
+router.post("/events", authenticate, requireFeature("calendarSync"), validateCreateEvent, CalendarController.createEvent);
 
 // A purely external event — one that lives only on a connected calendar and
 // was never created through Memora, so there's no memory to key off (see
@@ -35,13 +36,15 @@ router.patch(
 );
 router.delete("/events/:provider/:externalId", authenticate, validateExternalEventParams, CalendarController.deleteExternalEvent);
 
-router.get("/google/connect", authenticate, CalendarController.connectGoogle);
+// Connecting is a plan feature; an existing connection keeps showing events
+// and can always be disconnected.
+router.get("/google/connect", authenticate, requireFeature("calendarSync"), CalendarController.connectGoogle);
 // No authenticate — the provider's redirect carries no session; the
 // initiating user is instead recovered from the signed `state` param (see
 // calendar.controller.ts's handleCallback / verifyCalendarStateToken).
 router.get("/google/callback", CalendarController.googleCallback);
 
-router.get("/microsoft/connect", authenticate, CalendarController.connectMicrosoft);
+router.get("/microsoft/connect", authenticate, requireFeature("calendarMicrosoft"), CalendarController.connectMicrosoft);
 router.get("/microsoft/callback", CalendarController.microsoftCallback);
 
 router.delete("/:provider", authenticate, validateDisconnectParams, CalendarController.disconnect);

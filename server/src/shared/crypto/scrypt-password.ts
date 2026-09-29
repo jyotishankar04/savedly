@@ -10,9 +10,9 @@ const scrypt = promisify(crypto.scrypt) as (
 
 // Node's only password-grade KDF, and it needs no native dependency —
 // bcrypt and argon2 both do, and this codebase has none. Shared by share
-// passwords and the vault PIN — neither is an account password (there are
-// no account passwords here at all, auth is OAuth-only), and both get
-// hashed rarely enough that "no new native build step" is the right trade.
+// passwords, the vault PIN and email + password accounts (self-hosted
+// installs) — all hashed rarely enough that "no new native build step" is
+// the right trade.
 const N = 2 ** 15;
 const R = 8;
 const P = 1;

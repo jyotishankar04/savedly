@@ -37,8 +37,9 @@ export interface HelpGuide {
   actions?: HelpAction[];
 }
 
+/** An entry with its own hand-built page: an interactive tool, or an article too rich for the step format (code blocks, tables). */
 export interface HelpTool {
-  kind: "tool";
+  kind: "tool" | "article";
   slug: string;
   category: string;
   title: string;
@@ -52,6 +53,7 @@ export const CATEGORIES: HelpCategory[] = [
   { id: "get-started", title: "Get started", blurb: "Set up and save your first memories." },
   { id: "find", title: "Organize and find", blurb: "Keep things tidy and get back to them fast." },
   { id: "ai", title: "Ask and AI", blurb: "The assistant, your AI key, and picking models." },
+  { id: "self-host", title: "Self-hosting", blurb: "Run your own SaveForLatter on your own server." },
   { id: "share", title: "Share and protect", blurb: "Control who sees what." },
   { id: "stay", title: "Stay on top", blurb: "Calendar events and notifications." },
   { id: "account", title: "Account and tools", blurb: "Your data, settings and shortcuts." },
@@ -182,9 +184,9 @@ export const GUIDES: HelpGuide[] = [
     slug: "ai-setup",
     actions: [{ label: "Open AI settings", href: "/app/settings/ai" }, { label: "Choose your models", href: "/help/model-selection" }],
     category: "ai",
-    summary: "Add your own AI key and assign it to each job.",
-    title: "Setting up AI (bring your own key)",
-    intro: "This product doesn't pay for AI on your behalf — every account brings its own key, used only for that account.",
+    summary: "On a self-hosted install, add your own AI key and assign it to each job.",
+    title: "Setting up AI on a self-hosted install",
+    intro: "On the hosted plans we supply the AI, so there's nothing to set up. On a self-hosted install, each account brings its own key, used only for that account (or the admin sets one up for everyone).",
     steps: [
       {
         title: "Add a provider key",
@@ -424,14 +426,22 @@ export const GUIDES: HelpGuide[] = [
         body: "Settings → Privacy & Data → export everything you've saved as JSON, or as an Open Knowledge Format (OKF) folder of Markdown files that any AI agent can read. You can also permanently delete your account there.",
       },
       {
-        title: "Check what's free",
-        body: "Settings → Billing is a reminder, not a paywall — this product has no paid tier, and every feature is unlimited on every account.",
+        title: "Check your plan and usage",
+        body: "Settings → Plan & usage shows your plan, how much of each limit you've used, and how much included AI is left this month. Lite and Pro add more room, more AI and features like the private vault and bulk actions. To upgrade, pick a plan there; to change or cancel a paid plan, click Manage billing. Adding your own AI key in Settings → AI removes the AI limits.",
       },
     ],
   },
 ];
 
 export const TOOLS: HelpTool[] = [
+  {
+    kind: "article",
+    slug: "self-host",
+    category: "self-host",
+    title: "Self-host SaveForLatter",
+    summary: "Install with one command, create the admin account, connect storage, email and sign-in, back up and upgrade.",
+    href: "/help/self-host",
+  },
   {
     kind: "tool",
     slug: "model-selection",
@@ -446,7 +456,8 @@ export const HELP_ENTRIES: HelpEntry[] = [...GUIDES, ...TOOLS];
 
 export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug);
 export const categoryById = (id: string) => CATEGORIES.find((c) => c.id === id);
-export const entryHref = (e: HelpEntry) => (e.kind === "tool" ? e.href : `/help/${e.slug}`);
+export const isGuide = (e: HelpEntry): e is HelpGuide => !("href" in e);
+export const entryHref = (e: HelpEntry) => (isGuide(e) ? `/help/${e.slug}` : e.href);
 
 /** Entries grouped in category order, each group in registry order. */
 export function entriesByCategory(): { category: HelpCategory; entries: HelpEntry[] }[] {
@@ -455,7 +466,7 @@ export function entriesByCategory(): { category: HelpCategory; entries: HelpEntr
 
 /** Reading order across the guides, used for previous/next links. */
 export function guideNeighbors(slug: string): { prev?: HelpGuide; next?: HelpGuide } {
-  const ordered = entriesByCategory().flatMap((g) => g.entries).filter((e): e is HelpGuide => e.kind !== "tool");
+  const ordered = entriesByCategory().flatMap((g) => g.entries).filter(isGuide);
   const i = ordered.findIndex((g) => g.slug === slug);
   return { prev: i > 0 ? ordered[i - 1] : undefined, next: i >= 0 && i < ordered.length - 1 ? ordered[i + 1] : undefined };
 }
@@ -475,7 +486,7 @@ export function searchHelp(query: string): SearchHit[] {
   for (const entry of HELP_ENTRIES) {
     const title = entry.title.toLowerCase();
     const summary = entry.summary.toLowerCase();
-    const guide = entry.kind === "tool" ? undefined : entry;
+    const guide = isGuide(entry) ? entry : undefined;
     let score = 0;
     let step: HelpStep | undefined;
     let stepScore = 0;

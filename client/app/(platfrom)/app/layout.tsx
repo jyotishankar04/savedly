@@ -21,7 +21,7 @@ import { usePlanLabel, usePlanLimit } from "@/hooks/use-plan-limit";
 import { useRecentEventNotificationsQuery, useUnreadCountQuery } from "@/hooks/use-notifications";
 import type { AppNotification } from "@/lib/notifications";
 import type { Collection } from "@/types/memory";
-import { EventDetectedPopup } from "@/components/memory/event-detected-popup";
+import { LiveEventDetectedPopup } from "@/components/memory/event-detected-popup";
 import { useLockVaultMutation } from "@/hooks/use-vault";
 import { PlanLimitNotice, ProBadge, LimitDot } from "@/components/plan-limit-notice";
 import { detectMemoryType, deriveTitle, splitLinkAndCaption } from "@/lib/detect-memory-type";
@@ -70,6 +70,7 @@ import { NextStepProvider, NextStep } from "nextstepjs";
 import { useNextAdapter } from "nextstepjs/adapters/next";
 import { productTourSteps, TourCard, TourAutoStart } from "@/components/product-tour";
 import { AskWidget } from "@/components/ask-widget/ask-widget";
+import { useSyncTimeZone } from "@/hooks/use-settings-group";
 
 /** Exact-matches Home ("/app"); prefix-matches everything else, so a nav
  * item for a list route (Tags, Collections, Memories) stays highlighted on
@@ -79,7 +80,8 @@ function isNavItemActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-type NavItem = { label: string; href: string; icon: IconSvgElement; badge?: number };
+/** `logo` swaps the icon for the brand mark: used for the AI entry (Ask). */
+type NavItem = { label: string; href: string; icon: IconSvgElement; badge?: number; logo?: boolean };
 
 const CLOSED_SECTIONS_KEY = "sfl:sidebar-closed-sections";
 
@@ -109,7 +111,11 @@ function SidebarLink({ item, active, ...rest }: { item: NavItem; active: boolean
         active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
       )}
     >
-      <HugeiconsIcon icon={item.icon} strokeWidth={2} className="h-[18px] w-[18px] shrink-0" />
+      {item.logo ? (
+        <LogoMark ticks={false} className="h-[18px] w-[18px]" />
+      ) : (
+        <HugeiconsIcon icon={item.icon} strokeWidth={2} className="h-[18px] w-[18px] shrink-0" />
+      )}
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       {item.badge ? (
         <span className="min-w-5 rounded-full bg-primary px-1.5 text-center text-[11px] font-semibold leading-5 tabular-nums text-primary-foreground">
@@ -349,6 +355,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   // Rides the same 60s poll as the bell badge (no websocket in this app);
   // the email sent alongside this notification already covers the case
   // where the user isn't around to see it live.
+  // So event detection reads "3 pm" in the user's own time zone.
+  useSyncTimeZone();
   const { data: recentNotifications } = useRecentEventNotificationsQuery();
   const seenEventPopupIds = useRef<Set<string>>(new Set());
   const [eventPopupNotification, setEventPopupNotification] = useState<AppNotification | null>(null);
@@ -733,7 +741,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const primaryNavItems: NavItem[] = [
     { label: "Home", href: "/app", icon: Compass },
     { label: "Search", href: "/app/search", icon: Search },
-    { label: "Ask SaveForLatter", href: "/app/ask", icon: Sparkles },
+    { label: "Ask SaveForLatter", href: "/app/ask", icon: Sparkles, logo: true },
     { label: "Memories", href: "/app/memories", icon: FolderOpen },
     { label: "Collections", href: "/app/collections", icon: Layers },
     { label: "Tags", href: "/app/tags", icon: Tag },
@@ -1101,7 +1109,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <Link href="/app/ask" className={cn("flex flex-col items-center gap-0.5 text-[9px] font-bold", isNavItemActive(pathname, "/app/ask") ? "text-primary" : "text-muted-foreground")}>
-            <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-5 w-5" />
+            <LogoMark ticks={false} className="h-5 w-5" />
             <span>Ask</span>
           </Link>
 
@@ -1420,7 +1428,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                                 : "bg-card border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
                           >
-                            <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-5 w-5" />
+                            {item.logo ? <LogoMark ticks={false} className="h-5 w-5" /> : <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-5 w-5" />}
                           </Link>
                         }
                       />
@@ -1451,7 +1459,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span>Save a memory</span>
             </CommandItem>
             <CommandItem onSelect={() => { setSearchModalOpen(false); router.push("/app/ask"); }}>
-              <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+              <LogoMark ticks={false} className="mr-2 h-3.5 w-3.5" />
               <span>Ask SaveForLatter</span>
             </CommandItem>
             <CommandItem onSelect={() => { setSearchModalOpen(false); router.push("/app/collections"); }}>
@@ -1518,7 +1526,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       </Dialog>
 
       {eventPopupNotification && (
-        <EventDetectedPopup
+        <LiveEventDetectedPopup
           notification={eventPopupNotification}
           onClose={() => setEventPopupNotification(null)}
         />

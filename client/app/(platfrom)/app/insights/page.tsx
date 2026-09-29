@@ -10,6 +10,7 @@ import { GitHubActivity } from "@/components/ui/github-activity";
 import { Reveal } from "@/components/ui/reveal";
 import { useInsightsQuery } from "@/hooks/use-insights";
 import { humanizeLabel, toContributions, withTail, type CountedLabel } from "@/lib/insights";
+import { UpgradeNote } from "@/components/plan/upgrade-note";
 
 const countConfig = { count: { label: "Memories", color: "var(--primary)" } } satisfies ChartConfig;
 
@@ -131,6 +132,11 @@ export default function InsightsPage() {
 
       {/* The component sizes itself to its column count via an inline width;
           it spreads `style` after that, so this is what makes it fill. */}
+      {data.historyDays !== undefined && data.historyDays < 365 && (
+        <UpgradeNote feature="insightsFullHistory">
+          Showing your last {data.historyDays} days. A full year of insights is on paid plans.
+        </UpgradeNote>
+      )}
       <GitHubActivity
         className="max-w-full border border-border"
         style={{ width: "100%" }}

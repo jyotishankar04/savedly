@@ -1,4 +1,4 @@
-import { and, eq, ilike } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../../../db";
 import { collectionMemories, collections, memories, memoryTags, users } from "../../../../db/schema";
 import { CollectionSource, MemoryStatus, MemoryType } from "../../../../db/enums";
@@ -9,23 +9,24 @@ import { isVideoUrl } from "../extract-url";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
+import { collectionNameKey } from "./organize-collection";
 
 async function assignCollection(tx: Tx, state: IngestionStateType): Promise<string | null> {
-  if (state.collectionAction === "existing" && state.collectionName) {
-    const [match] = await tx
-      .select({ id: collections.id })
-      .from(collections)
-      .where(and(eq(collections.userId, state.userId), ilike(collections.name, state.collectionName)));
-    if (!match) return null;
-    await tx
-      .insert(collectionMemories)
-      .values({ collectionId: match.id, memoryId: state.memoryId })
-      .onConflictDoNothing();
-    return match.id;
-  }
+  if ((state.collectionAction !== "existing" && state.collectionAction !== "new") || !state.collectionName) return null;
 
-  if (state.collectionAction === "new" && state.collectionName) {
-    const [{ id: collectionId }] = await tx
+  // Two saves finishing together could each decide to create "Birthdays";
+  // holding a per-user lock while looking up and creating keeps it to one.
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`collections:${state.userId}`}))`);
+
+  const userCollections = await tx
+    .select({ id: collections.id, name: collections.name })
+    .from(collections)
+    .where(and(eq(collections.userId, state.userId), eq(collections.isVaulted, false)));
+  const key = collectionNameKey(state.collectionName);
+  let collectionId = userCollections.find((c) => collectionNameKey(c.name) === key)?.id ?? null;
+
+  if (!collectionId) {
+    const [created] = await tx
       .insert(collections)
       .values({
         userId: state.userId,
@@ -37,15 +38,11 @@ async function assignCollection(tx: Tx, state: IngestionStateType): Promise<stri
         source: CollectionSource.USER,
       })
       .returning({ id: collections.id });
-
-    await tx
-      .insert(collectionMemories)
-      .values({ collectionId, memoryId: state.memoryId })
-      .onConflictDoNothing();
-    return collectionId;
+    collectionId = created.id;
   }
 
-  return null;
+  await tx.insert(collectionMemories).values({ collectionId, memoryId: state.memoryId }).onConflictDoNothing();
+  return collectionId;
 }
 
 // Verbatim intent of docs/AI_REQUIREMENTS.md's UpsertPgVector node, split in
@@ -142,7 +139,7 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
   // natural empty state (column default null / zero chunk rows) until
   // embeddings get configured and it's reprocessed.
   if (state.documentEmbedding.length > 0) {
-    await getVectorStore().upsertMemoryVectors({
+    await (await getVectorStore()).upsertMemoryVectors({
       memoryId: state.memoryId,
       userId: state.userId,
       documentEmbedding: state.documentEmbedding,

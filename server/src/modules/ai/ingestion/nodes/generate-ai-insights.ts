@@ -59,7 +59,7 @@ export async function generateAiInsights(state: IngestionStateType): Promise<Ing
       .filter(Boolean)
       .join(" | ") || "(none available)";
 
-  const model = await getChatModel(state.userId, "fast");
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
   if (!model) {
     logNode(state.memoryId, "generateAiInsights", { skipped: "AI not configured" });
     return { aiTitle: null, aiSummary: null, suggestedTags: [] };

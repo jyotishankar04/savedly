@@ -1,27 +1,12 @@
 import "dotenv/config";
 import { asc, eq } from "drizzle-orm";
 import { db } from "./index";
-import { collectionMemories, collections, memories, memoryTags, roles, tags, users } from "./schema";
+import { collectionMemories, collections, memories, memoryTags, tags, users } from "./schema";
 import { MemoryType } from "./enums";
-import { seedDefaultFlags } from "../modules/feature-flags/feature-flags.service";
-import { seedDefaultPlans } from "../modules/admin/plans/plans.service";
+import { seedCore } from "./seed-core";
 
-// Access levels only — billing tier lives in `plans`, never here. A role
-// named after a paid tier would be a second, unenforced source of truth
-// for what someone has paid for.
-const defaultRoles = [
-  { name: "user", description: "Default role granted to every new user on signup", isSystem: true },
-  { name: "admin", description: "Full administrative access", isSystem: true },
-];
-
-async function seedRoles() {
-  await db.insert(roles).values(defaultRoles).onConflictDoNothing({ target: roles.name });
-  console.log(`Seeded roles: ${defaultRoles.map((r) => r.name).join(", ")}`);
-}
-
-// Auth is OAuth-only — there's no way to fabricate a logged-in local user, so
-// sample memories are seeded against whichever real account signed up first.
-// Sign in once via Google/GitHub (and complete onboarding), then run this.
+// Sample memories are seeded against whichever real account signed up first.
+// Sign in once (and complete onboarding), then run this.
 async function seedMemories() {
   const [user] = await db
     .select({ id: users.id, email: users.email })
@@ -366,9 +351,8 @@ async function seedMemories() {
 }
 
 async function seed() {
-  await seedRoles();
-  await seedDefaultFlags();
-  await seedDefaultPlans();
+  await seedCore();
+  console.log("Seeded roles, feature flags and plans.");
   await seedMemories();
   process.exit(0);
 }
