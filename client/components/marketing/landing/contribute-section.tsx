@@ -51,7 +51,7 @@ export function ContributeSection({ showDonate = false }: { showDonate?: boolean
               Open source, and yours to run.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
-              The code is public and you can self-host it for free. The hosted version has a free plan too, and a paid plan for
+              The code is public and you can self-host it for free. The hosted version has a free plan too, and paid plans for
               people who want more room and AI we supply.
             </p>
             <Link

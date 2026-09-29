@@ -72,7 +72,7 @@ export default function TermsPage() {
               <li>We aren&apos;t responsible for a third-party AI provider&apos;s output, availability, or behavior — an inaccurate summary or a wrong answer from a model you&apos;ve connected isn&apos;t something we control.</li>
             </ul>
             <p>
-              Two exceptions: embeddings (semantic search), which we cover by default at no cost to you unless you connect your own; and included AI — a monthly allowance of AI processing on our own provider account. On the AI included plan all AI runs this way; on the Free plan it&apos;s used only when you haven&apos;t connected your own key. See the Privacy Policy for how both work.
+              Two exceptions: embeddings (semantic search), which we cover by default at no cost to you unless you connect your own; and included AI — a monthly allowance of AI processing on our own provider account. On paid plans all AI runs this way; on the Free plan it&apos;s used only when you haven&apos;t connected your own key. See the Privacy Policy for how both work.
             </p>
           </section>
 

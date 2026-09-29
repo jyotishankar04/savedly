@@ -62,6 +62,13 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
 // Prices are deliberately NOT seeded: paid plans start at 0, which the
 // pricing page shows as "Price coming soon" and checkout refuses, until an
 // admin sets the real price (matching the payment provider's product).
+// Lite: half of AI included, for lighter use at a lower price.
+const LITE_LIMITS = limits({
+  [PlanLimitType.STORAGE_MB]: 10 * MB_PER_GB,
+  [PlanLimitType.MAX_FILE_MB]: 50,
+  [PlanLimitType.AI_MONTHLY_SAVES]: 500,
+  [PlanLimitType.AI_MONTHLY_QUERIES]: 250,
+});
 const AI_LIMITS = limits({
   [PlanLimitType.STORAGE_MB]: 25 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 100,
@@ -90,21 +97,41 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
     }),
     features: ALL_FEATURES,
   },
-  // One paid plan, billed monthly or yearly.
-  ...(["monthly", "yearly"] as const).map((interval, i) => ({
-    key: `ai-${interval}`,
-    name: "AI included",
-    description: "Unlimited memories, 25 GB of storage, and AI we supply: AI processing for 2,000 saves and 1,000 Ask questions a month.",
-    priceMinor: 0,
-    currency: "usd",
-    billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
-    isDefault: false,
-    isActive: true,
-    sortOrder: 1 + i,
-    limits: AI_LIMITS,
-    // AI is part of the plan: always ours, nothing for the user to set up.
-    features: { ...ALL_FEATURES, managedAi: true },
-  })),
+  // Two paid plans, each billed monthly or yearly. Both supply the AI
+  // (managedAi); Lite has half the room and allowance. sortOrder ranks
+  // upgrades: Lite monthly < Lite yearly < AI included monthly < yearly.
+  ...(["monthly", "yearly"] as const).flatMap((interval, i) => {
+    const billingInterval = interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY;
+    return [
+      {
+        key: `lite-${interval}`,
+        name: "Lite",
+        description: "Unlimited memories, 10 GB of storage, and AI we supply: AI processing for 500 saves and 250 Ask questions a month.",
+        priceMinor: 0,
+        currency: "usd",
+        billingInterval,
+        isDefault: false,
+        isActive: true,
+        sortOrder: 1 + i,
+        limits: LITE_LIMITS,
+        features: { ...ALL_FEATURES, managedAi: true },
+      },
+      {
+        key: `ai-${interval}`,
+        name: "AI included",
+        description: "Unlimited memories, 25 GB of storage, and AI we supply: AI processing for 2,000 saves and 1,000 Ask questions a month.",
+        priceMinor: 0,
+        currency: "usd",
+        billingInterval,
+        isDefault: false,
+        isActive: true,
+        sortOrder: 3 + i,
+        limits: AI_LIMITS,
+        // AI is part of the plan: always ours, nothing for the user to set up.
+        features: { ...ALL_FEATURES, managedAi: true },
+      },
+    ];
+  }),
 ];
 
 // Plans that used to be offered. db:plans:reset switches them off (never

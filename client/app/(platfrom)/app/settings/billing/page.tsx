@@ -165,7 +165,7 @@ function BillingSettings() {
                 <p className="text-[10px] text-muted-foreground font-medium">
                   {onPaidPlan
                     ? "You're on our biggest plan. To change or cancel it, use Manage billing."
-                    : "The paid plan isn't available yet."}
+                    : "Paid plans aren't available yet."}
                 </p>
               )}
               {onPaidPlan && upgrades.length > 0 && (

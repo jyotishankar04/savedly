@@ -156,8 +156,8 @@ export function planTier(key: string): string {
 
 /**
  * The plans worth offering someone on `current`: every priced paid plan for
- * a Free user; only plans ranked above theirs (sortOrder — AI included
- * monthly < AI included yearly) for a subscriber. Mirrors the server, which refuses anything else at checkout.
+ * a Free user; only plans ranked above theirs (sortOrder — Lite monthly <
+ * Lite yearly < AI included monthly < AI included yearly) for a subscriber. Mirrors the server, which refuses anything else at checkout.
  */
 export function upgradeOptions(current: Plan | null | undefined, plans: PublicPlan[]): PublicPlan[] {
   const paid = plans.filter((p) => !p.isDefault && p.priceMinor > 0);

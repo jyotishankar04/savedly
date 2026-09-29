@@ -20,6 +20,7 @@ import { formatPriceMinor, getMyPlan, listPublicPlans, planLimitBullets, planTie
 // Short card taglines per tier; anything else falls back to the plan's own description.
 const TAGLINES: Record<string, string> = {
   free: "For everyone, on your own AI key.",
+  lite: "AI we supply, for lighter use.",
   ai: "More room, and we supply the AI.",
 };
 
@@ -36,7 +37,7 @@ const FACTS = [
 const FAQ = [
   {
     q: "Is SaveForLatter free?",
-    a: "Yes. The hosted Free plan has every feature on your own AI key, with no card required. Self-hosting is free too, with no limits at all. The paid plan, AI included, adds more room and AI we supply.",
+    a: "Yes. The hosted Free plan has every feature on your own AI key, with no card required. Self-hosting is free too, with no limits at all. Paid plans add more room and AI we supply.",
   },
   {
     q: "What's the difference between Cloud and self-hosted?",
@@ -48,7 +49,7 @@ const FAQ = [
   },
   {
     q: "Do I need my own AI key?",
-    a: "Not on AI included: we supply all the AI, so there's nothing to set up. On Free you add a key from OpenAI, Anthropic, Google Gemini, Groq, OpenRouter or any OpenAI-compatible service in Settings, and your own key is never limited.",
+    a: "Not on a paid plan: Lite and AI included supply all the AI, so there's nothing to set up. On Free you add a key from OpenAI, Anthropic, Google Gemini, Groq, OpenRouter or any OpenAI-compatible service in Settings, and your own key is never limited.",
   },
   {
     q: "What happens when I reach a limit?",
@@ -91,8 +92,9 @@ export function PricingPlans() {
   const [tab, setTab] = useState<Tab>("cloud");
   const [pending, setPending] = useState<string | null>(null);
 
-  // A subscriber is only offered plans above theirs (sortOrder: AI included
-  // monthly < AI included yearly) — the server refuses anything else. Their own plan stays, marked current.
+  // A subscriber is only offered plans above theirs (sortOrder: Lite monthly
+  // < Lite yearly < AI included monthly < AI included yearly) — the server
+  // refuses anything else. Their own plan stays, marked current.
   const current = myPlan && !myPlan.plan.isDefault ? myPlan.plan : null;
 
   // Someone on a monthly plan sees the yearly view first: that's the move up.
@@ -125,7 +127,7 @@ export function PricingPlans() {
     };
   }, [plans, yearly, current]);
 
-  // Free and AI included side by side; a subscriber may have just one card left.
+  // Free, Lite and AI included side by side; a subscriber may have fewer left.
   const cardCount = tab === "cloud" ? (free && !current ? 1 : 0) + paid.length : 2;
 
   async function buy(plan: PublicPlan) {
@@ -168,7 +170,7 @@ export function PricingPlans() {
           Pricing for your second brain
         </h1>
         <p className="mt-6 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
-          Free on your own AI key, more room and AI we supply on AI included, or run it yourself for free. Every plan has every feature.
+          Free on your own AI key, more room and AI we supply on paid plans, or run it yourself for free. Every plan has every feature.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a
@@ -262,11 +264,11 @@ export function PricingPlans() {
           </p>
         )}
 
-        <div className={cn("mt-6 grid gap-5", cardCount === 1 ? "max-w-md" : "md:grid-cols-2")}>
+        <div className={cn("mt-6 grid gap-5", cardCount === 1 ? "max-w-md" : cardCount === 2 ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3")}>
           {tab === "cloud" ? (
             <>
               {isLoading && (
-                <div className="flex min-h-[28rem] items-center justify-center rounded-2xl ring-1 ring-foreground/10 text-muted-foreground md:col-span-2">
+                <div className="flex min-h-[28rem] items-center justify-center rounded-2xl ring-1 ring-foreground/10 text-muted-foreground md:col-span-2 lg:col-span-3">
                   <Spinner />
                 </div>
               )}

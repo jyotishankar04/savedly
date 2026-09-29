@@ -71,7 +71,8 @@ async function currentSubscription(userId: string) {
 
 /**
  * Buy a plan, or move up from the one you pay for. Plans rank by sortOrder
- * (Free < AI included monthly < AI included yearly — admin-editable). A subscriber can only move up here, and
+ * (Free < Lite monthly < Lite yearly < AI included monthly < AI included
+ * yearly — admin-editable). A subscriber can only move up here, and
  * moving up changes their existing subscription instead of opening a second
  * one; moving down is done in the provider's billing portal.
  */
