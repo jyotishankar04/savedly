@@ -34,7 +34,7 @@ const FREE_HIGHLIGHTS = [
   {
     icon: UserGroup,
     title: "Community supported",
-    body: "No investors to please. Paid plans and contributions like yours cover the servers and the AI we supply.",
+    body: "No investors to please. Subscriptions and contributions like yours cover the servers and the AI we supply.",
   },
 ];
 
@@ -51,8 +51,8 @@ export function ContributeSection({ showDonate = false }: { showDonate?: boolean
               Open source, and yours to run.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
-              The code is public and you can self-host it for free. The hosted version has a free plan too, and paid plans for
-              people who want more storage or AI we supply.
+              The code is public and you can self-host it for free. The hosted version has a free plan too, and a paid plan for
+              people who want more room and AI we supply.
             </p>
             <Link
               href={cta.href}

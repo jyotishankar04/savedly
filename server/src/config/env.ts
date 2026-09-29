@@ -137,7 +137,7 @@ const envSchema = z
     DODO_PAYMENTS_WEBHOOK_KEY: z.string().optional(),
     DODO_PAYMENTS_ENVIRONMENT: z.enum(["test_mode", "live_mode"]).default("test_mode"),
     // Which Dodo product each paid plan sells, as JSON keyed by plan key:
-    // {"own-key-monthly":"pdt_...","own-key-yearly":"pdt_...","ai-monthly":"pdt_...","ai-yearly":"pdt_..."}
+    // {"ai-monthly":"pdt_...","ai-yearly":"pdt_..."}
     // The price charged is the product's price in Dodo — keep the plan's
     // display price in Admin -> Plans & Limits the same.
     DODO_PRODUCT_IDS: z

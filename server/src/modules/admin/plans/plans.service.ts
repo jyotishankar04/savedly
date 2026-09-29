@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { db, type DbOrTx } from "../../../db";
 import { plans, planLimits } from "../../../db/schema";
 import { PlanLimitType, PlanBillingInterval } from "../../../db/enums";
@@ -63,13 +63,6 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
 // Prices are deliberately NOT seeded: paid plans start at 0, which the
 // pricing page shows as "Price coming soon" and checkout refuses, until an
 // admin sets the real price (matching the payment provider's product).
-const OWN_KEY_LIMITS = limits({
-  [PlanLimitType.STORAGE_MB]: 25 * MB_PER_GB,
-  [PlanLimitType.MAX_FILE_MB]: 100,
-  [PlanLimitType.AI_MONTHLY_SAVES]: 0,
-  [PlanLimitType.AI_MONTHLY_QUERIES]: 0,
-  [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: 0,
-});
 const AI_LIMITS = limits({
   [PlanLimitType.STORAGE_MB]: 25 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 100,
@@ -100,36 +93,27 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
     }),
     features: ALL_FEATURES,
   },
-  ...(["monthly", "yearly"] as const).flatMap((interval, i) => [
-    {
-      key: `own-key-${interval}`,
-      name: "Own key",
-      description: "Unlimited memories and 25 GB of storage. Bring your own AI key; you pay only for hosting.",
-      priceMinor: 0,
-      currency: "usd",
-      billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
-      isDefault: false,
-      isActive: true,
-      sortOrder: 1 + i,
-      limits: OWN_KEY_LIMITS,
-      features: ALL_FEATURES,
-    },
-    {
-      key: `ai-${interval}`,
-      name: "AI included",
-      description: "Everything in Own key, plus AI we supply: 2,000 saves, 1,000 questions and 200 images a month.",
-      priceMinor: 0,
-      currency: "usd",
-      billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
-      isDefault: false,
-      isActive: true,
-      sortOrder: 3 + i,
-      limits: AI_LIMITS,
-      // AI is part of the plan: always ours, nothing for the user to set up.
-      features: { ...ALL_FEATURES, managedAi: true },
-    },
-  ]),
+  // One paid plan, billed monthly or yearly.
+  ...(["monthly", "yearly"] as const).map((interval, i) => ({
+    key: `ai-${interval}`,
+    name: "AI included",
+    description: "Unlimited memories, 25 GB of storage, and AI we supply: 2,000 saves, 1,000 questions and 200 images a month.",
+    priceMinor: 0,
+    currency: "usd",
+    billingInterval: interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY,
+    isDefault: false,
+    isActive: true,
+    sortOrder: 1 + i,
+    limits: AI_LIMITS,
+    // AI is part of the plan: always ours, nothing for the user to set up.
+    features: { ...ALL_FEATURES, managedAi: true },
+  })),
 ];
+
+// Plans that used to be offered. db:plans:reset switches them off (never
+// deletes them), so anyone still assigned one keeps resolving to it until
+// their subscription ends, but nobody new can buy it.
+const RETIRED_HOSTED_PLAN_KEYS = ["own-key-monthly", "own-key-yearly"];
 
 // A self-hosted install has one plan, and nothing is limited.
 const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
@@ -159,10 +143,20 @@ const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
  * Writes the default plans' names, descriptions, features and limits over
  * what's in the database (inserting any plan that's missing), for moving an
  * existing database onto new defaults — `pnpm db:plans:reset`. Never touches
- * a plan's price, currency, isActive or isDefault, which are admin decisions.
+ * a plan's price, currency, isActive or isDefault, which are admin decisions —
+ * except that retired plans are switched off.
  */
 export async function resetPlanDefaults(): Promise<string[]> {
   const touched: string[] = [];
+  if (!env.SELF_HOSTED) {
+    const retired = await db
+      .update(plans)
+      // Ranked below every paid plan, so anyone still on one can move up to any of them.
+      .set({ isActive: false, sortOrder: 0, updatedAt: new Date() })
+      .where(inArray(plans.key, RETIRED_HOSTED_PLAN_KEYS))
+      .returning({ key: plans.key });
+    touched.push(...retired.map((p) => `${p.key} (retired)`));
+  }
   for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
     await db
       .insert(plans)

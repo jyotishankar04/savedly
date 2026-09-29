@@ -71,8 +71,7 @@ async function currentSubscription(userId: string) {
 
 /**
  * Buy a plan, or move up from the one you pay for. Plans rank by sortOrder
- * (Free < Own key monthly < Own key yearly < AI included monthly < AI
- * included yearly — admin-editable). A subscriber can only move up here, and
+ * (Free < AI included monthly < AI included yearly — admin-editable). A subscriber can only move up here, and
  * moving up changes their existing subscription instead of opening a second
  * one; moving down is done in the provider's billing portal.
  */
@@ -221,7 +220,7 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
           await tx.update(userPlanAssignments).set({ planId, status: PlanAssignmentStatus.ACTIVE, endsAt }).where(refMatch);
         } else {
           // A new subscription replaces any other subscription-bought plan
-          // (e.g. switching from Own key to AI included).
+          // (e.g. one bought before a plan was retired).
           await tx
             .update(userPlanAssignments)
             .set({ status: PlanAssignmentStatus.SUPERSEDED, endsAt: now })

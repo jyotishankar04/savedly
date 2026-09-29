@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">1. Introduction</h2>
             <p>
-              SaveForLatter is a personal memory tool: you save links, notes, images, documents, and voice memos, and it reads, organizes, and helps you find them again. This is open source software — the code is public, and you can run your own copy. The hosted service has a free plan and optional paid plans. This policy explains what information we collect, how it&apos;s used, and what choices you have.
+              SaveForLatter is a personal memory tool: you save links, notes, images, documents, and voice memos, and it reads, organizes, and helps you find them again. This is open source software — the code is public, and you can run your own copy. The hosted service has a free plan and an optional paid plan. This policy explains what information we collect, how it&apos;s used, and what choices you have.
             </p>
             <p>
               Your saved content belongs to you. We don&apos;t sell it, we don&apos;t use it to train AI models, and we don&apos;t show you ads.
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
               AI features (summaries, tags, image analysis, semantic search, the Ask assistant) are bring-your-own-key: when you connect a provider under Settings → AI, the relevant piece of your saved content is sent to <em>that provider</em> — the one you chose and pay — to be processed. We don&apos;t see or store that provider&apos;s response to you beyond what&apos;s written back into your account (the summary, tags, or answer itself).
             </p>
             <p>
-              Two exceptions. Embeddings (what powers semantic search): unless you&apos;ve configured your own embeddings key, we use our own default provider to generate them at no cost to you, since it&apos;s inexpensive to run. And included AI: on the AI included plan, and on other plans when you haven&apos;t connected your own key for that task, the content being processed (what you save, or the question you ask along with the saved content it draws on) is sent to an AI provider on our account. On plans where you bring your own key, connecting it under Settings → AI switches that task to your provider at any time.
+              Two exceptions. Embeddings (what powers semantic search): unless you&apos;ve configured your own embeddings key, we use our own default provider to generate them at no cost to you, since it&apos;s inexpensive to run. And included AI: on the AI included plan, and on the Free plan when you haven&apos;t connected your own key for that task, the content being processed (what you save, or the question you ask along with the saved content it draws on) is sent to an AI provider on our account. On plans where you bring your own key, connecting it under Settings → AI switches that task to your provider at any time.
             </p>
             <p>
               <strong>We do not use your saved content, your questions, or your AI provider responses to train any model — ours or anyone else&apos;s.</strong>

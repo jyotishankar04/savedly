@@ -49,7 +49,7 @@ const FAQS: Faq[] = [
   {
     question: "Is there a free plan?",
     answer:
-      "Yes. The Free plan has every feature on your own AI key, with no card required. Paid plans add more storage and AI we supply. You can also self-host it for free with no limits at all — it's open source.",
+      "Yes. The Free plan has every feature on your own AI key, with no card required. The paid plan adds more room and AI we supply. You can also self-host it for free with no limits at all — it's open source.",
   },
 ];
 

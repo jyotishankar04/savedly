@@ -21,7 +21,7 @@ A personal memory tool that reads, organizes, and helps you find what you save â
 
 Send SaveForLatter a link, a note, an image, a document, or a voice memo, and it's read, summarized, tagged, and made searchable â€” automatically, the same pipeline every time, whatever format it came in. Ask it a question in plain English and it answers from what you've actually saved, citing exactly which memory it came from.
 
-Self-host it for free with every feature unlimited, or use the hosted version: the Free plan has every feature on your own AI key, and paid plans add more storage and AI we supply. Your own AI key is never limited.
+Self-host it for free with every feature unlimited, or use the hosted version: the Free plan has every feature on your own AI key, and the paid plan adds more room and AI we supply. Your own AI key is never limited.
 
 ## Features
 
