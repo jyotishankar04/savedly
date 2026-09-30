@@ -35,6 +35,8 @@ export interface HelpGuide {
   intro: string;
   steps: HelpStep[];
   actions?: HelpAction[];
+  /** Position within its category, lowest first. Entries without one keep registry order, after any that have one. */
+  order?: number;
 }
 
 /** An entry with its own hand-built page: an interactive tool, or an article too rich for the step format (code blocks, tables). */
@@ -45,6 +47,8 @@ export interface HelpTool {
   title: string;
   summary: string;
   href: string;
+  /** Position within its category, lowest first. Entries without one keep registry order, after any that have one. */
+  order?: number;
 }
 
 export type HelpEntry = HelpGuide | HelpTool;
@@ -183,7 +187,11 @@ export const GUIDES: HelpGuide[] = [
     id: "ai-setup",
     slug: "ai-setup",
     actions: [{ label: "Open AI settings", href: "/app/settings/ai" }, { label: "Choose your models", href: "/help/model-selection" }],
-    category: "ai",
+    category: "self-host",
+    // Come after the install guide below — GUIDES render before TOOLS within
+    // a category by default, which would otherwise put "set up AI" ahead of
+    // "install it" for the one category where a tool needs to lead.
+    order: 1,
     summary: "On a self-hosted install, add your own AI key and assign it to each job.",
     title: "Setting up AI on a self-hosted install",
     intro: "On the hosted plans we supply the AI, so there's nothing to set up. On a self-hosted install, each account brings its own key, used only for that account (or the admin sets one up for everyone).",
@@ -438,6 +446,7 @@ export const TOOLS: HelpTool[] = [
     kind: "article",
     slug: "self-host",
     category: "self-host",
+    order: 0,
     title: "Self-host SaveForLatter",
     summary: "Install with one command, create the admin account, connect storage, email and sign-in, back up and upgrade.",
     href: "/help/self-host",
@@ -461,7 +470,12 @@ export const entryHref = (e: HelpEntry) => (isGuide(e) ? `/help/${e.slug}` : e.h
 
 /** Entries grouped in category order, each group in registry order. */
 export function entriesByCategory(): { category: HelpCategory; entries: HelpEntry[] }[] {
-  return CATEGORIES.map((category) => ({ category, entries: HELP_ENTRIES.filter((e) => e.category === category.id) })).filter((g) => g.entries.length > 0);
+  return CATEGORIES.map((category) => ({
+    category,
+    // A stable sort: entries that share an order (almost all of them, implicitly
+    // tied at the end) keep their registry position relative to each other.
+    entries: HELP_ENTRIES.filter((e) => e.category === category.id).sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity)),
+  })).filter((g) => g.entries.length > 0);
 }
 
 /** Reading order across the guides, used for previous/next links. */

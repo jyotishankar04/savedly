@@ -45,9 +45,10 @@ export function ProductShot({ name, priority = false, sizes = "(min-width: 1280p
   const { alt } = SCREENS[name];
   return (
     <>
+      {/* The one caller (HeroProduct) wraps this in `px-5` at every width this branch is visible (below `sm`), so the image never actually reaches full viewport width — 100vw made Next.js pick an oversized source and warn about it. */}
       <div className="relative aspect-[390/720] w-full bg-background sm:hidden">
-        <Image src={`/landing/app-${name}-m-light.webp`} alt={alt} fill priority={priority} sizes="100vw" className="object-cover object-top dark:hidden" />
-        <Image src={`/landing/app-${name}-m-dark.webp`} alt={alt} fill priority={priority} sizes="100vw" className="hidden object-cover object-top dark:block" />
+        <Image src={`/landing/app-${name}-m-light.webp`} alt={alt} fill priority={priority} sizes="calc(100vw - 40px)" className="object-cover object-top dark:hidden" />
+        <Image src={`/landing/app-${name}-m-dark.webp`} alt={alt} fill priority={priority} sizes="calc(100vw - 40px)" className="hidden object-cover object-top dark:block" />
       </div>
       <div className="relative hidden aspect-[1440/900] w-full bg-background sm:block">
         <Image src={`/landing/app-${name}-light.webp`} alt={alt} fill priority={priority} sizes={sizes} className="object-cover object-top dark:hidden" />
