@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
   return {
     rules: {
       userAgent: "*",
@@ -13,8 +15,6 @@ export default function robots(): MetadataRoute.Robots {
       // the per-share setting a lie.
       disallow: ["/api/", "/app/", "/admin/", "/auth/"],
     },
-    // No `sitemap:` entry — this app has no sitemap route yet, and pointing
-    // crawlers at a 404 is worse than omitting the line. Add it here when
-    // app/sitemap.ts lands.
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
