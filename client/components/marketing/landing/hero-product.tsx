@@ -131,7 +131,7 @@ export function HeroProduct() {
         whileInView="visible"
         viewport={{ once: true }}
         src="/landing/hero-bg-light.jpg"
-        alt="AI Second Brain Network"
+        alt=""
         className="blur-sm pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-top opacity-60 dark:hidden"
       />
       
@@ -142,7 +142,7 @@ export function HeroProduct() {
         whileInView="visible"
         viewport={{ once: true }}
         src="/landing/hero-bg-dark.jpg"
-        alt="AI Second Brain Network"
+        alt=""
         className="blur-sm hidden pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-top opacity-40 dark:block"
       />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background/10 via-background/60 to-background" />
@@ -155,26 +155,24 @@ export function HeroProduct() {
         viewport={{ once: true, amount: 0.35 }}
         variants={sectionVariants}
       >
-        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center pb-14 text-center">
+        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-center pb-14 text-center">
           
           <motion.h1
             variants={riseVariants}
-            className="max-w-4xl text-[clamp(2.55rem,5vw,5.5rem)] leading-[1.05] font-semibold tracking-[-0.035em] text-balance text-foreground"
+            className="max-w-5xl text-[clamp(2.25rem,4.6vw,4.25rem)] leading-[1.12] font-semibold tracking-[-0.03em] text-balance text-foreground"
           >
-            <span className="block">The open-source AI second brain</span>
-            <span className="block">
-              for your{" "}
-              <span className="font-[Georgia,serif] font-normal tracking-[-0.055em] text-primary italic">
-                digital life.
-              </span>
+            <span className="block">Save it now.</span>
+            <span className="block md:whitespace-nowrap">Find it when you need it.</span>
+            <span className="mt-4 block font-[Georgia,serif] text-[0.58em] leading-[1.3] font-normal tracking-[-0.02em] text-primary italic md:mt-5 md:whitespace-nowrap">
+              Without remembering where you put it.
             </span>
           </motion.h1>
 
           <motion.p
             variants={riseVariants}
-            className="mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground"
+            className="mt-8 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground"
           >
-            Articles, PDFs, screenshots, voice notes, YouTube links. Each one is read, transcribed, summarized and tagged on the way in, then searchable by meaning and answerable in plain English.
+            Links, notes, screenshots, PDFs, videos, and voice notes—all the things you don&apos;t want to lose. Memora keeps them organized and helps you find them again, even when you don&apos;t remember what you called them.
           </motion.p>
 
           <motion.div variants={ctaVariants} className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -182,15 +180,15 @@ export function HeroProduct() {
               href={cta.href}
               className="group inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.96]"
             >
-              {cta.label}
+              {cta.isAuthenticated ? cta.label : "Start saving"}
               <HugeiconsIcon icon={ArrowRightIcon} className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <GithubStarButton variant="hero" />
+            <GithubStarButton variant="hero" label="Explore on GitHub" />
           </motion.div>
           
           <motion.p variants={ctaVariants} className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-            {SHOWCASE_MODE ? "Early access: join the waitlist" : "Free plan · open source · self-host it"}
+            {SHOWCASE_MODE ? "Early access: join the waitlist" : "Free to use · Open source · Self-hostable"}
           </motion.p>
         </div>
 
