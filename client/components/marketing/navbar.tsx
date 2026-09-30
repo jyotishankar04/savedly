@@ -30,8 +30,6 @@ import {
   LayoutDashboardIcon as LayoutDashboard,
   CloudUploadIcon,
   Layers01Icon,
-  SparklesIcon,
-  ChartRelationshipIcon,
   News01Icon,
   HelpCircleIcon,
   GitBranchIcon,
@@ -162,7 +160,6 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
-  const pathname = usePathname();
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUserQuery();
   const isAuthenticated = !!currentUser;
 

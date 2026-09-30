@@ -460,8 +460,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
   const DetectedTypeIcon = MEMORY_TYPE_ICONS[detectedType];
   const detectedTypeLabel = detectedType === "web" ? "Website" : detectedType;
-
-  const openCaptureModal = () => {
+  const openCaptureModal = useCallback(() => {
     setSaveStep(1);
     setCaptureTitle("");
     setCaptureText("");
@@ -474,7 +473,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
     setIsDraggingOver(false);
     dragCounter.current = 0;
     setSaveModalOpen(true);
-  };
+  }, [
+    setSaveStep,
+    setCaptureTitle,
+    setCaptureText,
+    setCaptureCollectionIds,
+    setCaptureAttachment,
+    setCaptureAttachmentName,
+    setCaptureAttachmentMimeType,
+    setAttachmentError,
+    setSaveError,
+    setIsDraggingOver,
+    setSaveModalOpen,
+  ]);
 
   // Pages (e.g. Home's quick-save shortcuts) open this modal by event, so
   // they don't need a route of their own or a context just for one call.

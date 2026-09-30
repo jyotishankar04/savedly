@@ -62,19 +62,19 @@ export default function SecurityPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Total Air-Gap (Self-Host)</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              If cloud storage isn't an option, you can self-host the entire SaveForLatter stack on your own infrastructure, ensuring your data never leaves your private network.
+              If cloud storage isn&apost an option, you can self-host the entire SaveForLatter stack on your own infrastructure, ensuring your data never leaves your private network.
             </p>
           </div>
         </div>
 
         {/* Content text */}
         <div className="prose prose-zinc dark:prose-invert max-w-none text-sm md:text-base leading-relaxed text-foreground/80 space-y-8 border-t pt-12">
-          
+
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">Infrastructure Security</h2>
             <p>
-              SaveForLatter is hosted on world-class infrastructure providers that maintain strict SOC 2 Type II, ISO 27001, and HIPAA compliance. 
-              Our database clusters are logically isolated, and access to production environments is strictly limited to authorized core personnel using 
+              SaveForLatter is hosted on world-class infrastructure providers that maintain strict SOC 2 Type II, ISO 27001, and HIPAA compliance.
+              Our database clusters are logically isolated, and access to production environments is strictly limited to authorized core personnel using
               hardware-backed multi-factor authentication (MFA).
             </p>
           </section>
@@ -82,8 +82,8 @@ export default function SecurityPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">Vector Privacy & Embeddings</h2>
             <p>
-              When you save a link or note, SaveForLatter generates a mathematical representation (a vector embedding) of the text to enable semantic search. 
-              These vectors are generated via secure API boundaries. 
+              When you save a link or note, SaveForLatter generates a mathematical representation (a vector embedding) of the text to enable semantic search.
+              These vectors are generated via secure API boundaries.
               <strong> The vectors themselves are purely mathematical arrays and cannot be reverse-engineered back into your original text by external parties. </strong>
               Furthermore, all vector search databases are strictly siloed per-user.
             </p>
@@ -92,7 +92,7 @@ export default function SecurityPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">Authentication & Access</h2>
             <p>
-              We offload credential management to highly secure, battle-tested identity providers (like Google, Apple, and GitHub OAuth). 
+              We offload credential management to highly secure, battle-tested identity providers (like Google, Apple, and GitHub OAuth).
               If you choose email authentication, passwords are not stored in plaintext; they are securely hashed and salted using robust algorithms (e.g., bcrypt).
             </p>
           </section>
@@ -100,7 +100,7 @@ export default function SecurityPage() {
           <section className="space-y-4 pt-8 border-t border-border">
             <h2 className="text-xl font-bold text-foreground">Reporting Vulnerabilities</h2>
             <p>
-              We take the security of our platform and our users' data very seriously. If you are a security researcher and have discovered a vulnerability, 
+              We take the security of our platform and our users&apos data very seriously. If you are a security researcher and have discovered a vulnerability,
               please <Link href="/contact" className="text-primary hover:underline">contact us</Link> immediately. We request that you provide us with a reasonable timeframe to address the issue before public disclosure.
             </p>
           </section>

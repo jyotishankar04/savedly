@@ -2,6 +2,7 @@ import React from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { HeartAddIcon as Heart } from "@hugeicons/core-free-icons";
 import { BMC_QR_IMAGE, BMC_URL } from "@/lib/support";
+import Image from "next/image";
 
 export function SupportProjectCard({ className }: { className?: string }) {
   return (
@@ -20,7 +21,7 @@ export function SupportProjectCard({ className }: { className?: string }) {
 
       <div className="flex items-center gap-4">
         <a href={BMC_URL} target="_blank" rel="noopener noreferrer" className="shrink-0">
-          <img src={BMC_QR_IMAGE} alt="Buy Me a Coffee QR code" width={88} height={88} className="rounded-lg border border-border/50" />
+          <Image src={BMC_QR_IMAGE} alt="Buy Me a Coffee QR code" width={88} height={88} className="rounded-lg border border-border/50" />
         </a>
         <div className="min-w-0 space-y-2">
           <a

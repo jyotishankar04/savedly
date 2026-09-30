@@ -8,7 +8,7 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Streamdown } from "streamdown";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowUp01Icon as ArrowUp, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, GlobeIcon as Globe, MessageSquareIcon as MessageSquare, MoreHorizontalIcon as MoreHorizontal, PlusIcon as Plus, Search01Icon as Search, Delete02Icon as Trash2 } from "@hugeicons/core-free-icons";
+import { ArrowUp01Icon as ArrowUp, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, GlobeIcon as Globe, MessageSquareIcon as MessageSquare, PlusIcon as Plus, Search01Icon as Search } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +27,6 @@ import {
 import { Message, MessageContent } from "@/components/ui/message";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import { askStreamUrl, getThreadMessages, type ThreadMessage } from "@/lib/ask";
 import {
@@ -99,7 +98,7 @@ function getCardDescription(memory: SearchMemoriesResult["memories"][number]): s
 
 
 function MemoryAttachmentCards({ memories }: { memories: SearchMemoriesResult["memories"] }) {
-  const [activeCardMenu, setActiveCardMenu] = useState<string | null>(null);
+  // const [activeCardMenu, setActiveCardMenu] = useState<string | null>(null);
 
   return (
     <AttachmentGroup>

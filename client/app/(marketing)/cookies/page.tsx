@@ -27,10 +27,10 @@ export default function CookiesPage() {
 
         {/* Content text */}
         <div className="prose prose-zinc dark:prose-invert max-w-none text-sm md:text-base leading-relaxed text-foreground/80 space-y-8">
-          
+
           <section className="space-y-4">
             <p>
-              This Cookie Policy explains how SaveForLatter ("we," "us," or "our") uses cookies and similar tracking technologies when you visit our website or use our application. 
+              This Cookie Policy explains how SaveForLatter (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) uses cookies and similar tracking technologies when you visit our website or use our application.
               By using SaveForLatter, you consent to the use of cookies as described in this policy.
             </p>
           </section>
@@ -38,7 +38,7 @@ export default function CookiesPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">1. What are cookies?</h2>
             <p>
-              Cookies are small text files that are placed on your computer or mobile device when you visit a website. 
+              Cookies are small text files that are placed on your computer or mobile device when you visit a website.
               They are widely used to make websites work, improve efficiency, and provide crucial functional information to the owners of the site.
             </p>
           </section>
@@ -48,7 +48,7 @@ export default function CookiesPage() {
             <p>We use cookies primarily for the following purposes:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>
-                <strong>Essential Cookies:</strong> These are strictly necessary to provide you with the SaveForLatter service. We use these to authenticate your session, keep you logged in, and secure your vault against CSRF attacks. 
+                <strong>Essential Cookies:</strong> These are strictly necessary to provide you with the SaveForLatter service. We use these to authenticate your session, keep you logged in, and secure your vault against CSRF attacks.
                 Without these cookies, the core functionality of our application cannot be provided.
               </li>
               <li>
@@ -63,7 +63,7 @@ export default function CookiesPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">3. Third-party cookies</h2>
             <p>
-              Because SaveForLatter integrates with third-party authentication providers (such as Google or GitHub OAuth), those providers may set their own cookies when you authenticate. 
+              Because SaveForLatter integrates with third-party authentication providers (such as Google or GitHub OAuth), those providers may set their own cookies when you authenticate.
               We do not control the cookies set by these third-party services. Please refer to their respective privacy policies for more information.
             </p>
           </section>
@@ -71,7 +71,7 @@ export default function CookiesPage() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">4. Managing cookies</h2>
             <p>
-              Most web browsers allow you to control cookies through their settings preferences. However, if you limit the ability of websites to set essential cookies, 
+              Most web browsers allow you to control cookies through their settings preferences. However, if you limit the ability of websites to set essential cookies,
               you may worsen your overall user experience and lose access to your authenticated dashboard.
             </p>
             <p>
@@ -82,7 +82,7 @@ export default function CookiesPage() {
           <section className="space-y-4 pt-8 border-t border-border">
             <h2 className="text-xl font-bold text-foreground">5. Contact us</h2>
             <p>
-              If you have any questions about our use of cookies, please <Link href="/contact" className="text-primary hover:underline">contact us</Link>. 
+              If you have any questions about our use of cookies, please <Link href="/contact" className="text-primary hover:underline">contact us</Link>.
               For broader information regarding how we handle your personal data, please review our <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
             </p>
           </section>

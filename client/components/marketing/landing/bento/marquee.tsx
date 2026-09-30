@@ -84,7 +84,7 @@ export function Marquee({ children, className, speed = 34, gap = 12, reverse = f
       { duration: speed, ease: "linear", repeat: Infinity }
     );
     return () => controlsRef.current?.stop();
-  }, [ready, reverse, speed, animate, scope]);
+  }, [ready, reverse, speed, animate, scope,reduceMotion]);
 
   return (
     <div

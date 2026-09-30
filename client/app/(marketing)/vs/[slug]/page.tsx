@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `SaveForLatter vs ${competitor.name} — The Best ${competitor.name} Alternative`,
-    description: `Looking for a ${competitor.name} alternative? See why SaveForLatter's AI-driven semantic search makes it the ultimate ${competitor.type.toLowerCase()}.`,
+    description: `Looking for a ${competitor.name} alternative? See why SaveForLatter&aposs AI-driven semantic search makes it the ultimate ${competitor.type.toLowerCase()}.`,
     alternates: { canonical: `/vs/${slug}` },
   };
 }
@@ -50,14 +50,14 @@ export default async function ComparisonPage({ params }: Props) {
     <div className="flex flex-col min-h-screen bg-background text-foreground font-sans">
       <Navbar />
       <main className="flex-1 pt-32 pb-20 max-w-5xl mx-auto px-6 w-full">
-        
+
         {/* Header Section */}
         <div className="space-y-4 mb-16">
           <div className="text-sm text-muted-foreground">Home / Comparisons / vs {competitor.name}</div>
           <h1 className="text-4xl md:text-5xl font-medium tracking-tight">SaveForLatter vs {competitor.name}</h1>
           <p className="text-lg text-muted-foreground max-w-3xl leading-relaxed">
-            {competitor.name} is built as a {competitor.type.toLowerCase()} focusing on {competitor.coreIdea.toLowerCase()}. 
-            SaveForLatter is an open-source AI second brain where you save anything and find it via hybrid search. Here's how they compare.
+            {competitor.name} is built as a {competitor.type.toLowerCase()} focusing on {competitor.coreIdea.toLowerCase()}.
+            SaveForLatter is an open-source AI second brain where you save anything and find it via hybrid search. Here&aposs how they compare.
           </p>
         </div>
 
@@ -176,9 +176,9 @@ export default async function ComparisonPage({ params }: Props) {
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-6">
             <HugeiconsIcon icon={Rocket} className="h-6 w-6 text-primary" strokeWidth={2}/>
           </div>
-          <h3 className="text-2xl font-semibold mb-4 text-foreground">We're just getting started</h3>
+          <h3 className="text-2xl font-semibold mb-4 text-foreground">We&aposre just getting started</h3>
           <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-8">
-            While {competitor.name} has been around longer, SaveForLatter is shipping rapidly. We are actively working on 
+            While {competitor.name} has been around longer, SaveForLatter is shipping rapidly. We are actively working on
             native iOS/Android apps, WhatsApp capture bots, deep browser integrations, and fully local LLM support.
           </p>
           <a href="/changelog" className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
