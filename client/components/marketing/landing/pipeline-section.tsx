@@ -113,7 +113,7 @@ export function PipelineSection() {
             You paste a link. The rest happens on its own.
           </h2>
           <p className="max-w-md text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
-            Every save runs through the same steps, whatever it is. Here is one article on the way in.
+            Paste a link, upload a file, send a screenshot, or drop in a voice note. Memora reads it, understands what matters, and makes it easy to find later.
           </p>
         </div>
 
