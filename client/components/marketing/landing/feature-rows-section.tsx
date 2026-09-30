@@ -2,7 +2,15 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckIcon as CheckIcon } from "@hugeicons/core-free-icons";
+import {
+  CheckIcon as CheckIcon,
+  File01Icon,
+  Image01Icon,
+  Link01Icon,
+  Mic01Icon,
+  Note01Icon,
+  Video01Icon,
+} from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { AskFragment, SearchFragment, VaultFragment, SHELL } from "@/components/marketing/landing/feature-fragments";
 import { LibraryGraph } from "@/components/marketing/landing/library-graph";
@@ -64,11 +72,11 @@ function Reveal({ children, className, delay = 0 }: { children: React.ReactNode;
   );
 }
 
-function SectionHead({ title, body }: { title: string; body: string }) {
+function SectionHead({ title, body }: { title: string; body: React.ReactNode }) {
   return (
     <div className="grid gap-5 lg:grid-cols-2 lg:items-end">
       <h2 className="text-3xl leading-[1.05] font-semibold tracking-[-0.03em] text-balance text-foreground sm:text-5xl">{title}</h2>
-      <p className="max-w-md text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">{body}</p>
+      <div className="max-w-md text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">{body}</div>
     </div>
   );
 }
@@ -85,11 +93,13 @@ function DemoPanel({ title, body, note, children, delay }: { title: string; body
   );
 }
 
-const MORE: { title: string; body: string }[] = [
-  { title: "Whatever it is, it goes in", body: "Links, videos, notes, images, documents and voice memos. One box reads all of it." },
-  { title: "Plays well with your calendar", body: "When a save mentions a date, push the event straight to Google Calendar or Outlook." },
-  { title: "Wherever you already are", body: "The web dashboard and bulk import work today. The browser extension is on the way." },
-  { title: "What you've actually been keeping", body: "An activity heatmap, your top tags, and the categories the AI inferred from your library." },
+const SAVE_TYPES: { icon: typeof Link01Icon; title: string; body: string }[] = [
+  { icon: Link01Icon, title: "Links", body: "Articles and pages, with the text pulled out so you can search what they say." },
+  { icon: Note01Icon, title: "Notes", body: "Half-formed ideas and quick thoughts, filed alongside everything else." },
+  { icon: Image01Icon, title: "Screenshots", body: "Images are read, so the words inside them are findable too." },
+  { icon: File01Icon, title: "Documents", body: "PDFs and files, extracted and summarized instead of buried in a folder." },
+  { icon: Video01Icon, title: "Videos", body: "Saved once, then searchable by what was actually said in them." },
+  { icon: Mic01Icon, title: "Voice notes", body: "Talk it out. Memora transcribes it and keeps it with the rest." },
 ];
 
 export function FeatureRowsSection() {
@@ -100,7 +110,15 @@ export function FeatureRowsSection() {
         <div className="mx-auto max-w-6xl">
           <SectionHead
             title="Two ways back to anything."
-            body="Ask a question and get an answer you can check, or search with whatever you remember. Both read the same library."
+            body={
+              <>
+                <p className="font-medium text-foreground">Search when you know what you&apos;re looking for. Ask when you don&apos;t.</p>
+                <p className="mt-3">
+                  Search by words, topics, or names—or describe what you remember in plain English and let Memora find the relevant
+                  memories for you.
+                </p>
+              </>
+            }
           />
           <div className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <DemoPanel title="Ask, with receipts" body="Answers are written from your own saves, and every one lists the memories it came from.">
@@ -118,10 +136,13 @@ export function FeatureRowsSection() {
         <div className="mx-auto max-w-6xl">
           <SectionHead
             title="Your library has a shape."
-            body="Saves connect by collection and by meaning. Nothing you keep sits alone, and the graph shows you what it sits next to."
+            body="Over time, your saved things start connecting. Topics, ideas, people, projects, and interests naturally come together."
           />
           <Reveal className={cn(PANEL, "mt-12 p-5 sm:p-8 lg:p-10")}>
-            <p className="mb-6 hidden text-sm font-medium text-primary sm:block">Hover a save or a collection to see what it connects to.</p>
+            <p className="mb-6 text-sm font-medium text-primary">
+              See the connections between the things you&apos;ve saved.
+              <span className="hidden font-normal text-muted-foreground sm:inline"> Hover a save or a collection to explore.</span>
+            </p>
             <LibraryGraph />
           </Reveal>
         </div>
@@ -148,16 +169,24 @@ export function FeatureRowsSection() {
       </section>
 
       <section className={SECTION}>
-        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
-          <h2 className="text-3xl leading-[1.08] font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">And the rest of it.</h2>
-          <dl className="divide-y divide-foreground/10 border-y border-foreground/10">
-            {MORE.map((item) => (
-              <div key={item.title} className="grid gap-1 py-5 sm:grid-cols-[14rem_1fr] sm:gap-6">
-                <dt className="font-medium text-foreground">{item.title}</dt>
-                <dd className="text-muted-foreground">{item.body}</dd>
-              </div>
+        <div className="mx-auto max-w-6xl">
+          <SectionHead
+            title="Everything you saved. One place."
+            body="Notes, links, screenshots, documents, videos, and voice notes. Memora brings them together so your knowledge isn't scattered across a dozen different apps."
+          />
+          <ul className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {SAVE_TYPES.map((item, i) => (
+              <li key={item.title}>
+                <Reveal delay={(i % 3) * 0.08} className={cn(PANEL, "h-full p-6")}>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-background ring-1 ring-foreground/10">
+                    <HugeiconsIcon icon={item.icon} className="h-5 w-5 text-primary" strokeWidth={2} />
+                  </span>
+                  <h3 className="mt-5 text-lg font-semibold tracking-[-0.02em] text-foreground">{item.title}</h3>
+                  <p className="mt-1.5 leading-relaxed text-muted-foreground">{item.body}</p>
+                </Reveal>
+              </li>
             ))}
-          </dl>
+          </ul>
         </div>
       </section>
     </>

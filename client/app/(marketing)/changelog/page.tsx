@@ -12,6 +12,7 @@ import {
   LockPasswordIcon as Lock,
   MessageSquareIcon as MessageSquare,
   RocketIcon as Rocket,
+  Layers01Icon as Layers,
 } from "@hugeicons/core-free-icons";
 
 interface Entry {
@@ -27,6 +28,17 @@ interface Entry {
 // entries here are deliberately not the literal first commit: this list is
 // what changed for someone using the product, not an exhaustive commit log.
 const updates: Entry[] = [
+  {
+    period: "September 2026",
+    title: "Free, Lite, and Pro",
+    badge: "Pricing",
+    icon: Layers,
+    changes: [
+      "Hosted plans are now Free, Lite, and Pro — AI is run for you on every one of them, up to each plan's monthly allowance, so there's nothing to configure to start saving or asking.",
+      "Lite adds the private vault, calendar sync, and bulk actions across memories; Pro adds Outlook sync, direct shares, and invite-only access with approval.",
+      "Self-hosting is unaffected: every feature stays free and unlimited, and you can still connect your own AI key from Settings → AI.",
+    ],
+  },
   {
     period: "September 2026",
     title: "Open source, and actually free",

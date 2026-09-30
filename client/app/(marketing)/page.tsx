@@ -19,6 +19,23 @@ import MainFooter from "@/components/marketing/landing/main-footer";
 export default function MarketingPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "SaveForLatter",
+            "applicationCategory": "Productivity",
+            "operatingSystem": "Any",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }),
+        }}
+      />
       <HeroProduct />
       <ManifestoSection />
       <PipelineSection />

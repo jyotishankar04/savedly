@@ -32,6 +32,9 @@
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
     "frimousse": "^0.3.0",
+    "fumadocs-core": "^16.15.15",
+    "fumadocs-mdx": "^15.4.5",
+    "fumadocs-ui": "^16.15.15",
     "input-otp": "^1.5.0",
     "lucide-react": "^1.47.0",
     "motion": "^13.1.1",
@@ -52,6 +55,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/d3-force": "^3.0.10",
+    "@types/mdx": "^2.0.14",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

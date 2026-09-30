@@ -1,4 +1,9 @@
 import Script from "next/script";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 // Floating "Buy Me a Coffee" widget — marketing pages only, deliberately not
 // the (platfrom)/app or /admin trees: a persistent floating nag is fine for

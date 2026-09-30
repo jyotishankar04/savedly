@@ -35,6 +35,11 @@ import {
   News01Icon,
   HelpCircleIcon,
   GitBranchIcon,
+  BalanceScaleIcon,
+  UserMultiple02Icon as UsersGroupIcon,
+  UserIcon,
+  HeartIcon,
+  Mail01Icon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { useCurrentUserQuery } from "@/context/UserContext";
@@ -58,34 +63,45 @@ interface MenuEntry {
   icon: IconSvgElement;
 }
 
-const features: MenuEntry[] = [
+const productLinks: MenuEntry[] = [
   {
-    title: "Capture anything",
+    title: "Features",
     icon: CloudUploadIcon,
-    description: "Web, import, and soon the browser extension.",
-    href: "/features#everywhere",
+    description: "The full breakdown of what SaveForLatter can do.",
+    href: "/features",
   },
   {
-    title: "Every format",
+    title: "How it works",
     icon: Layers01Icon,
-    description: "Links, videos, notes, images, documents, voice.",
-    href: "/features#formats",
+    description: "See the ingestion and search pipeline in action.",
+    href: "/features#how-it-works",
   },
   {
-    title: "Ask your library",
-    icon: SparklesIcon,
-    description: "Answers that point back to the memory they came from.",
-    href: "/features#ask",
-  },
-  {
-    title: "See the shape of it",
-    icon: ChartRelationshipIcon,
-    description: "Related by meaning, by tag, or by collection.",
-    href: "/features#graph",
+    title: "Changelog",
+    icon: GitBranchIcon,
+    description: "What's new, release by release.",
+    href: "/changelog",
   },
 ];
 
-const resources: MenuEntry[] = [
+import { competitors } from "@/lib/data/comparisons";
+
+const compareLinks: MenuEntry[] = [
+  {
+    title: "All Comparisons",
+    icon: BalanceScaleIcon,
+    description: "See how we stack up against all the alternatives.",
+    href: "/vs",
+  },
+  ...competitors.map(c => ({
+    title: `vs ${c.name}`,
+    icon: BalanceScaleIcon,
+    description: c.type,
+    href: `/vs/${c.slug}`,
+  }))
+];
+
+const resourceLinks: MenuEntry[] = [
   {
     title: "Blog",
     icon: News01Icon,
@@ -99,10 +115,31 @@ const resources: MenuEntry[] = [
     href: "/help",
   },
   {
-    title: "Changelog",
-    icon: GitBranchIcon,
-    description: "What's new, release by release.",
-    href: "/changelog",
+    title: "Community",
+    icon: UsersGroupIcon,
+    description: "Join the discussion.",
+    href: "/community",
+  },
+];
+
+const companyLinks: MenuEntry[] = [
+  {
+    title: "About Us",
+    icon: UserIcon,
+    description: "Our core beliefs and mission.",
+    href: "/about",
+  },
+  {
+    title: "Contribute",
+    icon: HeartIcon,
+    description: "Support the open-source project.",
+    href: "/contribute",
+  },
+  {
+    title: "Contact",
+    icon: Mail01Icon,
+    description: "Get in touch with the team.",
+    href: "/contact",
   },
 ];
 
@@ -173,7 +210,7 @@ export function Navbar() {
         <div className="mx-auto hidden md:flex">
           <NavigationMenu>
             <NavigationMenuList className="gap-1">
-              {/* Features */}
+              {/* Product */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
                   className={cn(
@@ -181,29 +218,34 @@ export function Navbar() {
                     "text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted"
                   )}
                 >
-                  Features
+                  Product
                 </NavigationMenuTrigger>
-
                 <NavigationMenuContent>
                   <div className="w-[360px] p-1.5">
-                    {features.map((feature) => (
-                      <MenuRow key={feature.title} entry={feature} />
+                    {productLinks.map((entry) => (
+                      <MenuRow key={entry.title} entry={entry} />
                     ))}
                   </div>
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
-              {/* How it works */}
+              {/* Compare */}
               <NavigationMenuItem>
-                <Link
-                  href="/features#how-it-works"
+                <NavigationMenuTrigger
                   className={cn(
-                    "inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-all duration-300",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    "h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-all duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
+                    "text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted"
                   )}
                 >
-                  How it works
-                </Link>
+                  Compare
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <div className="w-[600px] grid grid-cols-2 p-1.5 gap-x-2 gap-y-1">
+                    {compareLinks.map((entry) => (
+                      <MenuRow key={entry.title} entry={entry} />
+                    ))}
+                  </div>
+                </NavigationMenuContent>
               </NavigationMenuItem>
 
               {/* Resources */}
@@ -216,17 +258,35 @@ export function Navbar() {
                 >
                   Resources
                 </NavigationMenuTrigger>
-
                 <NavigationMenuContent>
                   <div className="w-[320px] p-1.5">
-                    {resources.map((resource) => (
-                      <MenuRow key={resource.title} entry={resource} />
+                    {resourceLinks.map((entry) => (
+                      <MenuRow key={entry.title} entry={entry} />
                     ))}
                   </div>
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
-              {/* Pricing */}
+              {/* Company */}
+              <NavigationMenuItem>
+                <NavigationMenuTrigger
+                  className={cn(
+                    "h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-all duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
+                    "text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted"
+                  )}
+                >
+                  Company
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <div className="w-[320px] p-1.5">
+                    {companyLinks.map((entry) => (
+                      <MenuRow key={entry.title} entry={entry} />
+                    ))}
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+
+              {/* Pricing (Outside Dropdown) */}
               <NavigationMenuItem>
                 <Link
                   href="/pricing"
@@ -236,19 +296,6 @@ export function Navbar() {
                   )}
                 >
                   Pricing
-                </Link>
-              </NavigationMenuItem>
-
-              {/* Contribute */}
-              <NavigationMenuItem>
-                <Link
-                  href="/contribute"
-                  className={cn(
-                    "inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-all duration-300",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  )}
-                >
-                  Contribute
                 </Link>
               </NavigationMenuItem>
             </NavigationMenuList>
@@ -393,62 +440,65 @@ export function Navbar() {
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                       Product
                     </h4>
-                    <div className="space-y-2">
-                      <Link
-                        href="/features#how-it-works"
-                        className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
-                      >
-                        How it works
-                      </Link>
+                    <div className="space-y-1 mb-6">
+                      {productLinks.map((entry) => (
+                        <Link
+                          key={entry.title}
+                          href={entry.href}
+                          className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
+                        >
+                          {entry.title}
+                        </Link>
+                      ))}
                       <Link
                         href="/pricing"
                         className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
                       >
                         Pricing
                       </Link>
-                      <Link
-                        href="/contribute"
-                        className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
-                      >
-                        Contribute
-                      </Link>
                     </div>
-                  </div>
 
-                  <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                      Features
+                      Compare
                     </h4>
-                    <div className="grid grid-cols-1 gap-1">
-                      {features.map((feature) => (
+                    <div className="space-y-1 mb-6">
+                      {compareLinks.map((entry) => (
                         <Link
-                          key={feature.title}
-                          href={feature.href}
-                          className="group block px-2 py-2 rounded-lg hover:bg-muted transition-colors"
+                          key={entry.title}
+                          href={entry.href}
+                          className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
                         >
-                          <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                            {feature.title}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {feature.description}
-                          </div>
+                          {entry.title}
                         </Link>
                       ))}
                     </div>
-                  </div>
 
-                  <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                       Resources
                     </h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {resources.map((resource) => (
+                    <div className="space-y-1 mb-6">
+                      {resourceLinks.map((entry) => (
                         <Link
-                          key={resource.title}
-                          href={resource.href}
-                          className="block px-2 py-1.5 text-sm text-foreground hover:bg-muted rounded-md transition-colors"
+                          key={entry.title}
+                          href={entry.href}
+                          className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
                         >
-                          {resource.title}
+                          {entry.title}
+                        </Link>
+                      ))}
+                    </div>
+
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                      Company
+                    </h4>
+                    <div className="space-y-1">
+                      {companyLinks.map((entry) => (
+                        <Link
+                          key={entry.title}
+                          href={entry.href}
+                          className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
+                        >
+                          {entry.title}
                         </Link>
                       ))}
                     </div>

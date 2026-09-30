@@ -57,11 +57,19 @@ const sections: { title: string; links: FooterLink[] }[] = [
     title: "Product",
     links: [
       { label: "Features", href: "/features" },
-      { label: "How it works", href: "/features#how-it-works" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Contribute", href: "/contribute" },
       { label: "Changelog", href: "/changelog" },
+      { label: "GitHub", href: GITHUB_URL, external: true },
       { label: "Report a bug", href: "/report" },
+    ],
+  },
+  {
+    title: "Compare",
+    links: [
+      { label: "vs Raindrop", href: "/vs/raindrop" },
+      { label: "vs Notion", href: "/vs/notion" },
+      { label: "vs Evernote", href: "/vs/evernote" },
+      { label: "View all", href: "/vs" },
     ],
   },
   {
@@ -77,6 +85,7 @@ const sections: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
+      { label: "Contribute", href: "/contribute" },
     ],
   },
   {
@@ -84,6 +93,8 @@ const sections: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: "Privacy", href: "/privacy" },
       { label: "Terms", href: "/terms" },
+      { label: "Cookie Policy", href: "/cookies" },
+      { label: "Security", href: "/security" },
     ],
   },
 ];
@@ -171,7 +182,7 @@ export function MainFooter() {
             </div>
           </motion.div>
 
-          <motion.nav variants={footerContainer} aria-label="Footer" className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
+          <motion.nav variants={footerContainer} aria-label="Footer" className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 md:grid-cols-5">
             {sections.map((section) => (
               <motion.div key={section.title} variants={riseItem}>
                 <h3 className="text-sm font-medium text-foreground">{section.title}</h3>

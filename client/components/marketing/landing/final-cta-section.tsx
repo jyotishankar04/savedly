@@ -6,6 +6,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon as ArrowRightIcon, CheckIcon as CheckIcon } from "@hugeicons/core-free-icons";
 import { SHOWCASE_MODE } from "@/lib/showcase";
 import { useAuthCta } from "@/hooks/use-auth-cta";
+import { GITHUB_CONFIGURED, GITHUB_URL } from "@/lib/open-source";
 
 // Three facts that are true, in place of the invented social proof CTA
 // templates usually carry (there are no customer counts or ratings to cite).
@@ -30,10 +31,10 @@ export function FinalCtaSection() {
         className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[#1447E6] px-7 py-16 text-white sm:px-12 sm:py-20 lg:px-16 lg:py-24"
       >
         <h2 className="max-w-3xl text-4xl leading-[1.04] font-semibold tracking-[-0.035em] text-balance sm:text-5xl lg:text-[4rem]">
-          Save the next thing you&apos;d lose. Ask for it back whenever you need it.
+          Save the next thing you don&apos;t want to lose.
         </h2>
         <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/85">
-          Articles, PDFs, screenshots and voice notes, read and tagged and searchable the moment you save them.
+          You don&apos;t have to remember where you saved it. Just ask Memora when you need it back.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-3">
@@ -41,15 +42,26 @@ export function FinalCtaSection() {
             href={cta.href}
             className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-[15px] font-medium text-[#0B1B4D] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1447E6] active:translate-y-0"
           >
-            {SHOWCASE_MODE && !cta.isAuthenticated ? "Join the waitlist" : cta.label}
+            {cta.isAuthenticated ? cta.label : SHOWCASE_MODE ? "Join the waitlist" : "Start saving"}
             <HugeiconsIcon icon={ArrowRightIcon} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
-          <Link
-            href="/features"
-            className="inline-flex h-12 items-center rounded-full px-6 text-[15px] font-medium text-white ring-1 ring-white/45 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            See how it works
-          </Link>
+          {GITHUB_CONFIGURED ? (
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-12 items-center rounded-full px-6 text-[15px] font-medium text-white ring-1 ring-white/45 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              View on GitHub
+            </a>
+          ) : (
+            <Link
+              href="/features"
+              className="inline-flex h-12 items-center rounded-full px-6 text-[15px] font-medium text-white ring-1 ring-white/45 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              See how it works
+            </Link>
+          )}
         </div>
 
         <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/85">

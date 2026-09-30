@@ -51,7 +51,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ThemeShortcut />
           <QueryProvider>
             <Toaster>
-              <AnnouncementGate>{children}</AnnouncementGate>
+              <ComingSoonGate>
+                <AnnouncementGate>{children}</AnnouncementGate>
+              </ComingSoonGate>
             </Toaster>
           </QueryProvider>
         </ThemeProvider>

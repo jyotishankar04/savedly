@@ -39,10 +39,12 @@ interface GithubStarButtonProps {
   /** "nav" is the compact bar pill; "hero" matches the hero's large buttons; "menu" fills the mobile sheet. */
   variant?: "nav" | "hero" | "menu";
   className?: string;
+  /** Overrides the default "Star on GitHub" text for the non-nav variants. */
+  label?: string;
 }
 
 /** Links to the repo, where the star itself happens; GitHub doesn't allow starring from another site. */
-export function GithubStarButton({ variant = "nav", className }: GithubStarButtonProps) {
+export function GithubStarButton({ variant = "nav", className, label }: GithubStarButtonProps) {
   const stars = useStarCount();
   if (!GITHUB_CONFIGURED) return null;
 
@@ -65,7 +67,7 @@ export function GithubStarButton({ variant = "nav", className }: GithubStarButto
       )}
     >
       <HugeiconsIcon icon={GithubIcon} strokeWidth={2} className={variant === "hero" ? "h-5 w-5" : "h-4 w-4"} />
-      <span>{variant === "nav" ? "Star" : "Star on GitHub"}</span>
+      <span>{variant === "nav" ? "Star" : (label ?? "Star on GitHub")}</span>
       {stars !== null && (
         <span
           className={cn(

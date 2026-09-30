@@ -23,9 +23,26 @@ interface Faq {
 
 const FAQS: Faq[] = [
   {
-    question: "What actually happens when I save something?",
+    question: "What can I save?",
+    answer: "Links, notes, screenshots, PDFs, documents, videos, voice notes, and more.",
+  },
+  {
+    question: "How does Memora find things?",
     answer:
-      "It's read (transcribed if it's audio, OCR'd if it's an image, extracted if it's a document), summarized, tagged, and embedded into your memory graph — automatically, the same four steps every time, whatever format it came in.",
+      "Memora understands the content and meaning of what you save, so you can search using normal words instead of remembering exact titles or keywords.",
+  },
+  {
+    question: "Can I ask questions about my saved things?",
+    answer: "Yes. Ask questions in plain English and Memora uses your saved memories to help you find the answer.",
+  },
+  {
+    question: "Is Memora open source?",
+    answer: "Yes. You can inspect the code, run Memora yourself, and contribute to the project.",
+  },
+  {
+    question: "Where is my data stored?",
+    answer:
+      "Your data is stored according to the deployment you choose. If you self-host Memora, you control the infrastructure and data.",
   },
   {
     question: "Is my vault encrypted?",
@@ -59,9 +76,26 @@ export function FaqSection() {
 
   return (
     <section id="faq" className="bg-background px-5 py-16 sm:px-6 md:py-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": FAQS.map((faq) => ({
+              "@type": "Question",
+              "name": faq.question,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": faq.answer,
+              },
+            })),
+          }),
+        }}
+      />
       <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <div className="max-w-sm">
-          <h2 className="text-3xl leading-[1.08] font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">Frequently asked questions</h2>
+          <h2 className="text-3xl leading-[1.08] font-semibold tracking-[-0.03em] text-foreground sm:text-4xl">A few things you might be wondering.</h2>
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground">The honest version of what the rest of this page claims.</p>
         </div>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion, type Variants } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon as ArrowRightIcon } from "@hugeicons/core-free-icons";
 import { Navbar } from "@/components/marketing/navbar";
@@ -22,66 +22,12 @@ const TABS: { id: ScreenName; label: string; caption: string }[] = [
 ];
 const ROTATE_MS = 6500;
 
-// The six real memory types (types/memory.ts), placed around one library.
-// Coordinates share the SVG's 420x360 box so labels and lines line up.
-const NODES = [
-  { label: "article", x: 78, y: 58 },
-  { label: "video", x: 330, y: 44 },
-  { label: "screenshot", x: 372, y: 196 },
-  { label: "pdf", x: 318, y: 318 },
-  { label: "voice memo", x: 92, y: 306 },
-  { label: "note", x: 40, y: 188 },
-];
-const HUB = { x: 212, y: 182 };
-
-function SignalDiagram({ className }: { className?: string }) {
-  const pct = (v: number, of: number) => `${(v / of) * 100}%`;
-  return (
-    <div className={cn("relative aspect-[420/360] w-full max-w-[440px]", className)} aria-hidden>
-      <svg viewBox="0 0 420 360" className="absolute inset-0 h-full w-full overflow-visible">
-        {NODES.map((n) => (
-          <g key={n.label}>
-            <line x1={n.x} y1={n.y} x2={HUB.x} y2={HUB.y} className="stroke-foreground/15" strokeWidth={1} />
-            <line
-              x1={n.x}
-              y1={n.y}
-              x2={HUB.x}
-              y2={HUB.y}
-              className="stroke-primary [animation:signal-flow_1.8s_linear_infinite] motion-reduce:[animation:none]"
-              strokeWidth={1.5}
-              strokeDasharray="3 11"
-              strokeLinecap="round"
-            />
-          </g>
-        ))}
-      </svg>
-      {NODES.map((n) => (
-        <span
-          key={n.label}
-          style={{ left: pct(n.x, 420), top: pct(n.y, 360) }}
-          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-md bg-background px-2 py-1 font-mono text-[11px] whitespace-nowrap text-foreground ring-1 ring-foreground/15"
-        >
-          {n.label}
-        </span>
-      ))}
-      <span
-        style={{ left: pct(HUB.x, 420), top: pct(HUB.y, 360) }}
-        className="absolute -translate-x-1/2 -translate-y-1/2 rounded-lg bg-primary px-3 py-1.5 font-mono text-xs font-medium whitespace-nowrap text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]"
-      >
-        your library
-      </span>
-    </div>
-  );
-}
-
 function ProductTabs() {
   const reduce = useReducedMotion();
   const [active, setActive] = useState<ScreenName>("home");
   const [paused, setPaused] = useState(false);
   const [touched, setTouched] = useState(false);
 
-  // Walks the tabs on its own until the visitor picks one; never under
-  // reduced motion, and it holds while the pointer is over the window.
   useEffect(() => {
     if (reduce || touched || paused) return;
     const t = setTimeout(() => {
@@ -97,133 +43,157 @@ function ProductTabs() {
       initial={{ opacity: 0, y: 48, filter: "blur(8px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={reduce ? { duration: 0 } : { duration: 1.1, ease: EASE, delay: 0.55 }}
-      className="mt-16 md:mt-20"
+      className="mt-16 md:mt-24 text-left mx-auto w-full max-w-6xl"
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div role="tablist" aria-label="App screens" className="flex w-fit gap-1 rounded-full bg-foreground/5 p-1">
+        <div role="tablist" aria-label="App screens" className="flex w-fit mx-auto sm:mx-0 gap-1 rounded-full bg-foreground/5 p-1">
           {TABS.map((tab) => {
             const selected = tab.id === active;
             return (
               <button
                 key={tab.id}
-                type="button"
                 role="tab"
-                id={`screen-tab-${tab.id}`}
                 aria-selected={selected}
-                aria-controls="screen-panel"
+                aria-controls={`panel-${tab.id}`}
                 onClick={() => {
-                  setActive(tab.id);
                   setTouched(true);
+                  setActive(tab.id);
                 }}
                 className={cn(
-                  "relative h-8 overflow-hidden rounded-full px-3.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                  selected ? "bg-background text-foreground shadow-sm ring-1 ring-foreground/10" : "text-muted-foreground hover:text-foreground",
+                  "relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                  selected ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {tab.label}
-                {selected && !touched && !reduce && (
-                  <span
-                    key={active}
-                    aria-hidden
-                    className={cn("absolute inset-x-3 bottom-1 h-px origin-left bg-primary", paused ? "[animation-play-state:paused]" : "")}
-                    style={{ animation: `tab-progress ${ROTATE_MS}ms linear forwards` }}
+                {selected && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 rounded-full bg-background shadow-sm ring-1 ring-foreground/10"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   />
                 )}
+                <span className="relative z-10">{tab.label}</span>
               </button>
             );
           })}
         </div>
-        <p aria-live="polite" className="max-w-sm text-sm text-muted-foreground sm:text-right">
+        <p className="text-sm text-muted-foreground text-center sm:text-right hidden sm:block" aria-live="polite">
           {current.caption}
         </p>
       </div>
 
       <BrowserFrame url={SCREENS[active].path}>
-        <div id="screen-panel" role="tabpanel" aria-labelledby={`screen-tab-${active}`} className="relative">
-          {TABS.map((tab, i) => (
-            <div
-              key={tab.id}
-              aria-hidden={tab.id !== active}
-              className={cn(
-                "transition-[opacity,filter] duration-500 ease-out",
-                i === 0 ? "relative" : "absolute inset-0",
-                tab.id === active ? "opacity-100 blur-0" : "pointer-events-none opacity-0 blur-[2px]",
-              )}
-            >
-              <ProductShot name={tab.id} priority={i === 0} />
-            </div>
-          ))}
-        </div>
+        <ProductShot name={active} priority={true} />
       </BrowserFrame>
     </motion.div>
   );
 }
 
+const sectionVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.11, delayChildren: 0.16 } },
+};
+
+const riseVariants: Variants = {
+  hidden: { opacity: 0, y: 18, filter: "blur(8px)" },
+  visible: {
+    opacity: 1, y: 0, filter: "blur(0px)",
+    transition: { type: "spring", duration: 0.75, bounce: 0 },
+  },
+};
+
+const ctaVariants: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.98, filter: "blur(8px)" },
+  visible: {
+    opacity: 1, y: 0, scale: 1, filter: "blur(0px)",
+    transition: { type: "spring", duration: 0.85, bounce: 0 },
+  },
+};
+
+const skylightVariants: Variants = {
+  hidden: { opacity: 0, y: -18, scale: 0.96, filter: "blur(12px)" },
+  visible: {
+    opacity: 1, y: 0, scale: 1, filter: "blur(0px)",
+    transition: { type: "spring", duration: 1.05, bounce: 0 },
+  },
+};
+
 export function HeroProduct() {
   const cta = useAuthCta();
-  const reduce = useReducedMotion();
-  // The start state is always declared (server and client agree); reduced
-  // motion only makes the transition instant, so content is never left hidden.
-  const rise = (delay: number) => ({
-    initial: { opacity: 0, y: 22 },
-    animate: { opacity: 1, y: 0 },
-    transition: reduce ? { duration: 0 } : { duration: 0.9, ease: EASE, delay },
-  });
 
   return (
-    <section className="relative overflow-hidden bg-background selection:bg-primary/25">
-      <Navbar />
-      <div className="mx-auto w-full max-w-6xl px-5 pt-32 pb-8 sm:px-6 md:pt-40">
-        <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
-          <div>
-            <motion.h1
-              {...rise(0.05)}
-              className="text-[2.75rem] leading-[1.02] font-semibold tracking-[-0.035em] text-balance text-foreground sm:text-6xl lg:text-[4.5rem]"
-            >
-              Save anything.
-              <br />
-              Ask it anything.
-            </motion.h1>
-            <motion.p {...rise(0.18)} className="mt-6 max-w-lg text-lg leading-relaxed text-pretty text-muted-foreground">
-              Articles, PDFs, screenshots, voice notes, YouTube links. Each one is read, transcribed, summarized and tagged on the
-              way in, then searchable by meaning and answerable in plain English.
-            </motion.p>
-            <motion.div {...rise(0.3)} className="mt-9 flex flex-wrap items-center gap-3">
-              <Link
-                href={cta.href}
-                className="group inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-[background-color,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]"
-              >
-                {cta.label}
-                <HugeiconsIcon icon={ArrowRightIcon} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-              <GithubStarButton variant="hero" />
-              <Link
-                href="/features"
-                className="hidden h-11 items-center gap-1.5 rounded-full px-3 text-[15px] font-medium text-foreground underline-offset-4 hover:underline sm:inline-flex"
-              >
-                See what it does
-              </Link>
-            </motion.div>
-            <motion.p {...rise(0.4)} className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-              {SHOWCASE_MODE ? "Early access: join the waitlist" : "Free plan · open source · self-host it"}
-            </motion.p>
-          </div>
+    <section className="relative isolate overflow-hidden bg-background selection:bg-primary/25 font-sans antialiased">
+      {/* Light Mode Background */}
+      <motion.img
+        variants={skylightVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        src="/landing/hero-bg-light.jpg"
+        alt=""
+        className="blur-sm pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-top opacity-60 dark:hidden"
+      />
+      
+      {/* Dark Mode Background */}
+      <motion.img
+        variants={skylightVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        src="/landing/hero-bg-dark.jpg"
+        alt=""
+        className="blur-sm hidden pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-top opacity-40 dark:block"
+      />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background/10 via-background/60 to-background" />
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={reduce ? { duration: 0 } : { duration: 1.2, ease: EASE, delay: 0.25 }}
-            className="hidden w-full max-w-[440px] justify-self-end lg:block"
+      <Navbar />
+      <motion.div
+        className="relative flex w-full flex-col overflow-hidden px-5 sm:px-8 lg:px-9 pt-32 md:pt-40"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.35 }}
+        variants={sectionVariants}
+      >
+        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-center pb-14 text-center">
+          
+          <motion.h1
+            variants={riseVariants}
+            className="max-w-5xl text-[clamp(2.25rem,4.6vw,4.25rem)] leading-[1.12] font-semibold tracking-[-0.03em] text-balance text-foreground"
           >
-            <SignalDiagram />
+            <span className="block">Save it now.</span>
+            <span className="block md:whitespace-nowrap">Find it when you need it.</span>
+            <span className="mt-4 block font-[Georgia,serif] text-[0.58em] leading-[1.3] font-normal tracking-[-0.02em] text-primary italic md:mt-5 md:whitespace-nowrap">
+              Without remembering where you put it.
+            </span>
+          </motion.h1>
+
+          <motion.p
+            variants={riseVariants}
+            className="mt-8 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground"
+          >
+            Links, notes, screenshots, PDFs, videos, and voice notes—all the things you don&apos;t want to lose. Memora keeps them organized and helps you find them again, even when you don&apos;t remember what you called them.
+          </motion.p>
+
+          <motion.div variants={ctaVariants} className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href={cta.href}
+              className="group inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.96]"
+            >
+              {cta.isAuthenticated ? cta.label : "Start saving"}
+              <HugeiconsIcon icon={ArrowRightIcon} className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <GithubStarButton variant="hero" label="Explore on GitHub" />
           </motion.div>
+          
+          <motion.p variants={ctaVariants} className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+            {SHOWCASE_MODE ? "Early access: join the waitlist" : "Free to use · Open source · Self-hostable"}
+          </motion.p>
         </div>
 
         <ProductTabs />
-      </div>
+      </motion.div>
     </section>
   );
 }
