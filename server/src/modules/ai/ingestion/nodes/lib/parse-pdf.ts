@@ -29,7 +29,7 @@ async function summarizeFirstPage(pageOneText: string, totalPages: number, usage
     captionContext: caption ? ` titled/captioned "${caption}"` : "",
     pageOneText: pageOneText.slice(0, MAX_CONTENT_LENGTH),
   });
-  return (await invokeWithFallback(await getTextFallbackModels(usage.userId), messages, usage)).trim();
+  return (await invokeWithFallback(await getTextFallbackModels(usage.userId, { kind: "save", memoryId: usage.memoryId ?? null }), messages, usage)).trim();
 }
 
 /**

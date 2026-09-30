@@ -1,4 +1,5 @@
 import { apiFetch, apiFetchRaw } from "@/lib/auth";
+import type { BillingStatus } from "@/lib/plans";
 
 export interface AdminUser {
   id: string;
@@ -74,4 +75,65 @@ export async function updateUserStatus(id: string, status: AdminUser["status"]):
     method: "PATCH",
     body: { status },
   });
+}
+
+/** Dev builds and self-hosted installs only: hosted production rejects it. */
+export async function deleteUser(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/users/${id}`, { method: "DELETE" });
+}
+
+/** An admin adds an account directly with a temporary password (works with public signups off). */
+export async function createUser(input: {
+  name: string;
+  email: string;
+  password: string;
+  role: "user" | "admin";
+}): Promise<{ id: string; email: string; name: string | null }> {
+  return apiFetch(`/admin/users`, { method: "POST", body: input });
+}
+
+/** Sets a new password for a user and signs them out everywhere. */
+export async function setUserPassword(id: string, password: string): Promise<void> {
+  await apiFetch(`/admin/users/${id}/password`, { method: "PUT", body: { password } });
+}
+
+export type PlanSource = "subscription" | "admin_manual" | "signup_default";
+
+export interface UserPlanHistoryRow {
+  id: string;
+  planKey: string;
+  planName: string;
+  status: "active" | "expired" | "cancelled" | "superseded";
+  source: PlanSource;
+  startsAt: string;
+  endsAt: string | null;
+  reason: string | null;
+  assignedByEmail: string | null;
+  currency: string;
+  /** Admin grants only: what it's worth at the plan's price. */
+  value: { monthlyMinor: number; givenSoFarMinor: number; stillToComeMinor: number } | null;
+}
+
+export interface AdminUserPlan {
+  /** Their live Dodo subscription: when `changeable`, the admin form changes it instead of granting. */
+  billing: BillingStatus["subscription"];
+  current: { planKey: string; planName: string; source: PlanSource | null; endsAt: string | null; reason: string | null };
+  /** The paid subscription underneath, if any — what they fall back to when a grant ends. */
+  subscription: UserPlanHistoryRow | null;
+  hasActiveGrant: boolean;
+  history: UserPlanHistoryRow[];
+}
+
+export function getUserPlan(id: string): Promise<AdminUserPlan> {
+  return apiFetch<AdminUserPlan>(`/admin/users/${id}/plan`);
+}
+
+/** Puts the user on `planKey` until `endsAt` (null = no end), over whatever they pay for. Doesn't touch billing. */
+export function grantUserPlan(id: string, input: { planKey: string; endsAt: string | null; reason?: string }): Promise<AdminUserPlan> {
+  return apiFetch<AdminUserPlan>(`/admin/users/${id}/plan`, { method: "POST", body: input });
+}
+
+/** Ends the admin grant: back to what they pay for, or the default plan. */
+export function removeUserPlanGrant(id: string): Promise<AdminUserPlan> {
+  return apiFetch<AdminUserPlan>(`/admin/users/${id}/plan`, { method: "DELETE" });
 }

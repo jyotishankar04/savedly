@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { getCalendarConnectUrl, type CalendarProviderKey } from "@/lib/calendar-api";
 import { useCalendarConnectionsQuery, useDisconnectCalendarMutation } from "@/hooks/use-calendar";
 import { cn } from "@/lib/utils";
+import { usePlanFeature } from "@/hooks/use-plan-limit";
+import { ProBadge } from "@/components/plan-limit-notice";
 
 /** Official Google "G" mark — small enough that a colored circle badge alone wouldn't read as Google. */
 function GoogleLogo({ className }: { className?: string }) {
@@ -143,11 +145,24 @@ function IntegrationCard({
   );
 }
 
+function UpgradePill({ plan }: { plan: string | null }) {
+  return (
+    <Link href="/app/settings/billing" className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-primary hover:underline">
+      <ProBadge label={plan} />
+      Upgrade to connect
+    </Link>
+  );
+}
+
 export default function IntegrationsPage() {
   const [query, setQuery] = React.useState("");
   const [activeCategory, setActiveCategory] = React.useState<Category | "All">("All");
 
   const { data: calendarConnections } = useCalendarConnectionsQuery();
+  // Connecting a calendar is a plan feature; an existing connection keeps
+  // working and can always be disconnected.
+  const googleSync = usePlanFeature("calendarSync");
+  const microsoftSync = usePlanFeature("calendarMicrosoft");
   const disconnectMutation = useDisconnectCalendarMutation();
   function isCalendarConnected(provider: CalendarProviderKey): boolean {
     return calendarConnections?.some((c) => c.provider === provider) ?? false;
@@ -246,9 +261,13 @@ export default function IntegrationsPage() {
                     </button>
                   </div>
                 ) : (
-                  <ConnectPill state="available" render={<a href={getCalendarConnectUrl("google")} />} nativeButton={false}>
-                    Connect
-                  </ConnectPill>
+                  googleSync.allowed ? (
+                    <ConnectPill state="available" render={<a href={getCalendarConnectUrl("google")} />} nativeButton={false}>
+                      Connect
+                    </ConnectPill>
+                  ) : (
+                    <UpgradePill plan={googleSync.requiredPlan} />
+                  )
                 )
               }
             />
@@ -278,9 +297,13 @@ export default function IntegrationsPage() {
                     </button>
                   </div>
                 ) : (
-                  <ConnectPill state="available" render={<a href={getCalendarConnectUrl("microsoft")} />} nativeButton={false}>
+                  microsoftSync.allowed ? (
+                    <ConnectPill state="available" render={<a href={getCalendarConnectUrl("microsoft")} />} nativeButton={false}>
                     Connect
                   </ConnectPill>
+                  ) : (
+                    <UpgradePill plan={microsoftSync.requiredPlan} />
+                  )
                 )
               }
             />

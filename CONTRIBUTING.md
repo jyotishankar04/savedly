@@ -4,6 +4,8 @@ Thanks for considering a contribution — bug fixes, new features, documentation
 
 By participating, you're expected to follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
+SaveForLatter is licensed under [AGPL-3.0](./LICENSE). By submitting a contribution, you agree that it's licensed under the same terms.
+
 ## Ways to contribute
 
 - **Report a bug** — [open an issue](https://github.com/jyotishankar04/saveforlatter/issues/new) with steps to reproduce, what you expected, and what actually happened.

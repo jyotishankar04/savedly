@@ -20,7 +20,7 @@ export async function correctCaption(state: IngestionStateType): Promise<Ingesti
     return { correctedCaption: null };
   }
 
-  const model = await getChatModel(state.userId, "fast");
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
   if (!model) {
     logNode(state.memoryId, "correctCaption", { skipped: "AI not configured" });
     return { correctedCaption: null };

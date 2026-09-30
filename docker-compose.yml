@@ -1,0 +1,87 @@
+# SaveForLatter, self-hosted. Start everything with one command:
+#
+#   docker compose up -d
+#
+# then open http://localhost:3000 and create your admin account. Secrets are
+# generated on first boot; storage, vector store, email, embeddings and
+# Google/GitHub sign-in are set up later from Admin -> Configuration ->
+# Infrastructure (or with env vars in a .env file next to this one — env
+# always wins). Full guide: docs/SELF_HOSTING.md
+#
+# Optional .env variables read by this file:
+#   PUBLIC_URL         the address people open (default http://localhost:3000)
+#   PORT               host port for the app (default 3000)
+#   POSTGRES_PASSWORD  database password (default "saveforlatter"; the
+#                      database isn't exposed outside this compose network)
+#   TRUST_PROXY        reverse proxies in front of the API (default 1: the
+#                      app's own proxy; use 2 behind Caddy/nginx)
+
+name: saveforlatter
+
+services:
+  db:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: saveforlatter
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-saveforlatter}
+      POSTGRES_DB: saveforlatter
+    volumes:
+      - db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saveforlatter -d saveforlatter"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    # Any setting from docs/SELF_HOSTING.md (S3_*, SMTP_*, EMBEDDINGS_*,
+    # GOOGLE_CLIENT_ID, …) can go in a .env file here instead of the admin UI.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SELF_HOSTED: "true"
+      DATABASE_URL: postgresql://saveforlatter:${POSTGRES_PASSWORD:-saveforlatter}@db:5432/saveforlatter
+      REDIS_URL: redis://redis:6379
+      FRONTEND_URL: ${PUBLIC_URL:-http://localhost:3000}
+      SERVER_URL: ${PUBLIC_URL:-http://localhost:3000}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+    volumes:
+      - secrets:/data/secrets
+      - files:/data/files
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  client:
+    build: ./client
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://server:4000
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      - server
+
+volumes:
+  db:
+  redis:
+  secrets:
+  files:

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -27,6 +28,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
@@ -40,7 +42,9 @@ import {
   listCredentials,
   listRoleAssignments,
   PROVIDER_LABEL,
-  RECOMMENDED_MODELS,
+  formatModelPrice,
+  listCredentialModels,
+  modelFitsRole,
   ROLE_DESCRIPTION,
   ROLE_LABEL,
   unassignRole,
@@ -49,24 +53,136 @@ import {
   type AiProvider,
   type AiRole,
   type AiRoleAssignment,
+  AI_STATUS_QUERY_KEY,
+  getAiStatus,
+  type AiAllowance,
+  type AiStatus,
 } from "@/lib/ai-settings";
 
-const PROVIDERS: AiProvider[] = ["openai", "anthropic", "groq", "google", "custom"];
+const PROVIDERS: AiProvider[] = ["openrouter", "openai", "anthropic", "groq", "google", "custom"];
+const MAX_MODEL_SUGGESTIONS = 8;
 const ROLES: AiRole[] = ["fast", "reasoning", "vision", "embeddings"];
 
+/** Own-key mode: one line on the plan's small included-AI allowance, if it has one. */
+function IncludedAiNote({ status }: { status: AiStatus | undefined }) {
+  const own = "Keys you add here are used only for your account and are never shared.";
+  const included = status?.included;
+  if (!included || !status?.includedReady) {
+    return <p className="text-[10px] text-muted-foreground leading-relaxed">Bring your own API key from any provider. {own}</p>;
+  }
+  return (
+    <p className="text-[10px] text-muted-foreground leading-relaxed">
+      Your plan includes some AI we supply: AI processing for {left(included.saves)} saves and {left(included.questions)} Ask
+      questions left this month. Add your
+      own key below and it&apos;s used instead, with no limits. {own}
+    </p>
+  );
+}
+
+const left = (a: AiAllowance) => (a.limit === null ? "unlimited" : Math.max(0, a.limit - a.used).toLocaleString("en-US"));
+
+/** Managed mode (AI included): nothing to configure — show what the plan supplies and how much is left. */
+function ManagedAiPanel({ status }: { status: AiStatus }) {
+  const rows = status.included
+    ? [
+        { label: "AI processing (saves)", a: status.included.saves },
+        { label: "Ask questions", a: status.included.questions },
+      ]
+    : [];
+  return (
+    <section className="space-y-3">
+      <div className="p-5 border border-border bg-card rounded-xl space-y-4">
+        <div>
+          <h4 className="text-foreground text-xs font-bold">AI is included in your plan</h4>
+          <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed font-medium">
+            We choose fast, capable models and run them for you: reading and filing what you save, answering your questions, and reading
+            images. There&apos;s nothing to set up.
+          </p>
+        </div>
+
+        {!status.includedReady && (
+          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+            AI isn&apos;t available on this server yet. It starts working as soon as it&apos;s set up; nothing is needed from you.
+          </p>
+        )}
+
+        <div className="space-y-3">
+          {rows.map(({ label, a }) => {
+            const pct = a.limit === null || a.limit === 0 ? 0 : Math.min(100, Math.round((a.used / a.limit) * 100));
+            return (
+              <div key={label} className="space-y-1.5">
+                <div className="flex items-center justify-between gap-3 text-[10px]">
+                  <span className="text-foreground">{label} this month</span>
+                  <span className="text-muted-foreground font-mono tabular-nums">
+                    {a.limit === null ? "Unlimited" : `${a.used.toLocaleString("en-US")} / ${a.limit.toLocaleString("en-US")}`}
+                  </span>
+                </div>
+                {a.limit !== null && a.limit > 0 && (
+                  <div className="h-1 rounded-full bg-muted overflow-hidden" aria-hidden>
+                    <div
+                      className={cn("h-full rounded-full", pct >= 90 ? "bg-destructive" : pct >= 75 ? "bg-amber-500" : "bg-primary")}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
+          Allowances reset at the start of each month.{" "}
+          <Link href="/app/settings/billing" className="text-primary hover:underline">
+            See your plan
+          </Link>
+          .
+        </p>
+      </div>
+
+      {status.savedKeysIgnored > 0 && (
+        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
+          You have {status.savedKeysIgnored} saved API {status.savedKeysIgnored === 1 ? "key" : "keys"} from before. {status.savedKeysIgnored === 1 ? "It's" : "They're"} kept
+          but not used while AI is included in your plan, and {status.savedKeysIgnored === 1 ? "is" : "are"} used again if you move to a plan
+          where you bring your own key.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function AISettingsPage() {
+  const { data: status, isLoading } = useQuery({ queryKey: AI_STATUS_QUERY_KEY, queryFn: getAiStatus });
+  const managed = status?.mode === "managed";
+
   return (
     <div className="space-y-10 max-w-2xl text-xs font-semibold">
       <div className="space-y-1 pb-4 border-b border-border/25">
         <h3 className="text-sm font-bold text-foreground">AI</h3>
-        <p className="text-[10px] text-muted-foreground leading-relaxed">
-          This product doesn&apos;t pay for AI on your behalf — bring your own API key from any provider, and it&apos;s used only for your account. Nothing is shared with us or anyone else.
-        </p>
+        {managed ? (
+          <p className="text-[10px] text-muted-foreground leading-relaxed">Your plan includes AI, so there are no keys or models to manage.</p>
+        ) : (
+          <>
+            <IncludedAiNote status={status} />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Not sure which models to use?{" "}
+              <Link href="/help/model-selection" className="text-primary hover:underline">
+                Compare models and prices
+              </Link>
+              .
+            </p>
+          </>
+        )}
       </div>
 
-      <ProviderKeysSection />
-      <ModelRolesSection />
-      <AiFeatureToggles />
+      {isLoading ? null : managed && status ? (
+        <ManagedAiPanel status={status} />
+      ) : (
+        <>
+          <ProviderKeysSection />
+          <ModelRolesSection />
+        </>
+      )}
+      <AiFeatureToggles managed={managed} />
     </div>
   );
 }
@@ -166,6 +282,9 @@ function ProviderKeysSection() {
       <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <AlertDialogMedia tone="warning">
+              <HugeiconsIcon icon={Trash} strokeWidth={2} />
+            </AlertDialogMedia>
             <AlertDialogTitle>Remove &quot;{deleting?.label}&quot;?</AlertDialogTitle>
             <AlertDialogDescription>
               Any role currently using this key (Fast/Reasoning/Vision/Embeddings) will become unconfigured until you assign a different key.
@@ -223,7 +342,7 @@ function CredentialForm({ editing, onDone }: { editing: AiCredential | null; onD
           <Label>Provider</Label>
           <Select value={provider} onValueChange={(v) => v && setProvider(v as AiProvider)}>
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>{(value: AiProvider) => PROVIDER_LABEL[value]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {PROVIDERS.map((p) => (
@@ -335,13 +454,27 @@ function RoleForm({
   }, [rolesLoading, current]);
 
   const selectedCredential = eligibleCredentials.find((c) => c.id === credentialId);
-  const recommendations = selectedCredential ? RECOMMENDED_MODELS[selectedCredential.provider][role] ?? [] : [];
+  // Live list of every model this key can use (asked of its provider, priced
+  // from OpenRouter's catalog). Typing in the model box filters it.
+  const { data: modelList, isLoading: modelsLoading } = useQuery({
+    queryKey: ["ai-settings", "credential-models", credentialId],
+    queryFn: () => listCredentialModels(credentialId),
+    enabled: Boolean(selectedCredential),
+    staleTime: 5 * 60 * 1000,
+  });
+  const roleModels = (modelList?.models ?? []).filter((m) => modelFitsRole(m, role));
+  const search = model.trim().toLowerCase();
+  const suggestions = roleModels
+    .filter((m) => !search || m.id.toLowerCase().includes(search) || m.name.toLowerCase().includes(search))
+    .filter((m) => m.id !== model)
+    .sort((a, b) => (a.inputPrice ?? Infinity) - (b.inputPrice ?? Infinity))
+    .slice(0, MAX_MODEL_SUGGESTIONS);
   const isDirty = credentialId !== (current?.credentialId ?? "") || model !== (current?.model ?? "");
 
   const assignMutation = useMutation({
     mutationFn: () => assignRole(role, { credentialId, model }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ai-settings", "roles"] });
+      queryClient.invalidateQueries({ queryKey: ["ai-settings"] });
       toast.add({ title: `${ROLE_LABEL[role]} configured and verified.`, type: "success" });
     },
     onError: (err) => {
@@ -352,7 +485,7 @@ function RoleForm({
   const unassignMutation = useMutation({
     mutationFn: () => unassignRole(role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ai-settings", "roles"] });
+      queryClient.invalidateQueries({ queryKey: ["ai-settings"] });
       setCredentialId("");
       setModel("");
       toast.add({ title: `${ROLE_LABEL[role]} unconfigured.`, type: "success" });
@@ -399,7 +532,7 @@ function RoleForm({
       {eligibleCredentials.length === 0 ? (
         <p className="text-[10px] text-muted-foreground">
           {role === "embeddings"
-            ? "None of your saved keys support embeddings (Groq and Anthropic don't offer an embeddings API). Add an OpenAI, Google, or custom key above."
+            ? "None of your saved keys support embeddings (Groq and Anthropic don't offer an embeddings API). Add an OpenRouter, OpenAI, Google, or custom key above."
             : "Add a provider key above, then come back here to assign it to this role."}
         </p>
       ) : (
@@ -409,7 +542,12 @@ function RoleForm({
               <Label>Key</Label>
               <Select value={credentialId} onValueChange={(v) => v && setCredentialId(v)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a key" />
+                  <SelectValue>
+                    {(value: string) => {
+                      const selected = eligibleCredentials.find((c) => c.id === value);
+                      return selected ? `${selected.label} · ${PROVIDER_LABEL[selected.provider]}` : "Select a key";
+                    }}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {eligibleCredentials.map((c) => (
@@ -423,25 +561,41 @@ function RoleForm({
 
             <div className="space-y-1.5">
               <Label>Model</Label>
-              <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. gpt-4o-mini" />
+              <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Search or type a model ID" />
             </div>
           </div>
 
-          {recommendations.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {recommendations.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setModel(m)}
-                  className={cn(
-                    "px-2 py-1 rounded-full border text-[9.5px] font-mono transition-colors",
-                    model === m ? "border-primary bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-border hover:text-foreground",
+          {selectedCredential && (
+            <div className="space-y-1.5">
+              {modelsLoading ? (
+                <p className="text-[9.5px] text-muted-foreground">Loading this key&apos;s models…</p>
+              ) : modelList?.error ? (
+                <p className="text-[9.5px] text-muted-foreground">{modelList.error}</p>
+              ) : (
+                <>
+                  <p className="text-[9.5px] text-muted-foreground">
+                    {roleModels.length} {roleModels.length === 1 ? "model fits" : "models fit"} this role · {search ? "matching your search" : "cheapest first"} · prices per 1M tokens
+                  </p>
+                  {suggestions.length > 0 && (
+                    <div className="border border-border/60 rounded-lg divide-y divide-border/50 overflow-hidden">
+                      {suggestions.map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setModel(m.id)}
+                          className="w-full flex items-center justify-between gap-3 px-2.5 py-1.5 text-left hover:bg-muted/60 transition-colors"
+                        >
+                          <span className="min-w-0 flex items-center gap-1.5">
+                            <span className="font-mono text-[9.5px] text-foreground truncate">{m.id}</span>
+                            {m.vision && role !== "vision" && <Badge variant="outline" className="h-4 px-1 text-[8px]">vision</Badge>}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground tabular-nums shrink-0">{formatModelPrice(m)}</span>
+                        </button>
+                      ))}
+                    </div>
                   )}
-                >
-                  {m}
-                </button>
-              ))}
+                </>
+              )}
             </div>
           )}
 
@@ -472,14 +626,18 @@ function RoleForm({
 // switched on at all)
 // -----------------------------------------------------------------------------
 
-function AiFeatureToggles() {
+function AiFeatureToggles({ managed = false }: { managed?: boolean }) {
   const { value: ai, loading, error, set } = useSettingsGroup("ai");
 
   return (
     <section className="space-y-3">
       <div>
         <h4 className="text-foreground text-xs font-bold">Features</h4>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Which AI-powered capabilities are switched on (still requires the relevant role above to be configured).</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          {managed
+            ? "Which AI-powered capabilities are switched on."
+            : "Which AI-powered capabilities are switched on (still requires the relevant role above to be configured)."}
+        </p>
       </div>
 
       {loading && <HugeiconsIcon icon={Loader2} strokeWidth={2.25} className="h-4 w-4 animate-spin text-muted-foreground" />}

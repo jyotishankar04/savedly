@@ -4,6 +4,7 @@ import { getChatModel } from "../../ai.providers";
 import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { isPlaceholderTitle } from "../title";
 
 interface Insights {
   title: string;
@@ -49,7 +50,7 @@ Respond with valid JSON matching this schema:
 export async function generateAiInsights(state: IngestionStateType): Promise<IngestionUpdate> {
   const context =
     [
-      state.existingTitle !== "Untitled" ? state.existingTitle : null,
+      !isPlaceholderTitle(state.existingTitle) ? state.existingTitle : null,
       state.sourceDomain,
       state.url,
       state.platform,
@@ -58,7 +59,7 @@ export async function generateAiInsights(state: IngestionStateType): Promise<Ing
       .filter(Boolean)
       .join(" | ") || "(none available)";
 
-  const model = await getChatModel(state.userId, "fast");
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
   if (!model) {
     logNode(state.memoryId, "generateAiInsights", { skipped: "AI not configured" });
     return { aiTitle: null, aiSummary: null, suggestedTags: [] };

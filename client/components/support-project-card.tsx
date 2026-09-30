@@ -2,6 +2,7 @@ import React from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { HeartAddIcon as Heart } from "@hugeicons/core-free-icons";
 import { BMC_QR_IMAGE, BMC_URL } from "@/lib/support";
+import Image from "next/image";
 
 export function SupportProjectCard({ className }: { className?: string }) {
   return (
@@ -13,14 +14,14 @@ export function SupportProjectCard({ className }: { className?: string }) {
         <div>
           <h4 className="text-xs font-bold text-foreground">Help keep the servers running</h4>
           <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
-            This product is free and open source, and always will be — you bring your own AI key, so we never spend on that. But hosting the database, storage, and email that make it work still costs real money every month. If it&apos;s useful to you, a small contribution helps keep the lights on.
+            SaveForLatter is open source, and the Free plan stays free. Hosting the database, storage, email and the AI we supply costs real money every month. If it&apos;s useful to you, a small contribution helps keep the lights on.
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         <a href={BMC_URL} target="_blank" rel="noopener noreferrer" className="shrink-0">
-          <img src={BMC_QR_IMAGE} alt="Buy Me a Coffee QR code" width={88} height={88} className="rounded-lg border border-border/50" />
+          <Image src={BMC_QR_IMAGE} alt="Buy Me a Coffee QR code" width={88} height={88} className="rounded-lg border border-border/50" />
         </a>
         <div className="min-w-0 space-y-2">
           <a

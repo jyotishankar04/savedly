@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
-import { memories, refreshTokens, sessions, users } from "../../db/schema";
-import { UserStatus } from "../../db/enums";
+import { memories, refreshTokens, sessions, userPlanAssignments, users } from "../../db/schema";
+import { PlanAssignmentStatus, UserStatus } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
 import { getVectorStore } from "../ai/vector-store";
 import { deleteMemory } from "../memory/memory.service";
@@ -76,9 +76,17 @@ export async function hardDeleteAccount(userId: string): Promise<void> {
   const userMemories = await db.select({ id: memories.id }).from(memories).where(eq(memories.userId, userId));
   for (const { id } of userMemories) {
     getVectorStore()
-      .deleteMemoryVectors(id)
+      .then((store) => store.deleteMemoryVectors(id))
       .catch((err) => logger.error({ userId, memoryId: id, err }, "[account] vector cleanup failed during hard delete"));
   }
+
+  // Assignments outlive the user (user_id is set null), so end them first:
+  // otherwise a deleted user's grant or subscription would stay "active"
+  // with no one on it, and count in Admin -> Overview's given-away totals.
+  await db
+    .update(userPlanAssignments)
+    .set({ status: PlanAssignmentStatus.CANCELLED, endsAt: new Date() })
+    .where(and(eq(userPlanAssignments.userId, userId), eq(userPlanAssignments.status, PlanAssignmentStatus.ACTIVE)));
 
   await db.delete(users).where(eq(users.id, userId));
 }

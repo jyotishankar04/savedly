@@ -5,6 +5,8 @@ import { AccentColor, Provider, SettingsTheme } from "../../db/enums";
 import type { UpdateSettingsInput } from "./settings.schema";
 
 export interface SettingsResponse {
+  /** IANA time zone from the user's browser, or null when not known yet. */
+  timezone: string | null;
   ai: {
     autoOrganization: boolean;
     summaries: boolean;
@@ -35,6 +37,7 @@ export interface SettingsResponse {
 }
 
 const DEFAULTS: Omit<SettingsResponse, "connectedAccounts"> = {
+  timezone: null,
   ai: { autoOrganization: true, summaries: true, relatedMemories: true, semanticSearch: true, askMemora: true },
   capture: { extractContent: true, generateTitle: true, generateSummary: true, suggestTags: true, defaultCollectionId: null },
   notifications: { weeklySummary: true, forgottenMemories: true, productUpdates: false },
@@ -62,6 +65,7 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
   }
 
   return {
+    timezone: row.timezone ?? null,
     ai: {
       autoOrganization: row.aiAutoOrganization,
       summaries: row.aiSummaries,
@@ -90,7 +94,9 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
 }
 
 export async function updateSettings(userId: string, patch: UpdateSettingsInput): Promise<SettingsResponse> {
-  const columns: Record<string, boolean | SettingsTheme | AccentColor | Date> = { updatedAt: new Date() };
+  const columns: Record<string, boolean | string | SettingsTheme | AccentColor | Date> = { updatedAt: new Date() };
+
+  if (patch.timezone !== undefined) columns.timezone = patch.timezone;
 
   if (patch.ai?.autoOrganization !== undefined) columns.aiAutoOrganization = patch.ai.autoOrganization;
   if (patch.ai?.summaries !== undefined) columns.aiSummaries = patch.ai.summaries;

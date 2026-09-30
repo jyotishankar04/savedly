@@ -1,13 +1,14 @@
-import { and, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db";
 import { attachments, collectionMemories, collections, memories, memoryTags, tags } from "../../db/schema";
-import { MemoryStatus, type MemoryType } from "../../db/enums";
+import { MemoryStatus, PlanLimitType, type MemoryType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
 import { enqueueIngestion } from "../ai/ingestion/queue";
 import { getVectorStore } from "../ai/vector-store";
 import { hybridSearch, SEMANTIC_SIMILARITY_FLOOR } from "../ai/search";
 import { normalizeUrl } from "./normalize-url";
+import { buildOkfBundle, zipOkfBundle } from "./okf-export";
 import type {
   AttachmentInput,
   BrowserCaptureInput,
@@ -15,6 +16,7 @@ import type {
   ListMemoriesQuery,
   UpdateMemoryInput,
 } from "./memory.schema";
+import { assertFeature, assertWithinLimit } from "../plans/plans.service";
 
 export interface MemoryListItem {
   id: string;
@@ -31,6 +33,8 @@ export interface MemoryListItem {
   trashedAt: Date | null;
   isVaulted: boolean;
   eventAt: Date | null;
+  /** How long the event runs, in minutes; null means 1 hour. */
+  eventDurationMinutes: number | null;
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -143,6 +147,7 @@ function toListItem(
     trashedAt: row.trashedAt,
     isVaulted: row.isVaulted,
     eventAt: row.eventAt,
+    eventDurationMinutes: row.eventDurationMinutes,
     tags: memoryTagsList,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -172,7 +177,7 @@ function toListItem(
  */
 async function buildFilterConditions(
   userId: string,
-  query: Pick<ListMemoriesQuery, "type" | "isFavorite" | "isArchived" | "inTrash" | "isVaulted" | "collectionId" | "tag">,
+  query: Pick<ListMemoriesQuery, "type" | "isFavorite" | "isArchived" | "inTrash" | "isVaulted" | "collectionId" | "tag" | "site">,
 ): Promise<SQL[] | null> {
   const conditions: SQL[] = [
     eq(memories.userId, userId),
@@ -187,6 +192,10 @@ async function buildFilterConditions(
 
   if (query.type) conditions.push(eq(memories.type, query.type as MemoryType));
   if (query.isFavorite !== undefined) conditions.push(eq(memories.isFavorite, query.isFavorite));
+  if (query.site) {
+    const pattern = `%${query.site.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+    conditions.push(or(ilike(memories.source, pattern), ilike(memories.url, pattern))!);
+  }
 
   if (query.collectionId) {
     const rows = await db
@@ -399,6 +408,19 @@ export async function exportAllMemories(userId: string): Promise<MemoryDetail[]>
     keywords: row.keywords,
     attachments: attachmentsByMemory.get(row.id) ?? [],
   }));
+}
+
+/** The same library as exportAllMemories, as a zipped Open Knowledge Format bundle (see okf-export.ts). Vaulted collections are left out, like vaulted memories. */
+export async function exportOkfBundle(userId: string): Promise<Uint8Array> {
+  const [items, collectionRows] = await Promise.all([
+    exportAllMemories(userId),
+    db
+      .select({ id: collections.id, name: collections.name, description: collections.description, createdAt: collections.createdAt })
+      .from(collections)
+      .where(and(eq(collections.userId, userId), eq(collections.isVaulted, false)))
+      .orderBy(collections.name),
+  ]);
+  return zipOkfBundle(buildOkfBundle(items, collectionRows));
 }
 
 // --- Memory graph -----------------------------------------------------------
@@ -621,6 +643,8 @@ export async function createMemory(
   userId: string,
   input: CreateMemoryInput,
 ): Promise<MemoryDetail & { duplicateOf: { id: string; title: string } | null }> {
+  await assertWithinLimit(userId, PlanLimitType.MEMORY_COUNT, 1);
+
   // Non-blocking duplicate detection (docs/URL_CAPTURE_AND_PREVIEW.md) — never
   // a reason to refuse the save, only a hint the client can surface.
   const normalizedUrl = normalizeUrl(input.url);
@@ -710,6 +734,8 @@ export async function updateMemory(
   id: string,
   input: UpdateMemoryInput,
 ): Promise<MemoryDetail> {
+  // Moving into the vault needs the plan; taking something out never does.
+  if (input.isVaulted === true) await assertFeature(userId, "vault");
   await db.transaction(async (tx) => {
     const columns: Record<string, unknown> = { updatedAt: new Date() };
     if (input.title !== undefined) columns.title = input.title;
@@ -795,7 +821,7 @@ export async function deleteMemory(userId: string, id: string): Promise<void> {
   // via cascade automatically. Best-effort: an orphaned vector costs a
   // little storage, but must never block the delete response.
   getVectorStore()
-    .deleteMemoryVectors(id)
+    .then((store) => store.deleteMemoryVectors(id))
     .catch((err) => {
       logger.error({ memoryId: id, err }, "Failed to delete memory vectors");
     });

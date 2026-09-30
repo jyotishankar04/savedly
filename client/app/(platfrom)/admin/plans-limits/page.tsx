@@ -7,16 +7,9 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 import { listAdminPlans, createPlan, updatePlan, type AdminPlan, type PlanLimitInput } from "@/lib/admin-plans";
-import { PLAN_LIMIT_LABEL, formatPriceMinor, type PlanLimitType } from "@/lib/plans";
+import { LIMIT_ORDER, PLAN_LIMIT_LABEL, formatPriceMinor, type PlanLimitType } from "@/lib/plans";
 
-const LIMIT_TYPES: PlanLimitType[] = [
-  "memory_count",
-  "ai_monthly_queries",
-  "ai_monthly_vision_queries",
-  "storage_mb",
-  "collection_count",
-  "public_share_count",
-];
+const LIMIT_TYPES: PlanLimitType[] = LIMIT_ORDER;
 
 type Draft = {
   name: string;

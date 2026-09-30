@@ -42,14 +42,17 @@ export async function detectContentType(state: IngestionStateType): Promise<Inge
   // detection, independent of whatever the LLM decides below. Only relevant
   // when the memory wasn't already saved with a url (i.e. it came in as a
   // note/video but might actually contain a link the client missed).
-  const detectedUrl = !state.url ? extractUrl(state.rawContent) : null;
+  // Only for text the user typed (notes). For images, documents and voice,
+  // rawContent is OCR or a transcript: a URL that merely appears on screen
+  // (and is often misread) must never turn the memory into a link.
+  const detectedUrl = state.mediaType === "note" && !state.url ? extractUrl(state.rawContent) : null;
 
   if (!state.rawContent) {
     logNode(state.memoryId, "detectContentType", { skipped: "no content" });
     return { contentType: null, extractedFields: {}, detectedUrl: detectedUrl?.href ?? null };
   }
 
-  const model = await getChatModel(state.userId, "fast");
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
   if (!model) {
     logNode(state.memoryId, "detectContentType", { skipped: "AI not configured" });
     return { contentType: null, extractedFields: {}, detectedUrl: detectedUrl?.href ?? null };

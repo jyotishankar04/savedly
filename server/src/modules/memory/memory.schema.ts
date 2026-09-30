@@ -66,6 +66,9 @@ export const listMemoriesQuerySchema = z.object({
   isVaulted: z.coerce.boolean().optional(),
   collectionId: z.string().uuid().optional(),
   tag: z.string().optional(),
+  // A site the memory came from, e.g. "github" or "github.com": matched
+  // case-insensitively against its source domain or URL.
+  site: z.string().trim().min(1).max(100).optional(),
   q: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

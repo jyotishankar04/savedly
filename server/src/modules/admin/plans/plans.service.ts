@@ -1,8 +1,9 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { db, type DbOrTx } from "../../../db";
 import { plans, planLimits } from "../../../db/schema";
 import { PlanLimitType, PlanBillingInterval } from "../../../db/enums";
 import { AppError } from "../../../shared/errors/app-error";
+import { env } from "../../../config/env";
 import { logAdminAction } from "../../../shared/utils/audit-log";
 import { getPlanLimits } from "../../plans/plans.service";
 import type { CreatePlanInput, UpdatePlanInput } from "./plans.schema";
@@ -15,63 +16,239 @@ interface DefaultPlanSeed {
   currency: string;
   billingInterval: PlanBillingInterval;
   isDefault: boolean;
+  isActive: boolean;
   sortOrder: number;
   limits: { limitType: PlanLimitType; limitValue: number | null }[];
   features: Record<string, boolean>;
 }
 
-// This product is free and open source — no paid tiers, and no enforcement
-// left to configure: the memory/collection/upload/share/import/ai modules
-// that used to call assertWithinLimit/hasFeature/canCreateSystemCollection
-// (plans/plans.service.ts) no longer call them at all. This `plans` row (and
-// its limits/features below) is pure record-keeping now — GET /plans/me
-// still shows it on the billing settings page, nothing reads it to gate
-// anything.
-const DEFAULT_PLANS: DefaultPlanSeed[] = [
+const ALL_FEATURES: Record<string, boolean> = {
+  batchOperations: true,
+  importExport: true,
+  calendarSync: true,
+  calendarMicrosoft: true,
+  browserExtension: true,
+  directShares: true,
+  privateShareRequests: true,
+  passwordProtectedShares: true,
+  advancedSearch: true,
+  vault: true,
+  emailCampaigns: true,
+  dataExport: true,
+  aiEventDetection: true,
+  shareAnalyticsDaily: true,
+  shareAnalyticsViewers: true,
+  insightsFullHistory: true,
+};
+
+// What each hosted plan unlocks (plans.service.ts PLAN_FEATURES). Every
+// hosted plan runs on AI we supply (managedAi): hosted users never add keys.
+const FREE_FEATURES: Record<string, boolean> = {
+  ...ALL_FEATURES,
+  vault: false,
+  passwordProtectedShares: false,
+  directShares: false,
+  privateShareRequests: false,
+  shareAnalyticsDaily: false,
+  shareAnalyticsViewers: false,
+  insightsFullHistory: false,
+  calendarSync: false,
+  calendarMicrosoft: false,
+  aiEventDetection: false,
+  batchOperations: false,
+  managedAi: true,
+};
+const LITE_FEATURES: Record<string, boolean> = {
+  ...FREE_FEATURES,
+  vault: true,
+  passwordProtectedShares: true,
+  shareAnalyticsDaily: true,
+  insightsFullHistory: true,
+  calendarSync: true,
+  aiEventDetection: true,
+  batchOperations: true,
+};
+const PRO_FEATURES: Record<string, boolean> = { ...ALL_FEATURES, managedAi: true };
+
+const MB_PER_GB = 1024;
+
+function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultPlanSeed["limits"] {
+  const all: Partial<Record<PlanLimitType, number | null>> = {
+    [PlanLimitType.MEMORY_COUNT]: null,
+    [PlanLimitType.STORAGE_MB]: null,
+    [PlanLimitType.MAX_FILE_MB]: null,
+    [PlanLimitType.COLLECTION_COUNT]: null,
+    [PlanLimitType.PUBLIC_SHARE_COUNT]: null,
+    [PlanLimitType.AI_MONTHLY_SAVES]: null,
+    [PlanLimitType.AI_MONTHLY_QUERIES]: null,
+    [PlanLimitType.IMPORT_MONTHLY_COUNT]: null,
+    ...values,
+  };
+  return Object.entries(all).map(([limitType, limitValue]) => ({ limitType: limitType as PlanLimitType, limitValue }));
+}
+
+// Hosted plans: Free, Lite and Pro. They differ by volume, by how much AI the
+// platform supplies each month (the AI_MONTHLY_* quotas), and by features
+// (FREE/LITE/PRO_FEATURES). The values are starting points an admin edits in
+// Admin -> Plans & Limits without a deploy.
+//
+// Prices are deliberately NOT seeded: paid plans start at 0, which the
+// pricing page shows as "Price coming soon" and checkout refuses, until an
+// admin sets the real price (matching the payment provider's product).
+const LITE_LIMITS = limits({
+  [PlanLimitType.STORAGE_MB]: 5 * MB_PER_GB,
+  [PlanLimitType.MAX_FILE_MB]: 50,
+  [PlanLimitType.PUBLIC_SHARE_COUNT]: 100,
+  [PlanLimitType.AI_MONTHLY_SAVES]: 500,
+  [PlanLimitType.AI_MONTHLY_QUERIES]: 250,
+});
+const PRO_LIMITS = limits({
+  [PlanLimitType.STORAGE_MB]: 15 * MB_PER_GB,
+  [PlanLimitType.MAX_FILE_MB]: 100,
+  [PlanLimitType.AI_MONTHLY_SAVES]: 2000,
+  [PlanLimitType.AI_MONTHLY_QUERIES]: 1000,
+});
+
+const HOSTED_PLANS: DefaultPlanSeed[] = [
   {
     key: "free",
     name: "Free",
-    description: "Everything, unlimited — this product isn't sold.",
+    description: "The essentials, with AI we supply: AI processing for 100 saves and 30 Ask questions a month.",
     priceMinor: 0,
     currency: "usd",
     billingInterval: PlanBillingInterval.MONTHLY,
     isDefault: true,
+    isActive: true,
     sortOrder: 0,
-    limits: [
-      { limitType: PlanLimitType.MEMORY_COUNT, limitValue: null },
-      { limitType: PlanLimitType.AI_MONTHLY_QUERIES, limitValue: null },
-      { limitType: PlanLimitType.AI_MONTHLY_VISION_QUERIES, limitValue: null },
-      { limitType: PlanLimitType.STORAGE_MB, limitValue: null },
-      { limitType: PlanLimitType.COLLECTION_COUNT, limitValue: null },
-      { limitType: PlanLimitType.PUBLIC_SHARE_COUNT, limitValue: null },
-    ],
-    features: {
-      batchOperations: true,
-      importExport: true,
-      calendarSync: true,
-      calendarMicrosoft: true,
-      browserExtension: true,
-      directShares: true,
-      privateShareRequests: true,
-      passwordProtectedShares: true,
-      advancedSearch: true,
-      vault: true,
-      emailCampaigns: true,
-      dataExport: true,
-      aiEventDetection: true,
-    },
+    limits: limits({
+      [PlanLimitType.MEMORY_COUNT]: 2000,
+      [PlanLimitType.STORAGE_MB]: 500,
+      [PlanLimitType.MAX_FILE_MB]: 25,
+      [PlanLimitType.COLLECTION_COUNT]: 20,
+      [PlanLimitType.PUBLIC_SHARE_COUNT]: 5,
+      [PlanLimitType.AI_MONTHLY_SAVES]: 100,
+      [PlanLimitType.AI_MONTHLY_QUERIES]: 30,
+      [PlanLimitType.IMPORT_MONTHLY_COUNT]: 1,
+    }),
+    features: FREE_FEATURES,
+  },
+  // Two paid plans, each billed monthly or yearly. sortOrder ranks upgrades:
+  // Lite monthly < Lite yearly < Pro monthly < Pro yearly. Pro keeps its
+  // original "ai-*" keys (payment product IDs and assignments point at them).
+  ...(["monthly", "yearly"] as const).flatMap((interval, i) => {
+    const billingInterval = interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY;
+    return [
+      {
+        key: `lite-${interval}`,
+        name: "Lite",
+        description: "Unlimited memories, 5 GB of storage, the private vault and bulk actions, and AI processing for 500 saves and 250 Ask questions a month.",
+        priceMinor: 0,
+        currency: "usd",
+        billingInterval,
+        isDefault: false,
+        isActive: true,
+        sortOrder: 1 + i,
+        limits: LITE_LIMITS,
+        features: LITE_FEATURES,
+      },
+      {
+        key: `ai-${interval}`,
+        name: "Pro",
+        description: "Everything, with 15 GB of storage, unlimited public links, and AI processing for 2,000 saves and 1,000 Ask questions a month.",
+        priceMinor: 0,
+        currency: "usd",
+        billingInterval,
+        isDefault: false,
+        isActive: true,
+        sortOrder: 3 + i,
+        limits: PRO_LIMITS,
+        features: PRO_FEATURES,
+      },
+    ];
+  }),
+];
+
+// Plans that used to be offered. db:plans:reset switches them off (never
+// deletes them), so anyone still assigned one keeps resolving to it until
+// their subscription ends, but nobody new can buy it.
+const RETIRED_HOSTED_PLAN_KEYS = ["own-key-monthly", "own-key-yearly"];
+const RETIRED_LIMIT_TYPES = [PlanLimitType.AI_MONTHLY_VISION_QUERIES];
+
+// A self-hosted install has one plan, and nothing is limited.
+const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
+  {
+    key: "self-hosted",
+    name: "Self-hosted",
+    description: "Your own install: every feature, unlimited.",
+    priceMinor: 0,
+    currency: "usd",
+    billingInterval: PlanBillingInterval.MONTHLY,
+    isDefault: true,
+    isActive: true,
+    sortOrder: 0,
+    limits: limits({}),
+    features: ALL_FEATURES,
   },
 ];
 
 /**
  * Idempotent (onConflictDoNothing on both the plan and each limit), same
- * pattern as seedDefaultFlags — run via `pnpm db:seed` (src/db/seed.ts),
- * not automatically on boot. Never overwrites a value an admin has since
+ * pattern as seedDefaultFlags — run via `pnpm db:seed` (src/db/seed.ts), and
+ * on every start of a self-hosted container (db/bootstrap.ts). Never overwrites a value an admin has since
  * edited, unlike upsertLimits below (which is deliberately an overwrite,
  * for admin edits).
  */
+/**
+ * Writes the default plans' names, descriptions, features and limits over
+ * what's in the database (inserting any plan that's missing), for moving an
+ * existing database onto new defaults — `pnpm db:plans:reset`. Never touches
+ * a plan's price, currency, isActive or isDefault, which are admin decisions —
+ * except that retired plans are switched off.
+ */
+export async function resetPlanDefaults(): Promise<string[]> {
+  const touched: string[] = [];
+  if (!env.SELF_HOSTED) {
+    const retired = await db
+      .update(plans)
+      // Ranked below every paid plan, so anyone still on one can move up to any of them.
+      .set({ isActive: false, sortOrder: 0, updatedAt: new Date() })
+      .where(inArray(plans.key, RETIRED_HOSTED_PLAN_KEYS))
+      .returning({ key: plans.key });
+    touched.push(...retired.map((p) => `${p.key} (retired)`));
+  }
+  // Image reads used to have their own allowance; they're part of AI
+  // processing for a save now, so the old limit rows go.
+  await db.delete(planLimits).where(inArray(planLimits.limitType, RETIRED_LIMIT_TYPES));
+  for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
+    await db
+      .insert(plans)
+      .values({
+        key: seed.key,
+        name: seed.name,
+        description: seed.description,
+        priceMinor: seed.priceMinor,
+        currency: seed.currency,
+        billingInterval: seed.billingInterval,
+        isDefault: seed.isDefault,
+        isActive: seed.isActive,
+        sortOrder: seed.sortOrder,
+        features: seed.features,
+      })
+      .onConflictDoUpdate({
+        target: plans.key,
+        set: { name: seed.name, description: seed.description, features: seed.features, sortOrder: seed.sortOrder },
+      });
+
+    const [plan] = await db.select().from(plans).where(eq(plans.key, seed.key)).limit(1);
+    if (!plan) continue;
+    await upsertLimits(db, plan.id, seed.limits);
+    touched.push(seed.key);
+  }
+  return touched;
+}
+
 export async function seedDefaultPlans(): Promise<void> {
-  for (const seed of DEFAULT_PLANS) {
+  for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
     await db
       .insert(plans)
       .values([
@@ -83,6 +260,7 @@ export async function seedDefaultPlans(): Promise<void> {
           currency: seed.currency,
           billingInterval: seed.billingInterval,
           isDefault: seed.isDefault,
+          isActive: seed.isActive,
           sortOrder: seed.sortOrder,
           features: seed.features,
         },

@@ -42,4 +42,6 @@ export interface RemoteCalendarEvent {
   startAt: string;
   /** ISO 8601. */
   endAt: string;
+  /** A whole-day event: startAt/endAt are midnight UTC of its dates (end exclusive), not real instants. */
+  allDay: boolean;
 }

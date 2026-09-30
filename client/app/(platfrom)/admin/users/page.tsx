@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listUsers, type AdminUser } from "@/lib/admin-users";
 import { listAdminPlans } from "@/lib/admin-plans";
+import { getServerConfig } from "@/lib/server-config";
+import { AddUserDialog } from "@/components/admin/add-user-dialog";
 
 const STATUS_VARIANT: Record<AdminUser["status"], "secondary" | "destructive" | "outline"> = {
   active: "secondary",
@@ -46,12 +48,19 @@ export default function AdminUsersPage() {
   // Real, admin-configurable plans — never a hardcoded Free/Plus/Pro list,
   // so a renamed or newly-added plan shows up here without a code change.
   const { data: plansList } = useQuery({ queryKey: ["admin", "plans"], queryFn: listAdminPlans });
+  // Self-hosted has one plan, so filtering by it means nothing; and accounts
+  // are added here instead of through public signup.
+  const { data: config } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const selfHosted = !!config?.selfHosted;
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold text-foreground">Users</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg font-bold text-foreground">Users</h1>
+        {selfHosted && <AddUserDialog />}
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -68,7 +77,7 @@ export default function AdminUsersPage() {
           />
         </div>
 
-        <Select value={status} onValueChange={(v) => { if (v) { setStatus(v); setPage(1); } }}>
+        <Select items={{ all: "All statuses", active: "Active", inactive: "Inactive", suspended: "Suspended", banned: "Banned" }} value={status} onValueChange={(v) => { if (v) { setStatus(v); setPage(1); } }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -81,7 +90,7 @@ export default function AdminUsersPage() {
           </SelectContent>
         </Select>
 
-        <Select value={role} onValueChange={(v) => { if (v) { setRole(v); setPage(1); } }}>
+        <Select items={{ all: "All roles", user: "user", admin: "admin" }} value={role} onValueChange={(v) => { if (v) { setRole(v); setPage(1); } }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Role" />
           </SelectTrigger>
@@ -92,21 +101,23 @@ export default function AdminUsersPage() {
           </SelectContent>
         </Select>
 
-        <Select value={plan} onValueChange={(v) => { if (v) { setPlan(v); setPage(1); } }}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Plan">
-              {() => (plan === "all" ? "All plans" : plansList?.find((p) => p.key === plan)?.name)}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All plans</SelectItem>
-            {plansList?.filter((p) => p.isActive).map((p) => (
-              <SelectItem key={p.key} value={p.key}>
-                {p.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {!selfHosted && (
+          <Select value={plan} onValueChange={(v) => { if (v) { setPlan(v); setPage(1); } }}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Plan">
+                {() => (plan === "all" ? "All plans" : plansList?.find((p) => p.key === plan)?.name)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All plans</SelectItem>
+              {plansList?.filter((p) => p.isActive).map((p) => (
+                <SelectItem key={p.key} value={p.key}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Table */}

@@ -5,9 +5,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { useMemoryQuery, useUpdateMemoryMutation } from "@/context/MemoryContext";
-import { useMarkReadMutation } from "@/hooks/use-notifications";
+import { useDeleteNotificationMutation, useMarkReadMutation } from "@/hooks/use-notifications";
 import { eventDetectedRefs, type AppNotification } from "@/lib/notifications";
 import { AddToCalendarDialog } from "./add-to-calendar-dialog";
+import { useNextStep } from "nextstepjs";
 
 interface EventDetectedPopupProps {
   notification: AppNotification;
@@ -26,6 +27,7 @@ export function EventDetectedPopup({ notification, onClose }: EventDetectedPopup
   const { data: memory } = useMemoryQuery(refs?.memoryId ?? "", { enabled: Boolean(refs) });
   const updateMutation = useUpdateMemoryMutation();
   const markRead = useMarkReadMutation();
+  const remove = useDeleteNotificationMutation();
   const [confirmed, setConfirmed] = React.useState(false);
 
   if (!refs) return null;
@@ -45,8 +47,15 @@ export function EventDetectedPopup({ notification, onClose }: EventDetectedPopup
     }
   }
 
+  // Closing with X or Esc only marks it seen, so the suggestion stays available.
   function dismiss() {
     markSeen();
+    onClose();
+  }
+
+  // "Not an event" is an answer, so the suggestion goes away for good.
+  function notAnEvent() {
+    remove.mutate(notification.id);
     onClose();
   }
 
@@ -68,32 +77,54 @@ export function EventDetectedPopup({ notification, onClose }: EventDetectedPopup
     );
   }
 
+  const start = new Date(refs.suggestedEventAt);
+
   return (
     <Dialog open onOpenChange={(open) => !open && dismiss()}>
-      <DialogContent className="sm:max-w-sm gap-5 p-6">
-        <DialogHeader className="border-b border-border/20 pb-3">
-          <DialogTitle className="text-xs font-bold">Is this an event?</DialogTitle>
-          <DialogDescription className="text-[11px]">We spotted a date in something you just saved.</DialogDescription>
+      <DialogContent className="sm:max-w-md gap-6 p-6">
+        <DialogHeader className="gap-1">
+          <DialogTitle className="text-lg font-semibold tracking-tight">Is this an event?</DialogTitle>
+          <DialogDescription className="text-sm">We spotted a date in something you saved.</DialogDescription>
         </DialogHeader>
 
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-foreground">{memory?.title ?? "This memory"}</span> looks like it&apos;s about
-          something on{" "}
-          <span className="font-semibold text-foreground">
-            {new Date(refs.suggestedEventAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-          </span>
-          . Add it to your calendar?
-        </p>
+        <div className="flex items-center gap-4 rounded-xl bg-muted/40 p-3.5">
+          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-[14px] border border-border bg-background">
+            <span className="text-[10px] font-semibold uppercase leading-none tracking-wider text-primary">
+              {start.toLocaleString(undefined, { month: "short" })}
+            </span>
+            <span className="mt-0.5 text-xl font-semibold leading-none tabular-nums text-foreground">{start.getDate()}</span>
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-foreground">{memory?.title ?? "This memory"}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {start.toLocaleString(undefined, { weekday: "long", hour: "numeric", minute: "2-digit" })}
+            </p>
+          </div>
+        </div>
+
+        <p className="text-sm text-muted-foreground">Add it to your calendar?</p>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={dismiss} className="rounded-full">
+          <Button type="button" variant="ghost" disabled={remove.isPending} onClick={notAnEvent} className="h-10 rounded-full px-5 text-sm text-muted-foreground">
             Not an event
           </Button>
-          <Button type="button" disabled={updateMutation.isPending} onClick={confirm} className="rounded-full">
+          <Button type="button" disabled={updateMutation.isPending} onClick={confirm} className="h-10 rounded-full px-6 text-sm">
             {updateMutation.isPending ? "Saving…" : "Yes, add it"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
+}
+
+/**
+ * AppShell's live popup, held back while the product tour is on screen: the
+ * tour's overlay sits above every dialog and swallows its clicks, so the
+ * popup would show but "Yes, add it" couldn't be pressed. It appears as
+ * soon as the tour is finished or skipped. Must render inside NextStepProvider.
+ */
+export function LiveEventDetectedPopup(props: EventDetectedPopupProps) {
+  const { isNextStepVisible } = useNextStep();
+  if (isNextStepVisible) return null;
+  return <EventDetectedPopup {...props} />;
 }

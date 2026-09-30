@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { collections, memories, tags } from "../../db/schema";
 import { listTags } from "../tag/tag.service";
 import { listCollections } from "../collection/collection.service";
+import { planHasFeature } from "../plans/plans.service";
 
 export interface CountedLabel {
   label: string;
@@ -29,12 +30,17 @@ export interface Insights {
   topCollections: CountedLabel[];
   topDomains: CountedLabel[];
   activity: DateCount[];
+  /** How many days `activity` covers on this plan. */
+  historyDays: number;
 }
 
 const TOP_TAGS = 10;
 const TOP_COLLECTIONS = 6;
 const TOP_DOMAINS = 8;
 const ACTIVITY_DAYS = 365;
+// Without the insightsFullHistory plan feature, the activity chart covers
+// the last 30 days.
+const SHORT_ACTIVITY_DAYS = 30;
 
 function daysAgo(days: number): Date {
   const date = new Date();
@@ -52,6 +58,7 @@ const liveMemories = (userId: string) =>
   and(eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false));
 
 export async function getInsights(userId: string): Promise<Insights> {
+  const historyDays = (await planHasFeature(userId, "insightsFullHistory")) ? ACTIVITY_DAYS : SHORT_ACTIVITY_DAYS;
   const [
     totals,
     byType,
@@ -67,7 +74,7 @@ export async function getInsights(userId: string): Promise<Insights> {
     getByCategory(userId),
     getByCaptureMethod(userId),
     getTopDomains(userId),
-    getActivity(userId),
+    getActivity(userId, historyDays),
     listTags(userId),
     listCollections(userId, { includeSystem: true, isVaulted: false }),
   ]);
@@ -84,6 +91,7 @@ export async function getInsights(userId: string): Promise<Insights> {
       .map((collection) => ({ label: collection.name, count: collection.memoryCount })),
     topDomains,
     activity,
+    historyDays,
   };
 }
 
@@ -152,13 +160,13 @@ async function getTopDomains(userId: string): Promise<CountedLabel[]> {
 }
 
 /** Only days with saves — the client fills the blanks to build its calendar grid. */
-async function getActivity(userId: string): Promise<DateCount[]> {
+async function getActivity(userId: string, days: number): Promise<DateCount[]> {
   const day = sql<string>`date(${memories.createdAt})`;
 
   return db
     .select({ date: day, count: count() })
     .from(memories)
-    .where(and(liveMemories(userId), gte(memories.createdAt, daysAgo(ACTIVITY_DAYS))))
+    .where(and(liveMemories(userId), gte(memories.createdAt, daysAgo(days))))
     .groupBy(day)
     .orderBy(day);
 }

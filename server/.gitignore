@@ -10,3 +10,7 @@ dist/
 .claude/
 skills-lock.json
 .env.prod
+# Self-hosted mode run locally (SELF_HOSTED=true without Docker): generated
+# secrets and local-disk uploads.
+.secrets/
+data/

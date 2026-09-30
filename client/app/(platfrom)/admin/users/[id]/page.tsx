@@ -2,22 +2,51 @@
 
 import React, { use, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon as ArrowLeft, Delete02Icon as Trash2 } from "@hugeicons/core-free-icons";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useCurrentUserQuery } from "@/context/UserContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getUser, updateUserRoles, updateUserStatus, type AdminUser } from "@/lib/admin-users";
+import { deleteUser, getUser, setUserPassword, updateUserRoles, updateUserStatus, type AdminUser } from "@/lib/admin-users";
+import { getServerConfig } from "@/lib/server-config";
+import { ApiError } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
 import { getUsageForUser } from "@/lib/ai-usage";
 import { toast } from "@/components/ui/toast";
+import { UserPlanSection } from "@/components/admin/user-plan-section";
 
 const ASSIGNABLE_ROLES = ["user", "admin"];
+// Next inlines NODE_ENV at build time. In a hosted production build, delete is
+// only offered on a self-hosted install; the server enforces the same rule.
+const IS_DEV_BUILD = process.env.NODE_ENV !== "production";
 const STATUS_OPTIONS: AdminUser["status"][] = ["active", "inactive", "suspended", "banned"];
 
 export default function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const { data: currentUser } = useCurrentUserQuery();
   const [pending, setPending] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  const { data: config } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const selfHosted = !!config?.selfHosted;
+  const canDelete = IS_DEV_BUILD || selfHosted;
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ["admin", "users", id],
@@ -58,6 +87,36 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
     } catch {
       toast.add({ title: "Failed to update status.", type: "error" });
     } finally {
+      setPending(null);
+    }
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPending("password");
+    try {
+      await setUserPassword(id, newPassword);
+      setNewPassword("");
+      toast.add({
+        title: currentUser?.id === id ? "Password changed." : "Password set. They're signed out everywhere.",
+        type: "success",
+      });
+    } catch (err) {
+      toast.add({ title: err instanceof ApiError ? err.message : "Failed to set password.", type: "error" });
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    setPending("delete");
+    try {
+      await deleteUser(id);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast.add({ title: "User deleted.", type: "success" });
+      router.push("/admin/users");
+    } catch {
+      toast.add({ title: "Failed to delete user.", type: "error" });
       setPending(null);
     }
   };
@@ -133,6 +192,9 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
         </Select>
       </div>
 
+      {/* A self-hosted install has one unlimited plan — nothing to change. */}
+      {!selfHosted && <UserPlanSection userId={user.id} />}
+
       <div className="space-y-2">
         <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">AI usage (last 30 days)</h3>
         {usage ? (
@@ -150,6 +212,72 @@ export default function AdminUserDetailPage({ params }: { params: Promise<{ id: 
           <p className="text-xs text-muted-foreground">No AI usage recorded.</p>
         )}
       </div>
+
+      {selfHosted && (
+        <form onSubmit={handleSetPassword} className="space-y-2">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Password</h3>
+          <p className="text-[11px] text-muted-foreground">
+            {currentUser?.id === user.id
+              ? "Set a new password for your own account."
+              : "Set a new password when they've forgotten theirs. It signs them out on every device; send them the new one."}
+          </p>
+          <div className="flex gap-2 max-w-sm">
+            <Input
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password"
+              minLength={8}
+              required
+              autoComplete="new-password"
+              aria-label="New password"
+              className="font-mono"
+            />
+            <Button type="submit" variant="outline" disabled={pending === "password" || newPassword.length < 8}>
+              Set password
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {canDelete && currentUser?.id !== user.id && (
+        <div className="space-y-2 rounded-lg border border-destructive/30 p-4">
+          <h3 className="text-xs font-bold text-destructive uppercase tracking-wide">
+            {selfHosted ? "Danger zone" : "Danger zone (dev only)"}
+          </h3>
+          <p className="text-[11px] text-muted-foreground">
+            {selfHosted
+              ? "Permanently deletes this account and everything it saved, right away."
+              : "Permanently deletes this account and all its data immediately. Not available in production."}
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button variant="outline" disabled={pending === "delete"} className="border-destructive/30 text-destructive hover:bg-destructive/10">
+                  Delete user
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogMedia tone="destructive">
+                  <HugeiconsIcon icon={Trash2} strokeWidth={2} />
+                </AlertDialogMedia>
+                <AlertDialogTitle>Delete {user.email}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This permanently removes the account, {user.stats.memoryCount} memories, and everything else it owns. This can&apos;t be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDelete}>
+                  Delete permanently
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
     </div>
   );
 }

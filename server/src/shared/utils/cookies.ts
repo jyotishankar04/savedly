@@ -21,7 +21,10 @@ const VAULT_PATH = "/api/v1";
 
 const baseCookieOptions = {
   httpOnly: true,
-  secure: env.NODE_ENV === "production",
+  // A self-hosted install is often reached over plain http:// on a home
+  // network, where browsers drop Secure cookies and sign-in silently fails —
+  // so there it follows the public URL's scheme instead.
+  secure: env.SELF_HOSTED ? env.FRONTEND_URL.startsWith("https://") : env.NODE_ENV === "production",
   sameSite: "lax" as const,
 };
 

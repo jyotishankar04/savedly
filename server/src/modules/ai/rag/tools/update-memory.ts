@@ -2,6 +2,8 @@ import { tool, type ToolRuntime } from "@langchain/core/tools";
 import { z } from "zod";
 import { updateMemory } from "../../../memory/memory.service";
 import { ragToolContextSchema } from "./search-memories";
+import { takeOrganizeSlot } from "./shared";
+import { planHasFeature } from "../../../plans/plans.service";
 
 const inputSchema = z.object({
   memoryId: z.string().uuid().describe("The id of the memory to update — find it with search_memories first."),
@@ -24,6 +26,15 @@ export const updateMemoryTool = tool(
   ): Promise<UpdateMemoryResult> => {
     const userId = runtime.context?.userId;
     if (!userId) throw new Error("update_memory: missing userId in runtime context");
+
+    // Without bulk actions on the plan, one tag/collection change per
+    // question: "tag all my links" can't become the same edit made one by one.
+    const organizing = patch.tags !== undefined || patch.collectionIds !== undefined;
+    if (organizing && !(await planHasFeature(userId, "batchOperations")) && !takeOrganizeSlot(runtime.context?.turnId)) {
+      throw new Error(
+        "Changing tags or collections on several memories in one go needs bulk actions, which the user's plan doesn't include (they're on Lite and up). Tell the user that and stop; they can still ask for one memory at a time.",
+      );
+    }
 
     const updated = await updateMemory(userId, memoryId, patch);
     return resultSchema.parse({ id: updated.id, title: updated.title });

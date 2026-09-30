@@ -8,8 +8,8 @@ import { useQuery } from "@tanstack/react-query";
 import { MaintenanceFullPage } from "@/components/maintenance/maintenance-full-page";
 import { getMaintenanceStatus } from "@/lib/maintenance";
 import { AnimatePresence, motion } from "motion/react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, PlusIcon as Plus, Search01Icon as Search, Settings01Icon as Settings, HelpCircleIcon as HelpCircle, BellIcon as Bell, XIcon as X, MoonIcon as Moon, Sun01Icon as Sun, FolderOpenIcon as FolderOpen, CompassIcon as Compass, CheckIcon as Check, ChevronRightIcon as ChevronRight, ChevronDownIcon as ChevronDown, FolderPlusIcon as FolderPlus, HeartIcon as Heart, Clock01Icon as Clock, CompassIcon, BarChartIcon as BarChart2, FileTextIcon as FileText, PaperclipIcon as Paperclip, CloudUploadIcon as UploadCloud, Layers01Icon as Layers, PanelLeftCloseIcon as PanelLeftClose, PanelLeftOpenIcon as PanelLeftOpen, Menu01Icon as Menu, Tag01Icon as Tag, KeyboardIcon as Keyboard, Archive01Icon as Archive, Delete02Icon as Trash2, TrendingUpIcon as TrendingUp, Plug01Icon as Plug, MessageSquarePlusIcon as MessageSquarePlus, HistoryIcon as History, ShieldUserIcon as ShieldUser, Share02Icon as Share2, LockPasswordIcon as VaultIcon, Calendar03Icon as CalendarIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { SparklesIcon as Sparkles, PlusIcon as Plus, Search01Icon as Search, Settings01Icon as Settings, HelpCircleIcon as HelpCircle, BellIcon as Bell, XIcon as X, MoonIcon as Moon, Sun01Icon as Sun, FolderOpenIcon as FolderOpen, CompassIcon as Compass, CheckIcon as Check, ChevronDownIcon as ChevronDown, FolderPlusIcon as FolderPlus, HeartIcon as Heart, Clock01Icon as Clock, CompassIcon, BarChartIcon as BarChart2, FileTextIcon as FileText, PaperclipIcon as Paperclip, CloudUploadIcon as UploadCloud, Layers01Icon as Layers, PanelLeftCloseIcon as PanelLeftClose, PanelLeftOpenIcon as PanelLeftOpen, Menu01Icon as Menu, Tag01Icon as Tag, KeyboardIcon as Keyboard, Archive01Icon as Archive, Delete02Icon as Trash2, TrendingUpIcon as TrendingUp, Plug01Icon as Plug, MessageSquarePlusIcon as MessageSquarePlus, HistoryIcon as History, ShieldUserIcon as ShieldUser, Share02Icon as Share2, LockPasswordIcon as VaultIcon, Calendar03Icon as CalendarIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/auth";
@@ -20,12 +20,14 @@ import { uploadFile, type UploadedFile } from "@/lib/uploads";
 import { usePlanLabel, usePlanLimit } from "@/hooks/use-plan-limit";
 import { useRecentEventNotificationsQuery, useUnreadCountQuery } from "@/hooks/use-notifications";
 import type { AppNotification } from "@/lib/notifications";
-import { EventDetectedPopup } from "@/components/memory/event-detected-popup";
+import type { Collection } from "@/types/memory";
+import { LiveEventDetectedPopup } from "@/components/memory/event-detected-popup";
 import { useLockVaultMutation } from "@/hooks/use-vault";
 import { PlanLimitNotice, ProBadge, LimitDot } from "@/components/plan-limit-notice";
 import { detectMemoryType, deriveTitle, splitLinkAndCaption } from "@/lib/detect-memory-type";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import {
+  Command,
   CommandDialog,
   CommandInput,
   CommandList,
@@ -35,6 +37,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/components/ui/toast";
 import {
@@ -62,11 +65,12 @@ import {
 } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
-import { Logo } from "@/components/logo";
+import { Logo, LogoMark } from "@/components/logo";
 import { NextStepProvider, NextStep } from "nextstepjs";
 import { useNextAdapter } from "nextstepjs/adapters/next";
 import { productTourSteps, TourCard, TourAutoStart } from "@/components/product-tour";
 import { AskWidget } from "@/components/ask-widget/ask-widget";
+import { useSyncTimeZone } from "@/hooks/use-settings-group";
 
 /** Exact-matches Home ("/app"); prefix-matches everything else, so a nav
  * item for a list route (Tags, Collections, Memories) stays highlighted on
@@ -74,6 +78,182 @@ import { AskWidget } from "@/components/ask-widget/ask-widget";
 function isNavItemActive(pathname: string, href: string): boolean {
   if (href === "/app") return pathname === "/app";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** `logo` swaps the icon for the brand mark: used for the AI entry (Ask). */
+type NavItem = { label: string; href: string; icon: IconSvgElement; badge?: number; logo?: boolean };
+
+const CLOSED_SECTIONS_KEY = "sfl:sidebar-closed-sections";
+
+function readClosedSections(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(CLOSED_SECTIONS_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+const SIDEBAR_ROW =
+  "flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+
+const PROFILE_MENU_ITEM =
+  "flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-medium text-foreground transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none";
+
+function SidebarLink({ item, active, ...rest }: { item: NavItem; active: boolean; "data-tour"?: string }) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      {...rest}
+      className={cn(
+        SIDEBAR_ROW,
+        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+      )}
+    >
+      {item.logo ? (
+        <LogoMark ticks={false} className="h-[18px] w-[18px]" />
+      ) : (
+        <HugeiconsIcon icon={item.icon} strokeWidth={2} className="h-[18px] w-[18px] shrink-0" />
+      )}
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {item.badge ? (
+        <span className="min-w-5 rounded-full bg-primary px-1.5 text-center text-[11px] font-semibold leading-5 tabular-nums text-primary-foreground">
+          {item.badge > 99 ? "99+" : item.badge}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+/** A labelled, foldable group of sidebar links. */
+function SidebarSection({
+  label,
+  open,
+  onToggle,
+  action,
+  children,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center pr-1">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="group flex h-7 flex-1 items-center gap-1 rounded-md px-3 text-[11px] font-medium text-muted-foreground/80 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        >
+          {label}
+          <HugeiconsIcon
+            icon={ChevronDown}
+            strokeWidth={2}
+            className={cn(
+              "h-3 w-3 transition-all duration-200",
+              open ? "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" : "-rotate-90"
+            )}
+          />
+        </button>
+        {action}
+      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-0.5 pt-0.5">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/** Quick Capture's collection picker: a searchable popover with the picks
+ * shown as removable chips above the trigger, instead of every collection
+ * rendered flat as its own pill — which used to overflow the whole modal
+ * once an account had more than a handful of collections. */
+function CaptureCollectionPicker({
+  collections,
+  selectedIds,
+  onChange,
+}: {
+  collections: Collection[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = collections.filter((c) => selectedIds.includes(c.id));
+  const sorted = [...collections].sort((a, b) => a.name.localeCompare(b.name));
+
+  const toggle = (id: string) => {
+    onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);
+  };
+
+  return (
+    <div className="space-y-2">
+      <span className="block text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Collections</span>
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selected.map((col) => (
+            <button
+              key={col.id}
+              type="button"
+              onClick={() => toggle(col.id)}
+              className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary"
+            >
+              <span aria-hidden>{col.icon}</span>
+              {col.name}
+              <HugeiconsIcon icon={X} strokeWidth={2.5} className="h-3 w-3" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {collections.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground">No collections yet.</p>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger
+            className="flex h-9 items-center gap-1.5 rounded-full border border-dashed border-border px-3 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+          >
+            <HugeiconsIcon icon={FolderOpen} strokeWidth={2} className="h-3.5 w-3.5" />
+            {selected.length > 0 ? "Add another" : "Choose collections"}
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-72 max-w-[calc(100vw-3rem)] p-0">
+            <Command>
+              <CommandInput placeholder="Find a collection…" className="text-sm" />
+              <CommandList className="max-h-64">
+                <CommandEmpty className="text-sm text-muted-foreground">No collection with that name.</CommandEmpty>
+                <CommandGroup>
+                  {sorted.map((col) => {
+                    const isSelected = selectedIds.includes(col.id);
+                    return (
+                      <CommandItem key={col.id} value={`${col.name} ${col.id}`} data-checked={isSelected} onSelect={() => toggle(col.id)} title={col.name} className="py-2 text-sm">
+                        <span aria-hidden className="w-5 shrink-0 text-center">{col.icon}</span>
+                        <span className="min-w-0 flex-1 truncate">{col.name}</span>
+                        {isSelected && <HugeiconsIcon icon={Check} strokeWidth={2.5} className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
 }
 
 const KEYBOARD_SHORTCUTS: { mac: string[]; other: string[]; label: string }[] = [
@@ -129,7 +309,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isLoading || isError || !currentUser || needsOnboarding) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-5 w-5 text-primary animate-pulse" />
+        <LogoMark className="h-10 w-10 animate-pulse" />
       </div>
     );
   }
@@ -175,6 +355,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   // Rides the same 60s poll as the bell badge (no websocket in this app);
   // the email sent alongside this notification already covers the case
   // where the user isn't around to see it live.
+  // So event detection reads "3 pm" in the user's own time zone.
+  useSyncTimeZone();
   const { data: recentNotifications } = useRecentEventNotificationsQuery();
   const seenEventPopupIds = useRef<Set<string>>(new Set());
   const [eventPopupNotification, setEventPopupNotification] = useState<AppNotification | null>(null);
@@ -218,7 +400,17 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [collectionsOpen, setCollectionsOpen] = useState(true);
+  // Which sidebar sections the user folded away, remembered across visits.
+  const [closedSections, setClosedSections] = useState<string[]>(readClosedSections);
+  const toggleSection = (id: string) => {
+    setClosedSections((closed) => {
+      const next = closed.includes(id) ? closed.filter((s) => s !== id) : [...closed, id];
+      try {
+        localStorage.setItem(CLOSED_SECTIONS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
   const [collectionsShowAll, setCollectionsShowAll] = useState(false);
   const COLLECTIONS_PREVIEW_COUNT = 4;
   // Sidebar collapse is a 3-stage sequence rather than one simultaneous
@@ -268,8 +460,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   );
   const DetectedTypeIcon = MEMORY_TYPE_ICONS[detectedType];
   const detectedTypeLabel = detectedType === "web" ? "Website" : detectedType;
-
-  const openCaptureModal = () => {
+  const openCaptureModal = useCallback(() => {
     setSaveStep(1);
     setCaptureTitle("");
     setCaptureText("");
@@ -282,7 +473,31 @@ function AppShell({ children }: { children: React.ReactNode }) {
     setIsDraggingOver(false);
     dragCounter.current = 0;
     setSaveModalOpen(true);
-  };
+  }, [
+    setSaveStep,
+    setCaptureTitle,
+    setCaptureText,
+    setCaptureCollectionIds,
+    setCaptureAttachment,
+    setCaptureAttachmentName,
+    setCaptureAttachmentMimeType,
+    setAttachmentError,
+    setSaveError,
+    setIsDraggingOver,
+    setSaveModalOpen,
+  ]);
+
+  // Pages (e.g. Home's quick-save shortcuts) open this modal by event, so
+  // they don't need a route of their own or a context just for one call.
+  const openCaptureModalRef = useRef(openCaptureModal);
+  useEffect(() => {
+    openCaptureModalRef.current = openCaptureModal;
+  });
+  useEffect(() => {
+    const open = () => openCaptureModalRef.current();
+    window.addEventListener("capture:open", open);
+    return () => window.removeEventListener("capture:open", open);
+  }, []);
 
   const handleFileUpload = async (file: File) => {
     if (storageLimit.isAtLimit) {
@@ -534,29 +749,63 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const planLabel = usePlanLabel();
   const unreadCount = useUnreadCountQuery().data?.count ?? 0;
 
-  const primaryNavItems = [
+  const primaryNavItems: NavItem[] = [
     { label: "Home", href: "/app", icon: Compass },
+    { label: "Search", href: "/app/search", icon: Search },
+    { label: "Ask SaveForLatter", href: "/app/ask", icon: Sparkles, logo: true },
     { label: "Memories", href: "/app/memories", icon: FolderOpen },
     { label: "Collections", href: "/app/collections", icon: Layers },
     { label: "Tags", href: "/app/tags", icon: Tag },
-    { label: "Search", href: "/app/search", icon: Search },
-    { label: "Ask SaveForLatter", href: "/app/ask", icon: Sparkles },
   ];
-  const secondaryNavItems = [
-    { label: "Favorites", href: "/app/favorites", icon: Heart },
-    { label: "Recent", href: "/app/recent", icon: Clock },
-    { label: "Explore", href: "/app/explore", icon: CompassIcon },
-    { label: "Archive", href: "/app/archive", icon: Archive },
-    { label: "Trash", href: "/app/trash", icon: Trash2 },
-    { label: "Shared", href: "/app/shared", icon: Share2 },
-    { label: "Vault", href: "/app/vault", icon: VaultIcon },
-    { label: "Notifications", href: "/app/notifications", icon: Bell },
-    { label: "Insights", href: "/app/insights", icon: TrendingUp },
-    { label: "Calendar", href: "/app/calendar", icon: CalendarIcon },
-    { label: "Import", href: "/app/import", icon: UploadCloud },
-    { label: "Integrations", href: "/app/integrations", icon: Plug },
-    { label: "Memory Graph", href: "/app/graph", icon: BarChart2 },
+  // The rest of the app, grouped by what the visitor is doing: getting back
+  // to things they kept, looking at their library from above, or setting up.
+  const navSections: { id: string; label: string; items: NavItem[] }[] = [
+    {
+      id: "library",
+      label: "Library",
+      items: [
+        { label: "Favorites", href: "/app/favorites", icon: Heart },
+        { label: "Recent", href: "/app/recent", icon: Clock },
+        { label: "Shared", href: "/app/shared", icon: Share2 },
+        { label: "Vault", href: "/app/vault", icon: VaultIcon },
+        { label: "Archive", href: "/app/archive", icon: Archive },
+        { label: "Trash", href: "/app/trash", icon: Trash2 },
+      ],
+    },
+    {
+      id: "discover",
+      label: "Discover",
+      items: [
+        { label: "Explore", href: "/app/explore", icon: CompassIcon },
+        { label: "Insights", href: "/app/insights", icon: TrendingUp },
+        { label: "Memory Graph", href: "/app/graph", icon: BarChart2 },
+        { label: "Calendar", href: "/app/calendar", icon: CalendarIcon },
+      ],
+    },
+    {
+      id: "workspace",
+      label: "Workspace",
+      items: [
+        { label: "Notifications", href: "/app/notifications", icon: Bell, badge: unreadCount },
+        { label: "Import", href: "/app/import", icon: UploadCloud },
+        { label: "Integrations", href: "/app/integrations", icon: Plug },
+      ],
+    },
   ];
+  const secondaryNavItems = navSections.flatMap((section) => section.items);
+  const renderSection = (section: (typeof navSections)[number]) => (
+    <SidebarSection
+      key={section.id}
+      label={section.label}
+      open={!closedSections.includes(section.id)}
+      onToggle={() => toggleSection(section.id)}
+    >
+      {section.items.map((item) => (
+        <SidebarLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} />
+      ))}
+    </SidebarSection>
+  );
+  const visibleCollections = collectionsShowAll ? collections : collections.slice(0, COLLECTIONS_PREVIEW_COUNT);
 
   return (
     <NextStepProvider>
@@ -590,9 +839,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col min-h-0 flex-1 w-60">
 
           {/* Header + Quick Capture — fixed, never scrolls with the nav below */}
-          <div className="p-5 pb-4 space-y-4 shrink-0">
-            <Link href="/app" className="flex items-center gap-2 px-1 hover:opacity-85 transition-opacity">
-              <Logo className="text-sm" />
+          <div className="px-3 pt-5 pb-3 space-y-4 shrink-0">
+            <Link href="/app" className="flex items-center gap-2 px-3 hover:opacity-85 transition-opacity">
+              <Logo className="text-[15px]" />
             </Link>
 
             {sidebarPhase === "expanded" && (
@@ -602,7 +851,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={openCaptureModal}
                 data-tour="quick-capture-btn"
                 title={memoryLimit.isAtLimit ? memoryLimit.message ?? undefined : undefined}
-                className="relative w-full h-10 rounded-full font-bold text-xs bg-primary text-white flex items-center justify-center gap-1.5 shadow-sm"
+                className="relative w-full h-10 rounded-full font-semibold text-[13px] bg-primary text-white flex items-center justify-center gap-1.5 shadow-sm"
               >
                 <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-4 w-4" /> Quick Capture
                 {memoryLimit.isAtLimit && <LimitDot />}
@@ -636,171 +885,134 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
         <ScrollArea className="flex-1 min-h-0">
-        <div className="px-5 pb-5 space-y-6">
+        <nav aria-label="Main" className="px-3 pb-5 space-y-5">
 
-          {/* Primary Navigation */}
           <div className="space-y-0.5">
-            {primaryNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isNavItemActive(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  data-tour={item.href === "/app/memories" ? "nav-memories" : undefined}
-                  className={cn(
-                    "px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-2.5 transition-colors",
-                    active ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            {primaryNavItems.map((item) => (
+              <SidebarLink
+                key={item.href}
+                item={item}
+                active={isNavItemActive(pathname, item.href)}
+                data-tour={item.href === "/app/memories" ? "nav-memories" : undefined}
+              />
+            ))}
           </div>
 
-          {/* Collections */}
-          <div className="space-y-1.5 pt-4 border-t border-border/30">
-            <button
-              type="button"
-              onClick={() => setCollectionsOpen((open) => !open)}
-              className="w-full flex items-center justify-between px-3 mb-1 text-[9px] font-bold text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors"
-            >
-              <span>Collections</span>
-              <HugeiconsIcon icon={ChevronDown} strokeWidth={2.25} className={cn("h-3 w-3 transition-transform duration-200", collectionsOpen ? "" : "-rotate-90")} />
-            </button>
+          {navSections.slice(0, 1).map(renderSection)}
 
-            <AnimatePresence initial={false}>
-              {collectionsOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
-                  className="space-y-1.5 overflow-hidden"
-                >
-                  {(collectionsShowAll ? collections : collections.slice(0, COLLECTIONS_PREVIEW_COUNT)).map((col) => {
-                    const href = `/app/collections/${col.id}`;
-                    return (
-                      <Link
-                        key={col.id}
-                        href={href}
-                        className={cn(
-                          "px-3 py-1.5 text-xs font-medium rounded-lg flex items-center justify-between transition-colors text-muted-foreground hover:text-foreground hover:bg-muted",
-                          pathname === href ? "text-primary bg-primary/5 font-semibold" : ""
-                        )}
-                      >
-                        <span className="truncate pr-2 flex items-center gap-1.5">
-                          <span>{col.icon}</span>
-                          {col.name}
-                        </span>
-                        <HugeiconsIcon icon={ChevronRight} strokeWidth={2.25} className="h-3 w-3 opacity-30" />
-                      </Link>
-                    );
-                  })}
-
-                  {collections.length > COLLECTIONS_PREVIEW_COUNT && (
-                    <button
-                      type="button"
-                      onClick={() => setCollectionsShowAll((show) => !show)}
-                      className="w-full px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          <SidebarSection
+            label="Collections"
+            open={!closedSections.includes("collections")}
+            onToggle={() => toggleSection("collections")}
+            action={
+              <Link
+                href="/app/collections"
+                aria-label="New collection"
+                title="New collection"
+                className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                <HugeiconsIcon icon={Plus} strokeWidth={2} className="h-3.5 w-3.5" />
+              </Link>
+            }
+          >
+            {collections.length === 0 ? (
+              <p className="px-3 py-1.5 text-[13px] leading-snug text-muted-foreground">
+                Group related saves.{" "}
+                <Link href="/app/collections" className="font-medium text-primary hover:underline">Create one</Link>
+              </p>
+            ) : (
+              <>
+                {visibleCollections.map((col) => {
+                  const href = `/app/collections/${col.id}`;
+                  const active = isNavItemActive(pathname, href);
+                  return (
+                    <Link
+                      key={col.id}
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        SIDEBAR_ROW,
+                        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                      )}
                     >
-                      <HugeiconsIcon icon={ChevronDown} strokeWidth={2.25} className={cn("h-3 w-3 transition-transform duration-200", collectionsShowAll ? "rotate-180" : "")} />
-                      {collectionsShowAll ? "Show less" : `Show ${collections.length - COLLECTIONS_PREVIEW_COUNT} more`}
-                    </button>
-                  )}
-
-                  <Link
-                    href="/app/collections"
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-2 text-primary hover:underline"
+                      <span aria-hidden className="flex w-[18px] shrink-0 justify-center text-sm leading-none">{col.icon}</span>
+                      <span className="min-w-0 flex-1 truncate">{col.name}</span>
+                      {col.memoryCount > 0 && (
+                        <span className="text-[11px] tabular-nums text-muted-foreground/70">{col.memoryCount}</span>
+                      )}
+                    </Link>
+                  );
+                })}
+                {collections.length > COLLECTIONS_PREVIEW_COUNT && (
+                  <button
+                    type="button"
+                    onClick={() => setCollectionsShowAll((show) => !show)}
+                    className="flex h-8 w-full items-center gap-2.5 rounded-lg px-3 text-[12px] font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors"
                   >
-                    <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-3 w-3" /> New collection
-                  </Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                    <span className="flex w-[18px] justify-center">
+                      <HugeiconsIcon icon={ChevronDown} strokeWidth={2} className={cn("h-3.5 w-3.5 transition-transform duration-200", collectionsShowAll && "rotate-180")} />
+                    </span>
+                    {collectionsShowAll ? "Show less" : `${collections.length - COLLECTIONS_PREVIEW_COUNT} more`}
+                  </button>
+                )}
+              </>
+            )}
+          </SidebarSection>
 
-          {/* Secondary Navigation */}
-          <div className="space-y-0.5 pt-4 border-t border-border/30">
-            {secondaryNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isNavItemActive(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-2.5 transition-colors",
-                    active ? "bg-primary/10 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
+          {navSections.slice(1).map(renderSection)}
 
-        </div>
+        </nav>
         </ScrollArea>
 
         </div>
 
         {/* Sidebar Bottom user profile */}
-        <div className="p-4 border-t border-border/40 relative w-60">
-
-          {/* User initials block */}
-          <div className="relative">
-            <button
-              onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-              className="w-full flex items-center justify-between px-3 py-2 -mx-1 rounded-xl text-left hover:opacity-85 transition-all duration-500"
-            >
-              <div className="flex items-center gap-2.5">
-                <UserAvatar user={currentUser} className="h-8 w-8 text-xs" />
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-foreground truncate">{currentUser.name ?? currentUser.email}</p>
-                  <p className="text-[9px] text-muted-foreground font-mono leading-none">{planLabel.label}</p>
-                </div>
-              </div>
-              <HugeiconsIcon icon={ChevronDown} strokeWidth={2.25} className="h-3.5 w-3.5 text-muted-foreground opacity-60" />
-            </button>
-          </div>
-
-          {/* User profile popup menu */}
-          {userDropdownOpen && (
-            <div className="absolute left-4 right-4 bottom-16 bg-card border border-border rounded-xl shadow-xl py-1 z-50 text-[10px] font-bold text-foreground">
-              <div className="px-3 py-2 border-b border-border/20">
-                <p className="text-[10px] text-foreground">{currentUser.name ?? currentUser.email}</p>
-                <p className="text-[9px] text-muted-foreground font-mono font-medium">{planLabel.label}</p>
-              </div>
-
-              <Link href="/app/settings" onClick={() => setUserDropdownOpen(false)} className="w-full px-3 py-2 hover:bg-muted text-left flex items-center gap-2">
-                <HugeiconsIcon icon={Settings} strokeWidth={2.25} className="h-3.5 w-3.5 opacity-60" />
-                <span>Settings</span>
-              </Link>
-
-              <button
-                type="button"
-                onClick={() => { setUserDropdownOpen(false); setShortcutsOpen(true); }}
-                className="w-full px-3 py-2 hover:bg-muted text-left flex items-center gap-2"
-              >
-                <HugeiconsIcon icon={Keyboard} strokeWidth={2.25} className="h-3.5 w-3.5 opacity-60" />
-                <span>Keyboard shortcuts</span>
-              </button>
-
-              <Link href="/help" target="_blank" rel="noreferrer" onClick={() => setUserDropdownOpen(false)} className="w-full px-3 py-2 hover:bg-muted text-left flex items-center gap-2">
-                <HugeiconsIcon icon={HelpCircle} strokeWidth={2.25} className="h-3.5 w-3.5 opacity-60" />
-                <span>Help & Docs</span>
-              </Link>
-
-              <hr className="border-border/20 my-1" />
-
-              <button onClick={handleLogout} className="w-full px-3 py-2 hover:bg-red-500/10 text-red-500 text-left flex items-center gap-2">
-                <span>Log out</span>
-              </button>
+        <div className="relative w-60 border-t border-border/40 p-3">
+          <button
+            type="button"
+            onClick={() => setUserDropdownOpen((open) => !open)}
+            aria-expanded={userDropdownOpen}
+            aria-haspopup="menu"
+            className={cn(
+              "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/70",
+              userDropdownOpen && "bg-muted/70"
+            )}
+          >
+            <UserAvatar user={currentUser} className="h-8 w-8 shrink-0 text-xs" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium text-foreground">{currentUser.name ?? currentUser.email}</p>
+              <p className="truncate text-[11px] text-muted-foreground">{planLabel.label} plan</p>
             </div>
+            <HugeiconsIcon icon={ChevronDown} strokeWidth={2} className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200", userDropdownOpen && "rotate-180")} />
+          </button>
+
+          {userDropdownOpen && (
+            <>
+              <button type="button" aria-label="Close menu" tabIndex={-1} onClick={() => setUserDropdownOpen(false)} className="fixed inset-0 z-40 cursor-default" />
+              <div role="menu" className="absolute inset-x-3 bottom-[4.25rem] z-50 rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-xl">
+                <div className="px-2.5 py-2">
+                  <p className="truncate text-[13px] font-medium">{currentUser.name ?? currentUser.email}</p>
+                  {currentUser.name && <p className="truncate text-[11px] text-muted-foreground">{currentUser.email}</p>}
+                </div>
+                <div className="my-1 h-px bg-border/60" />
+                <Link href="/app/settings" role="menuitem" onClick={() => setUserDropdownOpen(false)} className={PROFILE_MENU_ITEM}>
+                  <HugeiconsIcon icon={Settings} strokeWidth={2} className="h-4 w-4 text-muted-foreground" />
+                  Settings
+                </Link>
+                <button type="button" role="menuitem" onClick={() => { setUserDropdownOpen(false); setShortcutsOpen(true); }} className={PROFILE_MENU_ITEM}>
+                  <HugeiconsIcon icon={Keyboard} strokeWidth={2} className="h-4 w-4 text-muted-foreground" />
+                  Keyboard shortcuts
+                </button>
+                <Link href="/help" target="_blank" rel="noreferrer" role="menuitem" onClick={() => setUserDropdownOpen(false)} className={PROFILE_MENU_ITEM}>
+                  <HugeiconsIcon icon={HelpCircle} strokeWidth={2} className="h-4 w-4 text-muted-foreground" />
+                  Help Center
+                </Link>
+                <div className="my-1 h-px bg-border/60" />
+                <button type="button" role="menuitem" onClick={handleLogout} className={cn(PROFILE_MENU_ITEM, "text-destructive hover:bg-destructive/10 hover:text-destructive")}>
+                  Log out
+                </button>
+              </div>
+            </>
           )}
         </div>
 
@@ -908,7 +1120,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <Link href="/app/ask" className={cn("flex flex-col items-center gap-0.5 text-[9px] font-bold", isNavItemActive(pathname, "/app/ask") ? "text-primary" : "text-muted-foreground")}>
-            <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-5 w-5" />
+            <LogoMark ticks={false} className="h-5 w-5" />
             <span>Ask</span>
           </Link>
 
@@ -1030,41 +1242,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   className="h-auto w-full rounded-xl border-input bg-background px-4 py-3 text-xs text-foreground focus-visible:border-primary/80 focus-visible:ring-primary/20"
                 />
 
-                <div className="space-y-2">
-                  <span className="text-[9px] uppercase tracking-wider text-muted-foreground block font-bold">Collections</span>
-                  {collections.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {collections.map((col) => {
-                        const isSelected = captureCollectionIds.includes(col.id);
-                        return (
-                          <button
-                            key={col.id}
-                            type="button"
-                            onClick={() =>
-                              setCaptureCollectionIds((prev) =>
-                                prev.includes(col.id)
-                                  ? prev.filter((id) => id !== col.id)
-                                  : [...prev, col.id],
-                              )
-                            }
-                            className={cn(
-                              "flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors",
-                              isSelected
-                                ? "bg-primary/10 border-primary/30 text-primary"
-                                : "bg-background border-input text-muted-foreground hover:border-primary/20",
-                            )}
-                          >
-                            <span>{col.icon}</span>
-                            {col.name}
-                            {isSelected && <HugeiconsIcon icon={Check} strokeWidth={2.25} className="h-2.5 w-2.5 stroke-[3]" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground">No collections yet.</p>
-                  )}
-                </div>
+                <CaptureCollectionPicker
+                  collections={collections}
+                  selectedIds={captureCollectionIds}
+                  onChange={setCaptureCollectionIds}
+                />
 
                 {memoryLimit.isAtLimit ? (
                   <PlanLimitNotice message={memoryLimit.message ?? "You've reached your memory limit."} />
@@ -1257,7 +1439,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                                 : "bg-card border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
                           >
-                            <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-5 w-5" />
+                            {item.logo ? <LogoMark ticks={false} className="h-5 w-5" /> : <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-5 w-5" />}
                           </Link>
                         }
                       />
@@ -1288,7 +1470,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span>Save a memory</span>
             </CommandItem>
             <CommandItem onSelect={() => { setSearchModalOpen(false); router.push("/app/ask"); }}>
-              <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+              <LogoMark ticks={false} className="mr-2 h-3.5 w-3.5" />
               <span>Ask SaveForLatter</span>
             </CommandItem>
             <CommandItem onSelect={() => { setSearchModalOpen(false); router.push("/app/collections"); }}>
@@ -1355,7 +1537,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       </Dialog>
 
       {eventPopupNotification && (
-        <EventDetectedPopup
+        <LiveEventDetectedPopup
           notification={eventPopupNotification}
           onClose={() => setEventPopupNotification(null)}
         />

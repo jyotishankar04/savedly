@@ -27,6 +27,8 @@ export interface Insights {
   topDomains: CountedLabel[];
   /** Only days that had saves — the heatmap fills the gaps itself. */
   activity: DateCount[];
+  /** How many days `activity` covers on this plan (30 without the full-year feature). */
+  historyDays?: number;
 }
 
 export async function getInsights(): Promise<Insights> {

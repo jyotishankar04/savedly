@@ -7,6 +7,7 @@ import { ShareResourceType } from "../../db/enums";
 import { getSharedPayload, readUnlockedShares, resolveShareAccess } from "./share.access";
 import { verifyPassword as verifySharePassword } from "../../shared/crypto/scrypt-password";
 import { getShareViewSummary, getShareViewsDaily, listShareViewers, recordShareView } from "./share.views";
+import { assertFeature } from "../plans/plans.service";
 import { getClientIp } from "../../shared/utils/device-fingerprint";
 import * as shareService from "./share.service";
 
@@ -246,11 +247,15 @@ export class ShareController {
     res.json(ApiResponse.success(await getShareViewSummary(req.user!.id, req.params.id as string)));
   }
 
+  // The total view count is on every plan; the daily chart and the list of
+  // who viewed are plan features.
   static async viewers(req: Request, res: Response) {
+    await assertFeature(req.user!.id, "shareAnalyticsViewers");
     res.json(ApiResponse.success(await listShareViewers(req.user!.id, req.params.id as string)));
   }
 
   static async viewsDaily(req: Request, res: Response) {
+    await assertFeature(req.user!.id, "shareAnalyticsDaily");
     res.json(ApiResponse.success(await getShareViewsDaily(req.user!.id, req.params.id as string)));
   }
 }

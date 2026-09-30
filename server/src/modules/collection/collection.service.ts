@@ -1,7 +1,8 @@
 import { and, count, eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { collectionMemories, collections, memories } from "../../db/schema";
-import { CollectionSource } from "../../db/enums";
+import { CollectionSource, PlanLimitType } from "../../db/enums";
+import { assertFeature, assertWithinLimit } from "../plans/plans.service";
 import { AppError } from "../../shared/errors/app-error";
 import type { CreateCollectionInput, ListCollectionsQuery, UpdateCollectionInput } from "./collection.schema";
 
@@ -50,7 +51,9 @@ export async function createCollection(
 ): Promise<CollectionResponse> {
   // Every collection created through this endpoint is user-owned — system
   // collections come from internal processes (onboarding defaults,
-  // AI-suggested groupings), never this API.
+  // AI-suggested groupings), never this API — and only these count against
+  // the plan's collection limit.
+  await assertWithinLimit(userId, PlanLimitType.COLLECTION_COUNT, 1);
   const [row] = await db
     .insert(collections)
     .values({ userId, name: input.name, icon: input.icon, description: input.description, source: CollectionSource.USER })
@@ -64,6 +67,7 @@ export async function updateCollection(
   id: string,
   input: UpdateCollectionInput,
 ): Promise<CollectionResponse> {
+  if (input.isVaulted === true) await assertFeature(userId, "vault");
   const columns: Record<string, unknown> = { updatedAt: new Date() };
   if (input.name !== undefined) columns.name = input.name;
   if (input.icon !== undefined) columns.icon = input.icon;
@@ -132,6 +136,7 @@ export async function convertToUser(userId: string, id: string): Promise<Collect
   if (existing.source === CollectionSource.USER) {
     throw new AppError("This collection is already yours", 400, "ALREADY_USER_COLLECTION");
   }
+  await assertWithinLimit(userId, PlanLimitType.COLLECTION_COUNT, 1);
 
   const [row] = await db
     .update(collections)

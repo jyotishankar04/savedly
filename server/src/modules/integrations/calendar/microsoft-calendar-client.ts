@@ -20,7 +20,8 @@ import type {
 // then isMicrosoftCalendarConfigured() returns false and every route 503s.
 
 const MICROSOFT_CALENDAR_CALLBACK_URL = `${env.SERVER_URL}/api/v1/integrations/calendar/microsoft/callback`;
-const MICROSOFT_CALENDAR_SCOPE = "https://graph.microsoft.com/Calendars.ReadWrite offline_access";
+// User.Read so /me below can say which Microsoft account was connected.
+const MICROSOFT_CALENDAR_SCOPE = "https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/User.Read offline_access";
 
 function authorizeEndpoint(): string {
   return `https://login.microsoftonline.com/${env.MICROSOFT_TENANT_ID}/oauth2/v2.0/authorize`;
@@ -197,6 +198,7 @@ export async function listMicrosoftCalendarEvents(
       subject?: string;
       bodyPreview?: string;
       webLink: string;
+      isAllDay?: boolean;
       start: { dateTime: string };
       end: { dateTime: string };
     }>;
@@ -212,5 +214,6 @@ export async function listMicrosoftCalendarEvents(
     htmlLink: item.webLink,
     startAt: `${item.start.dateTime}Z`,
     endAt: `${item.end.dateTime}Z`,
+    allDay: item.isAllDay ?? false,
   }));
 }

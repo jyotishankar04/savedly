@@ -2,14 +2,7 @@ import { z } from "zod";
 import { PlanBillingInterval, PlanLimitType } from "../../../db/enums";
 
 const planLimitInputSchema = z.object({
-  limitType: z.enum([
-    PlanLimitType.MEMORY_COUNT,
-    PlanLimitType.AI_MONTHLY_QUERIES,
-    PlanLimitType.AI_MONTHLY_VISION_QUERIES,
-    PlanLimitType.STORAGE_MB,
-    PlanLimitType.COLLECTION_COUNT,
-    PlanLimitType.PUBLIC_SHARE_COUNT,
-  ]),
+  limitType: z.nativeEnum(PlanLimitType),
   limitValue: z.coerce.number().int().min(0).nullable(), // null = unlimited
 });
 

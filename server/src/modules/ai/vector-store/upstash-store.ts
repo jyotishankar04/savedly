@@ -1,5 +1,4 @@
 import { Index } from "@upstash/vector";
-import { env } from "../../../config/env";
 import type { VectorStore, VectorUpsertInput } from "./types";
 
 // IDs are prefixed with the memory ID so a whole memory's vectors (document +
@@ -14,11 +13,8 @@ function chunkVectorId(memoryId: string, chunkIndex: number): string {
   return `${memoryId}:chunk:${chunkIndex}`;
 }
 
-export function createUpstashVectorStore(): VectorStore {
-  const index = new Index({
-    url: env.UPSTASH_VECTOR_REST_URL,
-    token: env.UPSTASH_VECTOR_REST_TOKEN,
-  });
+export function createUpstashVectorStore(config: { url: string; token: string }): VectorStore {
+  const index = new Index({ url: config.url, token: config.token });
 
   return {
     async upsertMemoryVectors({ memoryId, userId, documentEmbedding, chunks }: VectorUpsertInput) {

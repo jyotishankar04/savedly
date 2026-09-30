@@ -76,12 +76,13 @@ Because `memories.document_embedding` and `memory_chunks.embedding` are fixed-wi
 Every memory — regardless of type — goes through the same LangGraph state machine (`server/src/modules/ai/ingestion/graph.ts`) after it's created, running as a background BullMQ job (`ingestion/queue.ts`, `ingestion/worker.ts`):
 
 ```
-RouteMediaType → (per-type parser) → CorrectCaption → DetectContentType →
-ClassifyIntent → DetectEvent → GenerateAIInsights → OrganizeCollection →
-SemanticChunker → GenerateEmbeddings → UpsertVectors
+parser ─┬─ CorrectCaption ── ClassifyIntent ─┬─ GenerateAIInsights ─┬─ OrganizeCollection ─┐
+        ├─ DetectContentType ────────────────┤                      │                      ├─ UpsertVectors
+        │                                    └─ DetectEvent ────────┼──────────────────────┤
+        └─ SemanticChunker ─────────────────────────────────────────┴─ GenerateEmbeddings ─┘
 ```
 
-Each node reads and writes to a shared `IngestionState` (`ingestion/state.ts`) and is designed to degrade, not fail, when its AI role isn't configured — see [AI architecture](#ai-architecture-bring-your-own-key). Reaching the final `UpsertVectors` node without a thrown error is what marks a memory `ready` or `partial`; only a genuinely unexpected error (a bug, an outage) reaches the worker's `failed` handler and marks it `failed`.
+Steps run in parallel wherever they don't depend on each other. Each node reads and writes to a shared `IngestionState` (`ingestion/state.ts`). The AI enrichment steps are wrapped in `optional()` in `graph.ts`: if one throws, or returns a field in the wrong shape, that step's output is repaired or dropped and the rest of the pipeline continues, so a memory keeps whatever succeeded. Reaching `UpsertVectors` marks a memory `ready` or `partial`; only an unexpected error outside the enrichment steps (a parser, embeddings, the database) reaches the worker's `failed` handler.
 
 ## Search architecture
 

@@ -1,0 +1,1 @@
+ALTER TABLE "memories" ADD COLUMN "event_duration_minutes" integer;

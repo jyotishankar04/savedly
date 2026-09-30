@@ -159,3 +159,30 @@ export async function logout() {
     // best-effort — the cookies are httpOnly, so there's nothing local left to clear on failure
   }
 }
+
+/** Which sign-in methods this server offers — see server auth.controller.ts's providers(). */
+export interface AuthProviders {
+  google: boolean;
+  github: boolean;
+  password: boolean;
+  signupsEnabled: boolean;
+  /** A fresh self-hosted install with no accounts yet: the first sign-up becomes admin. */
+  needsSetup: boolean;
+}
+
+export function getAuthProviders(): Promise<AuthProviders> {
+  return apiFetch<AuthProviders>("/auth/providers");
+}
+
+export async function loginWithPassword(email: string, password: string): Promise<AuthUser> {
+  const { user } = await apiFetch<{ user: AuthUser }>("/auth/login", { method: "POST", body: { email, password } });
+  return user;
+}
+
+export async function registerWithPassword(name: string, email: string, password: string): Promise<AuthUser> {
+  const { user } = await apiFetch<{ user: AuthUser }>("/auth/register", {
+    method: "POST",
+    body: { name, email, password },
+  });
+  return user;
+}

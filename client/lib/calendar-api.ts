@@ -49,6 +49,8 @@ export interface CalendarEvent {
   memoryId: string | null;
   /** The provider's own event id, for a provider-sourced event with no memoryId — null for a memora-only event. */
   externalEventId: string | null;
+  /** A whole-day event: startAt/endAt are midnight UTC of its dates, end exclusive — use their YYYY-MM-DD part, not the instant. */
+  allDay: boolean;
 }
 
 export const listCalendarEvents = (from: string, to: string) =>

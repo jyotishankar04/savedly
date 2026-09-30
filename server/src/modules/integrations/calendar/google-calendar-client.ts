@@ -1,6 +1,7 @@
 import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
 import { isTokenCipherConfigured } from "../../../shared/crypto/token-cipher";
+import { getOAuthCredentials, requireOAuthCredentials } from "../../auth/oauth-config";
 import type {
   CalendarEventPayload,
   CalendarTokenExchange,
@@ -25,15 +26,18 @@ import type {
 // which is required to reliably get a refresh_token back.
 
 const GOOGLE_CALENDAR_CALLBACK_URL = `${env.SERVER_URL}/api/v1/integrations/calendar/google/callback`;
-const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+// "openid email" so the userinfo call below can say which Google account
+// was connected; calendar.events alone doesn't include the address.
+const GOOGLE_CALENDAR_SCOPE = "openid email https://www.googleapis.com/auth/calendar.events";
 
-export function isGoogleCalendarConfigured(): boolean {
-  return Boolean(env.GOOGLE_CLIENT_ID) && Boolean(env.GOOGLE_CLIENT_SECRET) && isTokenCipherConfigured();
+export async function isGoogleCalendarConfigured(): Promise<boolean> {
+  return isTokenCipherConfigured() && !!(await getOAuthCredentials("google"));
 }
 
-export function buildGoogleCalendarAuthUrl(state: string): string {
+export async function buildGoogleCalendarAuthUrl(state: string): Promise<string> {
+  const { clientId } = await requireOAuthCredentials("google");
   const params = new URLSearchParams({
-    client_id: env.GOOGLE_CLIENT_ID,
+    client_id: clientId,
     redirect_uri: GOOGLE_CALENDAR_CALLBACK_URL,
     response_type: "code",
     scope: GOOGLE_CALENDAR_SCOPE,
@@ -48,13 +52,14 @@ export function buildGoogleCalendarAuthUrl(state: string): string {
 }
 
 export async function exchangeGoogleCalendarCode(code: string): Promise<CalendarTokenExchange> {
+  const google = await requireOAuthCredentials("google");
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
+      client_id: google.clientId,
+      client_secret: google.clientSecret,
       redirect_uri: GOOGLE_CALENDAR_CALLBACK_URL,
       grant_type: "authorization_code",
     }),
@@ -71,14 +76,7 @@ export async function exchangeGoogleCalendarCode(code: string): Promise<Calendar
     scope: string;
   };
 
-  let accountEmail: string | null = null;
-  const profileResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-    headers: { Authorization: `Bearer ${tokenBody.access_token}` },
-  });
-  if (profileResponse.ok) {
-    const profile = (await profileResponse.json()) as { email?: string };
-    accountEmail = profile.email ?? null;
-  }
+  const accountEmail = await getGoogleAccountEmail(tokenBody.access_token);
 
   return {
     accessToken: tokenBody.access_token,
@@ -89,14 +87,37 @@ export async function exchangeGoogleCalendarCode(code: string): Promise<Calendar
   };
 }
 
+/**
+ * Which Google account a token belongs to. userinfo needs the "email"
+ * scope; connections made before it was requested fall back to the primary
+ * calendar's name, which is the account's address unless renamed.
+ */
+export async function getGoogleAccountEmail(accessToken: string): Promise<string | null> {
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  const profile = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", { headers }).catch(() => null);
+  if (profile?.ok) {
+    const body = (await profile.json()) as { email?: string };
+    if (body.email) return body.email;
+  }
+  const events = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1&fields=summary", {
+    headers,
+  }).catch(() => null);
+  if (events?.ok) {
+    const body = (await events.json()) as { summary?: string };
+    if (body.summary?.includes("@")) return body.summary;
+  }
+  return null;
+}
+
 export async function refreshGoogleAccessToken(refreshToken: string): Promise<CalendarTokenRefresh> {
+  const google = await requireOAuthCredentials("google");
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       refresh_token: refreshToken,
-      client_id: env.GOOGLE_CLIENT_ID,
-      client_secret: env.GOOGLE_CLIENT_SECRET,
+      client_id: google.clientId,
+      client_secret: google.clientSecret,
       grant_type: "refresh_token",
     }),
   });
@@ -212,5 +233,6 @@ export async function listGoogleCalendarEvents(
     htmlLink: item.htmlLink,
     startAt: item.start.dateTime ?? `${item.start.date}T00:00:00.000Z`,
     endAt: item.end.dateTime ?? `${item.end.date}T00:00:00.000Z`,
+    allDay: !item.start.dateTime,
   }));
 }

@@ -7,6 +7,7 @@ const providerSchema = z.enum([
   AiCredentialProvider.GROQ,
   AiCredentialProvider.GOOGLE,
   AiCredentialProvider.CUSTOM,
+  AiCredentialProvider.OPENROUTER,
 ]);
 
 const roleSchema = z.enum([AiRole.FAST, AiRole.REASONING, AiRole.VISION, AiRole.EMBEDDINGS]);

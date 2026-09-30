@@ -6,30 +6,24 @@ import { useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Key01Icon as Key, ArrowRight01Icon as ArrowRight } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
-import { listRoleAssignments } from "@/lib/ai-settings";
+import { AI_STATUS_QUERY_KEY, getAiStatus, type AiStatus } from "@/lib/ai-settings";
 import { cn } from "@/lib/utils";
 
 /**
- * Gates an AI feature (Ask chat, the floating widget, and anywhere else
- * this gets used) behind having a "reasoning" model configured — the one
- * role every one of these surfaces actually needs to produce a real reply.
- * Everything else (fast/vision/embeddings) can be configured or not without
- * blocking here; those enrichment steps just quietly skip themselves
- * elsewhere (see server's ai.providers.ts) rather than needing a gate.
+ * Gates an AI feature (Ask chat, the floating widget) on Ask actually being
+ * able to answer: the user's own reasoning key, or included AI with
+ * questions left this month (see server ai-settings.service.ts getAiStatus).
  *
- * Blurs and disables `children` rather than hiding them — the shape of the
- * real UI stays visible underneath so it's obvious what's being unlocked,
- * same idea as a paywall preview, just for "add your own key" instead of
- * "pay us."
+ * Blurs and disables `children` rather than hiding them, so the real UI's
+ * shape stays visible underneath, with a card explaining what's needed.
  */
 export function AiConfiguredGate({ children, className }: { children: React.ReactNode; className?: string }) {
-  const { data: roles, isLoading } = useQuery({ queryKey: ["ai-settings", "roles"], queryFn: listRoleAssignments });
+  const { data: status, isLoading } = useQuery({ queryKey: AI_STATUS_QUERY_KEY, queryFn: getAiStatus });
 
-  // Avoid a flash of blurred content while this resolves — render normally
-  // until we actually know, since the check is a fast local API call.
-  const isConfigured = isLoading || (roles ?? []).some((r) => r.role === "reasoning");
+  // Render normally until we know, rather than flashing a blurred screen.
+  if (isLoading || !status || status.askAvailable) return <>{children}</>;
 
-  if (isConfigured) return <>{children}</>;
+  const card = gateCopy(status);
 
   return (
     <div className={cn("relative h-full min-h-0", className)}>
@@ -42,17 +36,46 @@ export function AiConfiguredGate({ children, className }: { children: React.Reac
             <HugeiconsIcon icon={Key} strokeWidth={2.25} className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-foreground">Connect an AI key to use Ask</h3>
-            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              This is free and open source — you bring your own AI key (OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint), and it&apos;s used only for your account.
-            </p>
+            <h3 className="text-sm font-bold text-foreground">{card.title}</h3>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">{card.body}</p>
           </div>
-          <Button render={<Link href="/app/settings/ai" />} nativeButton={false} className="w-full rounded-full gap-1.5">
-            Configure AI
-            <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-3.5 w-3.5" />
-          </Button>
+          {card.action && (
+            <Button render={<Link href={card.action.href} />} nativeButton={false} className="w-full rounded-full gap-1.5">
+              {card.action.label}
+              <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+function gateCopy(status: AiStatus): { title: string; body: string; action: { label: string; href: string } | null } {
+  if (status.mode === "managed") {
+    if (!status.includedReady) {
+      return {
+        title: "AI is being set up",
+        body: "AI is included in your plan, but it isn't available on this server yet. Please try again a little later.",
+        action: null,
+      };
+    }
+    return {
+      title: "This month's questions are used up",
+      body: "Your plan's included questions reset at the start of next month. A bigger plan includes more.",
+      action: { label: "See plans", href: "/app/settings/billing" },
+    };
+  }
+  if (status.askBlockedReason === "included-used-up") {
+    return {
+      title: "This month's free questions are used up",
+      body: "Add your own AI key to keep asking right away, with no limits.",
+      action: { label: "Add an AI key", href: "/app/settings/ai" },
+    };
+  }
+  return {
+    title: "Connect an AI key to use Ask",
+    body: "Bring your own key from OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible service. It's used only for your account.",
+    action: { label: "Configure AI", href: "/app/settings/ai" },
+  };
 }

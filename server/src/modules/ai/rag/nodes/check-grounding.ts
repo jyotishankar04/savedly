@@ -2,7 +2,7 @@ import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import type { GraphNode } from "@langchain/langgraph";
 import { z } from "zod";
 import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { withUsage } from "../../../ai-usage/usage-logger";
 import { GROUNDING_CHECK_PROMPT } from "../prompts";
 import { RAGState, type RAGStateType } from "../state";
 import { INTERNAL_EVENT_TAG } from "../internal-tag";
@@ -37,7 +37,7 @@ export const checkGroundingNode: GraphNode<typeof RAGState> = async (state, conf
   // No AI configured — nothing meaningful to check the answer against (and
   // agentNode's reply in that case is already just the "connect your AI
   // key" message), so treat as grounded rather than looping pointlessly.
-  const groundingModel = userId ? (await getChatModel(userId, "fast"))?.withStructuredOutput(groundingSchema) : null;
+  const groundingModel = userId ? (await getChatModel(userId, "fast", { kind: "ask", threadId }))?.withStructuredOutput(groundingSchema) : null;
   if (!groundingModel) return { grounded: true };
 
   const toolResults = collectToolResultsText(state.messages);
@@ -47,10 +47,10 @@ export const checkGroundingNode: GraphNode<typeof RAGState> = async (state, conf
   // streamEvents() surfaces every chat-model call in the graph, including
   // this one, and its raw `{"grounded":...}` JSON leaks into the UI as a
   // second fake assistant message (confirmed live before this fix).
-  const { grounded } = await groundingModel.invoke(prompt, {
-    tags: [INTERNAL_EVENT_TAG],
-    callbacks: [createUsageCallback({ userId, requestType: "rag:check_grounding", threadId })],
-  });
+  const { grounded } = await groundingModel.invoke(
+    prompt,
+    withUsage(config, { userId, requestType: "rag:check_grounding", threadId }, { tags: [INTERNAL_EVENT_TAG] }),
+  );
 
   return { grounded, retryCount: grounded ? state.retryCount : state.retryCount + 1 };
 };

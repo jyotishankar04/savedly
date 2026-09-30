@@ -127,8 +127,21 @@ export enum NotificationType {
 
 export enum PlanLimitType {
   MEMORY_COUNT = "memory_count",
+  // The AI quotas cap *included* AI only — calls made on the platform's
+  // key. Anyone using their own key (Settings -> AI) is never limited by
+  // them. 0 = no included AI on this plan; null = unlimited.
+  // AI_MONTHLY_SAVES is "AI processing": one per saved item, every step
+  // (image reading included). AI_MONTHLY_QUERIES is the Ask-question quota
+  // (name kept for the existing enum value).
   AI_MONTHLY_QUERIES = "ai_monthly_queries",
+  AI_MONTHLY_SAVES = "ai_monthly_saves",
+  // Retired: image reads count as AI processing for their save now. Kept
+  // only because Postgres can't drop an enum value; nothing sets or reads it.
   AI_MONTHLY_VISION_QUERIES = "ai_monthly_vision_queries",
+  // Largest single upload, in MB — a per-file cap, not a running total.
+  MAX_FILE_MB = "max_file_mb",
+  // Imports (bookmark files, Pocket/Raindrop exports...) started this month.
+  IMPORT_MONTHLY_COUNT = "import_monthly_count",
   STORAGE_MB = "storage_mb",
   COLLECTION_COUNT = "collection_count",
   // Counts shares whose link is set to "public". Free plans get a handful;
@@ -162,6 +175,8 @@ export enum PlanAssignmentStatus {
 export enum PlanAssignmentSource {
   ADMIN_MANUAL = "admin_manual",
   SIGNUP_DEFAULT = "signup_default",
+  // A paid plan bought through the billing provider (modules/billing).
+  SUBSCRIPTION = "subscription",
 }
 
 // TRANSACTIONAL = system-triggered (welcome, status-changed, share events),
@@ -223,6 +238,8 @@ export enum AiCredentialProvider {
   GROQ = "groq",
   GOOGLE = "google",
   CUSTOM = "custom",
+  // One key, every model from every provider — OpenAI-compatible at a fixed base URL.
+  OPENROUTER = "openrouter",
 }
 
 // Mirrors the four model "slots" ai.providers.ts has always had internally

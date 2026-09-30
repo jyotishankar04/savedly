@@ -14,6 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { timeAgo } from "@/lib/time";
 import { useShareViewSummaryQuery, useShareViewersQuery } from "@/hooks/use-shares";
+import { usePlanFeature } from "@/hooks/use-plan-limit";
+import { UpgradeNote } from "@/components/plan/upgrade-note";
 
 /**
  * "Who viewed this" — expand-to-see, not open by default, since fetching
@@ -38,7 +40,8 @@ export function ShareAnalytics({
 }) {
   const [expanded, setExpanded] = React.useState(false);
   const summary = useShareViewSummaryQuery(shareId, expanded);
-  const viewers = useShareViewersQuery(shareId, expanded);
+  const viewersFeature = usePlanFeature("shareAnalyticsViewers");
+  const viewers = useShareViewersQuery(shareId, expanded && viewersFeature.allowed);
 
   if (totalViews === 0) {
     return <p className="text-[10px] text-muted-foreground">No views yet</p>;
@@ -84,7 +87,9 @@ export function ShareAnalytics({
             </div>
           ) : null}
 
-          {viewers.isLoading ? (
+          {!viewersFeature.allowed ? (
+            <UpgradeNote feature="shareAnalyticsViewers" />
+          ) : viewers.isLoading ? (
             <div className="space-y-1">
               <Skeleton className="h-5 w-full" />
               <Skeleton className="h-5 w-full" />

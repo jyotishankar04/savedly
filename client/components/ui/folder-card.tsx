@@ -45,7 +45,7 @@ function FolderCardFace({ count, label, badge, badgeClassName }: Pick<FolderCard
       >
         <span className="text-5xl font-bold text-foreground/70">{count}</span>
         <div className="flex items-end justify-between gap-3">
-          <span className="truncate text-xs font-semibold text-foreground">{label}</span>
+          <span className="truncate text-sm font-medium text-foreground">{label}</span>
           <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-lg shadow-black/20 ring-1 ring-white/10", badgeClassName)}>
             {badge}
           </div>

@@ -4,7 +4,8 @@ import { env } from "../../config/env";
 import { ApiResponse } from "../../shared/response/api-response";
 import { AppError } from "../../shared/errors/app-error";
 import { getClientIp } from "../../shared/utils/device-fingerprint";
-import { isProviderEnabled, isSignupsEnabled } from "../feature-flags/feature-flags.service";
+import { isPasswordAuthEnabled, isProviderEnabled, isSignupsEnabled } from "../feature-flags/feature-flags.service";
+import { getOAuthCredentials } from "./oauth-config";
 import {
   OAUTH_NEXT_COOKIE,
   OAUTH_STATE_COOKIE,
@@ -21,6 +22,7 @@ import { sendEmail } from "../email";
 import { EmailCategory, EmailTemplateKey } from "../../db/enums";
 import { welcomeEmailTemplate } from "../../shared/mailer/templates";
 import {
+  assignAdminRole,
   assignDefaultRole,
   buildGithubAuthUrl,
   buildGoogleAuthUrl,
@@ -28,11 +30,42 @@ import {
   exchangeGoogleCode,
   findOrCreateUser,
   getUserWithRoles,
+  hasAnyUser,
   issueTokenPair,
+  loginWithPassword,
+  registerWithPassword,
   revokeRefreshToken,
   rotateRefreshToken,
   type OAuthProfile,
 } from "./auth.service";
+import type { LoginInput, RegisterInput } from "./auth.schema";
+
+/** A provider's sign-in button shows only when an admin both enabled it and it has client credentials. */
+async function isProviderAvailable(provider: "google" | "github"): Promise<boolean> {
+  const [enabled, credentials] = await Promise.all([isProviderEnabled(provider), getOAuthCredentials(provider)]);
+  return enabled && !!credentials;
+}
+
+function sendWelcomeEmail(user: { id: string; email: string; name: string | null }) {
+  // Never blocks/fails the signup itself — a failed welcome send
+  // shouldn't fail account creation.
+  const { subject, html } = welcomeEmailTemplate({ name: user.name });
+  sendEmail({
+    to: user.email,
+    recipientUserId: user.id,
+    category: EmailCategory.TRANSACTIONAL,
+    templateKey: EmailTemplateKey.WELCOME,
+    subject,
+    html,
+  }).catch(() => {});
+}
+
+async function startSession(req: Request, res: Response, user: { id: string; email: string }) {
+  const userWithRoles = await getUserWithRoles(user.id);
+  const tokens = await issueTokenPair(user, userWithRoles.roles, getClientIp(req), req.headers["user-agent"] ?? "");
+  setAuthCookies(res, tokens);
+  return userWithRoles;
+}
 
 function loginUrl(error: string): string {
   return `${env.FRONTEND_URL}/auth/login?error=${error}`;
@@ -79,17 +112,7 @@ async function handleOAuthCallback(req: Request, res: Response, exchangeCode: (c
 
     if (isNewUser) {
       await assignDefaultRole(user.id);
-      // Never blocks/fails the signup itself — a failed welcome send
-      // shouldn't fail account creation.
-      const { subject, html } = welcomeEmailTemplate({ name: user.name });
-      sendEmail({
-        to: user.email,
-        recipientUserId: user.id,
-        category: EmailCategory.TRANSACTIONAL,
-        templateKey: EmailTemplateKey.WELCOME,
-        subject,
-        html,
-      }).catch(() => {});
+      sendWelcomeEmail(user);
     }
 
     // Runs on every login, not just signup: an invite that arrives between
@@ -123,34 +146,66 @@ async function handleOAuthCallback(req: Request, res: Response, exchangeCode: (c
 
 export class AuthController {
   static async initiateGoogle(req: Request, res: Response) {
-    if (!(await isProviderEnabled("google"))) {
+    if (!(await isProviderAvailable("google"))) {
       throw new AppError("Google sign-in is currently disabled", 403, "PROVIDER_DISABLED");
     }
     const state = crypto.randomUUID();
     setOAuthStateCookie(res, state);
     const next = sanitizeNextPath(req.query.next);
     if (next) setOAuthNextCookie(res, next);
-    res.redirect(buildGoogleAuthUrl(state));
+    res.redirect(await buildGoogleAuthUrl(state));
   }
 
   static async initiateGithub(req: Request, res: Response) {
-    if (!(await isProviderEnabled("github"))) {
+    if (!(await isProviderAvailable("github"))) {
       throw new AppError("GitHub sign-in is currently disabled", 403, "PROVIDER_DISABLED");
     }
     const state = crypto.randomUUID();
     setOAuthStateCookie(res, state);
     const next = sanitizeNextPath(req.query.next);
     if (next) setOAuthNextCookie(res, next);
-    res.redirect(buildGithubAuthUrl(state));
+    res.redirect(await buildGithubAuthUrl(state));
   }
 
   static async providers(_req: Request, res: Response) {
-    const [google, github, signupsEnabled] = await Promise.all([
-      isProviderEnabled("google"),
-      isProviderEnabled("github"),
+    const [google, github, password, signupsEnabled, anyUser] = await Promise.all([
+      isProviderAvailable("google"),
+      isProviderAvailable("github"),
+      isPasswordAuthEnabled(),
       isSignupsEnabled(),
+      hasAnyUser(),
     ]);
-    res.status(200).json(ApiResponse.success({ google, github, signupsEnabled }));
+    // needsSetup: a fresh self-hosted install with no accounts yet — the
+    // client shows "Create your admin account" instead of the sign-in page.
+    res.status(200).json(
+      ApiResponse.success({ google, github, password, signupsEnabled, needsSetup: env.SELF_HOSTED && !anyUser }),
+    );
+  }
+
+  static async register(req: Request, res: Response) {
+    if (!(await isPasswordAuthEnabled())) {
+      throw new AppError("Email sign-up is disabled", 403, "PROVIDER_DISABLED");
+    }
+    const { user, isFirstUser } = await registerWithPassword(req.body as RegisterInput);
+    await assignDefaultRole(user.id);
+    // The first account on a self-hosted install owns it.
+    if (isFirstUser && env.SELF_HOSTED) await assignAdminRole(user.id);
+    sendWelcomeEmail(user);
+
+    const userWithRoles = await startSession(req, res, user);
+    res.status(201).json(ApiResponse.success({ user: userWithRoles }));
+  }
+
+  static async login(req: Request, res: Response) {
+    if (!(await isPasswordAuthEnabled())) {
+      throw new AppError("Email sign-in is disabled", 403, "PROVIDER_DISABLED");
+    }
+    const { email, password } = req.body as LoginInput;
+    const user = await loginWithPassword(email, password);
+    await claimPendingGrantsForEmail(user.id, user.email, user.emailVerified).catch(() => {});
+
+    const userWithRoles = await startSession(req, res, user);
+    res.status(200).json(ApiResponse.success({ user: userWithRoles }));
   }
 
   static async googleCallback(req: Request, res: Response) {

@@ -12,6 +12,7 @@ import {
   type UpdateCollectionInput,
 } from "@/lib/collections";
 import { listTags } from "@/lib/tags";
+import { expectNotificationsSoon } from "@/hooks/use-notifications";
 import {
   createMemory,
   deleteMemory,
@@ -183,6 +184,8 @@ export function useCreateMemoryMutation() {
   return useMutation({
     mutationFn: (input: CreateMemoryInput) => createMemory(input),
     onSuccess: () => {
+      // Processing may find an event; surface its popup within seconds.
+      expectNotificationsSoon();
       queryClient.invalidateQueries({ queryKey: ["memories"] });
       queryClient.invalidateQueries({ queryKey: collectionsQueryKey() });
       queryClient.invalidateQueries({ queryKey: tagsQueryKey() });

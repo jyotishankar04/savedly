@@ -11,6 +11,7 @@ import {
   Share02Icon as Shared,
   Delete02Icon as Trash,
   Calendar03Icon as CalendarIcon,
+  Tick02Icon as Tick,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,118 +52,163 @@ export default function NotificationsPage() {
   }
 
   const unread = notifications?.filter((n) => !n.readAt).length ?? 0;
+  const groups = groupByRecency(notifications ?? []);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-8">
+    <div className="mx-auto max-w-3xl space-y-8 px-6 py-10">
       <div className="flex items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-lg font-bold text-foreground">Notifications</h1>
-          <p className="text-xs text-muted-foreground">
-            {unread > 0 ? `${unread} unread` : "You're all caught up."}
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Notifications</h1>
+          <p className="text-sm text-muted-foreground">{unread > 0 ? `${unread} unread` : "You're all caught up."}</p>
         </div>
         {unread > 0 && (
           <Button
             variant="outline"
-            size="sm"
             disabled={markAllRead.isPending}
             onClick={() => markAllRead.mutate(undefined as never)}
-            className="h-8 rounded-full px-3 text-[11px] font-semibold"
+            className="h-9 rounded-full px-4 text-sm font-medium"
           >
+            <HugeiconsIcon icon={Tick} strokeWidth={2.25} className="h-4 w-4" />
             Mark all read
           </Button>
         )}
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-[72px] w-full rounded-xl" />
+            <Skeleton key={i} className="h-[88px] w-full rounded-2xl" />
           ))}
         </div>
       ) : !notifications || notifications.length === 0 ? (
         <EmptyState />
       ) : (
-        <ul className="space-y-2">
-          {notifications.map((notification, index) => (
-            <Reveal key={notification.id} index={Math.min(index, 8)}>
-              <NotificationRow notification={notification} />
-            </Reveal>
+        <div className="space-y-8">
+          {groups.map((group) => (
+            <section key={group.label} aria-label={group.label}>
+              <h2 className="mb-3 text-sm font-medium text-muted-foreground">{group.label}</h2>
+              <ul className="space-y-2.5">
+                {group.items.map((notification, index) => (
+                  <Reveal key={notification.id} index={Math.min(index, 8)}>
+                    <NotificationRow notification={notification} />
+                  </Reveal>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
 }
+
+/** Today / This week / Earlier, keeping the server's newest-first order inside each group. */
+function groupByRecency(items: AppNotification[]): { label: string; items: AppNotification[] }[] {
+  const now = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
+  const buckets: Record<string, AppNotification[]> = { Today: [], "This week": [], Earlier: [] };
+  for (const n of items) {
+    const age = now - new Date(n.createdAt).getTime();
+    (age < DAY ? buckets.Today : age < 7 * DAY ? buckets["This week"] : buckets.Earlier).push(n);
+  }
+  return Object.entries(buckets)
+    .filter(([, list]) => list.length > 0)
+    .map(([label, list]) => ({ label, items: list }));
+}
+
+const TYPE_LABEL: Record<NotificationType, string> = {
+  share_invite_received: "Shared with you",
+  share_access_requested: "Access request",
+  share_access_approved: "Access approved",
+  share_access_denied: "Access declined",
+  share_revoked: "Access removed",
+  event_detected: "Event detected",
+};
 
 function NotificationRow({ notification }: { notification: AppNotification }) {
   const markRead = useMarkReadMutation();
   const remove = useDeleteNotificationMutation();
   const Icon = ICONS[notification.type] ?? Bell;
   const unread = !notification.readAt;
+  const hasActions = notification.type === "share_access_requested" || notification.type === "event_detected";
 
   const body = (
-    <div className="min-w-0 flex-1 space-y-0.5">
-      <p className={cn("text-xs leading-snug", unread ? "font-semibold text-foreground" : "text-muted-foreground")}>
+    <div className="min-w-0 space-y-1">
+      <p className={cn("text-[15px] leading-snug", unread ? "font-semibold text-foreground" : "font-medium text-foreground/80")}>
         {notification.title}
       </p>
-      {notification.body && <p className="text-[11px] text-muted-foreground">{notification.body}</p>}
-      <p className="font-mono text-[10px] text-muted-foreground/70">{timeAgo(notification.createdAt)}</p>
+      {notification.body && <p className="text-sm leading-snug text-muted-foreground">{notification.body}</p>}
+      <p className="text-xs text-muted-foreground/80">
+        {TYPE_LABEL[notification.type] ?? "Notification"} · {timeAgo(notification.createdAt)}
+      </p>
     </div>
   );
 
   return (
     <li
       className={cn(
-        "flex items-start gap-3 rounded-xl border p-3 transition-colors",
-        unread ? "border-primary/30 bg-primary/[0.04]" : "border-border"
+        "group relative flex items-start gap-4 rounded-2xl border p-4 transition-colors",
+        unread ? "border-primary/25 bg-primary/[0.035]" : "border-border bg-card/40 hover:bg-card/70",
       )}
     >
+      {/* Unread marker: a dot, not a coloured edge. */}
+      {unread && <span aria-label="Unread" className="absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary" />}
+
       <span
         className={cn(
-          "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-          unread ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+          unread ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
         )}
       >
-        <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-3.5 w-3.5" />
+        <HugeiconsIcon icon={Icon} strokeWidth={2} className="h-[18px] w-[18px]" />
       </span>
 
-      {/* Only link when there's somewhere useful to go — a declined request
-          has no destination. */}
-      {notification.actionUrl ? (
-        <Link
-          href={notification.actionUrl}
-          onClick={() => unread && markRead.mutate(notification.id)}
-          className="min-w-0 flex-1"
-        >
-          {body}
-        </Link>
-      ) : (
-        body
-      )}
+      <div className="min-w-0 flex-1 space-y-3">
+        {/* Only link when there's somewhere useful to go — a declined request has no destination. */}
+        {notification.actionUrl ? (
+          <Link href={notification.actionUrl} onClick={() => unread && markRead.mutate(notification.id)} className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+            {body}
+          </Link>
+        ) : (
+          body
+        )}
 
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
-        {notification.type === "share_access_requested" && <InlineDecision notification={notification} />}
-        {notification.type === "event_detected" && <InlineCalendarAction notification={notification} />}
-        <div className="flex items-center gap-1">
-          {unread && (
-            <button
-              type="button"
-              onClick={() => markRead.mutate(notification.id)}
-              className="text-[10px] font-semibold text-muted-foreground hover:text-foreground"
-            >
-              Mark read
-            </button>
-          )}
+        {(hasActions || unread) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {notification.type === "share_access_requested" && <InlineDecision notification={notification} />}
+            {notification.type === "event_detected" && <InlineCalendarAction notification={notification} />}
+            {/* On phones "Mark read" joins the actions; beside the title it would squeeze the text. */}
+            {unread && (
+              <button
+                type="button"
+                onClick={() => markRead.mutate(notification.id)}
+                className="rounded-full px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:hidden"
+              >
+                Mark read
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1 self-start">
+        {unread && (
           <button
             type="button"
-            aria-label="Delete notification"
-            onClick={() => remove.mutate(notification.id)}
-            className="text-muted-foreground hover:text-destructive"
+            onClick={() => markRead.mutate(notification.id)}
+            className="hidden rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:inline-flex"
           >
-            <HugeiconsIcon icon={Trash} strokeWidth={2.25} className="h-3.5 w-3.5" />
+            Mark read
           </button>
-        </div>
+        )}
+        <button
+          type="button"
+          aria-label="Delete notification"
+          onClick={() => remove.mutate(notification.id)}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/30"
+        >
+          <HugeiconsIcon icon={Trash} strokeWidth={2} className="h-4 w-4" />
+        </button>
       </div>
     </li>
   );
@@ -186,7 +232,14 @@ function InlineDecision({ notification }: { notification: AppNotification }) {
   if (!refs) return null;
 
   const stillPending = pending.some((request) => request.id === refs.requestId);
-  if (!stillPending) return <span className="text-[10px] text-muted-foreground">Handled</span>;
+  if (!stillPending) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+        <HugeiconsIcon icon={Approved} strokeWidth={2} className="h-4 w-4" />
+        Handled
+      </span>
+    );
+  }
 
   const busy = approve.isPending || deny.isPending;
 
@@ -202,20 +255,14 @@ function InlineDecision({ notification }: { notification: AppNotification }) {
   }
 
   return (
-    <div className="flex gap-1.5">
-      <Button size="sm" disabled={busy} onClick={() => decide("approve")} className="h-6 rounded-full px-2.5 text-[10px]">
+    <>
+      <Button disabled={busy} onClick={() => decide("approve")} className="h-9 rounded-full px-5 text-sm font-medium">
         Approve
       </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={busy}
-        onClick={() => decide("deny")}
-        className="h-6 rounded-full px-2.5 text-[10px]"
-      >
+      <Button variant="outline" disabled={busy} onClick={() => decide("deny")} className="h-9 rounded-full px-5 text-sm font-medium">
         Decline
       </Button>
-    </div>
+    </>
   );
 }
 
@@ -223,25 +270,25 @@ function InlineDecision({ notification }: { notification: AppNotification }) {
 function InlineCalendarAction({ notification }: { notification: AppNotification }) {
   const refs = eventDetectedRefs(notification);
   const [open, setOpen] = React.useState(false);
-  const markRead = useMarkReadMutation();
+  const remove = useDeleteNotificationMutation();
 
   if (!refs) return null;
 
   return (
     <>
-      <div className="flex gap-1.5">
-        <Button size="sm" onClick={() => setOpen(true)} className="h-6 rounded-full px-2.5 text-[10px]">
-          Add to calendar
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => !notification.readAt && markRead.mutate(notification.id)}
-          className="h-6 rounded-full px-2.5 text-[10px]"
-        >
-          Dismiss
-        </Button>
-      </div>
+      <Button onClick={() => setOpen(true)} className="h-9 rounded-full px-5 text-sm font-medium">
+        <HugeiconsIcon icon={CalendarIcon} strokeWidth={2} className="h-4 w-4" />
+        Add to calendar
+      </Button>
+      {/* Dismissing a suggestion removes it; marking it read would leave the same buttons on screen. */}
+      <Button
+        variant="ghost"
+        disabled={remove.isPending}
+        onClick={() => remove.mutate(notification.id)}
+        className="h-9 rounded-full px-4 text-sm font-medium text-muted-foreground"
+      >
+        Dismiss
+      </Button>
       {open && <EventDetectedPopup notification={notification} onClose={() => setOpen(false)} />}
     </>
   );
@@ -256,9 +303,9 @@ function EmptyState() {
           <HugeiconsIcon icon={Bell} strokeWidth={2.25} className="h-6 w-6 text-primary" />
         </div>
       </div>
-      <h3 className="text-sm font-semibold text-foreground">Nothing here yet</h3>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Access requests and shares sent your way will show up here.
+      <h3 className="text-base font-semibold text-foreground">Nothing here yet</h3>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        Access requests, shares, and events we spot in your memories will show up here.
       </p>
     </div>
   );

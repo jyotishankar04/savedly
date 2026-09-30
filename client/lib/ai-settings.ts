@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/auth";
 
-export type AiProvider = "openai" | "anthropic" | "groq" | "google" | "custom";
+export type AiProvider = "openai" | "anthropic" | "groq" | "google" | "openrouter" | "custom";
 export type AiRole = "fast" | "reasoning" | "vision" | "embeddings";
 
 export interface AiCredential {
@@ -19,6 +19,19 @@ export interface AiRoleAssignment {
   provider: AiProvider;
   model: string;
   verifiedAt: string | null;
+}
+
+/** One model from the live catalog (OpenRouter), or from a saved key's own provider. Prices are USD per 1M tokens. */
+export interface CatalogModel {
+  id: string;
+  name: string;
+  vendor: string;
+  kind: "chat" | "embedding";
+  inputPrice: number | null;
+  outputPrice: number | null;
+  contextLength: number | null;
+  vision: boolean | null;
+  tools: boolean | null;
 }
 
 export interface TestConnectionResult {
@@ -41,6 +54,33 @@ export async function updateCredential(id: string, input: { label?: string; apiK
 
 export async function deleteCredential(id: string): Promise<void> {
   await apiFetch(`/ai-settings/credentials/${id}`, { method: "DELETE" });
+}
+
+/** Public: every model OpenRouter lists, with live prices. Nothing is stored — the server re-reads it every few minutes. */
+export async function getModelCatalog(): Promise<{ models: CatalogModel[]; fetchedAt: string }> {
+  return apiFetch<{ models: CatalogModel[]; fetchedAt: string }>("/ai-settings/models");
+}
+
+/** Every model a saved key can use, asked of its provider live. */
+export async function listCredentialModels(id: string): Promise<{ models: CatalogModel[]; error: string | null }> {
+  return apiFetch<{ models: CatalogModel[]; error: string | null }>(`/ai-settings/credentials/${id}/models`);
+}
+
+/** Whether a model can fill a role, using what the catalog knows (unknown capabilities are allowed through). */
+export function modelFitsRole(model: CatalogModel, role: AiRole): boolean {
+  if (role === "embeddings") return model.kind === "embedding";
+  if (model.kind !== "chat") return false;
+  if (role === "vision") return model.vision !== false;
+  if (role === "reasoning") return model.tools !== false;
+  return true;
+}
+
+/** "$0.10 / $0.40" per 1M tokens, or "Price varies". */
+export function formatModelPrice(model: CatalogModel): string {
+  const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`;
+  if (model.inputPrice === null) return "Price varies";
+  if (model.inputPrice === 0 && (model.outputPrice ?? 0) === 0) return "Free";
+  return model.outputPrice === null ? `${fmt(model.inputPrice)} in` : `${fmt(model.inputPrice)} in / ${fmt(model.outputPrice)} out`;
 }
 
 export async function listRoleAssignments(): Promise<AiRoleAssignment[]> {
@@ -69,6 +109,7 @@ export const PROVIDER_LABEL: Record<AiProvider, string> = {
   anthropic: "Anthropic",
   groq: "Groq",
   google: "Google Gemini",
+  openrouter: "OpenRouter (every model)",
   custom: "Custom (OpenAI-compatible)",
 };
 
@@ -86,38 +127,33 @@ export const ROLE_DESCRIPTION: Record<AiRole, string> = {
   embeddings: "Powers semantic search and the Ask assistant's memory lookup. Must be exactly 1536-dimensional — see the note below.",
 };
 
-/**
- * Pure UI guidance, not enforced server-side (the server validates a real
- * model by calling it, not by name-matching a list) — a starting point so
- * picking a model isn't a blank-text-field guessing game. Kept here rather
- * than fetched from the server since it's just copy, not behavior.
- */
-export const RECOMMENDED_MODELS: Record<AiProvider, Partial<Record<AiRole, string[]>>> = {
-  openai: {
-    fast: ["gpt-4o-mini", "gpt-5-nano"],
-    reasoning: ["gpt-4o", "gpt-5-mini"],
-    vision: ["gpt-4o", "gpt-4o-mini"],
-    embeddings: ["text-embedding-3-small"],
-  },
-  anthropic: {
-    fast: ["claude-3-5-haiku-20241022"],
-    reasoning: ["claude-3-5-sonnet-20241022", "claude-sonnet-4-5"],
-    vision: ["claude-3-5-sonnet-20241022"],
-  },
-  groq: {
-    fast: ["llama-3.1-8b-instant", "openai/gpt-oss-120b"],
-    reasoning: ["llama-3.3-70b-versatile"],
-  },
-  google: {
-    fast: ["gemini-2.0-flash", "gemini-1.5-flash"],
-    reasoning: ["gemini-1.5-pro", "gemini-2.0-flash"],
-    vision: ["gemini-1.5-flash", "gemini-1.5-pro"],
-    // Not listed: Gemini's embedding models default to 768 dimensions, not
-    // the required 1536 — reachable only via a request param this simple
-    // model-string setup can't express. Use OpenAI or a custom endpoint's
-    // 1536-dim model for embeddings instead.
-  },
-  custom: {},
-};
 
 export const EMBEDDINGS_INCOMPATIBLE_PROVIDERS: AiProvider[] = ["groq", "anthropic"];
+
+export type AiSource = "own" | "included" | "none";
+
+export interface AiAllowance {
+  /** null = unlimited */
+  limit: number | null;
+  used: number;
+}
+
+/** Where this account's AI comes from — see server ai-settings.service.ts getAiStatus. */
+export interface AiStatus {
+  /** managed: the plan supplies all AI (AI included), nothing to set up. own-key: the user brings keys. */
+  mode: "managed" | "own-key";
+  roles: Record<"fast" | "reasoning" | "vision", AiSource>;
+  /** saves: AI processing, one per saved item (reading images included). */
+  included: { saves: AiAllowance; questions: AiAllowance } | null;
+  /** The server has its own AI keys, so included AI can actually run. */
+  includedReady: boolean;
+  askAvailable: boolean;
+  askBlockedReason: "no-ai" | "included-used-up" | null;
+  savedKeysIgnored: number;
+}
+
+export const AI_STATUS_QUERY_KEY = ["ai-settings", "status"] as const;
+
+export async function getAiStatus(): Promise<AiStatus> {
+  return apiFetch<AiStatus>("/ai-settings/status");
+}

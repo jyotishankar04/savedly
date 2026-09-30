@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
 import * as service from "./ai-settings.service";
+import { getModelCatalog } from "./model-catalog";
 import type { AiRole } from "../../db/enums";
 import type { AssignRoleInput, CreateCredentialInput, TestConnectionInput, UpdateCredentialInput } from "./ai-settings.schema";
 
@@ -45,7 +46,22 @@ export class AiSettingsController {
     res.status(200).json(ApiResponse.success(result));
   }
 
+  static async status(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await service.getAiStatus(req.user!.id)));
+  }
+
   static async platformDefaults(_req: Request, res: Response) {
     res.status(200).json(ApiResponse.success(service.getPlatformDefaults()));
+  }
+
+  static async modelCatalog(_req: Request, res: Response) {
+    const catalog = await getModelCatalog();
+    res.setHeader("Cache-Control", "public, max-age=600");
+    res.status(200).json(ApiResponse.success(catalog));
+  }
+
+  static async credentialModels(req: Request, res: Response) {
+    const result = await service.listCredentialModels(req.user!.id, req.params.id as string);
+    res.status(200).json(ApiResponse.success(result));
   }
 }

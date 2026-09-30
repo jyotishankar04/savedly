@@ -122,6 +122,7 @@ export const aiCredentialProviderEnum = pgEnum("ai_credential_provider", [
   AiCredentialProvider.GROQ,
   AiCredentialProvider.GOOGLE,
   AiCredentialProvider.CUSTOM,
+  AiCredentialProvider.OPENROUTER,
 ]);
 
 export const aiRoleEnum = pgEnum("ai_role", [AiRole.FAST, AiRole.REASONING, AiRole.VISION, AiRole.EMBEDDINGS]);
@@ -138,6 +139,9 @@ export const planLimitTypeEnum = pgEnum("plan_limit_type", [
   PlanLimitType.STORAGE_MB,
   PlanLimitType.COLLECTION_COUNT,
   PlanLimitType.PUBLIC_SHARE_COUNT,
+  PlanLimitType.AI_MONTHLY_SAVES,
+  PlanLimitType.MAX_FILE_MB,
+  PlanLimitType.IMPORT_MONTHLY_COUNT,
 ]);
 
 // SEMI_ANNUAL was missing here even though it's a real PlanBillingInterval
@@ -206,6 +210,7 @@ export const planAssignmentStatusEnum = pgEnum("plan_assignment_status", [
 export const planAssignmentSourceEnum = pgEnum("plan_assignment_source", [
   PlanAssignmentSource.ADMIN_MANUAL,
   PlanAssignmentSource.SIGNUP_DEFAULT,
+  PlanAssignmentSource.SUBSCRIPTION,
 ]);
 
 export const emailCategoryEnum = pgEnum("email_category", [
@@ -263,6 +268,10 @@ export const users = pgTable(
     // as the `pv` claim in the vault-unlock token, so changing the PIN
     // invalidates every unlock proof already issued, the same trick used for
     // share-link passwords.
+    // Email + password sign-in (self-hosted installs), scrypt-hashed with
+    // shared/crypto/scrypt-password.ts like the vault PIN. Null for accounts
+    // that only ever signed in through Google/GitHub.
+    passwordHash: text("password_hash"),
     vaultPinHash: text("vault_pin_hash"),
     vaultPinUpdatedAt: timestamp("vault_pin_updated_at", { withTimezone: true }),
     // When a soft account-deletion was requested (status flips to DELETED at
@@ -586,6 +595,9 @@ export const userSettings = pgTable("user_settings", {
   notifyProductUpdates: boolean("notify_product_updates").notNull().default(false),
   theme: settingsThemeEnum("theme").notNull().default(SettingsTheme.SYSTEM),
   accentColor: accentColorEnum("accent_color").notNull().default(AccentColor.BLUE),
+  // IANA name ("Asia/Kolkata"), set from the browser. Event detection reads
+  // "3 pm" in this zone; null = unknown, treated as UTC.
+  timezone: varchar("timezone", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
@@ -690,6 +702,9 @@ export const memories = pgTable(
     // action, which builds a Google/Outlook link or .ics file client-side —
     // no calendar OAuth involved.
     eventAt: timestamp("event_at", { withTimezone: true }),
+    // How long that event runs, in minutes. Null means the 1-hour default —
+    // set by the calendar when an event is created, moved or resized there.
+    eventDurationMinutes: integer("event_duration_minutes"),
     // AI-inferred, never user-set — the ingestion pipeline's DetectEvent
     // node's guess at a date/time this memory is "about," if any. Distinct
     // from eventAt above (user-owned/confirmed, drives the real calendar
@@ -1076,6 +1091,52 @@ export const featureFlags = pgTable(
 );
 
 // -----------------------------------------------------------------------------
+// 20b. Instance Settings (self-hosted installs only)
+//     The infrastructure an admin configures from Admin -> Configuration ->
+//     Infrastructure: file storage, vector store, email, embeddings, OAuth.
+//     One row per section. Non-secret fields live in `value`; secret fields
+//     (API keys, passwords) are a JSON object encrypted with token-cipher's
+//     encryptToken in `secret_value`, never returned to the client. Hosted
+//     production never reads this table — it's configured only through env.
+//     See modules/instance-settings/.
+// -----------------------------------------------------------------------------
+export const instanceSettings = pgTable("instance_settings", {
+  section: varchar("section", { length: 50 }).primaryKey(),
+  value: jsonb("value").notNull().default({}),
+  secretValue: text("secret_value"),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+// -----------------------------------------------------------------------------
+// 20c. Billing (hosted only — modules/billing)
+//     billing_customers: the payment provider's customer id per user, needed
+//     to open the provider's billing portal. billing_events: every webhook
+//     event id already handled, so a replayed delivery is a no-op.
+// -----------------------------------------------------------------------------
+export const billingCustomers = pgTable("billing_customers", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  provider: varchar("provider", { length: 30 }).notNull(),
+  customerId: varchar("customer_id", { length: 255 }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export const billingEvents = pgTable("billing_events", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  provider: varchar("provider", { length: 30 }).notNull(),
+  type: varchar("type", { length: 100 }).notNull(),
+  receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
 // 21. Announcements Table (launch/update countdowns and banners — a history,
 //     not a singleton; "only one active" is enforced in the service layer)
 // -----------------------------------------------------------------------------
@@ -1187,9 +1248,8 @@ export const plans = pgTable(
     sortOrder: integer("sort_order").notNull().default(0),
     // Admin-editable, boolean/on-off perks distinct from the numeric
     // PlanLimitType quota system above (memory_count etc.). Record-keeping
-    // only now — nothing in the app enforces these anymore (see the note
-    // above admin/plans/plans.service.ts's DEFAULT_PLANS: the single Free
-    // plan has every limit and feature unconditionally unlimited/on).
+    // only: every plan gets every feature — plans differ only by volume and
+    // included AI (see admin/plans/plans.service.ts's DEFAULT_PLANS).
     features: jsonb("features").$type<Record<string, boolean>>().notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })

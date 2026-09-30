@@ -5,7 +5,7 @@ import { db } from "../../db";
 import { emailMessages } from "../../db/schema";
 import { EmailStatus } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
-import { sendMail } from "../../shared/mailer/mailer";
+import { isEmailEnabled, sendMail } from "../../shared/mailer/mailer";
 import type { EmailJobData } from "./email.queue";
 
 /** Mirrors startIngestionWorker/startTrashPurgeWorker's shape — call once from server.ts. */
@@ -20,6 +20,16 @@ export function startEmailWorker(): Worker<EmailJobData> {
       // succeeded (e.g. the SMTP ack was lost but the send went through)
       // must not send the same email twice.
       if (row.status === EmailStatus.SENT) return;
+
+      // A self-hosted install without SMTP: record why and stop, rather than
+      // burning retries on a send that can never succeed.
+      if (!(await isEmailEnabled())) {
+        await db
+          .update(emailMessages)
+          .set({ status: EmailStatus.FAILED, error: "Email isn't configured on this server" })
+          .where(eq(emailMessages.id, row.id));
+        return;
+      }
 
       await db.update(emailMessages).set({ status: EmailStatus.SENDING, attempts: row.attempts + 1 }).where(eq(emailMessages.id, row.id));
 

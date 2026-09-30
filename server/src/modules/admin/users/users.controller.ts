@@ -1,7 +1,18 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../../shared/response/api-response";
 import type { ListUsersQuery } from "./users.schema";
-import { getUserDetail, listUsers, updateUserRoles, updateUserStatus } from "./users.service";
+import {
+  createUserByAdmin,
+  deleteUserForDev,
+  getUserDetail,
+  getUserPlan,
+  grantPlan,
+  listUsers,
+  removePlanGrant,
+  setUserPassword,
+  updateUserRoles,
+  updateUserStatus,
+} from "./users.service";
 
 export class UsersController {
   static async listUsers(req: Request, res: Response) {
@@ -23,5 +34,32 @@ export class UsersController {
   static async updateStatus(req: Request, res: Response) {
     const result = await updateUserStatus(req.params.id as string, req.body, req.user!.id, req.ip);
     res.status(200).json(ApiResponse.success(result));
+  }
+
+  static async createUser(req: Request, res: Response) {
+    const user = await createUserByAdmin(req.body, req.user!.id, req.ip);
+    res.status(201).json(ApiResponse.success(user));
+  }
+
+  static async setPassword(req: Request, res: Response) {
+    await setUserPassword(req.params.id as string, req.body, req.user!.id, req.ip);
+    res.status(200).json(ApiResponse.success({ updated: true }));
+  }
+
+  static async getPlan(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await getUserPlan(req.params.id as string)));
+  }
+
+  static async grantPlan(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await grantPlan(req.params.id as string, req.body, req.user!.id, req.ip)));
+  }
+
+  static async removePlanGrant(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await removePlanGrant(req.params.id as string, req.user!.id, req.ip)));
+  }
+
+  static async deleteUser(req: Request, res: Response) {
+    await deleteUserForDev(req.params.id as string, req.user!.id, req.ip);
+    res.status(204).send();
   }
 }

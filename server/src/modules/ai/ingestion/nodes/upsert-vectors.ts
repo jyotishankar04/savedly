@@ -1,4 +1,4 @@
-import { and, eq, ilike } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../../../db";
 import { collectionMemories, collections, memories, memoryTags, users } from "../../../../db/schema";
 import { CollectionSource, MemoryStatus, MemoryType } from "../../../../db/enums";
@@ -8,41 +8,41 @@ import { getVectorStore } from "../../vector-store";
 import { isVideoUrl } from "../extract-url";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { isPlaceholderTitle } from "../title";
+import { collectionNameKey } from "./organize-collection";
 
 async function assignCollection(tx: Tx, state: IngestionStateType): Promise<string | null> {
-  if (state.collectionAction === "existing" && state.collectionName) {
-    const [match] = await tx
-      .select({ id: collections.id })
-      .from(collections)
-      .where(and(eq(collections.userId, state.userId), ilike(collections.name, state.collectionName)));
-    if (!match) return null;
-    await tx
-      .insert(collectionMemories)
-      .values({ collectionId: match.id, memoryId: state.memoryId })
-      .onConflictDoNothing();
-    return match.id;
-  }
+  if ((state.collectionAction !== "existing" && state.collectionAction !== "new") || !state.collectionName) return null;
 
-  if (state.collectionAction === "new" && state.collectionName) {
-    const [{ id: collectionId }] = await tx
+  // Two saves finishing together could each decide to create "Birthdays";
+  // holding a per-user lock while looking up and creating keeps it to one.
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`collections:${state.userId}`}))`);
+
+  const userCollections = await tx
+    .select({ id: collections.id, name: collections.name })
+    .from(collections)
+    .where(and(eq(collections.userId, state.userId), eq(collections.isVaulted, false)));
+  const key = collectionNameKey(state.collectionName);
+  let collectionId = userCollections.find((c) => collectionNameKey(c.name) === key)?.id ?? null;
+
+  if (!collectionId) {
+    const [created] = await tx
       .insert(collections)
       .values({
         userId: state.userId,
         name: state.collectionName,
         icon: state.collectionIcon || "📁",
         description: state.collectionDescription,
-        source: CollectionSource.SYSTEM,
+        // A normal, visible collection: nothing is paid or limited any more, so
+        // there is no reason to hide what the AI files things into.
+        source: CollectionSource.USER,
       })
       .returning({ id: collections.id });
-
-    await tx
-      .insert(collectionMemories)
-      .values({ collectionId, memoryId: state.memoryId })
-      .onConflictDoNothing();
-    return collectionId;
+    collectionId = created.id;
   }
 
-  return null;
+  await tx.insert(collectionMemories).values({ collectionId, memoryId: state.memoryId }).onConflictDoNothing();
+  return collectionId;
 }
 
 // Verbatim intent of docs/AI_REQUIREMENTS.md's UpsertPgVector node, split in
@@ -82,11 +82,10 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
       .update(memories)
       .set({
         // Never overwrite a title the user actually typed — only fill in
-        // when capture left it at the schema default. Prefers the AI title,
+        // over a placeholder (see isPlaceholderTitle). Prefers the AI title,
         // falling back to the page's own og:title/<title> when AI insight
         // generation itself came up empty (still better than "Untitled").
-        title:
-          state.existingTitle === "Untitled" ? (state.aiTitle ?? state.previewTitle ?? undefined) : undefined,
+        title: isPlaceholderTitle(state.existingTitle) ? (state.aiTitle ?? state.previewTitle ?? undefined) : undefined,
         // Spelling/grammar-corrected version of what the user typed as a
         // caption — never runs for "note" (see correctCaption.ts), so a
         // note's own body is never touched here.
@@ -140,7 +139,7 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
   // natural empty state (column default null / zero chunk rows) until
   // embeddings get configured and it's reprocessed.
   if (state.documentEmbedding.length > 0) {
-    await getVectorStore().upsertMemoryVectors({
+    await (await getVectorStore()).upsertMemoryVectors({
       memoryId: state.memoryId,
       userId: state.userId,
       documentEmbedding: state.documentEmbedding,
@@ -170,14 +169,14 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
         userId: state.userId,
         email: row.email,
         memoryId: state.memoryId,
-        memoryTitle: state.existingTitle !== "Untitled" ? state.existingTitle : (state.aiTitle ?? "your memory"),
+        memoryTitle: !isPlaceholderTitle(state.existingTitle) ? state.existingTitle : (state.aiTitle ?? "your memory"),
         suggestedEventAt: state.detectedEventAt,
       });
     }
   }
 
   logNode(state.memoryId, "upsertVectors", {
-    titleWritten: state.existingTitle === "Untitled" && !!state.aiTitle,
+    titleWritten: isPlaceholderTitle(state.existingTitle) && !!state.aiTitle,
     tagsLinked: state.suggestedTags.length,
     chunksWritten: state.chunks.length,
     collectionAction: state.collectionAction,

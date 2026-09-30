@@ -1,15 +1,26 @@
 import { getEmbeddings } from "../../ai.providers";
 import { logAiUsage } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
+import { logger } from "../../../../shared/utils/logger";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
 // Verbatim from docs/AI_REQUIREMENTS.md's GenerateEmbeddings node: one
 // document-level embedding from title+summary+intent+tags, plus one
 // embedding per chunk.
+// Warned once per process: without embeddings, nothing saved is findable by
+// meaning, and Ask has only keyword matches to go on.
+let warnedNoEmbeddings = false;
+
 export async function generateEmbeddings(state: IngestionStateType): Promise<IngestionUpdate> {
   const resolved = await getEmbeddings(state.userId);
   if (!resolved) {
     logNode(state.memoryId, "generateEmbeddings", { skipped: "AI not configured" });
+    if (!warnedNoEmbeddings) {
+      warnedNoEmbeddings = true;
+      logger.warn(
+        "[ingestion] no embeddings key: saves aren't indexed for search by meaning. Set Admin -> Infrastructure -> Embeddings (or Included AI on OpenAI).",
+      );
+    }
     return { documentEmbedding: [], chunkEmbeddings: [] };
   }
 

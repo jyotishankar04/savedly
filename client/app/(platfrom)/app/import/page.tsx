@@ -10,8 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 import { PaginationFooter } from "@/components/admin/pagination-footer";
 import { getImportBatch, getImportItems, runImport, type ImportSourceType } from "@/lib/import";
+import { usePlanLimit } from "@/hooks/use-plan-limit";
+import { PlanLimitNotice } from "@/components/plan-limit-notice";
 
 export default function ImportPage() {
+  const importLimit = usePlanLimit("import_monthly_count");
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<ImportSourceType>("bookmarks_html");
   const [pastedUrls, setPastedUrls] = useState("");
@@ -47,6 +50,7 @@ export default function ImportPage() {
     setSubmitting(true);
     try {
       const result = await runImport(tab, content);
+      queryClient.invalidateQueries({ queryKey: ["plans", "me"] });
       setBatchId(result.batchId);
       setItemsPage(1);
       queryClient.invalidateQueries({ queryKey: ["import", result.batchId] });
@@ -68,7 +72,12 @@ export default function ImportPage() {
     <div className="mx-auto max-w-2xl space-y-8 px-6 py-10 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Import</h1>
-        <p className="mt-1 text-xs text-muted-foreground">Bring in bookmarks from any browser, or paste a list of links.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Bring in bookmarks from any browser, or paste a list of links.
+          {importLimit.limit !== null && !importLimit.isAtLimit && importLimit.remaining !== null && (
+            <> You have {importLimit.remaining} {importLimit.remaining === 1 ? "import" : "imports"} left this month.</>
+          )}
+        </p>
       </div>
 
       <div className="flex items-center border border-border/60 rounded-lg bg-card overflow-hidden w-fit">
@@ -114,7 +123,12 @@ export default function ImportPage() {
         />
       )}
 
-      <Button onClick={submit} disabled={!canSubmit || submitting} className="h-9 rounded-full px-5 text-xs font-bold">
+      {importLimit.isAtLimit && importLimit.limit !== null && (
+        <PlanLimitNotice
+          message={`Your plan includes ${importLimit.limit} ${importLimit.limit === 1 ? "import" : "imports"} a month, and you've used ${importLimit.limit === 1 ? "it" : "them"}. Upgrade for unlimited imports, or import again next month.`}
+        />
+      )}
+      <Button onClick={submit} disabled={!canSubmit || submitting || importLimit.isAtLimit} className="h-9 rounded-full px-5 text-xs font-bold">
         {submitting ? "Importing…" : "Import"}
       </Button>
 

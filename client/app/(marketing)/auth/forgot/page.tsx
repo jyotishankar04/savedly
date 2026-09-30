@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { SparklesIcon as Sparkles, ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
+import { LogoMark } from "@/components/logo";
 import { getProviderLoginUrl } from "@/lib/auth";
 import { Logo } from "@/components/logo";
 
@@ -46,14 +47,14 @@ export default function ForgotPasswordPage() {
         {/* Brand Copy */}
         <div className="relative z-10 max-w-md space-y-4">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-primary bg-primary/10 border border-primary/15">
-            <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-3.5 w-3.5 fill-current" />
+            <LogoMark ticks={false} className="h-3.5 w-3.5" />
             <span>AI Powered Memory</span>
           </span>
           <h1 className="text-4xl font-semibold tracking-tight leading-tight text-card-foreground">
             Save everything you discover, search by what you remember.
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Join thousands of professionals, developers, and researchers building their digital second brains.
+            Links, notes, screenshots, PDFs and voice memos in one place, organized for you and searchable by meaning.
           </p>
         </div>
 
