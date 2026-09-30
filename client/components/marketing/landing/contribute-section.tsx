@@ -51,16 +51,21 @@ export function ContributeSection({ showDonate = false }: { showDonate?: boolean
               Open source, and yours to run.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
-              The code is public and you can self-host it for free. The hosted version has a free plan too, and paid plans for
-              people who want more room and AI we supply.
+              The code is public and you can self-host it for free, with every feature unlocked. The hosted version has a Free
+              plan too, plus Lite and Pro for more room and AI we run for you.
             </p>
-            <Link
-              href={cta.href}
-              className="group mt-8 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {cta.isAuthenticated ? "Go to Dashboard" : "Get started free"}
-              <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Link
+                href={cta.href}
+                className="group inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {cta.isAuthenticated ? "Go to Dashboard" : "Get started free"}
+                <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link href="/pricing" className="text-[15px] font-medium text-foreground underline-offset-4 hover:underline">
+                See pricing
+              </Link>
+            </div>
           </div>
 
           {/* What free actually means: a spec list, not a card grid. */}
