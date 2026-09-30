@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion, type Variants } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon as ArrowRightIcon } from "@hugeicons/core-free-icons";
 import { Navbar } from "@/components/marketing/navbar";
@@ -28,8 +28,6 @@ function ProductTabs() {
   const [paused, setPaused] = useState(false);
   const [touched, setTouched] = useState(false);
 
-  // Walks the tabs on its own until the visitor picks one; never under
-  // reduced motion, and it holds while the pointer is over the window.
   useEffect(() => {
     if (reduce || touched || paused) return;
     const t = setTimeout(() => {
@@ -45,7 +43,7 @@ function ProductTabs() {
       initial={{ opacity: 0, y: 48, filter: "blur(8px)" }}
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={reduce ? { duration: 0 } : { duration: 1.1, ease: EASE, delay: 0.55 }}
-      className="mt-16 md:mt-24 text-left"
+      className="mt-16 md:mt-24 text-left mx-auto w-full max-w-6xl"
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
     >
@@ -92,50 +90,112 @@ function ProductTabs() {
   );
 }
 
+const sectionVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.11, delayChildren: 0.16 } },
+};
+
+const riseVariants: Variants = {
+  hidden: { opacity: 0, y: 18, filter: "blur(8px)" },
+  visible: {
+    opacity: 1, y: 0, filter: "blur(0px)",
+    transition: { type: "spring", duration: 0.75, bounce: 0 },
+  },
+};
+
+const ctaVariants: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.98, filter: "blur(8px)" },
+  visible: {
+    opacity: 1, y: 0, scale: 1, filter: "blur(0px)",
+    transition: { type: "spring", duration: 0.85, bounce: 0 },
+  },
+};
+
+const skylightVariants: Variants = {
+  hidden: { opacity: 0, y: -18, scale: 0.96, filter: "blur(12px)" },
+  visible: {
+    opacity: 1, y: 0, scale: 1, filter: "blur(0px)",
+    transition: { type: "spring", duration: 1.05, bounce: 0 },
+  },
+};
+
 export function HeroProduct() {
   const cta = useAuthCta();
-  const reduce = useReducedMotion();
-  // The start state is always declared (server and client agree); reduced
-  // motion only makes the transition instant, so content is never left hidden.
-  const rise = (delay: number) => ({
-    initial: { opacity: 0, y: 22 },
-    animate: { opacity: 1, y: 0 },
-    transition: reduce ? { duration: 0 } : { duration: 0.9, ease: EASE, delay },
-  });
 
   return (
-    <section className="relative overflow-hidden bg-background selection:bg-primary/25">
+    <section className="relative isolate overflow-hidden bg-background selection:bg-primary/25 font-sans antialiased">
+      {/* Light Mode Background */}
+      <motion.img
+        variants={skylightVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        src="/landing/hero-bg-light.jpg"
+        alt="AI Second Brain Network"
+        className="blur-sm pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-top opacity-60 dark:hidden"
+      />
+      
+      {/* Dark Mode Background */}
+      <motion.img
+        variants={skylightVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+        src="/landing/hero-bg-dark.jpg"
+        alt="AI Second Brain Network"
+        className="blur-sm hidden pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover object-top opacity-40 dark:block"
+      />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background/10 via-background/60 to-background" />
+
       <Navbar />
-      <div className="mx-auto w-full max-w-5xl px-5 pt-32 pb-8 sm:px-6 md:pt-40 text-center">
-        {/* Centered Hero Copy */}
-        <motion.h1
-          {...rise(0.05)}
-          className="text-5xl leading-[1.05] font-semibold tracking-[-0.035em] text-balance text-foreground sm:text-6xl md:text-[4.5rem] mx-auto"
-        >
-          Save anything.<br className="hidden sm:block" /> Ask it anything.
-        </motion.h1>
-        
-        <motion.p {...rise(0.18)} className="mt-8 mx-auto max-w-2xl text-lg leading-relaxed text-balance text-muted-foreground">
-          Articles, PDFs, screenshots, voice notes, YouTube links. Each one is read, transcribed, summarized and tagged on the way in, then searchable by meaning and answerable in plain English.
-        </motion.p>
-        
-        {/* Centered CTAs */}
-        <motion.div {...rise(0.3)} className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <Link href={cta.href} className="group inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground hover:bg-primary/90 transition-[background-color,transform] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97]">
-            {cta.label}
-            <HugeiconsIcon icon={ArrowRightIcon} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-          <GithubStarButton variant="hero" />
-        </motion.div>
-        
-        <motion.p {...rise(0.4)} className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
-          {SHOWCASE_MODE ? "Early access: join the waitlist" : "Free plan · open source · self-host it"}
-        </motion.p>
-        
-        {/* Full-width App Frame */}
+      <motion.div
+        className="relative flex w-full flex-col overflow-hidden px-5 sm:px-8 lg:px-9 pt-32 md:pt-40"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.35 }}
+        variants={sectionVariants}
+      >
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center justify-center pb-14 text-center">
+          
+          <motion.h1
+            variants={riseVariants}
+            className="max-w-4xl text-[clamp(2.55rem,5vw,5.5rem)] leading-[1.05] font-semibold tracking-[-0.035em] text-balance text-foreground"
+          >
+            <span className="block">The open-source AI second brain</span>
+            <span className="block">
+              for your{" "}
+              <span className="font-[Georgia,serif] font-normal tracking-[-0.055em] text-primary italic">
+                digital life.
+              </span>
+            </span>
+          </motion.h1>
+
+          <motion.p
+            variants={riseVariants}
+            className="mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground"
+          >
+            Articles, PDFs, screenshots, voice notes, YouTube links. Each one is read, transcribed, summarized and tagged on the way in, then searchable by meaning and answerable in plain English.
+          </motion.p>
+
+          <motion.div variants={ctaVariants} className="mt-10 flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href={cta.href}
+              className="group inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.96]"
+            >
+              {cta.label}
+              <HugeiconsIcon icon={ArrowRightIcon} className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <GithubStarButton variant="hero" />
+          </motion.div>
+          
+          <motion.p variants={ctaVariants} className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+            {SHOWCASE_MODE ? "Early access: join the waitlist" : "Free plan · open source · self-host it"}
+          </motion.p>
+        </div>
+
         <ProductTabs />
-      </div>
+      </motion.div>
     </section>
   );
 }
