@@ -101,6 +101,23 @@ cd /opt/saveforlatter
 docker compose up -d --force-recreate server
 ```
 
+To restart everything by hand, pull first. A plain `docker compose up -d` uses the instance's copy of the `latest` image, which can be older than the version the last deploy started:
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+## Measure latency
+
+To see how long the API's calls to Postgres, Redis and Pinecone take from the instance, copy `deploy/aws/latency-probe.sh` to the instance and run it:
+
+```sh
+scp -i KEY_FILE deploy/aws/latency-probe.sh ubuntu@ELASTIC_IP:/opt/saveforlatter/
+ssh -i KEY_FILE ubuntu@ELASTIC_IP 'bash /opt/saveforlatter/latency-probe.sh'
+```
+
+It prints timings only. A Postgres `select 1` above about 20 ms means the database is in a distant region; every API request makes several such round trips.
+
 ## Troubleshoot
 
 - **See what's happening:** on the instance, run `cd /opt/saveforlatter && docker compose logs -f server`.
