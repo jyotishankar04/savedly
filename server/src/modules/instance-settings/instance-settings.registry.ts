@@ -256,6 +256,7 @@ export const SECTIONS: SectionDef[] = [
         options: [
           { value: "pgvector", label: "Built-in Postgres (pgvector)" },
           { value: "upstash", label: "Upstash Vector" },
+          { value: "pinecone", label: "Pinecone" },
         ],
         fromEnv: () => env("VECTOR_STORE_PROVIDER"),
       },
@@ -274,6 +275,21 @@ export const SECTIONS: SectionDef[] = [
         showWhen: { field: "provider", equals: ["upstash"] },
         fromEnv: () => env("UPSTASH_VECTOR_REST_TOKEN"),
       },
+      {
+        name: "pineconeHost",
+        label: "Pinecone index host",
+        kind: "text",
+        showWhen: { field: "provider", equals: ["pinecone"] },
+        fromEnv: () => env("PINECONE_INDEX_HOST"),
+      },
+      {
+        name: "pineconeApiKey",
+        label: "Pinecone API key",
+        kind: "password",
+        secret: true,
+        showWhen: { field: "provider", equals: ["pinecone"] },
+        fromEnv: () => env("PINECONE_API_KEY"),
+      },
     ],
     defaults: { provider: "pgvector" },
     schema: z.discriminatedUnion("provider", [
@@ -283,6 +299,13 @@ export const SECTIONS: SectionDef[] = [
           provider: z.literal("upstash"),
           upstashUrl: z.string().url("Upstash REST URL must be a valid URL"),
           upstashToken: z.string().min(1, "Upstash REST token is required"),
+        })
+        .passthrough(),
+      z
+        .object({
+          provider: z.literal("pinecone"),
+          pineconeHost: z.string().min(1, "Pinecone index host is required"),
+          pineconeApiKey: z.string().min(1, "Pinecone API key is required"),
         })
         .passthrough(),
     ]),
