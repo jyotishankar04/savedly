@@ -1,0 +1,8 @@
+{
+  "title": "Account and tools",
+  "description": "Your data, settings and shortcuts.",
+  "pages": [
+    "shortcuts",
+    "account"
+  ]
+}
