@@ -18,13 +18,13 @@ You need:
 - Admin access to the GitHub repository.
 
 > [!NOTE]
-> Check the Billing console to see whether your account's free tier covers a `t4g.small` instance and a public IPv4 address. Outside the free tier, both are billed.
+> Check the Billing console to see whether your account's free tier covers a `t3.small` instance and a public IPv4 address. Outside the free tier, both are billed.
 
 ## 1. Create the instance
 
 1. In the EC2 console, launch an instance:
-   - **Image:** Ubuntu Server 24.04 LTS, 64-bit (Arm)
-   - **Type:** `t4g.small`
+   - **Image:** Ubuntu Server 24.04 LTS, 64-bit (x86)
+   - **Type:** `t3.small`
    - **Storage:** 20 GB gp3
    - **Key pair:** create one, and keep the private key file
    - **Security group:** allow inbound ports 22, 80 and 443 from anywhere

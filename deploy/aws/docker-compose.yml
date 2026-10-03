@@ -1,4 +1,4 @@
-# The API on a single small instance (AWS t4g.small).
+# The API on a single small instance (AWS t3.small).
 # The image is built by .github/workflows/cd.yml and pulled from GHCR, so the
 # instance never builds. Postgres, Redis, the vector store and file storage are
 # external services named in .env.prod. Full runbook: docs/DEPLOY_AWS.md

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-time setup for a fresh Ubuntu 24.04 (ARM64) instance. Run it as the
+# One-time setup for a fresh Ubuntu 24.04 (x86-64) instance. Run it as the
 # default "ubuntu" user:
 #
 #   curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/deploy/aws/bootstrap.sh | bash

@@ -32,8 +32,8 @@ jobs:
     name: build
     # Skipped on a rollback: the image for that commit already exists.
     if: ${{ github.event_name == 'push' || inputs.image_tag == '' }}
-    # The instance is ARM64 (t4g), so the image is built on a native ARM runner.
-    runs-on: ubuntu-24.04-arm
+    # The instance is x86-64 (t3), which is what the standard runner builds.
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
@@ -63,7 +63,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: ./server
-          platforms: linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ env.IMAGE }}:${{ github.sha }}
