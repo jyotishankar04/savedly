@@ -189,6 +189,9 @@ ports, or `WEB_BIND_ADDRESS` and `API_BIND_ADDRESS` if the proxy runs outside
 the host. The API applies pending migrations on startup; back up the database
 before upgrades.
 
+To run only the API on a small AWS instance, with the image built by GitHub
+Actions, see [Deploy the API to AWS](./DEPLOY_AWS.md).
+
 ## Troubleshoot
 
 - **Can't sign in over `http://` on another device:** open the app at the address in `PUBLIC_URL`. Sign-in cookies are tied to that address.

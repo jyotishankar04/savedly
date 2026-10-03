@@ -1,0 +1,22 @@
+# Cloudflare terminates the visitor's TLS and connects here in Full (strict)
+# mode, so this serves a Cloudflare Origin CA certificate instead of asking
+# Let's Encrypt for one. See docs/DEPLOY_AWS.md.
+{
+	# Nothing here needs automatic certificates or the HTTP->HTTPS redirect
+	# listener; only 443 is open on the instance.
+	auto_https off
+}
+
+https://api.saveforlatter.tech {
+	tls /certs/origin.pem /certs/origin.key
+
+	# The largest plan allows 100 MB files; leave room for the multipart wrapper.
+	request_body {
+		max_size 110MB
+	}
+
+	reverse_proxy server:4000 {
+		# Ask streams its answer; send each chunk on as it arrives.
+		flush_interval -1
+	}
+}
