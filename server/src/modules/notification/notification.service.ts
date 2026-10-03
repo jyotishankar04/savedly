@@ -2,6 +2,7 @@ import { and, desc, eq, isNull, lt, sql } from "drizzle-orm";
 import { db, type DbOrTx } from "../../db";
 import { notifications } from "../../db/schema";
 import { NotificationType } from "../../db/enums";
+import { bumpUserCache } from "../../shared/cache/response-cache";
 import { AppError } from "../../shared/errors/app-error";
 
 export interface CreateNotificationInput {
@@ -39,6 +40,9 @@ export async function createNotification(
     actionUrl: input.actionUrl ?? null,
     metadata: input.metadata ?? {},
   });
+  // Notifications arrive from background work, not from the user's own
+  // request, so their cached list and unread count are dropped here.
+  await bumpUserCache(input.userId);
 }
 
 export async function listNotifications(

@@ -1,0 +1,143 @@
+import { createHash, randomUUID } from "node:crypto";
+import type { NextFunction, Request, Response } from "express";
+import { cacheRedis } from "../../config/redis";
+import { extractToken } from "../middlewares/authenticate";
+import { VAULT_TOKEN_COOKIE } from "../utils/cookies";
+import { verifyAccessToken } from "../utils/jwt";
+import { logger } from "../utils/logger";
+
+/**
+ * Per-user cache of GET responses, in Redis.
+ *
+ * Every entry is keyed by the user and that user's "cache version". Anything
+ * that changes a user's data replaces the version (bumpUserCache), so all of
+ * their cached reads miss from then on — no per-route invalidation lists to
+ * keep in sync. A user's own write bumps before its response is sent, so the
+ * refetch the client fires next always reads fresh data. Changes that come
+ * from elsewhere (the ingestion worker, a billing webhook, an admin) bump
+ * explicitly; whatever doesn't is bounded by the TTL.
+ *
+ * Redis being slow or down only ever costs the cache: every call fails open.
+ */
+
+const TTL_SECONDS = 60;
+const VERSION_TTL_SECONDS = 24 * 60 * 60;
+const MAX_BODY_BYTES = 512 * 1024;
+
+// Only reads of the signed-in user's own data. Left out on purpose: /admin
+// (must be live), /billing (follows webhooks), /vault and /files, and the
+// public or unauthenticated routes, which have no user to key on.
+const CACHEABLE_PREFIXES = [
+  "/auth/me",
+  "/settings",
+  "/memories",
+  "/collections",
+  "/tags",
+  "/insights",
+  "/notifications",
+  "/shares",
+  "/search",
+  "/plans/me",
+  "/ai/threads",
+  "/ai-settings",
+  "/import",
+  "/integrations/calendar/connections",
+  "/integrations/calendar/events",
+];
+
+// Downloads, and the status the client polls while a save is being processed.
+const NEVER_CACHED = [/^\/memories\/export/, /\/processing-status$/, /^\/ai-settings\/models/];
+
+// A memory still being processed changes without the user doing anything, so
+// a response that shows one is never stored.
+const IN_FLUX = '"status":"processing"';
+
+const versionKey = (userId: string) => `rc:v:${userId}`;
+
+function entryKey(userId: string, version: string, url: string): string {
+  return `rc:${userId}:${version}:${createHash("sha1").update(url).digest("base64url")}`;
+}
+
+/** Drops every cached read for this user. Safe to call from anywhere; never throws. */
+export async function bumpUserCache(userId: string): Promise<void> {
+  try {
+    await cacheRedis.set(versionKey(userId), randomUUID(), "EX", VERSION_TTL_SECONDS);
+  } catch (err) {
+    logger.warn({ err, userId }, "[cache] could not invalidate; cached reads expire within the TTL");
+  }
+}
+
+function userIdOf(req: Request): string | null {
+  const token = extractToken(req);
+  if (!token) return null;
+  try {
+    return verifyAccessToken(token).sub;
+  } catch {
+    return null;
+  }
+}
+
+function isCacheable(req: Request): boolean {
+  if (req.method !== "GET") return false;
+  if (!CACHEABLE_PREFIXES.some((prefix) => req.path === prefix || req.path.startsWith(`${prefix}/`))) return false;
+  if (NEVER_CACHED.some((pattern) => pattern.test(req.path))) return false;
+  // An unlocked vault session reads content the locked one must never see.
+  if (req.cookies?.[VAULT_TOKEN_COOKIE] || "isVaulted" in req.query) return false;
+  return true;
+}
+
+/** A write: invalidate before the response leaves, so the client's refetch can't race it. */
+function invalidateOnWrite(userId: string, res: Response): void {
+  let bumped: Promise<void> | null = null;
+  const bump = () => (bumped ??= bumpUserCache(userId));
+
+  const send = res.send.bind(res);
+  res.send = ((body?: unknown) => {
+    void bump().finally(() => send(body));
+    return res;
+  }) as typeof res.send;
+
+  // Streams and bare res.end() never pass through res.send.
+  res.on("finish", () => void bump());
+}
+
+export async function responseCache(req: Request, res: Response, next: NextFunction) {
+  const userId = userIdOf(req);
+  if (!userId) return next();
+
+  if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+    invalidateOnWrite(userId, res);
+    return next();
+  }
+  if (!isCacheable(req)) return next();
+
+  let key: string;
+  try {
+    const version = (await cacheRedis.get(versionKey(userId))) ?? "0";
+    key = entryKey(userId, version, req.originalUrl);
+    const hit = await cacheRedis.get(key);
+    if (hit !== null) {
+      res.status(200).set("Content-Type", "application/json; charset=utf-8").set("X-Cache", "HIT").send(hit);
+      return;
+    }
+  } catch {
+    return next();
+  }
+
+  const send = res.send.bind(res);
+  res.send = ((body?: unknown) => {
+    if (
+      res.statusCode === 200 &&
+      typeof body === "string" &&
+      body.length <= MAX_BODY_BYTES &&
+      !res.getHeader("Set-Cookie") &&
+      String(res.getHeader("Content-Type") ?? "").includes("application/json") &&
+      !body.includes(IN_FLUX)
+    ) {
+      cacheRedis.set(key, body, "EX", TTL_SECONDS).catch(() => {});
+    }
+    return send(body);
+  }) as typeof res.send;
+  res.set("X-Cache", "MISS");
+  next();
+}

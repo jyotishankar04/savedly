@@ -29,6 +29,7 @@ import integrationsRoutes from "../modules/integrations";
 import batchRoutes from "../modules/batch";
 import searchRoutes from "../modules/search";
 import reportRoutes from "../modules/report";
+import { responseCache } from "../shared/cache/response-cache";
 import { maintenanceMode } from "../shared/middlewares/maintenance-mode";
 
 const router = Router();
@@ -37,6 +38,10 @@ const router = Router();
 // every route mount so it can gate all of them; bypasses /health, /admin,
 // and /auth internally.
 router.use(maintenanceMode);
+
+// Serves a signed-in user's repeat reads from Redis and drops them on that
+// user's next write. After maintenanceMode, so a cached read can't slip past it.
+router.use(responseCache);
 
 router.use("/health", healthRoutes);
 router.use("/config", configRoutes);
