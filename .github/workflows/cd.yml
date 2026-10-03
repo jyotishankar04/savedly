@@ -101,7 +101,7 @@ jobs:
       - name: Pull the image and restart
         run: |
           ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
-            "cd $APP_DIR && IMAGE_TAG=$IMAGE_TAG docker compose pull server && IMAGE_TAG=$IMAGE_TAG docker compose up -d --wait --wait-timeout 180 && docker image prune -f >/dev/null"
+            "cd $APP_DIR && IMAGE_TAG=$IMAGE_TAG docker compose pull server && IMAGE_TAG=$IMAGE_TAG docker compose up -d --wait --wait-timeout 300 && docker image prune -f >/dev/null"
 
       - name: Show the API log if the deploy failed
         if: failure()

@@ -47,7 +47,11 @@ USER nodejs
 
 EXPOSE 4000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/api/v1/health', (r) => {if (r.statusCode !== 200) process.exit(1)}).on('error', () => process.exit(1))"
+# The check exits as soon as it has the status: left to end by itself, the
+# idle keep-alive socket holds the process open until the timeout and the
+# container is reported unhealthy while serving 200s. The start period covers
+# the first boot, when migrations run before the server listens.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:4000/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
