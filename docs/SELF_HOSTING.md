@@ -31,7 +31,12 @@ cd saveforlatter
 docker compose up -d
 ```
 
-When the command finishes, open <http://localhost:3000>.
+Before exposing the install to the internet, create a root `.env` from
+`.env.example` and set a unique `POSTGRES_PASSWORD` and your public `PUBLIC_URL`.
+The remaining service settings are optional and can be added as needed.
+
+When the command finishes, open the address in `PUBLIC_URL` (by default,
+<http://localhost:3000>).
 
 On first start, SaveForLatter:
 
@@ -63,7 +68,7 @@ Everything works with the defaults. To change a service, go to **Admin** > **Inf
 | Section | Default | Change it to use |
 |---|---|---|
 | File storage | Local disk | Any S3-compatible store: Cloudflare R2, AWS S3, MinIO |
-| Vector store | Built-in Postgres (pgvector) | Upstash Vector |
+| Vector store | Built-in Postgres (pgvector) | Upstash Vector or Pinecone |
 | Email | Off | Any SMTP server |
 | Embeddings | None (each person's own key) | One key for the whole install |
 | Sign in with Google / GitHub | Off | Your own OAuth app (the page shows the callback URL to register) |
@@ -93,6 +98,10 @@ S3_FORCE_PATH_STYLE=false
 VECTOR_STORE_PROVIDER=upstash
 UPSTASH_VECTOR_REST_URL=UPSTASH_URL
 UPSTASH_VECTOR_REST_TOKEN=UPSTASH_TOKEN
+# or Pinecone (a serverless index, 1536 dimensions, cosine):
+# VECTOR_STORE_PROVIDER=pinecone
+# PINECONE_API_KEY=PINECONE_API_KEY
+# PINECONE_INDEX_HOST=PINECONE_INDEX_HOST
 
 # Email
 SMTP_HOST=smtp.example.com
@@ -163,6 +172,12 @@ docker compose up -d --build
 ```
 
 Database changes apply automatically when the new version starts. Back up first; see [Back up your data](#back-up-your-data).
+
+## Run the hosted API
+
+The hosted version of SaveForLatter runs the API by itself, with managed
+Postgres and Redis. That setup isn't a self-hosted install; see
+[Deploy the API to AWS](./DEPLOY_AWS.md).
 
 ## Troubleshoot
 

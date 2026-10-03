@@ -1,0 +1,10 @@
+{
+  "title": "Get started",
+  "description": "Set up and save your first memories.",
+  "pages": [
+    "getting-started",
+    "capture",
+    "import",
+    "extension"
+  ]
+}

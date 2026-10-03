@@ -1,0 +1,8 @@
+{
+  "title": "Self-hosting",
+  "description": "Run your own SaveForLatter on your own server.",
+  "pages": [
+    "self-host",
+    "ai-setup"
+  ]
+}

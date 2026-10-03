@@ -29,6 +29,7 @@ A reference page per feature, each naming the service file that owns it, the tab
 
 - [`SELF_HOSTING.md`](./SELF_HOSTING.md) — run your own install with one command, connect storage/email/OAuth from Admin > Infrastructure, back up and upgrade.
 - [`RELEASE_PROCESS.md`](./RELEASE_PROCESS.md) — for maintainers: how `main` gets promoted to `prod-web` and `prod-server` independently, and how to hotfix a live bug. Contributors don't need this — your PR always targets `main`.
+- [`DEPLOY_AWS.md`](./DEPLOY_AWS.md) — for maintainers: running the hosted API on one AWS instance behind Cloudflare, with automatic deploys from `prod-server`.
 - [`AI_REQUIREMENTS.md`](./AI_REQUIREMENTS.md) and [`BACKEND_REQUIREMENTS.md`](./BACKEND_REQUIREMENTS.md) are the original target-design specs this project was built from. Treat them as historical context, not a description of the current implementation — AI in particular has moved well past what they describe, from a platform-funded design to the bring-your-own-key one [Architecture](./ARCHITECTURE.md) documents.
 - [`URL_CAPTURE_AND_PREVIEW.md`](./URL_CAPTURE_AND_PREVIEW.md) covers how a saved link's preview (title, image, favicon) is resolved.
 - [`KEYMAPS.md`](./KEYMAPS.md) lists the dashboard's keyboard shortcuts.

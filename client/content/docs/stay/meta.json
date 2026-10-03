@@ -1,0 +1,8 @@
+{
+  "title": "Stay on top",
+  "description": "Calendar events and notifications.",
+  "pages": [
+    "calendar",
+    "notifications"
+  ]
+}

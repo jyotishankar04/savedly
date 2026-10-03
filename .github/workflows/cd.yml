@@ -1,0 +1,119 @@
+name: Deploy API
+
+# Ships the API to the AWS instance. A push to prod-server (the server's
+# production branch, see docs/RELEASE_PROCESS.md) builds the image, pushes it
+# to GitHub Container Registry and restarts the container on the instance.
+# Run it by hand with an older commit SHA to roll back. Runbook: docs/DEPLOY_AWS.md
+on:
+  push:
+    branches: [prod-server]
+    paths:
+      - "server/**"
+      - "deploy/aws/**"
+      - ".github/workflows/cd.yml"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Commit SHA of an image that's already built, to redeploy it (rollback). Leave empty to build the current commit."
+        required: false
+        default: ""
+
+# One deploy at a time; a newer push waits for the running one to finish.
+concurrency:
+  group: deploy-api
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/jyotishankar04/saveforlatter-server
+  APP_DIR: /opt/saveforlatter
+
+jobs:
+  build:
+    name: build
+    # Skipped on a rollback: the image for that commit already exists.
+    if: ${{ github.event_name == 'push' || inputs.image_tag == '' }}
+    # The instance is x86-64 (t3), which is what the standard runner builds.
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.18.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - name: Typecheck
+        working-directory: server
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: deploy
+    needs: build
+    # Runs after a successful build, or straight away on a rollback.
+    if: ${{ always() && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Copy the compose file and Caddy config
+        run: |
+          scp -i ~/.ssh/deploy_key deploy/aws/docker-compose.yml deploy/aws/Caddyfile \
+            "$EC2_USER@$EC2_HOST:$APP_DIR/"
+
+      - name: Pull the image and restart
+        run: |
+          ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
+            "cd $APP_DIR && IMAGE_TAG=$IMAGE_TAG docker compose pull server && IMAGE_TAG=$IMAGE_TAG docker compose up -d --wait --wait-timeout 180 && docker image prune -f >/dev/null"
+
+      - name: Show the API log if the deploy failed
+        if: failure()
+        run: |
+          ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
+            "cd $APP_DIR && docker compose ps && docker compose logs --tail 60 server" || true
+
+      - name: Check the live API
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://api.saveforlatter.tech/api/v1/health || true)
+            if [ "$code" = "200" ]; then echo "API is healthy"; exit 0; fi
+            echo "health returned $code, retrying"; sleep 6
+          done
+          echo "API did not become healthy"; exit 1

@@ -7,7 +7,7 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-RUN npm install -g pnpm@11
+RUN npm install --global pnpm@11.24.0
 
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -22,7 +22,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN npm install -g pnpm@11 && \
+RUN npm install --global pnpm@11.24.0 && \
     addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
