@@ -1,9 +1,17 @@
--- Must run before the vector/tsvector columns below — local/dev only
--- (pgvector/pgvector image, see docker-compose.yml); production uses
--- Upstash Vector instead (VECTOR_STORE_PROVIDER=upstash), so the `vector`
--- extension is never needed there.
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- Must run before the vector/tsvector columns below. pgvector is only needed
+-- when Postgres is the vector store (VECTOR_STORE_PROVIDER=pgvector, the
+-- default). With Upstash Vector or Pinecone the two embedding columns stay
+-- empty, so on a Postgres that doesn't offer the extension they're created
+-- as plain real[] columns instead and the HNSW indexes are skipped.
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'vector') THEN
+		CREATE EXTENSION IF NOT EXISTS vector;
+	END IF;
+	IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_trgm') THEN
+		CREATE EXTENSION IF NOT EXISTS pg_trgm;
+	END IF;
+END $$;
 --> statement-breakpoint
 CREATE TABLE "memory_chunks" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -12,12 +20,20 @@ CREATE TABLE "memory_chunks" (
 	"chunk_index" integer NOT NULL,
 	"chunk_content" text NOT NULL,
 	"token_count" integer,
-	"embedding" vector(1536) NOT NULL,
 	"metadata" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "memories" ADD COLUMN "document_embedding" vector(1536);--> statement-breakpoint
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+		ALTER TABLE "memory_chunks" ADD COLUMN "embedding" vector(1536) NOT NULL;
+		ALTER TABLE "memories" ADD COLUMN "document_embedding" vector(1536);
+	ELSE
+		ALTER TABLE "memory_chunks" ADD COLUMN "embedding" real[] NOT NULL;
+		ALTER TABLE "memories" ADD COLUMN "document_embedding" real[];
+	END IF;
+END $$;--> statement-breakpoint
 ALTER TABLE "memories" ADD COLUMN "fts_tokens" tsvector;--> statement-breakpoint
 ALTER TABLE "memories" ADD COLUMN "resource_category" text;--> statement-breakpoint
 ALTER TABLE "memories" ADD COLUMN "inferred_intent" text;--> statement-breakpoint
@@ -27,8 +43,13 @@ ALTER TABLE "memory_chunks" ADD CONSTRAINT "memory_chunks_memory_id_memories_id_
 ALTER TABLE "memory_chunks" ADD CONSTRAINT "memory_chunks_user_id_users_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE;--> statement-breakpoint
 
 -- HNSW indexes for cosine-similarity search (docs/AI_REQUIREMENTS.md's tuning).
-CREATE INDEX "idx_memories_document_embedding" ON "memories" USING hnsw ("document_embedding" vector_cosine_ops) WITH (m = 16, ef_construction = 64);--> statement-breakpoint
-CREATE INDEX "idx_memory_chunks_embedding" ON "memory_chunks" USING hnsw ("embedding" vector_cosine_ops) WITH (m = 16, ef_construction = 64);--> statement-breakpoint
+DO $$
+BEGIN
+	IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+		CREATE INDEX "idx_memories_document_embedding" ON "memories" USING hnsw ("document_embedding" vector_cosine_ops) WITH (m = 16, ef_construction = 64);
+		CREATE INDEX "idx_memory_chunks_embedding" ON "memory_chunks" USING hnsw ("embedding" vector_cosine_ops) WITH (m = 16, ef_construction = 64);
+	END IF;
+END $$;--> statement-breakpoint
 
 -- Full-text search: fts_tokens is trigger-populated, weighted A=title,
 -- B=description+inferred_intent, C=content — the app never writes this
