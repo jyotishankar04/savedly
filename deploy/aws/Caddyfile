@@ -1,15 +1,7 @@
-# Cloudflare terminates the visitor's TLS and connects here in Full (strict)
-# mode, so this serves a Cloudflare Origin CA certificate instead of asking
-# Let's Encrypt for one. See docs/DEPLOY_AWS.md.
-{
-	# Nothing here needs automatic certificates or the HTTP->HTTPS redirect
-	# listener; only 443 is open on the instance.
-	auto_https off
-}
-
-https://api.saveforlatter.tech {
-	tls /certs/origin.pem /certs/origin.key
-
+# Caddy gets and renews a Let's Encrypt certificate for this name by itself.
+# The DNS record must point at the instance, and ports 80 and 443 must be open.
+# See docs/DEPLOY_AWS.md.
+api.saveforlatter.tech {
 	# The largest plan allows 100 MB files; leave room for the multipart wrapper.
 	request_body {
 		max_size 110MB

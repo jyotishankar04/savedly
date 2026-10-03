@@ -1,10 +1,10 @@
-# The API on a single small instance (AWS t4g.small), behind Cloudflare.
+# The API on a single small instance (AWS t4g.small).
 # The image is built by .github/workflows/cd.yml and pulled from GHCR, so the
 # instance never builds. Postgres, Redis, the vector store and file storage are
 # external services named in .env.prod. Full runbook: docs/DEPLOY_AWS.md
 #
 # On the instance this file lives in /opt/saveforlatter next to .env.prod,
-# Caddyfile and certs/. Start or update with:
+# and Caddyfile. Start or update with:
 #
 #   IMAGE_TAG=<commit sha> docker compose pull && docker compose up -d
 
@@ -22,8 +22,8 @@ services:
       SELF_HOSTED: "false"
       RUN_MIGRATIONS: "true"
       PORT: "4000"
-      # Two proxies sit in front of the API: Cloudflare, then Caddy.
-      TRUST_PROXY: "2"
+      # One proxy sits in front of the API: Caddy.
+      TRUST_PROXY: "1"
     # No published port: only Caddy reaches the API, over the compose network.
     expose:
       - "4000"
@@ -39,11 +39,12 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
+      # 80 is for the Let's Encrypt check and the redirect to HTTPS.
+      - "80:80"
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      # Cloudflare Origin CA certificate and key (origin.pem, origin.key).
-      - ./certs:/certs:ro
+      # Caddy keeps its certificates here; losing it only means re-issuing them.
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
