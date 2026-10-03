@@ -6,7 +6,8 @@ This page doesn't cover the web client (it's deployed separately) or a self-host
 
 ## How it works
 
-- The instance runs two containers: the API, and Caddy, which handles HTTPS. Postgres, Redis, the vector store and file storage are external services named in `server/.env.prod`.
+- The instance runs three containers: the API, Redis (job queues and the response cache), and Caddy, which handles HTTPS. Postgres, the vector store and file storage are external services named in `server/.env.prod`.
+- The compose file points the API at the instance's own Redis, so a `REDIS_URL` in `.env.prod` is ignored.
 - GitHub Actions builds the image and the instance pulls it, so the instance never builds. The workflow is `.github/workflows/cd.yml`, and the instance's files are in `deploy/aws/`.
 
 ## Before you begin
@@ -124,7 +125,7 @@ It prints timings only. A Postgres `select 1` above about 20 ms means the databa
 - **The deploy job fails at "Pull the image":** the package is still private. See [Deploy](#4-deploy).
 - **The browser shows a certificate error:** Caddy couldn't get a certificate. Check that the `api` DNS record points at the Elastic IP and that ports 80 and 443 are open, then run `docker compose logs caddy`.
 - **Sign-in fails:** the OAuth callback URLs still point at another address.
-- **Saved items stop being summarized:** the background workers use Redis. Check the Redis provider's usage; a free plan's request quota can run out.
+- **Saved items stop being summarized:** the background workers use Redis. Run `docker compose ps redis` and `docker compose logs --tail 30 redis`. An error containing `OOM` means Redis reached its memory limit; raise `--maxmemory` in `docker-compose.yml`.
 
 ## Later: tighten security
 
