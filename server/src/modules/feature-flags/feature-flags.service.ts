@@ -104,8 +104,18 @@ export async function listFlags() {
   return db.select().from(featureFlags).orderBy(featureFlags.category, featureFlags.key);
 }
 
+// Flags are read on every request (the maintenance check alone runs for each
+// one), so values are kept in memory briefly. One process runs the API and
+// every worker, so updateFlag clearing the map is enough to apply a change
+// at once; the TTL only covers a flag edited directly in the database.
+const FLAG_CACHE_MS = 15_000;
+const flagCache = new Map<string, { value: unknown; found: boolean; expiresAt: number }>();
+
 async function getFlagValue<T>(key: string, fallback: T): Promise<T> {
+  const cached = flagCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.found ? (cached.value as T) : fallback;
   const [row] = await db.select({ value: featureFlags.value }).from(featureFlags).where(eq(featureFlags.key, key)).limit(1);
+  flagCache.set(key, { value: row?.value, found: !!row, expiresAt: Date.now() + FLAG_CACHE_MS });
   return row ? (row.value as T) : fallback;
 }
 
@@ -133,6 +143,7 @@ export async function updateFlag(key: string, patch: UpdateFlagInput, adminUserI
     })
     .returning();
 
+  flagCache.clear();
   return { before, after };
 }
 
