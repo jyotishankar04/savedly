@@ -169,28 +169,11 @@ docker compose up -d --build
 
 Database changes apply automatically when the new version starts. Back up first; see [Back up your data](#back-up-your-data).
 
-## Production Docker Compose
+## Run the hosted API
 
-For a hosted production deployment with managed Postgres and Redis, configure
-`server/.env.prod` with the production credentials and connection URLs. Set
-`FRONTEND_URL` to the web app's public origin and `SERVER_URL` to the API's
-public origin, both without a trailing slash. The database and Redis hosts must
-be reachable from Docker containers.
-
-Start the app containers with:
-
-```sh
-docker compose --env-file server/.env.prod -f docker-compose.prod.yml up -d --build
-```
-
-The web app and API bind to `127.0.0.1:3000` and `127.0.0.1:4000` by default,
-ready for a host reverse proxy. Use `WEB_PORT` and `API_PORT` to change those
-ports, or `WEB_BIND_ADDRESS` and `API_BIND_ADDRESS` if the proxy runs outside
-the host. The API applies pending migrations on startup; back up the database
-before upgrades.
-
-To run only the API on a small AWS instance, with the image built by GitHub
-Actions, see [Deploy the API to AWS](./DEPLOY_AWS.md).
+The hosted version of SaveForLatter runs the API by itself, with managed
+Postgres and Redis. That setup isn't a self-hosted install; see
+[Deploy the API to AWS](./DEPLOY_AWS.md).
 
 ## Troubleshoot
 
