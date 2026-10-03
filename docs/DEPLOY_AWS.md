@@ -6,7 +6,8 @@ This page doesn't cover the web client (it's deployed separately) or a self-host
 
 ## How it works
 
-- The instance runs two containers: the API, and Caddy, which handles HTTPS. Postgres, Redis, the vector store and file storage are external services named in `server/.env.prod`.
+- The instance runs three containers: the API, Redis (job queues and the response cache), and Caddy, which handles HTTPS. Postgres, the vector store and file storage are external services named in `server/.env.prod`.
+- The compose file points the API at the instance's own Redis, so a `REDIS_URL` in `.env.prod` is ignored.
 - GitHub Actions builds the image and the instance pulls it, so the instance never builds. The workflow is `.github/workflows/cd.yml`, and the instance's files are in `deploy/aws/`.
 
 ## Before you begin
@@ -101,13 +102,30 @@ cd /opt/saveforlatter
 docker compose up -d --force-recreate server
 ```
 
+To restart everything by hand, pull first. A plain `docker compose up -d` uses the instance's copy of the `latest` image, which can be older than the version the last deploy started:
+
+```sh
+docker compose pull && docker compose up -d
+```
+
+## Measure latency
+
+To see how long the API's calls to Postgres, Redis and Pinecone take from the instance, copy `deploy/aws/latency-probe.sh` to the instance and run it:
+
+```sh
+scp -i KEY_FILE deploy/aws/latency-probe.sh ubuntu@ELASTIC_IP:/opt/saveforlatter/
+ssh -i KEY_FILE ubuntu@ELASTIC_IP 'bash /opt/saveforlatter/latency-probe.sh'
+```
+
+It prints timings only. A Postgres `select 1` above about 20 ms means the database is in a distant region; every API request makes several such round trips.
+
 ## Troubleshoot
 
 - **See what's happening:** on the instance, run `cd /opt/saveforlatter && docker compose logs -f server`.
 - **The deploy job fails at "Pull the image":** the package is still private. See [Deploy](#4-deploy).
 - **The browser shows a certificate error:** Caddy couldn't get a certificate. Check that the `api` DNS record points at the Elastic IP and that ports 80 and 443 are open, then run `docker compose logs caddy`.
 - **Sign-in fails:** the OAuth callback URLs still point at another address.
-- **Saved items stop being summarized:** the background workers use Redis. Check the Redis provider's usage; a free plan's request quota can run out.
+- **Saved items stop being summarized:** the background workers use Redis. Run `docker compose ps redis` and `docker compose logs --tail 30 redis`. An error containing `OOM` means Redis reached its memory limit; raise `--maxmemory` in `docker-compose.yml`.
 
 ## Later: tighten security
 

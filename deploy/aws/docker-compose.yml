@@ -1,7 +1,8 @@
 # The API on a single small instance (AWS t3.small).
 # The image is built by .github/workflows/cd.yml and pulled from GHCR, so the
-# instance never builds. Postgres, Redis, the vector store and file storage are
-# external services named in .env.prod. Full runbook: docs/DEPLOY_AWS.md
+# instance never builds. Redis runs here too; Postgres, the vector store and
+# file storage are external services named in .env.prod.
+# Full runbook: docs/DEPLOY_AWS.md
 #
 # On the instance this file lives in /opt/saveforlatter next to .env.prod,
 # and Caddyfile. Start or update with:
@@ -24,6 +25,11 @@ services:
       PORT: "4000"
       # One proxy sits in front of the API: Caddy.
       TRUST_PROXY: "1"
+      # The Redis below. Set here so it wins over any REDIS_URL in .env.prod.
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
     # No published port: only Caddy reaches the API, over the compose network.
     expose:
       - "4000"
@@ -34,6 +40,29 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+  # Job queues and the response cache. On the instance because the workers
+  # poll constantly, which burns through a hosted free plan's request quota,
+  # and because it is then a fraction of a millisecond from the API.
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    # - appendonly: queued jobs survive a restart.
+    # - noeviction: BullMQ needs it; a full Redis must refuse writes rather
+    #   than silently drop queued jobs. Cache entries expire by themselves.
+    command: redis-server --appendonly yes --maxmemory 192mb --maxmemory-policy noeviction
+    # No published port: only the API reaches it, over the compose network.
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 256m
+    logging: *logging
 
   caddy:
     image: caddy:2-alpine
@@ -54,5 +83,6 @@ services:
     logging: *logging
 
 volumes:
+  redis_data:
   caddy_data:
   caddy_config:
