@@ -14,6 +14,8 @@ This page is for maintainers promoting work from `main` to a production branch, 
 | `feature/*`, `fix/*` | Work in progress, branched off `main` | Whoever's making the change |
 | `hotfix/*` | A fix for a bug already live in `prod-web` or `prod-server` | A maintainer, branched off that production branch |
 
+A merge into `prod-server` deploys the API automatically; see [Deploy the API to AWS](./DEPLOY_AWS.md).
+
 `main → prod-web` and `main → prod-server` are the normal directions, and they're independent — releasing one doesn't require releasing the other. `prod-web → main` or `prod-server → main` only happens as part of a hotfix (below) — never as a routine merge.
 
 ## Normal feature flow

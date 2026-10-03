@@ -1,0 +1,58 @@
+# The API on a single small instance (AWS t3.small).
+# The image is built by .github/workflows/cd.yml and pulled from GHCR, so the
+# instance never builds. Postgres, Redis, the vector store and file storage are
+# external services named in .env.prod. Full runbook: docs/DEPLOY_AWS.md
+#
+# On the instance this file lives in /opt/saveforlatter next to .env.prod,
+# and Caddyfile. Start or update with:
+#
+#   IMAGE_TAG=<commit sha> docker compose pull && docker compose up -d
+
+name: saveforlatter-api
+
+services:
+  server:
+    image: ghcr.io/jyotishankar04/saveforlatter-server:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env.prod
+    environment:
+      NODE_ENV: production
+      SELF_HOSTED: "false"
+      RUN_MIGRATIONS: "true"
+      PORT: "4000"
+      # One proxy sits in front of the API: Caddy.
+      TRUST_PROXY: "1"
+    # No published port: only Caddy reaches the API, over the compose network.
+    expose:
+      - "4000"
+    mem_limit: 1400m
+    stop_grace_period: 15s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      # 80 is for the Let's Encrypt check and the redirect to HTTPS.
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Caddy keeps its certificates here; losing it only means re-issuing them.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      server:
+        condition: service_healthy
+    mem_limit: 128m
+    logging: *logging
+
+volumes:
+  caddy_data:
+  caddy_config:

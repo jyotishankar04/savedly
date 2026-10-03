@@ -63,7 +63,7 @@ export async function getSystemStatus() {
     filesBytes: localStorage ? await directoryBytes(resolve(env.FILES_DIR)) : null,
     services: {
       storage: localStorage ? "Local disk" : "S3-compatible",
-      vectorStore: vector.provider === "upstash" ? "Upstash Vector" : "Built-in Postgres",
+      vectorStore: vector.provider === "upstash" ? "Upstash Vector" : vector.provider === "pinecone" ? "Pinecone" : "Built-in Postgres",
       email: !!email.enabled,
       embeddingsKey: !!embeddings.apiKey,
       sharedAi: !!(await platformCredential(AiRole.REASONING)),

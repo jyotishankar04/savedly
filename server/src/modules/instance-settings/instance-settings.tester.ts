@@ -5,6 +5,7 @@ import { db } from "../../db";
 import { AiCredentialProvider, AiRole } from "../../db/enums";
 import { createS3Driver, localDriver, type S3Settings } from "../../shared/storage";
 import { createTransport, type SmtpSettings } from "../../shared/mailer/mailer";
+import { pineconeClient } from "../ai/vector-store/pinecone-store";
 import { platformCredentialFrom, testEmbeddingsCredential, testRoleCredential } from "../ai/ai.providers";
 import type { SectionId } from "./instance-settings.registry";
 import type { ResolvedSection } from "./instance-settings.service";
@@ -31,6 +32,10 @@ export async function testSection(id: SectionId, settings: ResolvedSection): Pro
         const index = new Index({ url: String(settings.upstashUrl), token: String(settings.upstashToken) });
         const info = await index.info();
         return `Connected to Upstash (${info.vectorCount} vectors, ${info.dimension} dimensions).`;
+      }
+      if (settings.provider === "pinecone") {
+        const stats = await pineconeClient({ apiKey: String(settings.pineconeApiKey), host: String(settings.pineconeHost) }).stats();
+        return `Connected to Pinecone (${stats.totalVectorCount ?? 0} vectors, ${stats.dimension ?? "unknown"} dimensions).`;
       }
       const result = await db.execute(sql`select extversion from pg_extension where extname = 'vector'`);
       if (!result.rows.length) throw new Error("The pgvector extension isn't installed in this database.");

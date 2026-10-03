@@ -7,7 +7,7 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-RUN npm install -g pnpm@11
+RUN npm install --global pnpm@11.24.0
 
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -22,7 +22,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN npm install -g pnpm@11 && \
+RUN npm install --global pnpm@11.24.0 && \
     addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
@@ -47,7 +47,11 @@ USER nodejs
 
 EXPOSE 4000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/api/v1/health', (r) => {if (r.statusCode !== 200) process.exit(1)}).on('error', () => process.exit(1))"
+# The check exits as soon as it has the status: left to end by itself, the
+# idle keep-alive socket holds the process open until the timeout and the
+# container is reported unhealthy while serving 200s. The start period covers
+# the first boot, when migrations run before the server listens.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:4000/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

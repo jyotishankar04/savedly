@@ -9,3 +9,14 @@ script
 videos
 
 claude-seo
+.vercel
+
+# Secrets and local environment files (every app; .env.example stays tracked)
+.env
+.env.*
+!.env.example
+*.pem
+
+# Local tool state
+skills-lock.json
+.zennotes

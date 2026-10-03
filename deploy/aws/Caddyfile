@@ -1,0 +1,14 @@
+# Caddy gets and renews a Let's Encrypt certificate for this name by itself.
+# The DNS record must point at the instance, and ports 80 and 443 must be open.
+# See docs/DEPLOY_AWS.md.
+api.saveforlatter.tech {
+	# The largest plan allows 100 MB files; leave room for the multipart wrapper.
+	request_body {
+		max_size 110MB
+	}
+
+	reverse_proxy server:4000 {
+		# Ask streams its answer; send each chunk on as it arrives.
+		flush_interval -1
+	}
+}

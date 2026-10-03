@@ -1,8 +1,13 @@
 node_modules
 dist
+.git
+.github
+.claude
+.agents
 .env
 .env.*
 !.env.example
 .secrets
 data
+coverage
 *.log

@@ -89,9 +89,12 @@ const envSchema = z
     // Vector storage backend — local/dev uses the pgvector columns already
     // on `memories`/`memory_chunks`; production points at Upstash Vector
     // instead, so vector search load never competes with the primary DB.
-    VECTOR_STORE_PROVIDER: z.enum(["pgvector", "upstash"]).default("pgvector"),
+    VECTOR_STORE_PROVIDER: z.enum(["pgvector", "upstash", "pinecone"]).default("pgvector"),
     UPSTASH_VECTOR_REST_URL: z.string().url().optional(),
     UPSTASH_VECTOR_REST_TOKEN: z.string().optional(),
+    // Pinecone: the API key and the index's own host, both from the Pinecone console.
+    PINECONE_API_KEY: z.string().optional(),
+    PINECONE_INDEX_HOST: z.string().optional(),
 
     // Every AI role is bring-your-own-key EXCEPT this one: embeddings are
     // cheap enough (fractions of a cent per memory) that the platform pays
@@ -247,6 +250,13 @@ const envSchema = z
     {
       message: "UPSTASH_VECTOR_REST_URL and UPSTASH_VECTOR_REST_TOKEN are required when VECTOR_STORE_PROVIDER=upstash",
       path: ["UPSTASH_VECTOR_REST_TOKEN"],
+    }
+  )
+  .refine(
+    (data) => data.VECTOR_STORE_PROVIDER !== "pinecone" || (data.PINECONE_API_KEY && data.PINECONE_INDEX_HOST),
+    {
+      message: "PINECONE_API_KEY and PINECONE_INDEX_HOST are required when VECTOR_STORE_PROVIDER=pinecone",
+      path: ["PINECONE_API_KEY"],
     }
   )
   .refine(

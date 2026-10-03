@@ -1,0 +1,159 @@
+---
+title: "Self-host SaveForLatter"
+description: "Run your own SaveForLatter with one command: install, create the admin account, connect storage, email and sign-in, back up and upgrade."
+---
+
+Run your own SaveForLatter on a computer or server you control. It's free, every feature works, and nothing is limited. You need basic comfort with a terminal.
+
+![The admin Infrastructure page, where services are configured](/help/docs/self-host.png)
+
+## Before you begin
+
+You need:
+
+- [Docker](https://docs.docker.com/get-docker/) with the Compose plugin (`docker compose version` prints a version).
+- [Git](https://git-scm.com/downloads).
+- About 2 GB of free memory, and a few GB of disk for your library.
+- An API key from an AI provider (OpenAI, Anthropic, Google Gemini, Groq, OpenRouter, or any OpenAI-compatible server). SaveForLatter uses it to read, summarize and tag what you save.
+
+## Install
+
+Run the installer. It clones the repository into a folder named `saveforlatter` and starts it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh
+```
+
+To install by hand instead, run the following commands:
+
+```bash
+git clone https://github.com/jyotishankar04/saveforlatter.git
+cd saveforlatter
+docker compose up -d
+```
+
+The first run builds the images and takes a few minutes. When it finishes, open `http://localhost:3000`.
+
+On first start SaveForLatter creates its database tables, generates its signing and encryption secrets, stores uploads on local disk, and uses the built-in Postgres for search. **None of this needs configuration.**
+
+## Create your admin account
+
+1. Open `http://localhost:3000`. The sign-in page shows **Create your admin account**.
+2. Enter your name, email and a password of at least 8 characters, then click **Create admin account**.
+
+The first account becomes the admin; accounts created after it are regular users. To stop anyone else from signing up, go to **Admin** > **Configuration** and turn off **New signups**.
+
+![The admin Configuration page, with the New signups setting](/help/docs/self-host-admin.png)
+
+## Add your AI key
+
+Go to **Settings** > **AI**, add a key for your provider, and choose a model for each role. Each person on the install adds their own key. To make search by meaning work for everyone before they add one, set an instance-wide embeddings key (see [Connect services](#connect-services)).
+
+Not sure which models to pick? [Compare models and prices](/help/model-selection).
+
+## Connect services
+
+Everything works with the defaults. To change a service, go to **Admin** > **Infrastructure**. Each section has **Save** and, where it applies, **Test connection**, which checks your values before you save them.
+
+| Service | Default | Can switch to |
+| --- | --- | --- |
+| File storage | Local disk | Cloudflare R2, AWS S3, MinIO or any S3-compatible store |
+| Vector store | Built-in Postgres (pgvector) | Upstash Vector or Pinecone |
+| Email | Off | Any SMTP server |
+| Embeddings | Each person's own key | One key for the whole install |
+| Sign in with Google / GitHub | Off (email and password works) | Your own OAuth app |
+
+- **S3-compatible storage:** the bucket must allow public reads for its public URL. Files already on local disk stay there; only new uploads go to the bucket.
+- **Vector store:** switching doesn't move existing vectors, so memories saved before the switch need re-processing to be found by meaning.
+- **Email:** without it, everything else works; welcome emails and share invites are skipped.
+
+### Configure with environment variables instead
+
+You can set any of these in a `.env` file next to `docker-compose.yml`. A value set this way always wins, and the Infrastructure page shows it as **Set by environment**. Replace each uppercase placeholder with your own value, then run `docker compose up -d` to apply it.
+
+```bash
+# File storage (S3-compatible: Cloudflare R2, AWS S3, MinIO)
+STORAGE_DRIVER=s3
+S3_ENDPOINT=https://ACCOUNT_ID.r2.cloudflarestorage.com
+S3_REGION=auto
+S3_BUCKET=BUCKET_NAME
+S3_ACCESS_KEY_ID=ACCESS_KEY_ID
+S3_SECRET_ACCESS_KEY=SECRET_ACCESS_KEY
+S3_PUBLIC_URL=https://files.example.com
+
+# Email
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=SMTP_USERNAME
+SMTP_PASSWORD=SMTP_PASSWORD
+SMTP_FROM_ADDRESS=noreply@example.com
+
+# One embeddings key for the whole install
+EMBEDDINGS_PROVIDER=openai
+EMBEDDINGS_API_KEY=EMBEDDINGS_API_KEY
+
+# Sign in with Google / GitHub
+GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET
+GITHUB_CLIENT_ID=GITHUB_CLIENT_ID
+GITHUB_CLIENT_SECRET=GITHUB_CLIENT_SECRET
+```
+
+![The admin Infrastructure page](/help/docs/self-host-services.png)
+
+## Run it on your own domain
+
+By default SaveForLatter expects to be opened at `http://localhost:3000`. To serve it from a domain with HTTPS, put a reverse proxy in front of it. This example uses [Caddy](https://caddyserver.com/), which gets certificates automatically.
+
+1. Point your domain's DNS at the server.
+2. Add these lines to `.env`, with your domain:
+
+   ```bash
+   PUBLIC_URL=https://saveforlatter.example.com
+   TRUST_PROXY=2
+   ```
+
+   `TRUST_PROXY=2` tells the API that two proxies (Caddy and the app's own) sit in front of it, so it records visitors' real addresses.
+
+3. Create a `Caddyfile`:
+
+   ```
+   saveforlatter.example.com {
+       reverse_proxy localhost:3000
+   }
+   ```
+
+4. Start Caddy, then run `docker compose up -d` to apply the new URL.
+
+If you use Google or GitHub sign-in, register the new callback URLs shown on the Infrastructure page.
+
+## Back up your data
+
+Your library lives in two places: the database and the uploaded files. To back up both, run the following commands from the `saveforlatter` folder:
+
+```bash
+docker compose exec -T db pg_dump -U saveforlatter saveforlatter > saveforlatter-db.sql
+docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine \
+  tar czf /backup/saveforlatter-files.tar.gz -C /files .
+```
+
+Also keep a copy of the `saveforlatter_secrets` volume. It holds the key that encrypts saved API keys; without it, saved keys can't be read after a restore.
+
+## Upgrade
+
+To upgrade to the latest version, back up first, then run the following commands from the `saveforlatter` folder:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Database changes apply automatically when the new version starts.
+
+## Troubleshoot
+
+- **Can't sign in from another device:** open the app at the address in `PUBLIC_URL`. Sign-in cookies are tied to that address.
+- **Saved links aren't summarized:** check that your AI key is set in **Settings** > **AI**. Saving still works without one; the item just isn't enriched.
+- **See what's happening:** run `docker compose logs -f server`.
+
+Still stuck? [Open an issue on GitHub](https://github.com/jyotishankar04/saveforlatter/issues/new).

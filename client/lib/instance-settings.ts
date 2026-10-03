@@ -47,7 +47,7 @@ export function testInstanceSection(id: string, values: Record<string, SettingVa
 }
 
 export interface ReindexStatus {
-  /** Memories not indexed for search by meaning (every memory when `exact` is false: Upstash can't be counted). */
+  /** Memories not indexed for search by meaning (every memory when `exact` is false: an external store like Upstash or Pinecone can't be counted). */
   count: number;
   exact: boolean;
   running: boolean;

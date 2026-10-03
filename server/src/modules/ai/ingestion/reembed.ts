@@ -62,7 +62,7 @@ export async function reembedMemory(memoryId: string): Promise<boolean> {
 
 /**
  * Which memories need indexing. With the built-in pgvector store that's
- * every memory without a document embedding; Upstash keeps vectors outside
+ * every memory without a document embedding; Upstash and Pinecone keep vectors outside
  * Postgres, so there it's every memory (re-indexing replaces what's there).
  */
 async function candidateCondition(userId?: string) {
@@ -70,14 +70,14 @@ async function candidateCondition(userId?: string) {
   return and(
     eq(memories.inTrash, false),
     userId ? eq(memories.userId, userId) : undefined,
-    vector.provider === "upstash" ? undefined : isNull(memories.documentEmbedding),
+    vector.provider === "pgvector" ? isNull(memories.documentEmbedding) : undefined,
   );
 }
 
 export async function countMemoriesToReindex(): Promise<{ count: number; exact: boolean }> {
   const vector = await getSection("vector");
   const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(memories).where(await candidateCondition());
-  return { count: row?.n ?? 0, exact: vector.provider !== "upstash" };
+  return { count: row?.n ?? 0, exact: vector.provider === "pgvector" };
 }
 
 let running = false;
