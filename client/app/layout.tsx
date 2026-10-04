@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toast";
 import { QueryProvider } from "./providers";
 import { AnnouncementGate } from "@/components/announcements/announcement-gate";
 import { ComingSoonGate } from "@/components/showcase/coming-soon-gate";
+import { InstallPrompt } from "@/components/install-prompt";
 import { ServiceWorker } from "@/components/service-worker";
 import { StandaloneRedirect } from "@/components/standalone-redirect";
 
@@ -64,10 +65,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
     <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {/* Chrome can announce "this site is installable" before React has
+            loaded; keep the event for components/install-prompt.tsx. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__installPrompt=e});`,
+          }}
+        />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeShortcut />
           <StandaloneRedirect />
           <ServiceWorker />
+          <InstallPrompt />
           <QueryProvider>
             <Toaster>
               <ComingSoonGate>
