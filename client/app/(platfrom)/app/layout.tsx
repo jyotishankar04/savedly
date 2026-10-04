@@ -39,6 +39,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toast";
 import {
   InputGroup,
@@ -96,6 +97,31 @@ function readClosedSections(): string[] {
 
 const SIDEBAR_ROW =
   "flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+
+// The phone menu's rows: taller than the sidebar's, for a thumb.
+const MOBILE_MENU_ROW =
+  "flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
+
+function MobileMenuLink({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate: () => void }) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      className={cn(MOBILE_MENU_ROW, active ? "bg-primary/10 text-primary" : "text-foreground active:bg-muted")}
+    >
+      {item.logo ? (
+        <LogoMark ticks={false} className="h-5 w-5 shrink-0" />
+      ) : (
+        <HugeiconsIcon icon={item.icon} strokeWidth={2} className={cn("h-5 w-5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+      )}
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {item.badge ? (
+        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground tabular-nums">{item.badge > 99 ? "99+" : item.badge}</span>
+      ) : null}
+    </Link>
+  );
+}
 
 const PROFILE_MENU_ITEM =
   "flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-medium text-foreground transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none";
@@ -399,6 +425,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  // The phone-width stand-in for the sidebar, opened from the bottom bar.
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // Which sidebar sections the user folded away, remembered across visits.
   const [closedSections, setClosedSections] = useState<string[]>(readClosedSections);
@@ -811,7 +839,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     <NextStepProvider>
       <NextStep steps={productTourSteps} navigationAdapter={useNextAdapter} cardComponent={TourCard}>
         <TourAutoStart userId={currentUser.id} />
-        <div className="flex h-screen w-screen bg-background text-foreground font-sans overflow-hidden transition-colors duration-300">
+        <div className="flex h-dvh w-screen bg-background text-foreground font-sans overflow-hidden transition-colors duration-300">
 
       {/* Ambient primary-color glow — decorative, sits behind everything else */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
@@ -1090,7 +1118,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Main nested content render */}
         <main className="flex-1 min-h-0">
-          <ScrollArea className="h-full" viewportClassName="pb-16 md:pb-0">
+          <ScrollArea className="h-full" viewportClassName="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
             <SidebarStateProvider value={{ collapsed: sidebarCollapsed, fullyCollapsed: sidebarFullyCollapsed }}>
               {children}
             </SidebarStateProvider>
@@ -1098,7 +1126,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* 3. MOBILE BOTTOM NAVIGATION BAR */}
-        <nav className="fixed bottom-0 left-0 right-0 h-14 bg-card border-t border-border flex items-center justify-around z-40 md:hidden px-4">
+        <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 h-[calc(3.5rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-card border-t border-border flex items-center justify-around z-40 md:hidden px-4">
           <Link href="/app" className={cn("flex flex-col items-center gap-0.5 text-[9px] font-bold", isNavItemActive(pathname, "/app") ? "text-primary" : "text-muted-foreground")}>
             <HugeiconsIcon icon={Compass} strokeWidth={2.25} className="h-5 w-5" />
             <span>Home</span>
@@ -1124,11 +1152,92 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <span>Ask</span>
           </Link>
 
-          <Link href="/app/settings" className={cn("flex flex-col items-center gap-0.5 text-[9px] font-bold", isNavItemActive(pathname, "/app/settings") ? "text-primary" : "text-muted-foreground")}>
-            <HugeiconsIcon icon={Settings} strokeWidth={2.25} className="h-5 w-5" />
-            <span>You</span>
-          </Link>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={mobileMenuOpen}
+            className={cn("relative flex flex-col items-center gap-0.5 text-[9px] font-bold", mobileMenuOpen ? "text-primary" : "text-muted-foreground")}
+          >
+            <HugeiconsIcon icon={Menu} strokeWidth={2.25} className="h-5 w-5" />
+            <span>Menu</span>
+            {unreadCount > 0 && <span aria-hidden className="absolute -top-0.5 right-0 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />}
+          </button>
         </nav>
+
+        {/* 4. MOBILE MENU: everything the sidebar holds, plus the account actions */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetContent side="left" className="w-[86vw] max-w-sm gap-0 p-0 md:hidden">
+            <SheetTitle className="sr-only">Menu</SheetTitle>
+            <SheetDescription className="sr-only">Every section of SaveForLatter, your collections and your account.</SheetDescription>
+
+            <div className="flex items-center gap-3 border-b border-border/40 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+              <UserAvatar user={currentUser} className="h-10 w-10 shrink-0 text-sm" />
+              <div className="min-w-0 flex-1 pr-8">
+                <p className="truncate text-sm font-medium text-foreground">{currentUser.name ?? currentUser.email}</p>
+                <p className="truncate text-xs text-muted-foreground">{planLabel.label} plan</p>
+              </div>
+            </div>
+
+            <nav aria-label="All sections" className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 py-4">
+              <div className="space-y-0.5">
+                {primaryNavItems.map((item) => (
+                  <MobileMenuLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onNavigate={() => setMobileMenuOpen(false)} />
+                ))}
+              </div>
+
+              {navSections.map((section) => (
+                <div key={section.id} className="space-y-0.5">
+                  <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">{section.label}</p>
+                  {section.items.map((item) => (
+                    <MobileMenuLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onNavigate={() => setMobileMenuOpen(false)} />
+                  ))}
+                </div>
+              ))}
+
+              {collections.length > 0 && (
+                <div className="space-y-0.5">
+                  <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Collections</p>
+                  {collections.slice(0, COLLECTIONS_PREVIEW_COUNT).map((col) => {
+                    const href = `/app/collections/${col.id}`;
+                    const active = isNavItemActive(pathname, href);
+                    return (
+                      <Link
+                        key={col.id}
+                        href={href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(MOBILE_MENU_ROW, active ? "bg-primary/10 text-primary" : "text-foreground active:bg-muted")}
+                      >
+                        <span aria-hidden className="flex w-5 shrink-0 justify-center text-base leading-none">{col.icon}</span>
+                        <span className="min-w-0 flex-1 truncate">{col.name}</span>
+                        {col.memoryCount > 0 && <span className="text-xs tabular-nums text-muted-foreground">{col.memoryCount}</span>}
+                      </Link>
+                    );
+                  })}
+                  {collections.length > COLLECTIONS_PREVIEW_COUNT && (
+                    <Link href="/app/collections" onClick={() => setMobileMenuOpen(false)} className={cn(MOBILE_MENU_ROW, "text-muted-foreground active:bg-muted")}>
+                      <span className="w-5 shrink-0" />
+                      All {collections.length} collections
+                    </Link>
+                  )}
+                </div>
+              )}
+            </nav>
+
+            <div className="space-y-0.5 border-t border-border/40 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <MobileMenuLink item={{ label: "Settings", href: "/app/settings", icon: Settings }} active={isNavItemActive(pathname, "/app/settings")} onNavigate={() => setMobileMenuOpen(false)} />
+              <Link href="/help" onClick={() => setMobileMenuOpen(false)} className={cn(MOBILE_MENU_ROW, "text-foreground active:bg-muted")}>
+                <HugeiconsIcon icon={HelpCircle} strokeWidth={2} className="h-5 w-5 shrink-0 text-muted-foreground" />
+                Help Center
+              </Link>
+              <button type="button" onClick={() => { setMobileMenuOpen(false); handleLogout(); }} className={cn(MOBILE_MENU_ROW, "w-full text-left text-destructive active:bg-destructive/10")}>
+                <span className="w-5 shrink-0" />
+                Log out
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
 
       </div>
 
