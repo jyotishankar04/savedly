@@ -167,15 +167,7 @@ const envSchema = z
     // above). Google reuses GOOGLE_CLIENT_ID/SECRET via incremental
     // authorization — the human operator must enable the Calendar API and
     // approve the calendar.events scope on the existing GCP OAuth client;
-    // no new Google credentials needed. Microsoft needs an entirely new
-    // Azure AD App Registration (the human must create one — cannot be
-    // automated) with a redirect URI of
-    // `${SERVER_URL}/api/v1/integrations/calendar/microsoft/callback` and the delegated
-    // Graph permission Calendars.ReadWrite. Both optional, same
-    // degrade-gracefully pattern as Stripe above.
-    MICROSOFT_CLIENT_ID: z.string().optional(),
-    MICROSOFT_CLIENT_SECRET: z.string().optional(),
-    MICROSOFT_TENANT_ID: z.string().default("common"),
+    // no new Google credentials needed.
     // AES-256-GCM key for encrypting stored OAuth tokens — 32 raw bytes,
     // base64-encoded. Generate with:
     // node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"

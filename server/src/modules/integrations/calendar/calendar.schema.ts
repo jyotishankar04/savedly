@@ -1,13 +1,13 @@
 import { z } from "zod";
 
 export const pushEventBodySchema = z.object({
-  provider: z.enum(["google", "microsoft"]),
+  provider: z.enum(["google"]),
 });
 
 export type PushEventInput = z.infer<typeof pushEventBodySchema>;
 
 export const disconnectParamsSchema = z.object({
-  provider: z.enum(["google", "microsoft"]),
+  provider: z.enum(["google"]),
 });
 
 export const listEventsQuerySchema = z.object({
@@ -45,7 +45,7 @@ export const updateExternalEventBodySchema = z.object({
 export type UpdateExternalEventInput = z.infer<typeof updateExternalEventBodySchema>;
 
 export const externalEventParamsSchema = z.object({
-  provider: z.enum(["google", "microsoft"]),
+  provider: z.enum(["google"]),
   externalId: z.string().min(1),
 });
 

@@ -15,29 +15,23 @@ import {
   refreshGoogleAccessToken,
   updateGoogleCalendarEvent,
 } from "./google-calendar-client";
-import {
-  createMicrosoftCalendarEvent,
-  deleteMicrosoftCalendarEvent,
-  isMicrosoftCalendarConfigured,
-  listMicrosoftCalendarEvents,
-  refreshMicrosoftAccessToken,
-  updateMicrosoftCalendarEvent,
-} from "./microsoft-calendar-client";
 import type { CalendarEventPayload, CalendarTokenExchange } from "./calendar.types";
 
-export type CalendarProviderKey = "google" | "microsoft";
+// One provider today. The key stays a type (and the functions below stay
+// keyed by it) so a second calendar can be added without reshaping callers.
+export type CalendarProviderKey = "google";
 
 // A token is refreshed once it's within this window of expiring, rather
 // than waiting for it to actually fail — avoids a request racing an
 // about-to-expire token.
 const REFRESH_SKEW_MS = 5 * 60 * 1000;
 
-async function isProviderConfigured(provider: CalendarProviderKey): Promise<boolean> {
-  return provider === "google" ? await isGoogleCalendarConfigured() : isMicrosoftCalendarConfigured();
+async function isProviderConfigured(_provider: CalendarProviderKey): Promise<boolean> {
+  return isGoogleCalendarConfigured();
 }
 
-function toEnumValue(provider: CalendarProviderKey): CalendarProvider {
-  return provider === "google" ? CalendarProvider.GOOGLE : CalendarProvider.MICROSOFT;
+function toEnumValue(_provider: CalendarProviderKey): CalendarProvider {
+  return CalendarProvider.GOOGLE;
 }
 
 export interface CalendarConnectionSummary {
@@ -73,7 +67,12 @@ async function backfillAccountEmail(userId: string, provider: CalendarProviderKe
 }
 
 export async function getConnections(userId: string): Promise<CalendarConnectionSummary[]> {
-  const rows = await db.select().from(calendarConnections).where(eq(calendarConnections.userId, userId));
+  // Google only: a connection left over from a provider that has since been
+  // removed is ignored rather than surfaced as something the app can use.
+  const rows = await db
+    .select()
+    .from(calendarConnections)
+    .where(and(eq(calendarConnections.userId, userId), eq(calendarConnections.provider, CalendarProvider.GOOGLE)));
   return Promise.all(
     rows.map(async (row) => ({
       provider: row.provider as CalendarProviderKey,
@@ -141,8 +140,7 @@ export async function getValidAccessToken(userId: string, provider: CalendarProv
   }
 
   const refreshToken = decryptToken(row.encryptedRefreshToken);
-  const refreshed =
-    provider === "google" ? await refreshGoogleAccessToken(refreshToken) : await refreshMicrosoftAccessToken(refreshToken);
+  const refreshed = await refreshGoogleAccessToken(refreshToken);
 
   await db
     .update(calendarConnections)
@@ -171,7 +169,7 @@ export async function pushMemoryToCalendar(
   memory: PushableMemory,
 ): Promise<{ htmlLink: string }> {
   if (!(await isProviderConfigured(provider))) {
-    throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
+    throw new AppError("Google Calendar isn't configured yet", 503, "CALENDAR_NOT_CONFIGURED");
   }
 
   const accessToken = await getValidAccessToken(userId, provider);
@@ -183,8 +181,7 @@ export async function pushMemoryToCalendar(
   const endIso = (memory.endAt ?? new Date(memory.eventAt.getTime() + 60 * 60 * 1000)).toISOString();
   const payload: CalendarEventPayload = { title: memory.title, description: memory.description, url: memory.url, startIso, endIso };
 
-  const created =
-    provider === "google" ? await createGoogleCalendarEvent(accessToken, payload) : await createMicrosoftCalendarEvent(accessToken, payload);
+  const created = await createGoogleCalendarEvent(accessToken, payload);
 
   await db
     .insert(calendarEventLinks)
@@ -211,14 +208,14 @@ export async function eventLinksForMemory(
   const rows = await db
     .select({ provider: calendarEventLinks.provider, htmlLink: calendarEventLinks.externalHtmlLink })
     .from(calendarEventLinks)
-    .where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
+    .where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId), eq(calendarEventLinks.provider, CalendarProvider.GOOGLE)));
   return rows.flatMap((row) =>
-    row.htmlLink ? [{ provider: (row.provider === CalendarProvider.GOOGLE ? "google" : "microsoft") as CalendarProviderKey, htmlLink: row.htmlLink }] : [],
+    row.htmlLink ? [{ provider: "google" as CalendarProviderKey, htmlLink: row.htmlLink }] : [],
   );
 }
 
-export async function bestEffortRevoke(provider: CalendarProviderKey, refreshToken: string | null): Promise<void> {
-  if (provider !== "google" || !refreshToken) return;
+export async function bestEffortRevoke(_provider: CalendarProviderKey, refreshToken: string | null): Promise<void> {
+  if (!refreshToken) return;
   try {
     await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(refreshToken)}`, { method: "POST" });
   } catch (err) {
@@ -260,10 +257,7 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
       try {
         const accessToken = await getValidAccessToken(userId, provider);
         if (!accessToken) return [];
-        const raw =
-          provider === "google"
-            ? await listGoogleCalendarEvents(accessToken, { timeMinIso: range.from.toISOString(), timeMaxIso: range.to.toISOString() })
-            : await listMicrosoftCalendarEvents(accessToken, { startIso: range.from.toISOString(), endIso: range.to.toISOString() });
+        const raw = await listGoogleCalendarEvents(accessToken, { timeMinIso: range.from.toISOString(), timeMaxIso: range.to.toISOString() });
         return raw.map((event) => ({
           id: `${provider}:${event.externalEventId}`,
           source: provider,
@@ -391,7 +385,7 @@ export async function createStandaloneCalendarEvent(
   const notConnected: CalendarProviderKey[] = [];
   const links: CreateStandaloneEventResult["links"] = [];
 
-  for (const provider of ["google", "microsoft"] as const) {
+  for (const provider of ["google"] as const) {
     if (!connections.some((c) => c.provider === provider)) {
       notConnected.push(provider);
       continue;
@@ -430,13 +424,11 @@ async function callProviderUpdate(
   externalEventId: string,
   payload: CalendarEventPayload,
 ): Promise<{ htmlLink: string }> {
-  return provider === "google"
-    ? updateGoogleCalendarEvent(accessToken, externalEventId, payload)
-    : updateMicrosoftCalendarEvent(accessToken, externalEventId, payload);
+  return updateGoogleCalendarEvent(accessToken, externalEventId, payload);
 }
 
 async function callProviderDelete(provider: CalendarProviderKey, accessToken: string, externalEventId: string): Promise<void> {
-  return provider === "google" ? deleteGoogleCalendarEvent(accessToken, externalEventId) : deleteMicrosoftCalendarEvent(accessToken, externalEventId);
+  return deleteGoogleCalendarEvent(accessToken, externalEventId);
 }
 
 export interface UpdateStandaloneEventInput {
@@ -530,7 +522,7 @@ export async function deleteEventForMemory(userId: string, memoryId: string): Pr
 
 /**
  * Edits or removes a purely external event — one that lives only on a
- * connected Google/Outlook calendar and was never created through Memora
+ * connected Google calendar and was never created through Memora
  * (no memory, no calendar_event_links row). Rare in practice, but a
  * connected calendar can already have events on it before/aside from
  * anything Memora created, and this app should still let the user manage
@@ -543,7 +535,7 @@ export async function updateExternalCalendarEvent(
   input: { title: string; description: string | null; startAt: string; endAt: string },
 ): Promise<void> {
   if (!(await isProviderConfigured(provider))) {
-    throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
+    throw new AppError("Google Calendar isn't configured yet", 503, "CALENDAR_NOT_CONFIGURED");
   }
   const accessToken = await getValidAccessToken(userId, provider);
   if (!accessToken) throw new AppError("Calendar isn't connected", 404, "CALENDAR_NOT_CONNECTED");
@@ -559,7 +551,7 @@ export async function updateExternalCalendarEvent(
 
 export async function deleteExternalCalendarEvent(userId: string, provider: CalendarProviderKey, externalEventId: string): Promise<void> {
   if (!(await isProviderConfigured(provider))) {
-    throw new AppError(`${provider === "google" ? "Google" : "Microsoft"} Calendar isn't configured yet`, 503, "CALENDAR_NOT_CONFIGURED");
+    throw new AppError("Google Calendar isn't configured yet", 503, "CALENDAR_NOT_CONFIGURED");
   }
   const accessToken = await getValidAccessToken(userId, provider);
   if (!accessToken) throw new AppError("Calendar isn't connected", 404, "CALENDAR_NOT_CONNECTED");

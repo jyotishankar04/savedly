@@ -41,7 +41,7 @@ export const listUpcomingEventsTool = tool(
           start: e.startAt,
           end: e.endAt,
           when: e.allDay ? allDayLabel(e.startAt, e.endAt) : `${local(e.startAt)} – ${local(e.endAt)}`,
-          from: e.source === "memora" ? "saved in SaveForLatter" : e.source === "google" ? "Google Calendar" : "Outlook",
+          from: e.source === "memora" ? "saved in SaveForLatter" : "Google Calendar",
           memoryId: e.memoryId,
           provider: e.source === "memora" ? null : e.source,
           externalEventId: e.externalEventId,
@@ -51,7 +51,7 @@ export const listUpcomingEventsTool = tool(
   {
     name: "list_upcoming_events",
     description:
-      "List the user's events in a date range — events saved in SaveForLatter plus their connected Google or Outlook calendar — for \"what's on this week?\", \"am I free on Friday?\", \"what's next?\". Defaults to the next 7 days. Each event carries the ids update_event and remove_event need.",
+      "List the user's events in a date range — events saved in SaveForLatter plus their connected Google Calendar — for \"what's on this week?\", \"am I free on Friday?\", \"what's next?\". Defaults to the next 7 days. Each event carries the ids update_event and remove_event need.",
     schema: inputSchema,
   },
 );

@@ -15,11 +15,10 @@ export const VIEW_LABELS: Record<CalendarViewKey, string> = {
 export const SOURCE_LABEL: Record<EventSource, string> = {
   memora: "SaveForLatter",
   google: "Google Calendar",
-  microsoft: "Outlook",
 };
 
-export function providerName(provider: CalendarProviderKey): string {
-  return provider === "google" ? "Google Calendar" : "Outlook";
+export function providerName(_provider: CalendarProviderKey): string {
+  return "Google Calendar";
 }
 
 /** Which API an edit or delete goes through, or null when the event can't be changed from here. */

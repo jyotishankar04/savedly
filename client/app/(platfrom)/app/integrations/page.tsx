@@ -28,18 +28,6 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-/** Official Microsoft four-square mark, for Outlook. */
-function MicrosoftLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 21 21" className={className} aria-hidden="true">
-      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
-      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
-    </svg>
-  );
-}
-
 type Category = "Calendar" | "Coming soon";
 const CATEGORIES: Category[] = ["Calendar", "Coming soon"];
 
@@ -162,7 +150,6 @@ export default function IntegrationsPage() {
   // Connecting a calendar is a plan feature; an existing connection keeps
   // working and can always be disconnected.
   const googleSync = usePlanFeature("calendarSync");
-  const microsoftSync = usePlanFeature("calendarMicrosoft");
   const disconnectMutation = useDisconnectCalendarMutation();
   function isCalendarConnected(provider: CalendarProviderKey): boolean {
     return calendarConnections?.some((c) => c.provider === provider) ?? false;
@@ -170,7 +157,6 @@ export default function IntegrationsPage() {
 
   const cardMeta: CardMeta[] = [
     { key: "google-calendar", title: "Google Calendar", description: "Sync detected and manually added events straight to your Google Calendar.", category: "Calendar", connected: isCalendarConnected("google") },
-    { key: "microsoft-outlook", title: "Outlook", description: "Sync detected and manually added events straight to your Outlook calendar.", category: "Calendar", connected: isCalendarConnected("microsoft") },
     { key: "browser-extension", title: "Browser extension", description: "Quick-capture from any tab with a keyboard shortcut. Not yet published to the Chrome Web Store.", category: "Coming soon", connected: false },
   ];
 
@@ -273,42 +259,6 @@ export default function IntegrationsPage() {
             />
           )}
 
-          {visible.has("microsoft-outlook") && (
-            <IntegrationCard
-              iconBg="bg-white border border-border"
-              icon={<MicrosoftLogo className="h-5 w-5" />}
-              title="Outlook"
-              category="Calendar"
-              connected={isCalendarConnected("microsoft")}
-              description={cardMeta[1].description}
-              action={
-                isCalendarConnected("microsoft") ? (
-                  <div className="flex items-center gap-2">
-                    <ConnectPill state="connected" render={<Link href="/app/calendar" />} nativeButton={false}>
-                      Manage
-                    </ConnectPill>
-                    <button
-                      type="button"
-                      disabled={disconnectMutation.isPending}
-                      onClick={() => disconnectMutation.mutate("microsoft")}
-                      className="text-[10px] font-semibold text-muted-foreground hover:text-destructive"
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                ) : (
-                  microsoftSync.allowed ? (
-                    <ConnectPill state="available" render={<a href={getCalendarConnectUrl("microsoft")} />} nativeButton={false}>
-                    Connect
-                  </ConnectPill>
-                  ) : (
-                    <UpgradePill plan={microsoftSync.requiredPlan} />
-                  )
-                )
-              }
-            />
-          )}
-
           {visible.has("browser-extension") && (
             <IntegrationCard
               iconBg="bg-amber-500"
@@ -316,7 +266,7 @@ export default function IntegrationsPage() {
               title="Browser extension"
               category="Coming soon"
               connected={false}
-              description={cardMeta[2].description}
+              description={cardMeta[1].description}
               action={<ConnectPill state="coming-soon">Coming soon</ConnectPill>}
             />
           )}

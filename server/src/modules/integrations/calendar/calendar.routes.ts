@@ -44,9 +44,6 @@ router.get("/google/connect", authenticate, requireFeature("calendarSync"), Cale
 // calendar.controller.ts's handleCallback / verifyCalendarStateToken).
 router.get("/google/callback", CalendarController.googleCallback);
 
-router.get("/microsoft/connect", authenticate, requireFeature("calendarMicrosoft"), CalendarController.connectMicrosoft);
-router.get("/microsoft/callback", CalendarController.microsoftCallback);
-
 router.delete("/:provider", authenticate, validateDisconnectParams, CalendarController.disconnect);
 
 export default router;

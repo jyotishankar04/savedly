@@ -67,7 +67,7 @@ export function EventPopover({
   async function handleRemove() {
     if (!event || !target) return;
     // Removing a note's event keeps the note; removing an event that only
-    // lives on Google or Outlook deletes it there, so that one asks first.
+    // lives on Google Calendar deletes it there, so that one asks first.
     if (target.kind === "external" && !confirming) {
       setConfirmingFor(event.id);
       return;

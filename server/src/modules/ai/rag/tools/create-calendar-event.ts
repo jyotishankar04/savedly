@@ -22,15 +22,15 @@ const inputSchema = z.object({
 });
 
 // Also what the Ask UI turns into an event card (date, time, and buttons to
-// open it in Google/Outlook, the app's calendar, and the note).
+// open it in Google Calendar, the app's calendar, and the note).
 const resultSchema = z.object({
   memoryId: z.string(),
   title: z.string(),
   startAt: z.string(),
   endAt: z.string(),
-  pushedTo: z.array(z.enum(["google", "microsoft"])),
-  notConnected: z.array(z.enum(["google", "microsoft"])),
-  links: z.array(z.object({ provider: z.enum(["google", "microsoft"]), htmlLink: z.string() })),
+  pushedTo: z.array(z.enum(["google"])),
+  notConnected: z.array(z.enum(["google"])),
+  links: z.array(z.object({ provider: z.enum(["google"]), htmlLink: z.string() })),
 });
 
 export type CreateCalendarEventResult = z.infer<typeof resultSchema>;

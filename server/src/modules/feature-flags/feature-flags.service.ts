@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { env } from "../../config/env";
 import { featureFlags } from "../../db/schema";
@@ -32,7 +32,6 @@ export const RESERVED_FLAG_KEYS = {
   // Feature: Calendar Integration
   CALENDAR_SYNC_ENABLED: "features.calendar.sync.enabled",
   CALENDAR_GOOGLE_ENABLED: "features.calendar.google.enabled",
-  CALENDAR_MICROSOFT_ENABLED: "features.calendar.microsoft.enabled",
   // Feature: Email Campaigns
   EMAIL_CAMPAIGNS_ENABLED: "features.email.campaigns.enabled",
   EMAIL_RATE_LIMIT_PER_HOUR: "features.email.rate_limit_per_hour",
@@ -80,7 +79,6 @@ const DEFAULT_FLAGS: { key: string; value: unknown; description: string; categor
   // Calendar Integration
   { key: RESERVED_FLAG_KEYS.CALENDAR_SYNC_ENABLED, value: true, description: "Enable calendar integration and OAuth connections.", category: "features" },
   { key: RESERVED_FLAG_KEYS.CALENDAR_GOOGLE_ENABLED, value: true, description: "Allow Google Calendar OAuth connections.", category: "features" },
-  { key: RESERVED_FLAG_KEYS.CALENDAR_MICROSOFT_ENABLED, value: true, description: "Allow Microsoft/Outlook Calendar OAuth connections.", category: "features" },
   // Email Campaigns
   { key: RESERVED_FLAG_KEYS.EMAIL_CAMPAIGNS_ENABLED, value: true, description: "Enable email campaigns and bulk notifications.", category: "features" },
   { key: RESERVED_FLAG_KEYS.EMAIL_RATE_LIMIT_PER_HOUR, value: 1000, description: "Max emails sent per hour.", category: "features" },
@@ -94,10 +92,15 @@ const DEFAULT_FLAGS: { key: string; value: unknown; description: string; categor
 ];
 
 /** Idempotent — inserts any reserved flag that doesn't exist yet, leaves existing rows untouched. */
+// Flags for features that no longer exist. Removed on start so the admin
+// Features page doesn't keep offering a switch that does nothing.
+const RETIRED_FLAG_KEYS = ["features.calendar.microsoft.enabled"];
+
 export async function seedDefaultFlags(): Promise<void> {
   for (const flag of DEFAULT_FLAGS) {
     await db.insert(featureFlags).values(flag).onConflictDoNothing({ target: featureFlags.key });
   }
+  await db.delete(featureFlags).where(inArray(featureFlags.key, RETIRED_FLAG_KEYS));
 }
 
 export async function listFlags() {
@@ -217,9 +220,8 @@ export async function isCalendarSyncEnabled(): Promise<boolean> {
   return getFlagValue<boolean>(RESERVED_FLAG_KEYS.CALENDAR_SYNC_ENABLED, true);
 }
 
-export async function isCalendarProviderEnabled(provider: "google" | "microsoft"): Promise<boolean> {
-  const key = provider === "google" ? RESERVED_FLAG_KEYS.CALENDAR_GOOGLE_ENABLED : RESERVED_FLAG_KEYS.CALENDAR_MICROSOFT_ENABLED;
-  return getFlagValue<boolean>(key, true);
+export async function isCalendarProviderEnabled(_provider: "google"): Promise<boolean> {
+  return getFlagValue<boolean>(RESERVED_FLAG_KEYS.CALENDAR_GOOGLE_ENABLED, true);
 }
 
 // Email Campaigns

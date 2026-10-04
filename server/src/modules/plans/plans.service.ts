@@ -254,7 +254,6 @@ export const PLAN_FEATURES = {
   shareAnalyticsViewers: "seeing who viewed a share",
   insightsFullHistory: "a full year of insights",
   calendarSync: "calendar sync",
-  calendarMicrosoft: "Microsoft Calendar sync",
   aiEventDetection: "finding events in what you save",
   batchOperations: "bulk actions",
 } as const;

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { useUpdateMemoryMutation } from "@/context/MemoryContext";
-import { buildIcsContent, downloadTextFile, googleCalendarUrl, outlookCalendarUrl } from "@/lib/calendar";
+import { buildIcsContent, downloadTextFile, googleCalendarUrl } from "@/lib/calendar";
 import { getCalendarConnectUrl, type CalendarProviderKey } from "@/lib/calendar-api";
 import { useCalendarConnectionsQuery, usePushToCalendarMutation } from "@/hooks/use-calendar";
 import type { Memory } from "@/types/memory";
@@ -28,7 +28,7 @@ interface AddToCalendarDialogProps {
 }
 
 /** Local datetime-local input value ("YYYY-MM-DDTHH:mm") from an ISO string, in the viewer's own timezone. */
-const PROVIDER_LABEL: Record<CalendarProviderKey, string> = { google: "Google Calendar", microsoft: "Outlook Calendar" };
+const PROVIDER_LABEL: Record<CalendarProviderKey, string> = { google: "Google Calendar" };
 
 /** A row in the "add it yourself" list: quiet, because the direct sync above is the better path when it's available. */
 const manualRowClass =
@@ -90,14 +90,14 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
     try {
       await pushMutation.mutateAsync({ memoryId: memory.id, provider });
       setAddedTo((prev) => [...prev, provider]);
-      toast.add({ title: `Added to ${provider === "google" ? "Google" : "Outlook"} Calendar`, type: "success" });
+      toast.add({ title: "Added to Google Calendar", type: "success" });
     } catch (err) {
       toast.add({ title: err instanceof Error ? err.message : "Couldn't create the calendar event.", type: "error" });
     }
   }
 
   const start = memory.eventAt ? new Date(memory.eventAt) : null;
-  const anyConnected = (["google", "microsoft"] as const).some(isConnected);
+  const anyConnected = (["google"] as const).some(isConnected);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,7 +150,7 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
                 {anyConnected ? "Add to your calendar" : "Sync directly"}
               </h3>
               <div className="space-y-2">
-                {(["google", "microsoft"] as const).map((provider) => {
+                {(["google"] as const).map((provider) => {
                   const label = PROVIDER_LABEL[provider];
                   const added = addedTo.includes(provider);
                   return isConnected(provider) ? (
@@ -196,10 +196,6 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
                 <a href={googleCalendarUrl(eventInput)} target="_blank" rel="noreferrer" className={manualRowClass}>
                   <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="h-4 w-4 text-muted-foreground" />
                   <span className="flex-1">Google Calendar link</span>
-                </a>
-                <a href={outlookCalendarUrl(eventInput)} target="_blank" rel="noreferrer" className={manualRowClass}>
-                  <HugeiconsIcon icon={ExternalLink} strokeWidth={2} className="h-4 w-4 text-muted-foreground" />
-                  <span className="flex-1">Outlook link</span>
                 </a>
                 <button
                   type="button"

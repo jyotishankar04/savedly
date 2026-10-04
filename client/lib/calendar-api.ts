@@ -2,7 +2,7 @@ import { apiFetch } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
-export type CalendarProviderKey = "google" | "microsoft";
+export type CalendarProviderKey = "google";
 
 export interface CalendarConnectionSummary {
   provider: CalendarProviderKey;

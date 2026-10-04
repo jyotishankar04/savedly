@@ -699,7 +699,7 @@ export const memories = pgTable(
     // User-set, not AI-inferred — when this memory relates to something on a
     // specific date/time (a saved event page, a deadline mentioned in a
     // note). Null means "no event attached." Powers the "Add to calendar"
-    // action, which builds a Google/Outlook link or .ics file client-side —
+    // action, which builds a Google Calendar link or .ics file client-side —
     // no calendar OAuth involved.
     eventAt: timestamp("event_at", { withTimezone: true }),
     // How long that event runs, in minutes. Null means the 1-hour default —

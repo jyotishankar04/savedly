@@ -15,10 +15,10 @@ export interface EventToolResult {
   title: string;
   startAt: string | null;
   endAt?: string | null;
-  links?: { provider: "google" | "microsoft"; htmlLink: string }[];
+  links?: { provider: "google"; htmlLink: string }[];
 }
 
-const PROVIDER_NAME = { google: "Google Calendar", microsoft: "Outlook" } as const;
+const PROVIDER_NAME = { google: "Google Calendar" } as const;
 
 /** The event tools' result, or null when the output isn't one. */
 export function parseEventToolOutput(output: unknown): EventToolResult | null {
@@ -38,7 +38,7 @@ export function isEventToolName(name: string): boolean {
 
 /**
  * Ask's answer after it adds or moves an event: the date, the time, and one
- * tap to open it in Google Calendar/Outlook, the app's calendar, or the note.
+ * tap to open it in Google Calendar, the app's calendar, or the note.
  */
 export function EventResultCard({ event, compact = false }: { event: EventToolResult; compact?: boolean }) {
   const start = new Date(event.startAt!);
