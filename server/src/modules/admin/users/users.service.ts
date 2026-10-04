@@ -16,6 +16,7 @@ import { valueGrant } from "../plans/plan-grants.service";
 import { adminChangeSubscription, billingStatus } from "../../billing/billing.service";
 import { userStatusChangedEmailTemplate } from "../../../shared/mailer/templates";
 import type { CreateUserInput, GrantPlanInput, ListUsersQuery, SetUserPasswordInput, UpdateUserRolesInput, UpdateUserStatusInput } from "./users.schema";
+import { bumpUserCache } from "../../../shared/cache/response-cache";
 
 export interface AdminUserListItem {
   id: string;
@@ -468,7 +469,8 @@ export async function grantPlan(userId: string, input: GrantPlanInput, adminUser
       afterValue: { plan: changed.planName, reason: input.reason ?? null },
       ipAddress,
     });
-    return getUserPlan(userId);
+    await bumpUserCache(userId);
+  return getUserPlan(userId);
   }
   const [plan] = await db.select().from(plans).where(eq(plans.key, input.planKey)).limit(1);
   if (!plan) throw new AppError("Plan not found", 404, "NOT_FOUND");
@@ -522,6 +524,7 @@ export async function grantPlan(userId: string, input: GrantPlanInput, adminUser
     afterValue: { plan: plan.key, endsAt: input.endsAt ?? null, reason: input.reason ?? null },
     ipAddress,
   });
+  await bumpUserCache(userId);
   return getUserPlan(userId);
 }
 
@@ -549,5 +552,6 @@ export async function removePlanGrant(userId: string, adminUserId: string, ipAdd
     afterValue: null,
     ipAddress,
   });
+  await bumpUserCache(userId);
   return getUserPlan(userId);
 }

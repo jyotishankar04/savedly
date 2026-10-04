@@ -7,6 +7,7 @@ import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
 import type { BillingProvider, SubscriptionEvent } from "./billing.provider";
 import { createDodoProvider } from "./dodo.provider";
+import { bumpUserCache } from "../../shared/cache/response-cache";
 
 // Paid plans for the hosted service. Never active on a self-hosted install
 // (the routes aren't even mounted — see routes/index.ts).
@@ -496,4 +497,6 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
       }
     }
   });
+  // The plan changed outside the user's own request: drop their cached reads.
+  await bumpUserCache(userId);
 }

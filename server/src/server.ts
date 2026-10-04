@@ -8,7 +8,7 @@ import { startTrashPurgeWorker } from "./modules/memory/trash-purge.job";
 import { startEmailWorker } from "./modules/email";
 import { startAccountDeletionWorker } from "./modules/account";
 import { db } from "./db";
-import { redis } from "./config/redis";
+import { cacheRedis, redis } from "./config/redis";
 import type { Worker } from "bullmq";
 
 const app = createApp();
@@ -94,6 +94,7 @@ async function gracefulShutdown(signal: string) {
 
   try {
     await redis.quit();
+    cacheRedis.disconnect();
     logger.info("Redis connection closed");
   } catch (err) {
     logger.error({ err }, "Error closing Redis connection");

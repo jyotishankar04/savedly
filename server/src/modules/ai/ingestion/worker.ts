@@ -7,6 +7,7 @@ import { MemoryStatus } from "../../../db/enums";
 import { logger } from "../../../shared/utils/logger";
 import { getLangfuseHandler } from "../langfuse";
 import type { BrowserCapturePayload } from "../url-processor";
+import { bumpUserCache } from "../../../shared/cache/response-cache";
 import { ingestionGraph } from "./graph";
 import type { IngestionJobData } from "./queue";
 
@@ -47,6 +48,10 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
         langfuseHandler ? { callbacks: [langfuseHandler] } : undefined,
       );
 
+      // The memory now has its summary, tags and collection: drop the owner's
+      // cached reads so the client's next fetch shows them.
+      await bumpUserCache(memory.userId);
+
       // Langfuse batches events client-side — flush before the job (and
       // potentially the process, since this runs in-process with the API
       // for now) moves on, or the trace may never actually get sent.
@@ -68,6 +73,8 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
       db.update(memories)
         .set({ status: MemoryStatus.FAILED })
         .where(eq(memories.id, job.data.memoryId))
+        .returning({ userId: memories.userId })
+        .then(([row]) => (row ? bumpUserCache(row.userId) : undefined))
         .catch((updateErr) => {
           logger.error({ memoryId: job.data.memoryId, err: updateErr }, "[ingestion] failed to mark memory as failed");
         });
