@@ -8,7 +8,9 @@ import { cn } from "@/lib/utils";
 const MotionLink = motion.create(Link);
 
 interface FolderCardProps {
-  href: string;
+  /** Renders as a navigable link. Omit and pass `onClick` instead for in-page browsing (e.g. drilling into a folder without a route change). */
+  href?: string;
+  onClick?: () => void;
   count: number;
   label: string;
   badge: React.ReactNode;
@@ -16,22 +18,9 @@ interface FolderCardProps {
   className?: string;
 }
 
-/**
- * A folder-shaped card whose lid tilts open on hover/tap, revealing a stack
- * of "papers" peeking out from behind — built with the `motion` library's
- * variant propagation, so the parent link only needs one `whileHover`/
- * `whileTap` and every child (papers, lid) animates off the same "open"
- * state.
- */
-export function FolderCard({ href, count, label, badge, badgeClassName, className }: FolderCardProps) {
+function FolderCardFace({ count, label, badge, badgeClassName }: Pick<FolderCardProps, "count" | "label" | "badge" | "badgeClassName">) {
   return (
-    <MotionLink
-      href={href}
-      initial="closed"
-      whileHover="open"
-      whileTap="open"
-      className={cn("group relative block h-44 select-none [perspective:1000px]", className)}
-    >
+    <>
       {/* Papers peeking out from behind the folder */}
       <motion.div
         variants={{ closed: { y: 0, opacity: 0.55 }, open: { y: -16, opacity: 0.9 } }}
@@ -56,12 +45,57 @@ export function FolderCard({ href, count, label, badge, badgeClassName, classNam
       >
         <span className="text-5xl font-bold text-foreground/70">{count}</span>
         <div className="flex items-end justify-between gap-3">
-          <span className="truncate text-xs font-semibold text-foreground">{label}</span>
+          <span className="truncate text-sm font-medium text-foreground">{label}</span>
           <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-lg shadow-black/20 ring-1 ring-white/10", badgeClassName)}>
             {badge}
           </div>
         </div>
       </motion.div>
-    </MotionLink>
+    </>
+  );
+}
+
+/**
+ * A folder-shaped card whose lid tilts open on hover/tap, revealing a stack
+ * of "papers" peeking out from behind — built with the `motion` library's
+ * variant propagation, so the parent link only needs one `whileHover`/
+ * `whileTap` and every child (papers, lid) animates off the same "open"
+ * state.
+ */
+export function FolderCard({ href, onClick, count, label, badge, badgeClassName, className }: FolderCardProps) {
+  const face = <FolderCardFace count={count} label={label} badge={badge} badgeClassName={badgeClassName} />;
+
+  if (href) {
+    return (
+      <MotionLink
+        href={href}
+        initial="closed"
+        whileHover="open"
+        whileTap="open"
+        className={cn("group relative block h-44 select-none [perspective:1000px]", className)}
+      >
+        {face}
+      </MotionLink>
+    );
+  }
+
+  return (
+    <motion.div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick?.();
+        }
+      }}
+      initial="closed"
+      whileHover="open"
+      whileTap="open"
+      className={cn("group relative block h-44 cursor-pointer select-none [perspective:1000px]", className)}
+    >
+      {face}
+    </motion.div>
   );
 }

@@ -1,0 +1,1 @@
+ALTER TYPE "plan_limit_type" ADD VALUE 'ai_monthly_vision_queries' BEFORE 'storage_mb';

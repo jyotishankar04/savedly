@@ -1,0 +1,59 @@
+name: CI
+
+# Plain `pull_request`, never `pull_request_target` — a PR from a fork runs
+# with no access to repo secrets either way, and this workflow doesn't need
+# any secrets to begin with (typecheck/lint/build only), so there's nothing
+# for even a malicious workflow-file edit in a PR to exfiltrate.
+on:
+  pull_request:
+    branches: [main, prod-web, prod-server]
+  push:
+    branches: [main, prod-web, prod-server]
+
+jobs:
+  server:
+    name: server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      # server/package.json has no "packageManager" field (client's does),
+      # so pnpm/action-setup needs an explicit version here.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.18.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      # No test step — there's no test suite configured yet (see
+      # CONTRIBUTING.md). Add one here the day a test framework lands.
+
+  client:
+    name: client
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      # The action only reads "packageManager" from a package.json at the
+      # repo root, and there isn't one (each app is independent), so this
+      # job needs the version spelled out too. Keep in step with
+      # client/package.json's packageManager.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.18.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm build

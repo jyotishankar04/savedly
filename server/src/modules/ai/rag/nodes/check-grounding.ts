@@ -2,18 +2,12 @@ import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import type { GraphNode } from "@langchain/langgraph";
 import { z } from "zod";
 import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { withUsage } from "../../../ai-usage/usage-logger";
 import { GROUNDING_CHECK_PROMPT } from "../prompts";
 import { RAGState, type RAGStateType } from "../state";
 import { INTERNAL_EVENT_TAG } from "../internal-tag";
 
 const groundingSchema = z.object({ grounded: z.boolean() });
-
-// Zod-validated structured output (model.withStructuredOutput), not a bare
-// JsonOutputParser<T> cast — matches this graph's convention (see
-// tools/search-memories.ts's result schema) of validating every LLM-produced
-// structured value at runtime, not just trusting a TS type annotation.
-const groundingModel = getChatModel("fast").withStructuredOutput(groundingSchema);
 
 /** Every ToolMessage since the last human turn — what the final answer had available. */
 function collectToolResultsText(messages: RAGStateType["messages"]): string {
@@ -40,6 +34,12 @@ export const checkGroundingNode: GraphNode<typeof RAGState> = async (state, conf
   const userId = (config.context as { userId?: string } | undefined)?.userId ?? null;
   const threadId = (config.configurable as { thread_id?: string } | undefined)?.thread_id ?? null;
 
+  // No AI configured — nothing meaningful to check the answer against (and
+  // agentNode's reply in that case is already just the "connect your AI
+  // key" message), so treat as grounded rather than looping pointlessly.
+  const groundingModel = userId ? (await getChatModel(userId, "fast", { kind: "ask", threadId }))?.withStructuredOutput(groundingSchema) : null;
+  if (!groundingModel) return { grounded: true };
+
   const toolResults = collectToolResultsText(state.messages);
   const prompt = GROUNDING_CHECK_PROMPT.replace("{toolResults}", toolResults).replace("{answer}", answer);
   // Tagged so the streaming layer (ai.service.ts) can filter this internal
@@ -47,10 +47,10 @@ export const checkGroundingNode: GraphNode<typeof RAGState> = async (state, conf
   // streamEvents() surfaces every chat-model call in the graph, including
   // this one, and its raw `{"grounded":...}` JSON leaks into the UI as a
   // second fake assistant message (confirmed live before this fix).
-  const { grounded } = await groundingModel.invoke(prompt, {
-    tags: [INTERNAL_EVENT_TAG],
-    callbacks: [createUsageCallback({ userId, requestType: "rag:check_grounding", threadId })],
-  });
+  const { grounded } = await groundingModel.invoke(
+    prompt,
+    withUsage(config, { userId, requestType: "rag:check_grounding", threadId }, { tags: [INTERNAL_EVENT_TAG] }),
+  );
 
   return { grounded, retryCount: grounded ? state.retryCount : state.retryCount + 1 };
 };

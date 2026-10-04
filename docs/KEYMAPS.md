@@ -4,8 +4,7 @@ Keyboard shortcuts implemented in the web client (`client/`). Everything here
 is `Ctrl`-based; on macOS the equivalent `Cmd` key works identically for every
 global shortcut, since each listener checks `e.ctrlKey || e.metaKey`.
 
-There is currently no keymaps implementation in `extension/` or `mobile/` —
-this document covers `client/` only.
+There is no keymaps implementation in `extension/` or `mobile/` — these are web client (`client/`) only.
 
 ## Global (anywhere under `/app`)
 
@@ -51,7 +50,7 @@ Scoped to a single input or page — not global.
 | `Enter` | Home page (`/app`) search input | Run the search |
 | `Enter` | Onboarding (`/onboard`), step 1 name field | Continue to step 2 (only if the name field isn't empty) |
 
-## Not currently bound
+## Unbound actions
 
 - The Quick Capture modal (`saveModalOpen` in `layout.tsx`) is a hand-rolled
   overlay, not the shared `Dialog`/`CommandDialog` primitive — `Escape` does

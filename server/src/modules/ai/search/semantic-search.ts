@@ -17,10 +17,13 @@ export const MIN_SEMANTIC_QUERY_LENGTH = 3;
 export async function semanticSearch(userId: string, queryText: string, limit: number): Promise<SearchLegResult[]> {
   if (queryText.length < MIN_SEMANTIC_QUERY_LENGTH) return [];
 
+  const resolved = await getEmbeddings(userId);
+  if (!resolved) return [];
+
   try {
-    const embedding = await getEmbeddings().embedQuery(queryText);
-    void logAiUsage({ userId, requestType: "embedding:query", provider: "openai", model: "text-embedding-3-small" });
-    return await getVectorStore().searchByEmbedding(userId, embedding, limit);
+    const embedding = await resolved.client.embedQuery(queryText);
+    void logAiUsage({ userId, requestType: "embedding:query", provider: resolved.provider, model: resolved.model });
+    return await (await getVectorStore()).searchByEmbedding(userId, embedding, limit);
   } catch (err) {
     logger.error({ err, userId }, "semanticSearch: leg failed, degrading to lexical-only");
     return [];

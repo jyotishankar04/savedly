@@ -4,9 +4,7 @@ import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Brain01Icon as Brain, SparklesIcon as Sparkles, Shield01Icon as Shield, HeartIcon as Heart } from "@hugeicons/core-free-icons";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Brain01Icon as Brain, SparklesIcon as Sparkles, Shield01Icon as Shield } from "@hugeicons/core-free-icons";
 
 const values = [
   { title: "User Ownership", desc: "Your data belongs to you. You can export or delete your entire memory graph at any point.", icon: Shield },
@@ -37,10 +35,10 @@ export default function AboutPage() {
         {/* Story Section */}
         <div className="max-w-3xl mx-auto px-6 mb-20 space-y-6 text-sm text-foreground/80 leading-relaxed">
           <p>
-            Every day, we browse hundreds of websites, watch dozens of video tutorials, bookmark repositories, capture screenshots, and type quick ideas. But the moment we hit "save", that discovery gets buried.
+            Every day, we browse hundreds of websites, watch dozens of video tutorials, bookmark repositories, capture screenshots, and type quick ideas. But the moment we hit &ldquo;save&rdquo;, that discovery gets buried.
           </p>
           <p>
-            Traditional bookmark managers force us to build manual hierarchies of folders and tag collections. It's a chore, so we stop doing it. In the end, we lose the very ideas we set out to save.
+            Traditional bookmark managers force us to build manual hierarchies of folders and tag collections. It&apos;s a chore, so we stop doing it. In the end, we lose the very ideas we set out to save.
           </p>
           <p>
             We built SaveForLatter to change this. By using semantic vector embeddings and LLM reasoning, SaveForLatter reads the content of what you save—automatically grouping, indexing, and preparing it for retrieval in natural language queries.

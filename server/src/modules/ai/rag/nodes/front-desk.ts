@@ -2,18 +2,12 @@ import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages
 import type { GraphNode } from "@langchain/langgraph";
 import { z } from "zod";
 import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { withUsage } from "../../../ai-usage/usage-logger";
 import { FRONT_DESK_CLASSIFY_PROMPT, FRONT_DESK_DECLINE_PROMPT } from "../prompts";
 import { RAGState, type RAGStateType } from "../state";
 import { INTERNAL_EVENT_TAG } from "../internal-tag";
 
 const classifySchema = z.object({ inScope: z.boolean() });
-
-// Fast tier for both calls — classification is a cheap yes/no, and the
-// decline reply is a short canned-shaped message, neither needs the
-// reasoning tier the main agent uses.
-const classifyModel = getChatModel("fast").withStructuredOutput(classifySchema);
-const declineModel = getChatModel("fast");
 
 /**
  * Runs before the main agent on every turn — a cheap gate so an obviously
@@ -36,18 +30,28 @@ export const frontDeskNode: GraphNode<typeof RAGState> = async (state, config) =
   const userId = (config.context as { userId?: string } | undefined)?.userId ?? null;
   const threadId = (config.configurable as { thread_id?: string } | undefined)?.thread_id ?? null;
 
+  // No AI configured at all — skip this cheap pre-filter and let agentNode
+  // be the single place that surfaces the "connect your AI key" message,
+  // rather than duplicating that decision here too.
+  if (!userId) return { inScope: true };
+  const classifyModel = (await getChatModel(userId, "fast", { kind: "ask", threadId }))?.withStructuredOutput(classifySchema);
+  if (!classifyModel) return { inScope: true };
+
   const prompt = FRONT_DESK_CLASSIFY_PROMPT.replace("{query}", query);
   // Tagged internal — this classifier call must never leak into the client
   // stream (same reasoning as checkGrounding's tagged call).
-  const { inScope } = await classifyModel.invoke(prompt, {
-    tags: [INTERNAL_EVENT_TAG],
-    callbacks: [createUsageCallback({ userId, requestType: "rag:front_desk_classify", threadId })],
-  });
+  const { inScope } = await classifyModel.invoke(
+    prompt,
+    withUsage(config, { userId, requestType: "rag:front_desk_classify", threadId }, { tags: [INTERNAL_EVENT_TAG] }),
+  );
   if (inScope) return { inScope: true };
 
-  const decline = await declineModel.invoke([new SystemMessage(FRONT_DESK_DECLINE_PROMPT), ...state.messages], {
-    callbacks: [createUsageCallback({ userId, requestType: "rag:front_desk_decline", threadId })],
-  });
+  const declineModel = await getChatModel(userId, "fast", { kind: "ask", threadId });
+  if (!declineModel) return { inScope: true };
+  const decline = await declineModel.invoke(
+    [new SystemMessage(FRONT_DESK_DECLINE_PROMPT), ...state.messages],
+    withUsage(config, { userId, requestType: "rag:front_desk_decline", threadId }),
+  );
   return { inScope: false, messages: [decline as AIMessage] };
 };
 

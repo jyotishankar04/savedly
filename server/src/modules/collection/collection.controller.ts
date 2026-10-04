@@ -1,10 +1,18 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { createCollection, deleteCollection, listCollections, updateCollection } from "./collection.service";
+import type { ListCollectionsQuery } from "./collection.schema";
+import {
+  convertToUser,
+  createCollection,
+  deleteCollection,
+  listCollections,
+  updateCollection,
+} from "./collection.service";
 
 export class CollectionController {
   static async list(req: Request, res: Response) {
-    const collections = await listCollections(req.user!.id);
+    const query = req.query as unknown as ListCollectionsQuery;
+    const collections = await listCollections(req.user!.id, query);
     res.status(200).json(ApiResponse.success(collections));
   }
 
@@ -15,6 +23,11 @@ export class CollectionController {
 
   static async update(req: Request, res: Response) {
     const collection = await updateCollection(req.user!.id, req.params.id as string, req.body);
+    res.status(200).json(ApiResponse.success(collection));
+  }
+
+  static async convertToUser(req: Request, res: Response) {
+    const collection = await convertToUser(req.user!.id, req.params.id as string);
     res.status(200).json(ApiResponse.success(collection));
   }
 

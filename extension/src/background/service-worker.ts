@@ -34,28 +34,103 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
 chrome.runtime.onStartup.addListener(syncAuthToken);
 
+// Clipboard monitoring for quick URL saves (MV3 paste detection via content script coordination)
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "CLIPBOARD_URL_DETECTED") {
+    (async () => {
+      const token = await getStoredToken();
+      if (!token) {
+        sendResponse({ ok: false });
+        return;
+      }
+
+      try {
+        // Save the URL from clipboard
+        const urlStr = request.url;
+        const urlObj = new URL(urlStr);
+        await createMemory({
+          type: "web",
+          url: urlStr,
+          title: urlObj.hostname || urlStr,
+          description: "Captured from clipboard",
+        });
+        sendResponse({ ok: true, message: "URL saved from clipboard" });
+      } catch (err) {
+        notifySaveError(err);
+        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Failed to save" });
+      }
+    })();
+    return true;
+  }
+  return undefined;
+});
+
 chrome.runtime.onInstalled.addListener(() => {
   syncAuthToken();
 
-  // Create Context Menus
+  // Root menu for Memora actions
+  chrome.contextMenus.create({
+    id: "memora-root",
+    title: "Save to Memora",
+    contexts: ["page", "selection", "image", "link"]
+  });
+
+  // Save page option
   chrome.contextMenus.create({
     id: "save-page",
-    title: "Save this page to Memora",
+    parentId: "memora-root",
+    title: "Save this page",
     contexts: ["page"]
   });
 
+  // Save selected text
   chrome.contextMenus.create({
     id: "save-selection",
-    title: "Save selected text to Memora",
+    parentId: "memora-root",
+    title: "Save selected text",
     contexts: ["selection"]
   });
 
+  // Save link (new feature)
+  chrome.contextMenus.create({
+    id: "save-link",
+    parentId: "memora-root",
+    title: "Save link",
+    contexts: ["link"]
+  });
+
+  // Save image
   chrome.contextMenus.create({
     id: "save-image",
-    title: "Save image to Memora",
+    parentId: "memora-root",
+    title: "Save image",
     contexts: ["image"]
   });
-  
+
+  // Capture screenshot submenu
+  chrome.contextMenus.create({
+    id: "capture-submenu",
+    parentId: "memora-root",
+    title: "Capture screenshot",
+    contexts: ["page", "selection"]
+  });
+
+  // Capture region option
+  chrome.contextMenus.create({
+    id: "capture-region",
+    parentId: "capture-submenu",
+    title: "Select region",
+    contexts: ["page"]
+  });
+
+  // Capture full page option
+  chrome.contextMenus.create({
+    id: "capture-full-page",
+    parentId: "capture-submenu",
+    title: "Full page",
+    contexts: ["page"]
+  });
+
   console.log("Memora Extension context menus initialized.");
 });
 
@@ -87,6 +162,15 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         title: `Quote from ${tab.title || "Webpage"}`,
         content: info.selectionText,
       });
+    } else if (info.menuItemId === "save-link" && info.linkUrl && tab?.url) {
+      // New: save link destination as a web memory
+      const linkTitle = new URL(info.linkUrl).hostname || "Saved Link";
+      await createMemory({
+        type: "web",
+        url: info.linkUrl,
+        title: linkTitle,
+        description: `Saved from: ${tab.title || "Webpage"}`,
+      });
     } else if (info.menuItemId === "save-image" && info.srcUrl && tab?.url) {
       await createMemory({
         type: "image",
@@ -94,6 +178,24 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         title: `Saved image from ${tab.title || "Webpage"}`,
         attachments: [{ fileUrl: info.srcUrl }],
       });
+    } else if (info.menuItemId === "capture-region" && tab?.id && tab?.url) {
+      // New: context menu trigger for screenshot region selection
+      dispatchCaptureToActiveTab(
+        "START_SELECTION",
+        tab.id,
+        tab.url,
+        {},
+        () => {}
+      );
+    } else if (info.menuItemId === "capture-full-page" && tab?.id && tab?.url) {
+      // New: context menu trigger for full-page screenshot
+      dispatchCaptureToActiveTab(
+        "CAPTURE_FULL_PAGE",
+        tab.id,
+        tab.url,
+        {},
+        () => {}
+      );
     }
   } catch (err) {
     notifySaveError(err);

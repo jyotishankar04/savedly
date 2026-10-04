@@ -1,0 +1,1 @@
+ALTER TYPE "plan_limit_type" ADD VALUE 'import_monthly_count';

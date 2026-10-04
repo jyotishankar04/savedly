@@ -9,6 +9,7 @@ export interface ListMemoriesParams {
   isFavorite?: boolean;
   isArchived?: boolean;
   inTrash?: boolean;
+  isVaulted?: boolean;
   collectionId?: string;
   tag?: string;
   q?: string;
@@ -51,8 +52,12 @@ export type UpdateMemoryInput = Partial<
     isFavorite: boolean;
     isArchived: boolean;
     inTrash: boolean;
+    isVaulted: boolean;
   }
->;
+> & {
+  /** ISO datetime, or null to clear it. Omit to leave unchanged. */
+  eventAt?: string | null;
+};
 
 function toQueryString(params: ListMemoriesParams): string {
   const search = new URLSearchParams();

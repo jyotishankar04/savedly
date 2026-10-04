@@ -87,6 +87,13 @@ export const IngestionState = new StateSchema({
   inferredIntent: z.string().nullable().default(null),
   intentConfidence: z.number().nullable().default(null),
 
+  // DetectEvent output — a best-guess absolute date/time this memory is
+  // "about," if any (ISO 8601), and its confidence. Null/null when no
+  // event was detected, or when the node degraded after an LLM/parse
+  // failure — see nodes/detect-event.ts, which deliberately never throws.
+  detectedEventAt: z.string().nullable().default(null),
+  eventDetectionConfidence: z.number().nullable().default(null),
+
   // GenerateAIInsights output.
   aiTitle: z.string().nullable().default(null),
   aiSummary: z.string().nullable().default(null),

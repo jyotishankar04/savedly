@@ -21,9 +21,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const TITLE = "SaveForLatter — Save it now, find it later";
+const DESCRIPTION = "Your personal memory for the internet. Save links, notes, videos, and screenshots, and find them again with a search that understands what you meant.";
+
+// Social previews need absolute image URLs. Netlify sets URL at build time;
+// NEXT_PUBLIC_SITE_URL overrides it (e.g. for a custom domain).
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.URL ?? "http://localhost:3000";
+
+// The icons and share image are file-based: app/icon.svg, favicon.ico,
+// apple-icon.png, opengraph-image.png, twitter-image.png.
 export const metadata: Metadata = {
-  title: "SaveForLatter — Save it now, find it later",
-  description: "Your personal memory for the internet. Save links, notes, videos, and screenshots, and find them again with a search that understands what you meant.",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
+  applicationName: "SaveForLatter",
+  openGraph: { type: "website", siteName: "SaveForLatter", title: TITLE, description: DESCRIPTION, url: "/" },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

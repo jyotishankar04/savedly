@@ -25,11 +25,17 @@ export function AnnouncementBanner() {
   });
 
   React.useEffect(() => {
+    // Must start false on both server and first client render (mount flag
+    // avoids a hydration mismatch); flipped true only after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
   React.useEffect(() => {
     if (!data) return;
+    // Reads localStorage (an external system) once the announcement to
+    // check dismissal for is known.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDismissed(window.localStorage.getItem(dismissedKey(data.id)) === "1");
   }, [data]);
 

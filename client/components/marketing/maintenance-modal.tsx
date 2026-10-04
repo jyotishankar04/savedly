@@ -28,6 +28,10 @@ export function MaintenanceModal() {
   React.useEffect(() => {
     if (!data?.enabled) return;
     if (window.sessionStorage.getItem(SEEN_KEY) === "1") return;
+    // Opens in response to the maintenance-status query resolving (an
+    // external system) and sessionStorage (another one) — not derivable
+    // from render inputs alone.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(true);
   }, [data?.enabled]);
 
@@ -48,7 +52,7 @@ export function MaintenanceModal() {
               <HugeiconsIcon icon={Construction} strokeWidth={2.25} className="h-5 w-5 text-primary" />
             </div>
           </div>
-          <DialogTitle>We're under maintenance</DialogTitle>
+          <DialogTitle>We&apos;re under maintenance</DialogTitle>
           <DialogDescription>{data.message}</DialogDescription>
         </DialogHeader>
       </DialogContent>

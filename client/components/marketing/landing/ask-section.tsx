@@ -1,148 +1,361 @@
 "use client";
 
-import React from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import Link from "next/link";
+import { motion, type Variants } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { MessageSquareIcon as MessageSquare, SparklesIcon as Sparkles, UserIcon as User, FileTextIcon as FileText, ExternalLinkIcon as ExternalLink } from "@hugeicons/core-free-icons";
+import {
+  ArrowUp01Icon as ArrowUp,
+  Search01Icon as Search,
+  SparklesIcon as Sparkles,
+} from "@hugeicons/core-free-icons";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
+import { Bubble, BubbleContent } from "@/components/ui/bubble";
+import { Marker, MarkerIcon, MarkerContent } from "@/components/ui/marker";
+import {
+  Attachment,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentGroup,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment";
+import {
+  MessageScroller,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller";
+import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
+import { useAuthCta } from "@/hooks/use-auth-cta";
 
-const sources = [
-  { id: "01", title: "Paint color guide", type: "Article", url: "https://example.com/paint-colors" },
-  { id: "02", title: "Small kitchen remodel", type: "Video", url: "https://example.com/kitchen-remodel" },
-  { id: "03", title: "IKEA shelving ideas", type: "Website", url: "https://example.com/shelving-ideas" },
+// A scripted preview, not a live RAG call — visitors can type, but every
+// reply is one of a few fixed scenarios matched by keyword, same idea as
+// ai-chat-1's canned-reply demo (@shoogle/7ovr/ai-chat-1) minus the part
+// where it pretends any question gets a real answer. Wiring a real
+// useChat() stream in here would mean an anonymous page load can trigger a
+// real RAG agent call against the server — not something to do by default.
+interface SourceMemory {
+  id: string;
+  title: string;
+  detail: string;
+  type: keyof typeof MEMORY_TYPE_ICONS;
+}
+
+interface Scenario {
+  match: RegExp;
+  prompt: string;
+  query: string;
+  sources: SourceMemory[];
+  answer: string;
+}
+
+const SCENARIOS: Scenario[] = [
+  {
+    match: /nas|home ?lab|zfs|truenas|synology/i,
+    prompt: "What did I save about a home lab NAS?",
+    query: "home lab NAS storage",
+    sources: [
+      { id: "s1", type: "web", title: "Synology vs. self-built TrueNAS: a real cost breakdown", detail: "eshop-nas-comparisons.dev" },
+      { id: "s2", type: "video", title: "Building a 6-bay ZFS NAS from scratch", detail: "YouTube — Level1Techs" },
+      { id: "s3", type: "note", title: "home lab — drive shortlist", detail: "Note, saved Sept 14" },
+    ],
+    answer:
+      "You looked into this twice: a Synology-vs-TrueNAS cost breakdown in September, then a 6-bay ZFS build video a week later. " +
+      "Neither ends on a decision — the TrueNAS article's last line is “price out drives before deciding,” and that's the last thing you saved on it.",
+  },
+  {
+    match: /desk|standing|ergonomic/i,
+    prompt: "Find the standing desk comparison I saved.",
+    query: "standing desk comparison",
+    sources: [
+      { id: "s4", type: "web", title: "Six standing desks under $600, tested for wobble", detail: "deskreviews.co" },
+      { id: "s5", type: "image", title: "Screenshot — desk frame spec sheet", detail: "Saved from a PDF, Aug 3" },
+    ],
+    answer:
+      "One saved article compares six frames under $600 by wobble at full height — the Uplift V2 and the Fully Jarvis came out on top. " +
+      "You also screenshotted a spec sheet the same week, for a frame that isn't mentioned in that article.",
+  },
 ];
 
-const topics = [
-  { name: "Paint colors", count: 6, pct: "w-[80%]" },
-  { name: "Furniture", count: 5, pct: "w-[65%]" },
-  { name: "Lighting", count: 4, pct: "w-[50%]" },
-  { name: "Storage", count: 3, pct: "w-[35%]" },
-  { name: "Budget tips", count: 2, pct: "w-[20%]" },
-];
+const FALLBACK_ANSWER =
+  "This preview only knows the two examples above. The real thing searches everything you've actually saved — try it free.";
 
-export default function AskSection() {
+type Turn =
+  | { kind: "user"; id: string; text: string }
+  | { kind: "searching"; id: string; query: string }
+  | { kind: "sources"; id: string; query: string; memories: SourceMemory[] }
+  | { kind: "answer"; id: string; text: string; grounded: boolean };
+
+const turnVariants: Variants = {
+  hidden: { opacity: 0, y: 10, filter: "blur(3px)" },
+  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", damping: 26, stiffness: 140 } },
+};
+
+function matchScenario(text: string): Scenario | null {
+  return SCENARIOS.find((s) => s.match.test(text)) ?? null;
+}
+
+export function AskSection() {
+  const cta = useAuthCta();
+  const composerId = useId();
+  const [draft, setDraft] = useState("");
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [busy, setBusy] = useState(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const uid = useRef(0);
+
+  useEffect(() => {
+    const active = timers.current;
+    return () => active.forEach(clearTimeout);
+  }, []);
+
+  function nextId() {
+    uid.current += 1;
+    return `t${uid.current}`;
+  }
+
+  function ask(text: string) {
+    const question = text.trim();
+    if (!question || busy) return;
+    setBusy(true);
+    setDraft("");
+
+    const scenario = matchScenario(question);
+    const searchId = nextId();
+
+    setTurns((prev) => [
+      ...prev,
+      { kind: "user", id: nextId(), text: question },
+      { kind: "searching", id: searchId, query: scenario?.query ?? question },
+    ]);
+
+    const t1 = setTimeout(() => {
+      setTurns((prev) => {
+        const withoutSearching = prev.filter((t) => t.id !== searchId);
+        if (!scenario) return withoutSearching;
+        return [
+          ...withoutSearching,
+          { kind: "sources", id: nextId(), query: scenario.query, memories: scenario.sources },
+        ];
+      });
+
+      const t2 = setTimeout(() => {
+        setTurns((prev) => [
+          ...prev,
+          scenario
+            ? { kind: "answer", id: nextId(), text: scenario.answer, grounded: true }
+            : { kind: "answer", id: nextId(), text: FALLBACK_ANSWER, grounded: false },
+        ]);
+        setBusy(false);
+      }, 550);
+      timers.current.push(t2);
+    }, 850);
+    timers.current.push(t1);
+  }
+
   return (
-    <section className="relative w-full py-20 md:py-28 bg-background overflow-hidden border-t border-border/20">
-      
-      {/* Background radial glow */}
-      <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[550px] rounded-full pointer-events-none opacity-20 blur-[130px] dark:opacity-5"
-        style={{
-          backgroundImage: "radial-gradient(circle, rgba(20,71,230,0.07) 0%, rgba(20,71,230,0) 70%)"
-        }}
-      />
+    <section className="mx-auto w-full max-w-2xl px-6 py-24 sm:py-32 md:px-12">
+      <div className="mx-auto mb-14 max-w-2xl text-center sm:mb-20">
+        <span className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
+          Ask SaveForLatter
+        </span>
+        <h2 className="mt-4 text-3xl font-normal tracking-tight text-balance text-foreground sm:text-5xl">
+          Ask a question. Get an answer with receipts.
+        </h2>
+        <p className="mt-4 text-base text-pretty text-muted-foreground">
+          Every claim points back to something you actually saved — try one of the
+          examples below.
+        </p>
+      </div>
 
-      <div className="mx-auto max-w-6xl px-6 relative">
-        
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16 md:mb-20">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
-            ASK SAVEFORLATTER
-          </span>
-          <h2 className="mt-6 text-balance font-medium text-4xl leading-[1.25] tracking-tight text-foreground sm:text-5xl">
-            Your memory can answer back.
-          </h2>
-          <p className="mt-4 text-balance text-muted-foreground text-base md:text-lg">
-            Ask questions about everything you've saved. SaveForLatter connects the dots and gives you answers grounded in your own memories.
-          </p>
-        </div>
-
-        {/* Visual: Chat interface (Double Bordered Card) */}
-        <div className="mx-auto max-w-2xl rounded-2xl border border-border/45 bg-muted/75 p-1.5 shadow-md overflow-hidden">
-          <div className="rounded-xl border border-border/75 bg-card overflow-hidden h-full shadow-xs">
-            
-            {/* Chat Window Header */}
-            <div className="flex items-center justify-between border-b border-border bg-muted/40 px-5 py-3.5">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-semibold text-foreground tracking-wide flex items-center gap-1">
-                  <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-3 w-3 text-primary fill-current" /> Ask SaveForLatter Assistant
-                </span>
-              </div>
-              <span className="text-[10px] text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded">
-                Grounded Model
+      <Card className="w-full border-border shadow-sm">
+        <CardHeader className="px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Avatar size="sm">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-3.5 w-3.5" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm leading-none font-semibold tracking-tight text-foreground">
+                SaveForLatter
+              </span>
+              <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <HugeiconsIcon icon={Search} strokeWidth={2.25} className="h-3 w-3" />
+                Only searches what you&apos;ve saved
               </span>
             </div>
-
-            {/* Chat Area */}
-            <div className="p-5 md:p-6 space-y-6">
-              
-              {/* User Message */}
-              <div className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0">
-                  <HugeiconsIcon icon={User} strokeWidth={2.25} className="h-4.5 w-4.5" />
-                </div>
-                <div className="flex-1 bg-muted/30 border border-border/40 rounded-2xl rounded-tl-none p-3.5">
-                  <p className="text-xs text-foreground/90 font-medium">
-                    What have I saved about home renovation?
-                  </p>
-                </div>
-              </div>
-
-              {/* Assistant Message */}
-              <div className="flex items-start gap-3">
-                <div className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(20,71,230,0.3)]">
-                  <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-4.5 w-4.5 fill-current" />
-                </div>
-                
-                <div className="flex-1 space-y-4">
-                  
-                  {/* Intro summary */}
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                      <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-3.5 w-3.5 fill-current" />
-                      <span>You have 20 memories about home renovation.</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                      Based on your bookmarks, videos, and articles, the topics you've explored most are:
-                    </p>
-                  </div>
-
-                  {/* Topics explored charts (horizontal bar chart mockup) */}
-                  <div className="space-y-2 max-w-md bg-background/50 border border-border/30 rounded-xl p-3.5">
-                    {topics.map((topic) => (
-                      <div key={topic.name} className="flex items-center justify-between text-[11px]">
-                        <span className="w-24 font-medium text-foreground">{topic.name}</span>
-                        <div className="flex-1 mx-3 h-2 bg-muted rounded-full overflow-hidden">
-                          <div className={`h-full bg-primary rounded-full ${topic.pct}`} />
-                        </div>
-                        <span className="text-muted-foreground font-mono w-20 text-right">{topic.count} resources</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Sources - Important Trust Detail (Double Bordered Cards!) */}
-                  <div className="space-y-2 pt-2">
-                    <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
-                      Sources Used
-                    </span>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {sources.map((src) => (
-                        <div 
-                          key={src.id}
-                          className="rounded-lg border border-border/45 bg-muted/75 p-0.5 shadow-xs"
-                        >
-                          <div className="p-2.5 rounded-md border border-border/75 bg-card hover:border-primary/20 transition-all flex items-center justify-between group h-full">
-                            <div className="flex items-center gap-2 truncate">
-                              <span className="text-[10px] font-mono text-primary font-semibold">{src.id}</span>
-                              <span className="text-[11px] font-medium text-foreground truncate group-hover:text-primary transition-colors">
-                                {src.title}
-                              </span>
-                            </div>
-                            <HugeiconsIcon icon={ExternalLink} strokeWidth={2.25} className="h-3 w-3 text-muted-foreground/60 group-hover:text-primary shrink-0 ml-1.5" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-            </div>
+            <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+              Preview
+            </span>
           </div>
-        </div>
+        </CardHeader>
 
-      </div>
+        <Separator />
+
+        <CardContent className="p-0">
+          <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+            <MessageScroller className="h-[360px]">
+              <MessageScrollerViewport>
+                <MessageScrollerContent className="gap-4 px-4 py-4">
+                  <MessageScrollerItem messageId="intro">
+                    <Message align="start">
+                      <MessageAvatar>
+                        <Avatar size="sm">
+                          <AvatarFallback className="bg-primary text-primary-foreground">
+                            <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-3.5 w-3.5" />
+                          </AvatarFallback>
+                        </Avatar>
+                      </MessageAvatar>
+                      <MessageContent>
+                        <Bubble align="start" variant="muted">
+                          <BubbleContent>
+                            Ask about anything you&rsquo;ve saved. Try one of these, or type your own.
+                          </BubbleContent>
+                        </Bubble>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {SCENARIOS.map((s) => (
+                            <button
+                              key={s.prompt}
+                              type="button"
+                              disabled={busy}
+                              onClick={() => ask(s.prompt)}
+                              className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              {s.prompt}
+                            </button>
+                          ))}
+                        </div>
+                      </MessageContent>
+                    </Message>
+                  </MessageScrollerItem>
+
+                  {turns.map((turn) => (
+                    <MessageScrollerItem key={turn.id} messageId={turn.id} scrollAnchor={turn.kind === "user"}>
+                      <motion.div initial="hidden" animate="show" variants={turnVariants}>
+                        {turn.kind === "user" && (
+                          <Message align="end">
+                            <MessageAvatar>
+                              <Avatar size="sm">
+                                <AvatarFallback className="text-[10px] font-semibold">You</AvatarFallback>
+                              </Avatar>
+                            </MessageAvatar>
+                            <MessageContent>
+                              <Bubble align="end">
+                                <BubbleContent>{turn.text}</BubbleContent>
+                              </Bubble>
+                            </MessageContent>
+                          </Message>
+                        )}
+
+                        {turn.kind === "searching" && (
+                          <Marker>
+                            <MarkerIcon>
+                              <HugeiconsIcon icon={Search} strokeWidth={2.25} />
+                            </MarkerIcon>
+                            <MarkerContent className="shimmer">
+                              Searching your memories for &ldquo;{turn.query}&rdquo;&hellip;
+                            </MarkerContent>
+                          </Marker>
+                        )}
+
+                        {turn.kind === "sources" && (
+                          <div className="flex flex-col gap-2">
+                            <Marker>
+                              <MarkerIcon>
+                                <HugeiconsIcon icon={Search} strokeWidth={2.25} />
+                              </MarkerIcon>
+                              <MarkerContent>
+                                Searched your memories for &ldquo;{turn.query}&rdquo; &middot; {turn.memories.length} found
+                              </MarkerContent>
+                            </Marker>
+                            <AttachmentGroup>
+                              {turn.memories.map((memory) => (
+                                <Attachment key={memory.id} size="sm" className="w-52">
+                                  <AttachmentMedia variant="icon">
+                                    <HugeiconsIcon icon={MEMORY_TYPE_ICONS[memory.type]} strokeWidth={2.25} />
+                                  </AttachmentMedia>
+                                  <AttachmentContent>
+                                    <AttachmentTitle>{memory.title}</AttachmentTitle>
+                                    <AttachmentDescription>{memory.detail}</AttachmentDescription>
+                                  </AttachmentContent>
+                                </Attachment>
+                              ))}
+                            </AttachmentGroup>
+                          </div>
+                        )}
+
+                        {turn.kind === "answer" && (
+                          <Message align="start">
+                            <MessageAvatar>
+                              <Avatar size="sm">
+                                <AvatarFallback className="bg-primary text-primary-foreground">
+                                  <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-3.5 w-3.5" />
+                                </AvatarFallback>
+                              </Avatar>
+                            </MessageAvatar>
+                            <MessageContent>
+                              <Bubble align="start" variant={turn.grounded ? "muted" : "outline"}>
+                                <BubbleContent className="text-sm leading-relaxed">{turn.text}</BubbleContent>
+                              </Bubble>
+                              {!turn.grounded && (
+                                <Link
+                                  href={cta.href}
+                                  className="mt-1 inline-block text-xs font-medium text-primary hover:underline"
+                                >
+                                  {cta.label} →
+                                </Link>
+                              )}
+                            </MessageContent>
+                          </Message>
+                        )}
+                      </motion.div>
+                    </MessageScrollerItem>
+                  ))}
+                </MessageScrollerContent>
+              </MessageScrollerViewport>
+            </MessageScroller>
+          </MessageScrollerProvider>
+        </CardContent>
+
+        <CardFooter className="px-4 py-3">
+          <form
+            className="flex w-full items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              ask(draft);
+            }}
+          >
+            <label htmlFor={composerId} className="sr-only">
+              Ask a question
+            </label>
+            <Input
+              id={composerId}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Ask about the examples above…"
+              disabled={busy}
+              className="h-9 flex-1 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={busy || !draft.trim()}
+              aria-label="Ask"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
+            >
+              <HugeiconsIcon icon={ArrowUp} strokeWidth={2.25} className="h-4 w-4" />
+            </button>
+          </form>
+        </CardFooter>
+      </Card>
     </section>
   );
 }
+
+export default AskSection;

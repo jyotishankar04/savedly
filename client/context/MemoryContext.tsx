@@ -2,8 +2,17 @@
 
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import type { Collection, Memory } from "@/types/memory";
-import { createCollection, deleteCollection, listCollections, type CreateCollectionInput } from "@/lib/collections";
+import {
+  convertCollectionToUser,
+  createCollection,
+  deleteCollection,
+  listCollections,
+  updateCollection,
+  type CreateCollectionInput,
+  type UpdateCollectionInput,
+} from "@/lib/collections";
 import { listTags } from "@/lib/tags";
+import { expectNotificationsSoon } from "@/hooks/use-notifications";
 import {
   createMemory,
   deleteMemory,
@@ -16,7 +25,13 @@ import {
 } from "@/lib/memories";
 
 export const memoriesQueryKey = (params: ListMemoriesParams = {}) => ["memories", params] as const;
-export const collectionsQueryKey = () => ["collections"] as const;
+// No-arg form is deliberately just ["collections"] (not, say,
+// ["collections", { includeSystem: false }]) — TanStack Query invalidates by
+// key-array prefix, so invalidating this base key matches both the
+// includeSystem:true and :false query variants at once.
+export function collectionsQueryKey(includeSystem?: boolean) {
+  return includeSystem === undefined ? (["collections"] as const) : (["collections", { includeSystem }] as const);
+}
 export const tagsQueryKey = () => ["tags"] as const;
 export const memoryQueryKey = (id: string) => ["memory", id] as const;
 
@@ -35,8 +50,8 @@ export function useMemoriesQuery(params: ListMemoriesParams = {}) {
   });
 }
 
-export function useCollectionsQuery() {
-  return useQuery({ queryKey: collectionsQueryKey(), queryFn: listCollections });
+export function useCollectionsQuery(includeSystem = false) {
+  return useQuery({ queryKey: collectionsQueryKey(includeSystem), queryFn: () => listCollections(includeSystem) });
 }
 
 export function useTagsQuery() {
@@ -58,6 +73,29 @@ export function useDeleteCollectionMutation() {
   return useMutation({
     mutationFn: (id: string) => deleteCollection(id),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: collectionsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: ["memories"] });
+    },
+  });
+}
+
+export function useConvertCollectionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => convertCollectionToUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: collectionsQueryKey() });
+    },
+  });
+}
+
+export function useUpdateCollectionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateCollectionInput }) => updateCollection(id, patch),
+    onSuccess: () => {
+      // A vault toggle can also move memories in/out of view (cascade to
+      // members), so both caches need a refetch, not just collections.
       queryClient.invalidateQueries({ queryKey: collectionsQueryKey() });
       queryClient.invalidateQueries({ queryKey: ["memories"] });
     },
@@ -146,6 +184,8 @@ export function useCreateMemoryMutation() {
   return useMutation({
     mutationFn: (input: CreateMemoryInput) => createMemory(input),
     onSuccess: () => {
+      // Processing may find an event; surface its popup within seconds.
+      expectNotificationsSoon();
       queryClient.invalidateQueries({ queryKey: ["memories"] });
       queryClient.invalidateQueries({ queryKey: collectionsQueryKey() });
       queryClient.invalidateQueries({ queryKey: tagsQueryKey() });

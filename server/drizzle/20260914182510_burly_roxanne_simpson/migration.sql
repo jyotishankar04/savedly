@@ -1,0 +1,1 @@
+ALTER TABLE "memories" ADD COLUMN "event_at" timestamp with time zone;

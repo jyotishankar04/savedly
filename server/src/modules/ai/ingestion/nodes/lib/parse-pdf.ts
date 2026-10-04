@@ -23,12 +23,13 @@ Summary:`,
 );
 
 async function summarizeFirstPage(pageOneText: string, totalPages: number, usage: UsageContext, caption?: string): Promise<string> {
+  if (!usage.userId) return "";
   const messages = await summaryPrompt.formatMessages({
     totalPages,
     captionContext: caption ? ` titled/captioned "${caption}"` : "",
     pageOneText: pageOneText.slice(0, MAX_CONTENT_LENGTH),
   });
-  return (await invokeWithFallback(getTextFallbackModels(), messages, usage)).trim();
+  return (await invokeWithFallback(await getTextFallbackModels(usage.userId, { kind: "save", memoryId: usage.memoryId ?? null }), messages, usage)).trim();
 }
 
 /**

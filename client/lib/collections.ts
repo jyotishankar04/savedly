@@ -7,10 +7,19 @@ export interface CreateCollectionInput {
   description?: string;
 }
 
-export type UpdateCollectionInput = Partial<CreateCollectionInput>;
+export type UpdateCollectionInput = Partial<CreateCollectionInput> & { isVaulted?: boolean };
 
-export async function listCollections(): Promise<Collection[]> {
-  return apiFetch<Collection[]>("/collections");
+export async function listCollections(includeSystem = false, vaulted = false): Promise<Collection[]> {
+  const params = new URLSearchParams();
+  if (includeSystem) params.set("includeSystem", "true");
+  if (vaulted) params.set("isVaulted", "true");
+  const qs = params.toString();
+  return apiFetch<Collection[]>(`/collections${qs ? `?${qs}` : ""}`);
+}
+
+/** One-way: turns a system collection into a user-owned one. Never the reverse. */
+export async function convertCollectionToUser(id: string): Promise<Collection> {
+  return apiFetch<Collection>(`/collections/${id}/convert-to-user`, { method: "PATCH" });
 }
 
 export async function createCollection(input: CreateCollectionInput): Promise<Collection> {

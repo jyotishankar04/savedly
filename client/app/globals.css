@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
 
 
 @custom-variant dark (&:is(.dark *));
@@ -65,20 +67,20 @@
   --foreground: oklch(0.9851 0 0);
   --card: oklch(0.2393 0 0);
   --card-foreground: oklch(0.9851 0 0);
-  --popover: oklch(0.2752 0.0034 228.9166);
+  --popover: oklch(0.2752 0 0);
   --popover-foreground: oklch(0.9851 0 0);
   --primary: oklch(0.6187 0.2067 259.2316);
   --primary-foreground: oklch(0.9851 0 0);
-  --secondary: oklch(0.2752 0.0034 228.9166);
+  --secondary: oklch(0.2752 0 0);
   --secondary-foreground: oklch(0.9851 0 0);
-  --muted: oklch(0.2752 0.0034 228.9166);
-  --muted-foreground: oklch(83.881% 0.00307 264.752);
-  --accent: oklch(0.3402 0.0369 254.9549);
+  --muted: oklch(0.2752 0 0);
+  --muted-foreground: oklch(0.8388 0 0);
+  --accent: oklch(0.3100 0 0);
   --accent-foreground: oklch(0.9851 0 0);
   --destructive: oklch(0.7022 0.1892 22.2279);
   --destructive-foreground: oklch(0.9851 0 0);
   --border: oklch(0.2393 0 0);
-  --input: oklch(0.3299 0.0322 257.6775);
+  --input: oklch(0.3299 0 0);
   --ring: oklch(0.4475 0.1432 258.6866);
   --chart-1: oklch(0.8088 0.0991 251.7533);
   --chart-2: oklch(0.6207 0.1894 259.9358);
@@ -89,9 +91,9 @@
   --sidebar-foreground: oklch(0.9851 0 0);
   --sidebar-primary: oklch(0.6187 0.2067 259.2316);
   --sidebar-primary-foreground: oklch(0.9851 0 0);
-  --sidebar-accent: oklch(0.2752 0.0034 228.9166);
+  --sidebar-accent: oklch(0.2752 0 0);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
-  --sidebar-border: oklch(0.2752 0.0034 228.9166);
+  --sidebar-border: oklch(0.2752 0 0);
   --sidebar-ring: oklch(0.6187 0.2067 259.2316);
   --font-sans: Geist, ui-sans-serif, sans-serif, system-ui;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
@@ -151,10 +153,28 @@
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
 
+  /* The scale stays a gentle, monotonic ladder. --radius-2xl was previously
+     left undefined, so `rounded-2xl` fell through to Tailwind's 1rem default —
+     i.e. *less* round than `rounded-xl` at 20.8px. Pinning it here fixes that
+     inversion; the step sizes are otherwise unchanged. */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* +6px (22.8px) rather than a rounder value on purpose: the smallest thing
+     wearing `rounded-2xl` in this app is a 48px icon badge, and CSS clamps
+     radius to half the box — anything from 24px up would turn those into
+     circles. */
+  --radius-2xl: calc(var(--radius) + 6px);
+
+  /* The app's large-surface radius, matching components/ui/github-activity.tsx
+     (`rounded-[28px]`), which is the reference for this design system. It is a
+     separate token rather than a bigger --radius-xl on purpose: `rounded-xl`
+     and `rounded-2xl` are used in this codebase for both page-level panels and
+     40–56px icon tiles, and CSS clamps radius to half the box — so raising the
+     scale turns every one of those tiles into a circle. Reach for
+     `rounded-surface` only on genuinely large surfaces. */
+  --radius-surface: 1.75rem;
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -240,4 +260,13 @@
 
 @utility scrollbar-gutter-stable {
   scrollbar-gutter: stable;
+}
+/* Landing page: dashes travelling along the hero's memory-type lines, and
+   the progress hairline under the auto-advancing screen tab. */
+@keyframes signal-flow {
+  to { stroke-dashoffset: -28; }
+}
+@keyframes tab-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }

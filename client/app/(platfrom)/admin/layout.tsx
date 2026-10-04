@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  SparklesIcon as Sparkles,
-  ShieldUserIcon as ShieldUser,
   DashboardSquare01Icon as DashboardSquare,
   UserGroupIcon as UserGroup,
   BarChartIcon as BarChart,
@@ -17,25 +16,96 @@ import {
   Logout03Icon as LogoutIcon,
   MoonIcon as Moon,
   Sun01Icon as Sun,
+  Layers01Icon as Layers,
+  Mail01Icon as Mail,
+  SlideIcon as Sliders,
+  CloudServerIcon as CloudServer,
 } from "@hugeicons/core-free-icons";
+import type { IconSvgElement } from "@hugeicons/react";
 import { cn } from "@/lib/utils";
+import { getServerConfig } from "@/lib/server-config";
+import { getSystemStatus } from "@/lib/admin-system";
+import { LogoMark } from "@/components/logo";
 import { logout } from "@/lib/auth";
+import { usePlanLabel } from "@/hooks/use-plan-limit";
 import {
   UserProvider,
   UserAvatar,
   useUser,
   useCurrentUserQuery,
   useSetCurrentUser,
-  formatPlan,
 } from "@/context/UserContext";
 
-const NAV_LINKS = [
+interface NavLeaf {
+  label: string;
+  href: string;
+  icon?: IconSvgElement;
+}
+interface NavGroup {
+  label: string;
+  icon: IconSvgElement;
+  children: NavLeaf[];
+}
+type NavEntry = NavLeaf | NavGroup;
+
+function isGroup(entry: NavEntry): entry is NavGroup {
+  return "children" in entry;
+}
+
+// Content/Support/System groups from the original spec aren't here yet —
+// their backends don't exist (Phase 2/3), and a nav item with nothing real
+// behind it is worse than not showing it. Promotions/Rewards under Growth
+// are the same story — deferred until there's something to manage.
+const NAV_ENTRIES: NavEntry[] = [
   { label: "Overview", href: "/admin", icon: DashboardSquare },
   { label: "Users", href: "/admin/users", icon: UserGroup },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart },
+  { label: "Emails", href: "/admin/emails", icon: Mail },
   { label: "AI Usage", href: "/admin/ai-usage", icon: Cpu },
+  { label: "Features", href: "/admin/features", icon: Sliders },
   { label: "Configuration", href: "/admin/configuration", icon: Settings },
+  { label: "Infrastructure", href: "/admin/infrastructure", icon: CloudServer },
+  { label: "Plans & Limits", href: "/admin/plans-limits", icon: Layers },
 ];
+
+/**
+ * Every leaf link, groups flattened, deduped by href — for the mobile pill
+ * nav and topbar active-label lookup.
+ */
+const NAV_LEAVES: NavLeaf[] = (() => {
+  const seen = new Set<string>();
+  const leaves = NAV_ENTRIES.flatMap((entry) => (isGroup(entry) ? entry.children : [entry]));
+  return leaves.filter((leaf) => {
+    if (seen.has(leaf.href)) return false;
+    seen.add(leaf.href);
+    return true;
+  });
+})();
+
+/**
+ * The nav for this install. A self-hosted install has one unlimited plan, so
+ * Plans & Limits is hidden; Emails (bulk announcements) is hidden there too
+ * until email is set up.
+ */
+function useAdminNav() {
+  const { data: config } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const selfHosted = !!config?.selfHosted;
+  const { data: system } = useQuery({ queryKey: ["admin", "system"], queryFn: getSystemStatus, enabled: selfHosted });
+  const hidden = new Set<string>();
+  if (selfHosted) {
+    hidden.add("/admin/plans-limits");
+    if (!system?.services.email) hidden.add("/admin/emails");
+  }
+  const keep = (leaf: NavLeaf) => !hidden.has(leaf.href);
+  return {
+    navEntries: NAV_ENTRIES.filter((entry) => isGroup(entry) || keep(entry)),
+    navLeaves: NAV_LEAVES.filter(keep),
+  };
+}
+
+function isActive(pathname: string, href: string): boolean {
+  return href === "/admin" ? pathname === href : pathname.startsWith(href);
+}
 
 /**
  * Deliberately its own shell — no shared chrome with the main app layout
@@ -62,7 +132,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoading || isError || !currentUser || !isAdmin) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-5 w-5 text-primary animate-pulse" />
+        <LogoMark className="h-10 w-10 animate-pulse" />
       </div>
     );
   }
@@ -79,6 +149,9 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { user } = useUser();
+  // The billing plan, not the RBAC role — an admin is still on some plan.
+  const planLabel = usePlanLabel();
+  const { navEntries, navLeaves } = useAdminNav();
 
   const handleLogout = () => {
     logout().finally(() => router.push("/"));
@@ -91,29 +164,52 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           surface rather than a reskinned app sidebar. */}
       <aside className="w-56 shrink-0 hidden md:flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="h-16 flex items-center gap-2 px-5 border-b border-sidebar-border/60 shrink-0">
-          <HugeiconsIcon icon={ShieldUser} strokeWidth={2.25} className="h-4 w-4 text-sidebar-primary" />
+          <LogoMark className="h-7 w-7" />
           <span className="text-sm font-bold tracking-tight">Admin</span>
         </div>
 
-        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-0.5">
-          {NAV_LINKS.map((link) => {
-            const active = link.href === "/admin" ? pathname === link.href : pathname.startsWith(link.href);
-            return (
+        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
+          {navEntries.map((entry) =>
+            isGroup(entry) ? (
+              <div key={entry.label} className="space-y-0.5">
+                <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-sidebar-foreground/45">
+                  <HugeiconsIcon icon={entry.icon} strokeWidth={2.25} className="h-3.5 w-3.5" />
+                  {entry.label}
+                </div>
+                {entry.children.map((link) => {
+                  const active = isActive(pathname, link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        "ml-1 px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center transition-colors",
+                        active
+                          ? "bg-sidebar-accent text-sidebar-primary"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
               <Link
-                key={link.href}
-                href={link.href}
+                key={entry.href}
+                href={entry.href}
                 className={cn(
                   "px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-2.5 transition-colors",
-                  active
+                  isActive(pathname, entry.href)
                     ? "bg-sidebar-accent text-sidebar-primary"
                     : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 )}
               >
-                <HugeiconsIcon icon={link.icon} strokeWidth={2.25} className="h-4 w-4" />
-                {link.label}
+                {entry.icon && <HugeiconsIcon icon={entry.icon} strokeWidth={2.25} className="h-4 w-4" />}
+                {entry.label}
               </Link>
-            );
-          })}
+            ),
+          )}
         </nav>
 
         <div className="p-3 border-t border-sidebar-border/60 shrink-0">
@@ -132,19 +228,18 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             the page title context + user controls. */}
         <header className="h-16 border-b border-border/60 px-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 md:hidden">
-            <HugeiconsIcon icon={ShieldUser} strokeWidth={2.25} className="h-4 w-4 text-primary" />
+            <LogoMark className="h-7 w-7" />
             <span className="text-sm font-bold">Admin</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map((link) => {
-              const active = link.href === "/admin" ? pathname === link.href : pathname.startsWith(link.href);
-              return active ? (
+            {navLeaves.map((link) =>
+              isActive(pathname, link.href) ? (
                 <span key={link.href} className="text-xs font-bold text-foreground">
                   {link.label}
                 </span>
-              ) : null;
-            })}
+              ) : null,
+            )}
           </nav>
 
           <div className="flex items-center gap-3">
@@ -160,7 +255,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               <UserAvatar user={user} className="h-8 w-8 text-xs border border-primary/20" />
               <div className="hidden sm:block min-w-0">
                 <p className="text-xs font-bold text-foreground truncate max-w-32">{user.name ?? user.email}</p>
-                <p className="text-[9px] text-muted-foreground font-mono leading-none">{formatPlan(user.roles)}</p>
+                <p className="text-[9px] text-muted-foreground font-mono leading-none">{planLabel.label}</p>
               </div>
             </div>
 
@@ -184,8 +279,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             <HugeiconsIcon icon={ArrowLeft} strokeWidth={2.25} className="h-3.5 w-3.5" />
           </Link>
           <span className="h-4 w-px bg-border shrink-0" />
-          {NAV_LINKS.map((link) => {
-            const active = link.href === "/admin" ? pathname === link.href : pathname.startsWith(link.href);
+          {navLeaves.map((link) => {
+            const active = isActive(pathname, link.href);
             return (
               <Link
                 key={link.href}

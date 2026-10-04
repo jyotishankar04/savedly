@@ -69,7 +69,12 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
   if (fetchResult.status === "success" && fetchResult.contentType?.includes("image/")) {
     const imageUrl = fetchResult.finalUrl ?? state.url;
     const rawContent = await analyzeImage(imageUrl, { userId: state.userId, requestType: "ingestion:vision", memoryId: state.memoryId });
-    logNode(state.memoryId, "parseWebContent", { url: state.url, fetchStatus: fetchResult.status, kind: "image", contentLength: rawContent.length });
+    logNode(state.memoryId, "parseWebContent", {
+      url: state.url,
+      fetchStatus: fetchResult.status,
+      kind: "image",
+      contentLength: rawContent.length,
+    });
     return {
       rawContent,
       platform,

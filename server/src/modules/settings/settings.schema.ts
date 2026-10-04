@@ -1,6 +1,16 @@
 import { z } from "zod";
 
+function isTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const updateSettingsSchema = z.object({
+  timezone: z.string().max(64).refine(isTimeZone, "Unknown time zone").optional(),
   ai: z
     .object({
       autoOrganization: z.boolean().optional(),

@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Search01Icon as Search, ArrowRight01Icon as ArrowRight, ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listUsers, type AdminUser } from "@/lib/admin-users";
+import { listAdminPlans } from "@/lib/admin-plans";
+import { getServerConfig } from "@/lib/server-config";
+import { AddUserDialog } from "@/components/admin/add-user-dialog";
 
 const STATUS_VARIANT: Record<AdminUser["status"], "secondary" | "destructive" | "outline"> = {
   active: "secondary",
@@ -19,10 +21,13 @@ const STATUS_VARIANT: Record<AdminUser["status"], "secondary" | "destructive" | 
   deleted: "outline",
 };
 
+const COLUMN_COUNT = 5;
+
 export default function AdminUsersPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [role, setRole] = useState<string>("all");
+  const [plan, setPlan] = useState<string>("all");
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -30,6 +35,7 @@ export default function AdminUsersPage() {
     q: q || undefined,
     status: status === "all" ? undefined : (status as AdminUser["status"]),
     role: role === "all" ? undefined : role,
+    plan: plan === "all" ? undefined : plan,
     page,
     limit,
   };
@@ -39,60 +45,22 @@ export default function AdminUsersPage() {
     queryFn: () => listUsers(params),
   });
 
-  const columns = useMemo<ColumnDef<AdminUser>[]>(
-    () => [
-      {
-        header: "User",
-        accessorKey: "email",
-        cell: ({ row }) => (
-          <Link href={`/admin/users/${row.original.id}`} className="flex flex-col hover:text-primary transition-colors">
-            <span className="text-xs font-semibold text-foreground">{row.original.name ?? row.original.email}</span>
-            <span className="text-[10px] text-muted-foreground">{row.original.email}</span>
-          </Link>
-        ),
-      },
-      {
-        header: "Roles",
-        accessorKey: "roles",
-        cell: ({ row }) => (
-          <div className="flex flex-wrap gap-1">
-            {row.original.roles.map((r) => (
-              <Badge key={r} variant={r === "admin" ? "default" : "secondary"}>
-                {r}
-              </Badge>
-            ))}
-          </div>
-        ),
-      },
-      {
-        header: "Status",
-        accessorKey: "status",
-        cell: ({ row }) => <Badge variant={STATUS_VARIANT[row.original.status]}>{row.original.status}</Badge>,
-      },
-      {
-        header: "Joined",
-        accessorKey: "createdAt",
-        cell: ({ row }) => (
-          <span className="text-[10px] text-muted-foreground font-mono">
-            {new Date(row.original.createdAt).toLocaleDateString()}
-          </span>
-        ),
-      },
-    ],
-    [],
-  );
-
-  const table = useReactTable({
-    data: data?.items ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
+  // Real, admin-configurable plans — never a hardcoded Free/Plus/Pro list,
+  // so a renamed or newly-added plan shows up here without a code change.
+  const { data: plansList } = useQuery({ queryKey: ["admin", "plans"], queryFn: listAdminPlans });
+  // Self-hosted has one plan, so filtering by it means nothing; and accounts
+  // are added here instead of through public signup.
+  const { data: config } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const selfHosted = !!config?.selfHosted;
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold text-foreground">Users</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg font-bold text-foreground">Users</h1>
+        {selfHosted && <AddUserDialog />}
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -109,7 +77,7 @@ export default function AdminUsersPage() {
           />
         </div>
 
-        <Select value={status} onValueChange={(v) => { if (v) { setStatus(v); setPage(1); } }}>
+        <Select items={{ all: "All statuses", active: "Active", inactive: "Inactive", suspended: "Suspended", banned: "Banned" }} value={status} onValueChange={(v) => { if (v) { setStatus(v); setPage(1); } }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -122,62 +90,98 @@ export default function AdminUsersPage() {
           </SelectContent>
         </Select>
 
-        <Select value={role} onValueChange={(v) => { if (v) { setRole(v); setPage(1); } }}>
+        <Select items={{ all: "All roles", user: "user", admin: "admin" }} value={role} onValueChange={(v) => { if (v) { setRole(v); setPage(1); } }}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Role" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All roles</SelectItem>
-            <SelectItem value="free_user">free_user</SelectItem>
-            <SelectItem value="pro_user">pro_user</SelectItem>
+            <SelectItem value="user">user</SelectItem>
             <SelectItem value="admin">admin</SelectItem>
           </SelectContent>
         </Select>
+
+        {!selfHosted && (
+          <Select value={plan} onValueChange={(v) => { if (v) { setPlan(v); setPage(1); } }}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Plan">
+                {() => (plan === "all" ? "All plans" : plansList?.find((p) => p.key === plan)?.name)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All plans</SelectItem>
+              {plansList?.filter((p) => p.isActive).map((p) => (
+                <SelectItem key={p.key} value={p.key}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Table */}
       <div className="rounded-xl border border-border overflow-hidden">
         <table className="w-full text-xs">
           <thead className="bg-muted/40 border-b border-border">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="text-left font-semibold text-muted-foreground px-4 py-2.5">
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
-            ))}
+            <tr>
+              <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">User</th>
+              <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Roles</th>
+              <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Plan</th>
+              <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Status</th>
+              <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Joined</th>
+            </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-6 text-center text-muted-foreground">
+                <td colSpan={COLUMN_COUNT} className="px-4 py-6 text-center text-muted-foreground">
                   Loading...
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-6 text-center text-destructive">
+                <td colSpan={COLUMN_COUNT} className="px-4 py-6 text-center text-destructive">
                   Failed to load users.
                 </td>
               </tr>
             )}
-            {!isLoading && !isError && table.getRowModel().rows.length === 0 && (
+            {!isLoading && !isError && data?.items.length === 0 && (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-6 text-center text-muted-foreground">
+                <td colSpan={COLUMN_COUNT} className="px-4 py-6 text-center text-muted-foreground">
                   No users found.
                 </td>
               </tr>
             )}
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-3">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+            {data?.items.map((user) => (
+              <tr key={user.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
+                <td className="px-4 py-3">
+                  <Link href={`/admin/users/${user.id}`} className="flex flex-col hover:text-primary transition-colors">
+                    <span className="text-xs font-semibold text-foreground">{user.name ?? user.email}</span>
+                    <span className="text-[10px] text-muted-foreground">{user.email}</span>
+                  </Link>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {user.roles.map((r) => (
+                      <Badge key={r} variant={r === "admin" ? "default" : "secondary"}>
+                        {r}
+                      </Badge>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <Badge variant="outline">{user.planName ?? "—"}</Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <Badge variant={STATUS_VARIANT[user.status]}>{user.status}</Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>

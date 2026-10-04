@@ -1,6 +1,8 @@
 import { apiFetch } from "@/lib/auth";
 
 export interface Settings {
+  /** IANA time zone from the browser ("Asia/Kolkata"); null until first sent. */
+  timezone: string | null;
   ai: {
     autoOrganization: boolean;
     summaries: boolean;
@@ -30,9 +32,10 @@ export interface Settings {
   };
 }
 
+type SettingsGroups = Omit<Settings, "connectedAccounts" | "timezone">;
 export type SettingsPatch = {
-  [K in keyof Omit<Settings, "connectedAccounts">]?: Partial<Omit<Settings[K], "defaultCollectionId">>;
-};
+  [K in keyof SettingsGroups]?: Partial<Omit<SettingsGroups[K], "defaultCollectionId">>;
+} & { timezone?: string };
 
 export async function getSettings(): Promise<Settings> {
   return apiFetch<Settings>("/settings");

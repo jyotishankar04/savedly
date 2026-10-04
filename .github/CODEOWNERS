@@ -1,0 +1,4 @@
+# Every change needs a review from a code owner. Start broad; split this out
+# by directory (e.g. `/server/ @jyotishankar04`, `/client/ @jyotishankar04`)
+# once there's more than one trusted maintainer to split review load with.
+* @jyotishankar04

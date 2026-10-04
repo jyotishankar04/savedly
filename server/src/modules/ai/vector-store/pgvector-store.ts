@@ -42,7 +42,7 @@ export const pgVectorStore: VectorStore = {
         score: sql<number>`1 - (${memories.documentEmbedding} <=> ${vectorLiteral}::vector)`.as("score"),
       })
       .from(memories)
-      .where(and(eq(memories.userId, userId), eq(memories.inTrash, false), isNotNull(memories.documentEmbedding)))
+      .where(and(eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false), isNotNull(memories.documentEmbedding)))
       .orderBy(sql`${memories.documentEmbedding} <=> ${vectorLiteral}::vector`)
       .limit(limit);
 
@@ -60,7 +60,7 @@ export const pgVectorStore: VectorStore = {
       })
       .from(memoryChunks)
       .innerJoin(memories, eq(memoryChunks.memoryId, memories.id))
-      .where(and(eq(memoryChunks.userId, userId), eq(memories.inTrash, false)))
+      .where(and(eq(memoryChunks.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false)))
       .orderBy(sql`${memoryChunks.embedding} <=> ${vectorLiteral}::vector`)
       .limit(limit);
 

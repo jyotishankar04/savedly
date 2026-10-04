@@ -15,7 +15,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     { label: "AI Features", href: "/app/settings/ai" },
     { label: "Notifications", href: "/app/settings/notifications" },
     { label: "Privacy & Data", href: "/app/settings/privacy" },
-    { label: "Billing", href: "/app/settings/billing" },
+    { label: "Plan & usage", href: "/app/settings/billing" },
     { label: "Help", href: "/app/settings/help" }
   ];
 
@@ -23,7 +23,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-8 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-xs text-muted-foreground mt-1">Configure profile details, capture extension sync, billing logs, and vector integrations.</p>
+        <p className="text-xs text-muted-foreground mt-1">Configure profile details, capture extension sync, your plan and usage, and AI keys.</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">

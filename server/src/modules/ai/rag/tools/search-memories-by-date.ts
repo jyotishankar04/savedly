@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "../../../../db";
 import { memories } from "../../../../db/schema";
 import { ragToolContextSchema, searchMemoriesResultSchema, type SearchMemoriesResult } from "./search-memories";
+import { startOfLocalDay, userTimeZone } from "../../../../shared/utils/time-zone";
 
 const dateSchema = z
   .string()
@@ -20,17 +21,14 @@ const inputSchema = z.object({
 });
 
 /**
- * Calendar-day boundaries, computed in UTC — this codebase doesn't track a
- * per-user timezone anywhere else (memories.createdAt is stored UTC), so
- * "yesterday" here means the UTC calendar day. Good enough for a personal
- * memory assistant; a mismatch only shows up right at midnight in the
- * user's own timezone.
+ * Calendar-day boundaries in the user's own time zone (memories.createdAt
+ * is UTC), so "yesterday" is their yesterday, not the UTC one.
  */
-function dayRange(date: string, endDate?: string): { start: Date; end: Date } {
-  const start = new Date(`${date}T00:00:00.000Z`);
-  const endDay = new Date(`${endDate ?? date}T00:00:00.000Z`);
-  const end = new Date(endDay.getTime() + 24 * 60 * 60 * 1000);
-  return { start, end };
+function dayRange(date: string, endDate: string | undefined, timeZone: string): { start: Date; end: Date } {
+  const start = startOfLocalDay(date, timeZone);
+  const lastDay = new Date(`${endDate ?? date}T00:00:00.000Z`);
+  const dayAfter = new Date(lastDay.getTime() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return { start, end: startOfLocalDay(dayAfter, timeZone) };
 }
 
 export const searchMemoriesByDateTool = tool(
@@ -41,7 +39,7 @@ export const searchMemoriesByDateTool = tool(
     const userId = runtime.context?.userId;
     if (!userId) throw new Error("search_memories_by_date: missing userId in runtime context");
 
-    const { start, end } = dayRange(date, endDate);
+    const { start, end } = dayRange(date, endDate, await userTimeZone(userId));
 
     const rows = await db
       .select({
@@ -55,7 +53,7 @@ export const searchMemoriesByDateTool = tool(
         content: memories.content,
       })
       .from(memories)
-      .where(and(eq(memories.userId, userId), eq(memories.inTrash, false), gte(memories.createdAt, start), lt(memories.createdAt, end)))
+      .where(and(eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false), gte(memories.createdAt, start), lt(memories.createdAt, end)))
       .orderBy(desc(memories.createdAt))
       .limit(limit);
 

@@ -3,7 +3,10 @@ import { ApiResponse } from "../../shared/response/api-response";
 import {
   createMemory,
   deleteMemory,
+  exportAllMemories,
+  exportOkfBundle,
   getMemoryById,
+  getMemoryGraph,
   getProcessingStatus,
   listMemories,
   refreshPreview,
@@ -57,5 +60,25 @@ export class MemoryController {
   static async processingStatus(req: Request, res: Response) {
     const status = await getProcessingStatus(req.user!.id, req.params.id as string);
     res.status(200).json(ApiResponse.success(status));
+  }
+
+  static async graph(req: Request, res: Response) {
+    const graph = await getMemoryGraph(req.user!.id);
+    res.status(200).json(ApiResponse.success(graph));
+  }
+
+  // File downloads, not ApiResponse-wrapped results.
+  static async exportAll(req: Request, res: Response) {
+    const items = await exportAllMemories(req.user!.id);
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Disposition", `attachment; filename="saveforlatter-export-${Date.now()}.json"`);
+    res.send(JSON.stringify(items, null, 2));
+  }
+
+  static async exportOkf(req: Request, res: Response) {
+    const zip = await exportOkfBundle(req.user!.id);
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="saveforlatter-okf-${new Date().toISOString().slice(0, 10)}.zip"`);
+    res.send(Buffer.from(zip));
   }
 }

@@ -11,6 +11,12 @@ export function useIsMobile() {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     }
     mql.addEventListener("change", onChange)
+    // Deliberately deferred to an effect rather than a lazy useState
+    // initializer: window.innerWidth isn't known during SSR, and this value
+    // drives real conditional rendering (see components/ui/sidebar.tsx) —
+    // reading it synchronously here would make the client's first render
+    // mismatch the server-rendered HTML.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     return () => mql.removeEventListener("change", onChange)
   }, [])

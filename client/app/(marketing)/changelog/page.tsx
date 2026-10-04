@@ -4,56 +4,116 @@ import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, Calendar01Icon as Calendar, ArrowRight01Icon as ArrowRight, ZapIcon as Zap, CodeIcon as Code } from "@hugeicons/core-free-icons";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import type { IconSvgElement } from "@hugeicons/react";
+import {
+  GithubIcon as Github,
+  Key01Icon as Key,
+  Share02Icon as Share,
+  LockPasswordIcon as Lock,
+  MessageSquareIcon as MessageSquare,
+  RocketIcon as Rocket,
+  Layers01Icon as Layers,
+} from "@hugeicons/core-free-icons";
 
-const updates = [
+interface Entry {
+  period: string;
+  title: string;
+  badge: string;
+  changes: string[];
+  icon: IconSvgElement;
+}
+
+// Real milestones, grouped roughly by when they shipped — no version numbers,
+// since this product has never had a formal numbered release. The oldest
+// entries here are deliberately not the literal first commit: this list is
+// what changed for someone using the product, not an exhaustive commit log.
+const updates: Entry[] = [
   {
-    version: "v1.2.0",
-    title: "Semantic Search Unleashed",
-    date: "August 2026",
-    badge: "Major Update",
+    period: "September 2026",
+    title: "Free, Lite, and Pro",
+    badge: "Pricing",
+    icon: Layers,
     changes: [
-      "Natural language semantic queries are now live for all Pro users.",
-      "Optimized vector search indexing speed, reducing process queue latency by 45%.",
-      "Added support for advanced search filters (type, domain, save date range).",
+      "Hosted plans are now Free, Lite, and Pro — AI is run for you on every one of them, up to each plan's monthly allowance, so there's nothing to configure to start saving or asking.",
+      "Lite adds the private vault, calendar sync, and bulk actions across memories; Pro adds Outlook sync, direct shares, and invite-only access with approval.",
+      "Self-hosting is unaffected: every feature stays free and unlimited, and you can still connect your own AI key from Settings → AI.",
     ],
-    icon: Sparkles
   },
   {
-    version: "v1.1.0",
-    title: "Screenshot OCR Scanning Support",
-    date: "July 2026",
+    period: "September 2026",
+    title: "Open source, and actually free",
+    badge: "Relaunch",
+    icon: Github,
+    changes: [
+      "No more paid tiers or usage limits — every feature is unlimited on every account, and the code itself is open source.",
+      "AI is bring-your-own-key: connect OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint from Settings → AI. We cover embeddings by default so search works without any setup.",
+      "Ask SaveForLatter can now create, edit, and delete memories and file them into collections directly — not just search and report back.",
+      "A floating Ask button is available from anywhere in the app, as a popup or a resizable docked sidebar.",
+    ],
+  },
+  {
+    period: "September 2026",
+    title: "Sharing, calendar sync, and better search",
     badge: "Feature",
+    icon: Share,
     changes: [
-      "Introduced fully automatic text extraction (OCR) for screenshots and visual mockups.",
-      "Added mobile web capture sharing support.",
-      "Fixed extensions sync lag on Chrome browser profiles.",
+      "Share a memory or collection with a public link, a password-protected link, or invite-only access with approval requests.",
+      "Connect Google Calendar or Outlook — AI-detected events can be pushed to your calendar in one click.",
+      "Advanced search filters (type, collection, tag, date range) and bulk batch actions across memories.",
     ],
-    icon: Zap
   },
   {
-    version: "v1.0.0",
-    title: "Official Public Launch",
-    date: "June 2026",
-    badge: "Release",
+    period: "September 2026",
+    title: "Vault and the memory graph",
+    badge: "Feature",
+    icon: Lock,
     changes: [
-      "Launched initial web app dashboard.",
-      "Released Chrome & Firefox browser capture extensions.",
-      "Implemented automatic categorization and folderless tags.",
+      "A PIN-gated Vault for memories you'd rather keep out of your regular views.",
+      "A visual memory graph showing how your saved items connect by meaning, tag, and collection.",
+      "Trashed memories now stick around for 15 days before being permanently removed, instead of disappearing immediately.",
     ],
-    icon: Code
-  }
+  },
+  {
+    period: "September 2026",
+    title: "Ask SaveForLatter launches",
+    badge: "Feature",
+    icon: MessageSquare,
+    changes: [
+      "A chat assistant that searches your saved memories and answers in plain English, every claim traceable back to a real saved item.",
+      "Hybrid search under the hood: keyword and meaning-based matching merged into one ranked result list.",
+    ],
+  },
+  {
+    period: "August–September 2026",
+    title: "Rebrand and a real dashboard",
+    badge: "Update",
+    icon: Rocket,
+    changes: [
+      "Rebranded from an earlier working name to SaveForLatter.",
+      "Replaced mocked Archive, Trash, Notifications, and Insights pages with real data throughout the dashboard.",
+      "A first-time product tour for new accounts.",
+    ],
+  },
+  {
+    period: "Earlier",
+    title: "The foundation",
+    badge: "Early build",
+    icon: Key,
+    changes: [
+      "Capture links, notes, images, documents, and voice into one place, each read and enriched on the way in.",
+      "Collections and tags for organizing what you save.",
+      "Google and GitHub sign-in — no passwords to manage.",
+    ],
+  },
 ];
 
 export default function ChangelogPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/[0.03] via-background to-background text-foreground font-sans">
       <Navbar />
-      
+
       <main className="flex-1 pt-32 pb-20">
-        
+
         {/* Header */}
         <div className="max-w-6xl mx-auto px-6 text-center space-y-4 mb-20">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
@@ -63,22 +123,22 @@ export default function ChangelogPage() {
             Product Changelog.
           </h1>
           <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            Follow along with new features, improvements, and bug fixes added to SaveForLatter every single week.
+            What&apos;s actually shipped, in roughly the order it shipped — grouped by when, not tagged with invented version numbers.
           </p>
         </div>
 
-        {/* Changelog Timeline (Double Bordered Cards!) */}
+        {/* Changelog Timeline */}
         <div className="max-w-3xl mx-auto px-6 space-y-12">
           {updates.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <div 
+              <div
                 key={idx}
                 className="rounded-2xl border border-border/45 bg-muted/75 p-1 shadow-xs dark:border-border/65"
               >
                 <div className="p-8 rounded-xl border border-border/75 bg-card space-y-6">
-                  
-                  {/* Title & Version info */}
+
+                  {/* Title & period info */}
                   <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/30 pb-4">
                     <div className="flex items-center gap-3">
                       <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -86,18 +146,13 @@ export default function ChangelogPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono font-bold text-primary">{item.version}</span>
+                          <span className="text-xs font-mono font-bold text-primary">{item.period}</span>
                           <span className="text-[9px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-1.5 py-0.5 rounded border border-border/30">
                             {item.badge}
                           </span>
                         </div>
                         <h3 className="text-lg font-bold text-foreground mt-1">{item.title}</h3>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                      <HugeiconsIcon icon={Calendar} strokeWidth={2.25} className="h-3.5 w-3.5" />
-                      <span>{item.date}</span>
                     </div>
                   </div>
 

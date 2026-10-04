@@ -3,8 +3,8 @@
 import { usePathname } from "next/navigation";
 import { ComingSoonPage } from "@/components/showcase/coming-soon-page";
 
-// Everything else under (marketing) — /, /pricing, /features/*, /blog, etc.
-// — is the showcase content and stays live.
+// Everything else under (marketing) — /, /contribute, /features/*, /blog,
+// etc. — is the showcase content and stays live.
 const GATED_PREFIXES = ["/auth", "/app", "/admin", "/onboard"];
 
 /**

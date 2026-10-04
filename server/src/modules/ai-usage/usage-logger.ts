@@ -1,8 +1,13 @@
 import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
+import { mergeConfigs, type RunnableConfig } from "@langchain/core/runnables";
 import type { ChatGeneration, LLMResult } from "@langchain/core/outputs";
 import { db } from "../../db";
 import { aiUsageLogs } from "../../db/schema";
 import { logger } from "../../shared/utils/logger";
+
+// Kept here (not imported from ai.providers.ts) so this module stays free of
+// the providers' import graph; ai.providers.ts re-exports the same value.
+export const PLATFORM_AI_TAG = "sfl:platform";
 
 export interface LogAiUsageEntry {
   userId: string | null;
@@ -66,10 +71,15 @@ interface UsageCallbackParams {
  */
 export function createUsageCallback(params: UsageCallbackParams): BaseCallbackHandler {
   let className = "unknown";
+  let platform = false;
 
   return BaseCallbackHandler.fromMethods({
-    handleLLMStart(llm) {
+    // Chat models reach this through LangChain's handleChatModelStart ->
+    // handleLLMStart fallback, which passes the run's tags along — a model
+    // built on the platform's key (included AI) carries PLATFORM_AI_TAG.
+    handleLLMStart(llm, _prompts, _runId, _parentRunId, _extraParams, tags) {
       className = llm.id?.at(-1) ?? "unknown";
+      platform = !!tags?.includes(PLATFORM_AI_TAG);
     },
     handleLLMEnd(output: LLMResult) {
       const generation = output.generations[0]?.[0] as (ChatGeneration & { message?: unknown }) | undefined;
@@ -88,7 +98,20 @@ export function createUsageCallback(params: UsageCallbackParams): BaseCallbackHa
         totalTokens: usage?.total_tokens ?? null,
         threadId: params.threadId ?? null,
         memoryId: params.memoryId ?? null,
+        // What plans.service.ts counts against a plan's included-AI quota.
+        metadata: platform ? { source: "platform" } : null,
       });
     },
   }) as unknown as BaseCallbackHandler;
+}
+
+/**
+ * Config for a model call made inside a graph node: keeps the node's own
+ * config (and with it the callbacks LangGraph's streamEvents and Langfuse
+ * rely on) and adds the usage logger. Passing `{ callbacks: [...] }` alone
+ * *replaces* the inherited callbacks, which silently stopped Ask from
+ * streaming its answer to the browser.
+ */
+export function withUsage(config: RunnableConfig | undefined, params: UsageCallbackParams, extra?: RunnableConfig): RunnableConfig {
+  return mergeConfigs(config, extra, { callbacks: [createUsageCallback(params)] });
 }

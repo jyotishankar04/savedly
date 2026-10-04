@@ -1,0 +1,14 @@
+# This is a monorepo with no root package.json — `base` points Netlify at
+# the Next.js app to build. Without this file, Netlify falls back entirely
+# to manual dashboard settings, which don't travel with the repo and are
+# easy to leave stale across branch deploys.
+[build]
+  base = "client"
+  command = "pnpm build"
+
+[build.environment]
+  # Matches the Node version .github/workflows/ci.yml builds against.
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

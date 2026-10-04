@@ -4,6 +4,7 @@ import { getChatModel } from "../../ai.providers";
 import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { isPlaceholderTitle } from "../title";
 
 // Verbatim from docs/AI_REQUIREMENTS.md's ClassifyIntent node.
 const TAXONOMY_BY_TYPE: Record<string, string[]> = {
@@ -36,7 +37,7 @@ Respond as strict JSON: {{"resourceCategory": "...", "inferredIntent": "...", "c
 export async function classifyIntent(state: IngestionStateType): Promise<IngestionUpdate> {
   const context =
     [
-      state.existingTitle !== "Untitled" ? state.existingTitle : null,
+      !isPlaceholderTitle(state.existingTitle) ? state.existingTitle : null,
       state.sourceDomain,
       state.url,
       state.platform,
@@ -45,7 +46,13 @@ export async function classifyIntent(state: IngestionStateType): Promise<Ingesti
       .filter(Boolean)
       .join(" | ") || "(none available)";
 
-  const chain = prompt.pipe(getChatModel("fast")).pipe(new JsonOutputParser<IntentClassification>());
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
+  if (!model) {
+    logNode(state.memoryId, "classifyIntent", { skipped: "AI not configured" });
+    return { resourceCategory: null, inferredIntent: null, intentConfidence: null };
+  }
+
+  const chain = prompt.pipe(model).pipe(new JsonOutputParser<IntentClassification>());
   const result = await chain.invoke(
     {
       categories: (TAXONOMY_BY_TYPE[state.mediaType] ?? ["other"]).join(", "),

@@ -20,7 +20,13 @@ export async function correctCaption(state: IngestionStateType): Promise<Ingesti
     return { correctedCaption: null };
   }
 
-  const chain = prompt.pipe(getChatModel("fast")).pipe(new StringOutputParser());
+  const model = await getChatModel(state.userId, "fast", { kind: "save", memoryId: state.memoryId });
+  if (!model) {
+    logNode(state.memoryId, "correctCaption", { skipped: "AI not configured" });
+    return { correctedCaption: null };
+  }
+
+  const chain = prompt.pipe(model).pipe(new StringOutputParser());
   const corrected = (
     await chain.invoke(
       { caption: state.caption },

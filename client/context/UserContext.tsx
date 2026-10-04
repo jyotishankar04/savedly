@@ -74,8 +74,16 @@ export function getInitials(name: string | null, email: string): string {
   return email.slice(0, 2).toUpperCase();
 }
 
-export function formatPlan(roles: string[]): string {
-  const primary = roles[0] ?? "free_user";
+/**
+ * Formats an RBAC role for display.
+ *
+ * This is NOT the billing plan, despite what it used to be called. Roles
+ * (`user`, `admin`) grant permissions; plans (Free/Plus/Pro) grant
+ * entitlements, and only `plans` is ever enforced for the latter. Use
+ * `usePlanLabel()` for anything a user sees about what they're paying for.
+ */
+export function formatRole(roles: string[]): string {
+  const primary = roles[0] ?? "user";
   return primary.replace(/_/g, " ").toUpperCase();
 }
 

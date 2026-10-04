@@ -1,21 +1,71 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { StickyNote01Icon as StickyNote, Search01Icon as Search, ArrowRight01Icon as ArrowRight, XIcon as X, ArrowUpRight01Icon as ArrowUpRight, ChevronRightIcon as ChevronRight, Link01Icon as LinkIcon, Upload01Icon as Upload } from "@hugeicons/core-free-icons";
+import type { IconSvgElement } from "@hugeicons/react";
+import {
+  StickyNote01Icon as StickyNote,
+  Search01Icon as Search,
+  ArrowRight01Icon as ArrowRight,
+  XIcon as X,
+  Link01Icon as LinkIcon,
+  Upload01Icon as Upload,
+  PuzzleIcon as Puzzle,
+  HistoryIcon as History,
+  PlusSignIcon as Plus,
+} from "@hugeicons/core-free-icons";
 import { useUser } from "@/context/UserContext";
 import { useMemoriesQuery, useCollectionsQuery } from "@/context/MemoryContext";
+import { useInsightsQuery } from "@/hooks/use-insights";
+import { humanizeLabel } from "@/lib/insights";
 import { Skeleton } from "@/components/ui/skeleton";
 import { timeAgo } from "@/lib/time";
+import { cn } from "@/lib/utils";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
 import { QueryErrorState } from "@/components/query-error-state";
+import type { Memory } from "@/types/memory";
+
+const RECENT_COUNT = 6;
+const COLLECTION_COUNT = 6;
+const REDISCOVER_AFTER_DAYS = 30;
+
+const DEFAULT_EXAMPLES = [
+  "websites I saved for dashboard inspiration",
+  "videos about building a SaaS",
+  "that article about vector databases",
+];
 
 function greetingForHour(hour: number): string {
+  if (hour < 5) return "Good evening";
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
+}
+
+function openQuickCapture() {
+  window.dispatchEvent(new CustomEvent("capture:open"));
+}
+
+/** One older save, stable for the whole day so it doesn't reshuffle on every visit. */
+function pickRediscovery(items: Memory[]): Memory | null {
+  const cutoff = Date.now() - REDISCOVER_AFTER_DAYS * 864e5;
+  const older = items.filter((m) => new Date(m.createdAt).getTime() < cutoff);
+  if (older.length === 0) return null;
+  const day = Math.floor(Date.now() / 864e5);
+  return older[day % older.length];
+}
+
+/** Saves per day for the last 7 days, oldest first. */
+function lastSevenDays(activity: { date: string; count: number }[]) {
+  const byDate = new Map(activity.map((d) => [d.date, d.count]));
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { key, label: d.toLocaleDateString(undefined, { weekday: "narrow" }), count: byDate.get(key) ?? 0 };
+  });
 }
 
 export default function HomePage() {
@@ -25,285 +75,309 @@ export default function HomePage() {
   const firstName = (user.name ?? user.email).split(/\s+/)[0];
   const greeting = greetingForHour(new Date().getHours());
 
-  const { data: memoriesResult, isLoading: memoriesLoading, isError: memoriesError, refetch: refetchMemories } = useMemoriesQuery({ limit: 3 });
+  // One page of saves feeds both "Recently saved" and the rediscovery pick.
+  const { data: memoriesResult, isLoading: memoriesLoading, isError: memoriesError, refetch: refetchMemories } = useMemoriesQuery({ limit: 60 });
   const { data: collections = [], isLoading: collectionsLoading, isError: collectionsError, refetch: refetchCollections } = useCollectionsQuery();
-  const recentMemories = memoriesResult?.items ?? [];
+  const { data: insights } = useInsightsQuery();
+
+  const items = useMemo(() => memoriesResult?.items ?? [], [memoriesResult]);
+  const recent = items.slice(0, RECENT_COUNT);
+  const rediscovery = useMemo(() => pickRediscovery(items), [items]);
+  const topCollections = useMemo(
+    () => [...collections].sort((a, b) => b.memoryCount - a.memoryCount).slice(0, COLLECTION_COUNT),
+    [collections],
+  );
+  const topTags = insights?.topTags.slice(0, 5) ?? [];
+  const examples = topTags.length >= 2 ? topTags.slice(0, 3).map((t) => `things I saved about ${humanizeLabel(t.label).toLowerCase()}`) : DEFAULT_EXAMPLES;
+  const isEmpty = !memoriesLoading && !memoriesError && items.length === 0;
+
+  const search = (q: string) => {
+    const query = q.trim();
+    if (query) router.push(`/app/search?q=${encodeURIComponent(query)}`);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 space-y-12 animate-fade-in">
-      
-      {/* Dynamic Greeting */}
-      <div className="space-y-1" data-tour="greeting">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+    <div className="mx-auto max-w-5xl space-y-10 px-4 py-8 sm:px-6 md:py-10">
+      {/* Greeting */}
+      <header className="space-y-1.5" data-tour="greeting">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground text-balance md:text-4xl">
           {greeting}, {firstName}.
         </h1>
-        <p className="text-sm text-muted-foreground font-medium">
-          What&apos;s on your mind?
+        <p className="text-[15px] text-muted-foreground">
+          {insights && insights.totals.memories > 0 ? (
+            <>
+              {insights.totals.memories.toLocaleString()} {insights.totals.memories === 1 ? "save" : "saves"} in your library
+              {insights.totals.thisWeek > 0 && <>, {insights.totals.thisWeek} this week</>}.
+            </>
+          ) : (
+            "Save something now, find it again whenever you need it."
+          )}
         </p>
-      </div>
+      </header>
 
-      {/* Main Search Component */}
-      <div className="space-y-4 max-w-2xl" data-tour="home-search">
-        <div className="relative flex items-center">
-          <HugeiconsIcon icon={Search} strokeWidth={2.25} className="absolute left-4.5 h-5 w-5 text-primary stroke-[2.5]" />
+      {/* Search */}
+      <section className="max-w-3xl space-y-3" data-tour="home-search" aria-label="Search your library">
+        <form
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            search(searchQuery);
+          }}
+          className="relative flex items-center"
+        >
+          <HugeiconsIcon icon={Search} strokeWidth={2} className="pointer-events-none absolute left-4 h-5 w-5 text-muted-foreground" />
           <input
-            type="text"
-            placeholder="Search your memory..."
+            type="search"
+            aria-label="Search your memory"
+            placeholder="Search by what you remember about it…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && searchQuery.trim()) {
-                router.push(`/app/search?q=${encodeURIComponent(searchQuery)}`);
-              }
-            }}
-            className="w-full bg-muted/30 border border-border text-foreground rounded-2xl pl-12 pr-4 py-4 text-sm focus:outline-none focus:border-primary/80 focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/50 shadow-xs"
+            className="h-14 w-full rounded-2xl border border-border bg-card pl-12 pr-24 text-[15px] text-foreground shadow-xs transition-[border-color,box-shadow] placeholder:text-muted-foreground/60 focus:border-primary/60 focus:outline-none focus:ring-4 focus:ring-primary/10 [&::-webkit-search-cancel-button]:hidden"
           />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-4.5 text-muted-foreground hover:text-foreground">
-              <HugeiconsIcon icon={X} strokeWidth={2.25} className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        {/* Placeholders / Try Concept Links */}
-        <div className="text-[11px] text-muted-foreground space-y-1.5 px-1 font-medium">
-          <span className="font-semibold">Try searching conceptually:</span>
-          <div className="flex flex-wrap gap-2 pt-1 font-mono text-[10px]">
-            {[
-              { label: "“websites I saved for dashboard inspiration”", query: "Dashboard" },
-              { label: "“React authentication resources”", query: "React" },
-              { label: "“videos about building SaaS”", query: "SaaS" },
-              { label: "“that article about vector databases”", query: "Vector" }
-            ].map((item, idx) => (
-              <button 
-                key={idx} 
-                onClick={() => {
-                  setSearchQuery(item.query);
-                  router.push(`/app/search?q=${encodeURIComponent(item.query)}`);
-                }}
-                className="text-primary hover:underline bg-primary/5 px-2 py-0.5 rounded border border-primary/10 text-left"
+          <div className="absolute right-2 flex items-center gap-1">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
               >
-                {item.label}
+                <HugeiconsIcon icon={X} strokeWidth={2} className="h-4 w-4" />
               </button>
+            )}
+            <button
+              type="submit"
+              disabled={!searchQuery.trim()}
+              className="h-10 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity disabled:bg-muted disabled:text-muted-foreground"
+            >
+              Search
+            </button>
+          </div>
+        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[13px] text-muted-foreground">Try</span>
+          {examples.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => search(q)}
+              className="rounded-full border border-border bg-card/60 px-3 py-1.5 text-[13px] text-foreground/85 transition-colors hover:border-primary/30 hover:text-primary"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Quick save */}
+      <section aria-labelledby="home-save" className="space-y-3">
+        <h2 id="home-save" className="text-sm font-medium text-muted-foreground">Save something</h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <SaveAction icon={LinkIcon} label="Save a link" sub="Paste any URL" onClick={openQuickCapture} />
+          <SaveAction icon={StickyNote} label="Write a note" sub="Capture a thought" onClick={openQuickCapture} />
+          <SaveAction icon={Upload} label="Upload a file" sub="Image, PDF or screenshot" onClick={openQuickCapture} />
+          <SaveAction icon={Puzzle} label="Browser extension" sub="Save from any page" href="/app/integrations" />
+        </div>
+      </section>
+
+      {/* Recently saved */}
+      <section aria-labelledby="home-recent" className="space-y-3">
+        <SectionHeader id="home-recent" title="Recently saved" href={items.length > 0 ? "/app/memories" : undefined} />
+        {memoriesError ? (
+          <QueryErrorState onRetry={() => refetchMemories()} />
+        ) : isEmpty ? (
+          <div className="flex flex-col items-start gap-4 rounded-2xl border border-dashed border-border p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[15px] font-medium text-foreground">Nothing saved yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">Save a link, a note or a screenshot. It&apos;s summarized, tagged and filed for you.</p>
+            </div>
+            <button
+              type="button"
+              onClick={openQuickCapture}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
+            >
+              <HugeiconsIcon icon={Plus} strokeWidth={2} className="h-4 w-4" /> Save your first memory
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {memoriesLoading
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-3 rounded-2xl border border-border bg-card p-3">
+                    <Skeleton className="aspect-video w-full rounded-xl" />
+                    <Skeleton className="h-4 w-4/5" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                ))
+              : recent.map((item) => <MemoryCard key={item.id} item={item} />)}
+          </div>
+        )}
+      </section>
+
+      {/* This week + rediscover */}
+      {!isEmpty && (insights || rediscovery) && (
+        <section className={cn("grid gap-4", insights && rediscovery && "md:grid-cols-2")}>
+          {insights && <WeekCard insights={insights} tags={topTags} />}
+          {rediscovery && <RediscoverCard item={rediscovery} />}
+        </section>
+      )}
+
+      {/* Collections */}
+      <section aria-labelledby="home-collections" className="space-y-3">
+        <SectionHeader id="home-collections" title="Your collections" href={collections.length > 0 ? "/app/collections" : undefined} />
+        {collectionsError ? (
+          <QueryErrorState onRetry={() => refetchCollections()} />
+        ) : collectionsLoading ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-2xl" />)}
+          </div>
+        ) : collections.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Collections appear here as your saves get organized.{" "}
+            <Link href="/app/collections" className="font-medium text-primary hover:underline">Create one yourself</Link>
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {topCollections.map((col) => (
+              <Link
+                key={col.id}
+                href={`/app/collections/${col.id}`}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-lg">{col.icon}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-foreground">{col.name}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {col.memoryCount} {col.memoryCount === 1 ? "save" : "saves"}
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function SectionHeader({ id, title, href }: { id: string; title: string; href?: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <h2 id={id} className="text-sm font-medium text-muted-foreground">{title}</h2>
+      {href && (
+        <Link href={href} className="flex items-center gap-0.5 text-sm font-medium text-primary hover:underline">
+          View all <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-4 w-4" />
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function SaveAction({ icon, label, sub, onClick, href }: { icon: IconSvgElement; label: string; sub: string; onClick?: () => void; href?: string }) {
+  const body = (
+    <>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+        <HugeiconsIcon icon={icon} strokeWidth={2} className="h-5 w-5" />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-foreground">{label}</span>
+        <span className="block truncate text-xs text-muted-foreground">{sub}</span>
+      </span>
+    </>
+  );
+  const className =
+    "group flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 text-left transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+  return href ? (
+    <Link href={href} className={className}>{body}</Link>
+  ) : (
+    <button type="button" onClick={onClick} className={className}>{body}</button>
+  );
+}
+
+function MemoryCard({ item }: { item: Memory }) {
+  return (
+    <Link
+      href={`/app/memories/${item.id}`}
+      className="group flex flex-col rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    >
+      <MemoryThumbnail item={item} className="rounded-xl" />
+      <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
+        <h3 className="line-clamp-1 text-sm font-medium text-foreground transition-colors group-hover:text-primary">{item.title}</h3>
+        {item.description && <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{item.description}</p>}
+        <div className="mt-auto flex items-center justify-between gap-2 pt-3 text-xs text-muted-foreground">
+          <span className="min-w-0 truncate">{item.collections[0]?.name ?? item.tags[0] ?? ""}</span>
+          <span className="shrink-0 tabular-nums">{timeAgo(item.createdAt)}</span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function WeekCard({ insights, tags }: { insights: NonNullable<ReturnType<typeof useInsightsQuery>["data"]>; tags: { label: string; count: number }[] }) {
+  const days = lastSevenDays(insights.activity);
+  const max = Math.max(1, ...days.map((d) => d.count));
+  return (
+    <div className="flex flex-col rounded-2xl border border-border bg-card p-5">
+      <h2 className="text-sm font-medium text-muted-foreground">This week</h2>
+      <div className="mt-3 flex items-end justify-between gap-6">
+        <p>
+          <span className="text-4xl font-semibold tracking-tight tabular-nums text-foreground">{insights.totals.thisWeek}</span>
+          <span className="ml-2 text-sm text-muted-foreground">{insights.totals.thisWeek === 1 ? "save" : "saves"}</span>
+        </p>
+        <div className="flex h-14 items-end gap-1.5" role="img" aria-label={`Saves per day: ${days.map((d) => d.count).join(", ")}`}>
+          {days.map((d) => (
+            <div key={d.key} className="flex flex-col items-center gap-1">
+              <div
+                className={cn("w-3 rounded-sm", d.count > 0 ? "bg-primary" : "bg-muted")}
+                style={{ height: `${Math.max(4, (d.count / max) * 40)}px` }}
+              />
+              <span className="text-[10px] leading-none text-muted-foreground">{d.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {tags.length > 0 && (
+        <div className="mt-5 border-t border-border pt-4">
+          <p className="text-xs text-muted-foreground">You save most about</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {tags.map((t) => (
+              <Link
+                key={t.label}
+                href={`/app/tags/${encodeURIComponent(t.label)}`}
+                className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground/85 transition-colors hover:bg-primary/10 hover:text-primary"
+              >
+                {humanizeLabel(t.label)}
+              </Link>
             ))}
           </div>
         </div>
-      </div>
+      )}
+      <Link href="/app/insights" className="mt-4 flex w-fit items-center gap-0.5 text-sm font-medium text-primary hover:underline">
+        See insights <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
 
-      {/* Quick Capture Buttons */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Save something</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl">
-          {[
-            { label: "Save Link", sub: "Paste a URL", icon: LinkIcon, href: "/app/capture" },
-            { label: "Quick Note", sub: "Capture a thought", icon: StickyNote, href: "/app/capture" },
-            { label: "Upload", sub: "Image or file", icon: Upload, href: "/app/capture" },
-            { label: "Save Anything", sub: "From extension", icon: ArrowUpRight, href: "/app/integrations" }
-          ].map((cap, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => router.push(cap.href)}
-              className="text-left rounded-xl border border-border/45 bg-muted/75 p-0.5 shadow-xs hover:border-primary/20 transition-all duration-300 group cursor-pointer"
-            >
-              <div className="p-4 rounded-lg border border-border/75 bg-card flex flex-col justify-between min-h-[110px] select-none">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary w-fit group-hover:bg-primary group-hover:text-white transition-colors">
-                  <HugeiconsIcon icon={cap.icon} strokeWidth={2.25} className="h-4 w-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-foreground">{cap.label}</h4>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">{cap.sub}</p>
-                </div>
-              </div>
-            </button>
-          ))}
+function RediscoverCard({ item }: { item: Memory }) {
+  return (
+    <div className="flex flex-col rounded-2xl border border-border bg-card p-5">
+      <h2 className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+        <HugeiconsIcon icon={History} strokeWidth={2} className="h-4 w-4" /> From your archive
+      </h2>
+      <Link
+        href={`/app/memories/${item.id}`}
+        className="group mt-3 flex flex-1 gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        <div className="w-32 shrink-0 sm:w-36">
+          <MemoryThumbnail item={item} className="rounded-xl" />
         </div>
-      </div>
-
-      {/* Recent Memories */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recently saved</h3>
-          <Link href="/app/memories" className="text-xs font-semibold text-primary hover:underline flex items-center gap-0.5">
-            View all <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-3.5 w-3.5" />
-          </Link>
+        <div className="min-w-0">
+          <p className="line-clamp-2 text-[15px] font-medium leading-snug text-foreground transition-colors group-hover:text-primary">{item.title}</p>
+          {item.description && <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{item.description}</p>}
+          <p className="mt-2 text-xs text-muted-foreground">{timeAgo(item.createdAt)}</p>
         </div>
-
-        {memoriesError ? (
-          <QueryErrorState onRetry={() => refetchMemories()} />
-        ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {memoriesLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-border/45 bg-muted/75 p-1">
-                <div className="p-4 rounded-lg border border-border/75 bg-card min-h-[170px] space-y-3">
-                  <Skeleton className="aspect-video w-full rounded-lg" />
-                  <Skeleton className="h-3.5 w-4/5" />
-                  <Skeleton className="h-2.5 w-full" />
-                  <div className="flex items-center justify-between pt-2.5 border-t border-border/20">
-                    <Skeleton className="h-2.5 w-16" />
-                    <Skeleton className="h-2.5 w-10" />
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : recentMemories.map((item) => (
-            <Link 
-              key={item.id} 
-              href={`/app/memories/${item.id}`}
-              className="rounded-xl border border-border/45 bg-muted/75 p-1 shadow-xs hover:border-primary/20 transition-all duration-300 group block"
-            >
-              <div className="p-4 rounded-lg border border-border/75 bg-card flex flex-col justify-between h-full min-h-[170px] space-y-4">
-                
-                <MemoryThumbnail item={item} className="rounded-lg" />
-
-                <div className="space-y-1">
-                  <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-1">
-                    {item.title}
-                  </h4>
-                  <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-
-                {item.collections.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {item.collections.map(c => (
-                      <span
-                        key={c.id}
-                        role="link"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          router.push(`/app/collections/${c.id}`);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key !== "Enter") return;
-                          e.preventDefault();
-                          e.stopPropagation();
-                          router.push(`/app/collections/${c.id}`);
-                        }}
-                        className="text-[7.5px] font-bold uppercase tracking-wider bg-primary/5 border border-primary/10 text-primary px-1.5 py-0.5 rounded hover:bg-primary/10 transition-colors cursor-pointer"
-                      >
-                        {c.name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border/20">
-                  <div className="flex min-w-0 flex-wrap gap-1">
-                    {item.tags.slice(0, 2).map(t => (
-                      <span key={t} className="max-w-20 truncate text-[7.5px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                  <span className="text-[9px] text-muted-foreground font-mono shrink-0">{timeAgo(item.createdAt)}</span>
-                </div>
-
-              </div>
-            </Link>
-          ))}
-        </div>
-        )}
-      </div>
-
-      {/* Suggested memories (AI Revisit) */}
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">You might want to revisit</h3>
-          <p className="text-[10px] text-muted-foreground">AI-selected updates from your memory graph.</p>
-        </div>
-
-        <div className="rounded-xl border border-border/45 bg-muted/75 p-1 shadow-xs max-w-xl">
-          <div className="p-5 rounded-lg border border-border/75 bg-card space-y-4">
-            <span className="text-[8px] font-mono text-primary font-bold bg-primary/10 border border-primary/10 px-2 py-0.5 rounded">
-              COLLECTED TRENDS
-            </span>
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-foreground">You saved 5 resources about AI agents this week</h4>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Explore similar materials on tool calling, RAG patterns, and memory configurations from Tiago Forte&apos;s archives.
-              </p>
-            </div>
-            <Link 
-              href="/app/search?q=AI"
-              className="text-[10px] font-bold text-primary flex items-center gap-0.5 hover:underline w-fit"
-            >
-              Explore connections <HugeiconsIcon icon={ChevronRight} strokeWidth={2.25} className="h-3 w-3" />
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Collections Preview */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Your collections</h3>
-        
-        {collectionsError ? (
-          <QueryErrorState onRetry={() => refetchCollections()} />
-        ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-2xl text-xs">
-          {collectionsLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-border/45 bg-muted/75 p-1">
-                <div className="p-4 rounded-lg border border-border/75 bg-card">
-                  <Skeleton className="h-4 w-full" />
-                </div>
-              </div>
-            ))
-          ) : collections.map((col) => (
-            <Link
-              key={col.id}
-              href={`/app/collections/${col.id}`}
-              className="rounded-xl border border-border/45 bg-muted/75 p-1 shadow-xs hover:border-primary/20 transition-all duration-300 block"
-            >
-              <div className="p-4 rounded-lg border border-border/75 bg-card flex justify-between items-center font-bold">
-                <span className="truncate pr-2">{col.icon} {col.name}</span>
-                <span className="text-[9px] font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded">{col.memoryCount}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
-        )}
-      </div>
-
-      {/* Rediscovery Section */}
-      <div className="space-y-4 pt-4 border-t border-border/20">
-        <div className="space-y-1">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">From 6 months ago</h3>
-          <p className="text-[10px] text-muted-foreground">SURFACED RELEVANT DISCOVERIES</p>
-        </div>
-
-        <div className="rounded-xl border border-border/45 bg-muted/75 p-1 shadow-xs max-w-xl">
-          <div className="p-5 rounded-lg border border-border/75 bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h4 className="text-xs font-bold text-foreground">PostgreSQL index tuning references</h4>
-              <p className="text-[10px] text-muted-foreground mt-1">Saved Feb 24, 2026 &middot; 3 similar saves identified</p>
-            </div>
-            <Link
-              href="/app/search?q=PostgreSQL"
-              className="text-[10px] font-bold text-primary flex items-center gap-0.5 hover:underline shrink-0"
-            >
-              Open memory &rarr;
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Local animation keyframes */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.3s ease-out forwards;
-        }
-      `}</style>
-
+      </Link>
     </div>
   );
 }

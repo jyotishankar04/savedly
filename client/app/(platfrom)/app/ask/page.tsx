@@ -8,8 +8,9 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { Streamdown } from "streamdown";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowUp01Icon as ArrowUp, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, Copy01Icon as Copy, GlobeIcon as Globe, MessageSquareIcon as MessageSquare, MoreHorizontalIcon as MoreHorizontal, PlusIcon as Plus, Search01Icon as Search, SparklesIcon as Sparkles, Delete02Icon as Trash2 } from "@hugeicons/core-free-icons";
+import { ArrowUp01Icon as ArrowUp, ChevronDownIcon as ChevronDown, ChevronRightIcon as ChevronRight, GlobeIcon as Globe, MessageSquareIcon as MessageSquare, PlusIcon as Plus, Search01Icon as Search } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,7 +27,6 @@ import {
 import { Message, MessageContent } from "@/components/ui/message";
 import { Bubble, BubbleContent } from "@/components/ui/bubble";
 import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import { askStreamUrl, getThreadMessages, type ThreadMessage } from "@/lib/ask";
 import {
@@ -38,10 +38,17 @@ import {
 import { memoryQueryKey } from "@/context/MemoryContext";
 import { useSidebarState } from "@/context/SidebarContext";
 import { getMemory } from "@/lib/memories";
+import { usePlanLimit } from "@/hooks/use-plan-limit";
+import { PlanLimitNotice, ProBadge } from "@/components/plan-limit-notice";
 import { MemoryPreviewCard } from "@/components/memory-preview-card";
+import { AiConfiguredGate } from "@/components/ai-configured-gate";
 import { cn } from "@/lib/utils";
+import { HelpActions } from "@/components/ask/help-actions";
+import { AskEmptyState } from "@/components/ask/ask-empty-state";
 import type { MemoryType } from "@/types/memory";
 import { Attachment, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentTitle, AttachmentTrigger } from "@/components/ui/attachment";
+import { toolActivityLabel } from "@/lib/ask-tools";
+import { EventResultCard, isEventToolName, parseEventToolOutput } from "@/components/ask/event-result-card";
 
 /** search_memories (topic/keyword) and search_memories_by_date (a day or
  * date range, see the server's rag/tools/search-memories-by-date.ts) both
@@ -91,7 +98,7 @@ function getCardDescription(memory: SearchMemoriesResult["memories"][number]): s
 
 
 function MemoryAttachmentCards({ memories }: { memories: SearchMemoriesResult["memories"] }) {
-  const [activeCardMenu, setActiveCardMenu] = useState<string | null>(null);
+  // const [activeCardMenu, setActiveCardMenu] = useState<string | null>(null);
 
   return (
     <AttachmentGroup>
@@ -330,9 +337,11 @@ export default function AskPage() {
     router.replace(id ? `${pathname}?thread=${id}` : pathname, { scroll: false });
   };
 
-  const [input, setInput] = useState("");
+  // ?q= pre-fills the question (Search's "Ask instead" hands its query over); it isn't sent until the user does.
+  const [input, setInput] = useState(() => searchParams.get("q") ?? "");
   const seededThreadRef = useRef<string | null>(null);
   const pendingMessageRef = useRef<string | null>(null);
+  const queryLimit = usePlanLimit("ai_monthly_queries");
 
   const { data: threads = [], isLoading: threadsLoading } = useThreadsQuery();
   const { data: history } = useThreadMessagesQuery(activeThreadId);
@@ -403,8 +412,12 @@ export default function AskPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const text = input.trim();
-    if (!text || status === "streaming" || status === "submitted") return;
+    await send(input);
+  }
+
+  async function send(raw: string) {
+    const text = raw.trim();
+    if (!text || status === "streaming" || status === "submitted" || queryLimit.isAtLimit) return;
     setInput("");
 
     if (!activeThreadId) {
@@ -455,6 +468,7 @@ export default function AskPage() {
   });
 
   return (
+    <AiConfiguredGate className="h-full">
     <div className="h-full flex">
       {/* Secondary sidebar — thread history, scoped to this page (not the
           app's own nav sidebar). Collapsed away once the main sidebar is
@@ -463,65 +477,84 @@ export default function AskPage() {
           above), so keeping both just left this one stranded. */}
       <div
         className={cn(
-          "shrink-0 border-r border-border/20 flex flex-col h-full py-6 overflow-hidden transition-[width,opacity] duration-200",
+          "hidden md:flex shrink-0 border-r border-border/20 flex-col h-full py-6 overflow-hidden transition-[width,opacity] duration-200",
           mainSidebarCollapsed ? "w-0 opacity-0 pointer-events-none border-r-0" : "w-60 opacity-100",
         )}
       >
         <div className="px-4 pb-3 w-60">
-          <Button
-            variant={activeThreadId === null ? "default" : "secondary"}
-            size="sm"
-            className="w-full rounded-full gap-1.5 justify-center"
-            onClick={handleNewChat}
-          >
-            <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-3.5 w-3.5" /> New chat
+          <Button variant="outline" className="h-10 w-full justify-start gap-2 rounded-xl px-3 text-sm font-medium" onClick={handleNewChat}>
+            <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-4 w-4" /> New chat
           </Button>
         </div>
-        <div className="flex-1 min-h-0 w-60 overflow-y-auto px-2 space-y-0.5">
+        <ScrollArea className="flex-1 min-h-0 w-60" viewportClassName="px-2 pb-4">
           {threadsLoading ? (
             <div className="space-y-1.5 px-1 py-1">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full rounded-lg" />
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-9 w-full rounded-lg" />
               ))}
             </div>
           ) : threads.length === 0 ? (
-            <p className="text-xs text-muted-foreground px-2 py-4 text-center">No conversations yet</p>
+            <p className="px-3 py-6 text-sm text-muted-foreground">Your conversations will show up here.</p>
           ) : (
-            threads.map((thread) => (
-              <button
-                key={thread.id}
-                onClick={() => handleSelectThread(thread.id)}
-                className={cn(
-                  "w-full text-left px-3 py-2 rounded-lg text-xs truncate transition-colors",
-                  thread.id === activeThreadId
-                    ? "bg-primary/10 text-primary font-semibold"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                {thread.title}
-              </button>
+            groupThreadsByDate(threads).map((group) => (
+              <div key={group.label} className="pt-4 first:pt-1">
+                <p className="px-3 pb-1.5 text-xs font-medium text-muted-foreground">{group.label}</p>
+                <ul className="space-y-0.5">
+                  {group.threads.map((thread) => {
+                    const active = thread.id === activeThreadId;
+                    return (
+                      <li key={thread.id}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectThread(thread.id)}
+                          aria-current={active ? "page" : undefined}
+                          title={thread.title}
+                          className={cn(
+                            "w-full truncate rounded-lg px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                            active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                          )}
+                        >
+                          {thread.title}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             ))
           )}
-        </div>
+        </ScrollArea>
       </div>
 
       {/* Main conversation column */}
-      <div className="flex-1 min-w-0 flex flex-col h-full py-6">
+      <div className="flex-1 min-w-0 flex flex-col h-full py-4 md:py-6">
+        {/* Phones: the history column above is hidden, so conversations are picked here instead. */}
+        <div className="md:hidden flex items-center gap-2 px-4 pb-3">
+          <Select
+            items={Object.fromEntries(threads.map((t) => [t.id, t.title]))}
+            value={activeThreadId ?? ""}
+            onValueChange={(v) => v && handleSelectThread(v as string)}
+          >
+            <SelectTrigger className="h-9 min-w-0 flex-1 text-sm" aria-label="Conversation">
+              <SelectValue placeholder={threads.length ? "Previous chats" : "No conversations yet"} />
+            </SelectTrigger>
+            <SelectContent>
+              {threads.map((thread) => (
+                <SelectItem key={thread.id} value={thread.id}>
+                  {thread.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant={activeThreadId === null ? "default" : "outline"} size="sm" className="h-9 shrink-0 rounded-full gap-1.5 px-3.5 text-sm" onClick={handleNewChat}>
+            <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-3.5 w-3.5" /> New
+          </Button>
+        </div>
         <MessageScrollerProvider autoScroll defaultScrollPosition="end">
           <MessageScroller className="flex-1 min-h-0">
             <MessageScrollerViewport>
-              <MessageScrollerContent className="max-w-4xl mx-auto w-full px-6">
-                {messages.length === 0 && (
-                  <div className="text-center py-16 max-w-sm mx-auto space-y-3" data-tour="ask-header">
-                    <div className="h-12 w-12 bg-primary/5 text-primary border border-primary/20 rounded-full flex items-center justify-center mx-auto">
-                      <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-6 w-6 fill-current" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-foreground">Ask about anything you&apos;ve saved</h3>
-                    <p className="text-xs text-muted-foreground">
-                      &ldquo;What did I save about AI agents?&rdquo; or &ldquo;find that pricing page I liked&rdquo;
-                    </p>
-                  </div>
-                )}
+              <MessageScrollerContent className="max-w-4xl mx-auto w-full px-4 md:px-6">
+                {messages.length === 0 && <AskEmptyState onPick={send} disabled={isBusy || queryLimit.isAtLimit} />}
 
                 {messages.map((message, messageIndex) => {
                   const isLastMessage = messageIndex === messages.length - 1;
@@ -563,8 +596,38 @@ export default function AskPage() {
                             if (part.type === "dynamic-tool" && isMemorySearchToolName(part.toolName)) {
                               return <SearchToolPart key={i} part={part} />;
                             }
+                            if (part.type === "dynamic-tool" && part.toolName === "get_platform_help" && (part.state === "input-streaming" || part.state === "input-available")) {
+                              return (
+                                <span key={i} className="shimmer text-xs text-muted-foreground px-2.5">
+                                  Checking the Help Center&hellip;
+                                </span>
+                              );
+                            }
+                            if (
+                              part.type === "dynamic-tool" &&
+                              (part.state === "input-streaming" || part.state === "input-available") &&
+                              toolActivityLabel(part.toolName)
+                            ) {
+                              return (
+                                <span key={i} className="shimmer text-xs text-muted-foreground px-2.5">
+                                  {toolActivityLabel(part.toolName)}
+                                </span>
+                              );
+                            }
                             return null;
                           })}
+                          {/* An event Ask added or moved: a card under the reply with buttons to open it. */}
+                          {message.role === "assistant" &&
+                            message.parts.map((part, i) => {
+                              if (part.type !== "dynamic-tool" || !isEventToolName(part.toolName) || part.state !== "output-available") return null;
+                              const event = parseEventToolOutput(part.output);
+                              return event ? (
+                                <div key={`event-${i}`} className="px-1">
+                                  <EventResultCard event={event} />
+                                </div>
+                              ) : null;
+                            })}
+                          {message.role === "assistant" && hasText && !(isBusy && isLastMessage) && <HelpActions parts={message.parts} />}
                           {showGenerating && (
                             <span className="shimmer text-xs text-muted-foreground px-2.5">
                               Generating a response&hellip;
@@ -597,9 +660,15 @@ export default function AskPage() {
           </MessageScroller>
         </MessageScrollerProvider>
 
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto w-full px-6 pt-3 shrink-0">
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto w-full px-6 pt-3 shrink-0 space-y-2">
+          {queryLimit.isAtLimit && (
+            <PlanLimitNotice message={queryLimit.message ?? "You've reached your Ask query limit for this month."} />
+          )}
           <div
-            className="rounded-3xl border border-border bg-card shadow-xs transition-colors focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/10"
+            className={cn(
+              "rounded-2xl border border-border bg-card shadow-sm transition-colors focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10",
+              queryLimit.isAtLimit && "opacity-60",
+            )}
             onClick={(e) => {
               const target = e.target as HTMLElement;
               if (target.tagName === "TEXTAREA" || target.closest("button")) return;
@@ -615,19 +684,28 @@ export default function AskPage() {
                   handleSubmit(e as unknown as React.FormEvent);
                 }
               }}
-              placeholder="Ask anything about what you've saved..."
-              className="min-h-[52px] max-h-40 resize-none border-none bg-transparent px-4 pt-3.5 pb-1 text-sm shadow-none outline-none focus-visible:border-none focus-visible:ring-0 dark:bg-transparent"
-              disabled={isBusy}
+              placeholder={queryLimit.isAtLimit ? "You've reached your Ask query limit for this month..." : "Ask anything about what you've saved..."}
+              rows={1}
+              className="min-h-[48px] max-h-48 resize-none border-none bg-transparent px-4 pt-3.5 pb-1 text-[15px] leading-relaxed shadow-none outline-none placeholder:text-muted-foreground/70 focus-visible:border-none focus-visible:ring-0 dark:bg-transparent"
+              disabled={isBusy || queryLimit.isAtLimit}
             />
-            <div className="flex items-center justify-end px-3 pb-2.5">
-              <Button
-                type="submit"
-                size="icon"
-                className="rounded-full h-9 w-9 shrink-0"
-                disabled={isBusy || !input.trim()}
-              >
-                <HugeiconsIcon icon={ArrowUp} strokeWidth={2.25} className={cn("h-4 w-4", isBusy && "opacity-50")} />
-              </Button>
+            <div className="flex items-center justify-between gap-2 pl-4 pr-2.5 pb-2.5">
+              <span className="hidden text-xs text-muted-foreground/80 sm:inline">
+                <kbd className="font-sans">Enter</kbd> to send · <kbd className="font-sans">Shift + Enter</kbd> for a new line
+              </span>
+              <span className="flex items-center gap-2 ml-auto">
+                {queryLimit.isAtLimit && <ProBadge />}
+                <Button
+                  type="submit"
+                  size="icon"
+                  aria-label="Send"
+                  title={queryLimit.isAtLimit ? queryLimit.message ?? undefined : undefined}
+                  className="h-9 w-9 shrink-0 rounded-full disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
+                  disabled={isBusy || queryLimit.isAtLimit || !input.trim()}
+                >
+                  <HugeiconsIcon icon={ArrowUp} strokeWidth={2.25} className="h-4 w-4" />
+                </Button>
+              </span>
             </div>
           </div>
         </form>
@@ -663,5 +741,29 @@ export default function AskPage() {
         </CommandList>
       </CommandDialog>
     </div>
+    </AiConfiguredGate>
   );
+}
+
+/** Today / Yesterday / Previous 7 days / Previous 30 days / Older, newest first. */
+function groupThreadsByDate<T extends { updatedAt: string }>(threads: T[]): { label: string; threads: T[] }[] {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const day = 24 * 60 * 60 * 1000;
+  const labelFor = (updatedAt: string) => {
+    const t = new Date(updatedAt).getTime();
+    if (t >= startOfToday.getTime()) return "Today";
+    if (t >= startOfToday.getTime() - day) return "Yesterday";
+    if (t >= startOfToday.getTime() - 7 * day) return "Previous 7 days";
+    if (t >= startOfToday.getTime() - 30 * day) return "Previous 30 days";
+    return "Older";
+  };
+  const groups: { label: string; threads: T[] }[] = [];
+  for (const thread of [...threads].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))) {
+    const label = labelFor(thread.updatedAt);
+    const last = groups.at(-1);
+    if (last?.label === label) last.threads.push(thread);
+    else groups.push({ label, threads: [thread] });
+  }
+  return groups;
 }

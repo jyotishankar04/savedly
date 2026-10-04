@@ -31,6 +31,8 @@ export interface AnnouncementInput {
   isActive?: boolean;
   startsAt?: string | null;
   endsAt?: string | null;
+  /** Create-only — sends the title/message to all active users via the same bulk composer as /admin/emails. Ignored on update. */
+  notifyByEmail?: boolean;
 }
 
 export async function listAnnouncements(): Promise<Announcement[]> {

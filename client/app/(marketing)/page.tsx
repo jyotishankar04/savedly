@@ -1,36 +1,49 @@
-import HeroSection from "@/components/marketing/landing/hero-section"
-import ProblemSection from "@/components/marketing/landing/problem-section"
-import FeaturesGridSection from "@/components/marketing/landing/features-grid-section"
-import SearchDemoSection from "@/components/marketing/landing/search-demo-section"
-import UnderstandingSection from "@/components/marketing/landing/understanding-section"
-import ContentTypesSection from "@/components/marketing/landing/content-types-section"
-import RediscoverSection from "@/components/marketing/landing/rediscover-section"
-import PlatformAvailabilitySection from "@/components/marketing/landing/platform-availability-section"
-import PrivacySection from "@/components/marketing/landing/privacy-section"
-import PricingTableSection from "@/components/marketing/landing/pricing-table-section"
-import FinalCtaSection from "@/components/marketing/landing/final-cta-section"
-import MainFooter from "@/components/marketing/landing/main-footer"
-import { Navbar } from "@/components/marketing/navbar"
+import { HeroProduct } from "@/components/marketing/landing/hero-product";
+import { ManifestoSection } from "@/components/marketing/landing/manifesto-section";
+import { PipelineSection } from "@/components/marketing/landing/pipeline-section";
+import { FeatureRowsSection } from "@/components/marketing/landing/feature-rows-section";
+import { ContributeSection } from "@/components/marketing/landing/contribute-section";
+import { FaqSection } from "@/components/marketing/landing/faq-section";
+import { FinalCtaSection } from "@/components/marketing/landing/final-cta-section";
+import MainFooter from "@/components/marketing/landing/main-footer";
 
-const page = () => {
+/**
+ * The product proves itself: the hero opens on the real app in a window
+ * (screenshots in public/landing/, demo library in public/landing/demo/),
+ * a short argument follows, then each capability shown working.
+ *
+ * Earlier layouts are kept as unused alternates: hero-stacked.tsx (full-bleed
+ * salt-flat art), features-grid-cards.tsx (9-card grid), and the sticky and
+ * alternating feature sections. The full anchored breakdown lives on /features.
+ */
+export default function MarketingPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <main className="flex-1">
-        <HeroSection />
-        <ProblemSection />
-        <FeaturesGridSection />
-        <SearchDemoSection />
-        <ContentTypesSection />
-        <RediscoverSection />
-        <PlatformAvailabilitySection />
-        <PrivacySection />
-        <PricingTableSection />
-        <FinalCtaSection />
-      </main>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "SaveForLatter",
+            "applicationCategory": "Productivity",
+            "operatingSystem": "Any",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          }),
+        }}
+      />
+      <HeroProduct />
+      <ManifestoSection />
+      <PipelineSection />
+      <FeatureRowsSection />
+      <ContributeSection />
+      <FaqSection />
+      <FinalCtaSection />
       <MainFooter />
-    </div>
-  )
+    </>
+  );
 }
-
-export default page

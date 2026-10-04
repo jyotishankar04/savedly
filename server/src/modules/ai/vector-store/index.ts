@@ -1,16 +1,27 @@
-import { env } from "../../../config/env";
+import { getSection, settingsVersion } from "../../instance-settings/instance-settings.service";
 import { pgVectorStore } from "./pgvector-store";
+import { createPineconeVectorStore } from "./pinecone-store";
 import { createUpstashVectorStore } from "./upstash-store";
 import type { VectorStore } from "./types";
 
 export type { VectorStore, VectorUpsertInput, VectorChunkInput } from "./types";
 
-let store: VectorStore | undefined;
+let active: { version: number; store: VectorStore } | null = null;
 
-/** Local/dev: pgvector columns on this Postgres. Production: Upstash Vector — see VECTOR_STORE_PROVIDER. */
-export function getVectorStore(): VectorStore {
-  if (!store) {
-    store = env.VECTOR_STORE_PROVIDER === "upstash" ? createUpstashVectorStore() : pgVectorStore;
-  }
+/**
+ * pgvector columns on this Postgres by default; Upstash Vector or Pinecone when configured
+ * (VECTOR_STORE_PROVIDER in hosted production, or Admin -> Infrastructure on
+ * a self-hosted install). Rebuilt whenever an admin saves new settings.
+ */
+export async function getVectorStore(): Promise<VectorStore> {
+  if (active && active.version === settingsVersion()) return active.store;
+  const settings = await getSection("vector");
+  const store =
+    settings.provider === "upstash"
+      ? createUpstashVectorStore({ url: String(settings.upstashUrl), token: String(settings.upstashToken) })
+      : settings.provider === "pinecone"
+        ? createPineconeVectorStore({ apiKey: String(settings.pineconeApiKey), host: String(settings.pineconeHost) })
+        : pgVectorStore;
+  active = { version: settingsVersion(), store };
   return store;
 }

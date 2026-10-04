@@ -25,10 +25,14 @@ import { uploadFile, type UploadedFile } from "@/lib/uploads";
 import { detectMemoryType, deriveTitle, splitLinkAndCaption } from "@/lib/detect-memory-type";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import { cn } from "@/lib/utils";
+import { usePlanLimit } from "@/hooks/use-plan-limit";
+import { PlanLimitNotice, ProBadge } from "@/components/plan-limit-notice";
 
 export default function CapturePage() {
   const { data: collections = [] } = useCollectionsQuery();
   const createMemoryMutation = useCreateMemoryMutation();
+  const memoryLimit = usePlanLimit("memory_count");
+  const storageLimit = usePlanLimit("storage_mb");
 
   const [captureText, setCaptureText] = useState("");
   const [captureTitle, setCaptureTitle] = useState("");
@@ -68,6 +72,10 @@ export default function CapturePage() {
   };
 
   const handleFileUpload = async (file: File) => {
+    if (storageLimit.isAtLimit) {
+      setAttachmentError(storageLimit.message ?? "You've reached your storage limit.");
+      return;
+    }
     // Set the name/mime immediately so the attachment preview (with its
     // shimmer) can show the real filename and the right icon while the
     // upload is still in flight, not just once it resolves.
@@ -134,6 +142,10 @@ export default function CapturePage() {
   const handleCaptureSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!captureText.trim() && !captureAttachment) return;
+    if (memoryLimit.isAtLimit) {
+      setSaveError(memoryLimit.message ?? "You've reached your memory limit.");
+      return;
+    }
     setSaveError(null);
     try {
       const title = captureTitle.trim() || deriveTitle(detectedType, captureText, captureAttachmentName);
@@ -282,9 +294,16 @@ export default function CapturePage() {
             )}
 
             <InputGroupAddon align="block-end" className="w-full justify-between border-t border-border/40 bg-muted/20 px-3 py-2">
-              <InputGroupButton type="button" onClick={() => fileInputRef.current?.click()}>
+              <InputGroupButton
+                type="button"
+                disabled={storageLimit.isAtLimit}
+                title={storageLimit.isAtLimit ? storageLimit.message ?? undefined : undefined}
+                onClick={() => fileInputRef.current?.click()}
+                className={storageLimit.isAtLimit ? "opacity-50 cursor-not-allowed" : undefined}
+              >
                 <HugeiconsIcon icon={Paperclip} strokeWidth={2.25} className="h-3.5 w-3.5" />
                 Attach
+                {storageLimit.isAtLimit && <ProBadge className="ml-1" />}
               </InputGroupButton>
 
               <InputGroupText className="rounded-full bg-primary/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-primary">
@@ -331,7 +350,11 @@ export default function CapturePage() {
           </div>
         </div>
 
-        {saveError && <p className="text-[10px] text-red-500">{saveError}</p>}
+        {memoryLimit.isAtLimit ? (
+          <PlanLimitNotice message={memoryLimit.message ?? "You've reached your memory limit."} />
+        ) : (
+          saveError && <p className="text-[10px] text-red-500">{saveError}</p>
+        )}
 
         <div className="flex items-center justify-end gap-4 border-t border-border/20 pt-5">
           <button
@@ -343,10 +366,18 @@ export default function CapturePage() {
           </button>
           <Button
             type="submit"
-            disabled={isSaving || isUploadingAttachment || (!captureText.trim() && !captureAttachment)}
-            className="h-11 px-7 rounded-full font-bold text-xs bg-primary text-white flex items-center gap-1.5"
+            disabled={isSaving || isUploadingAttachment || memoryLimit.isAtLimit || (!captureText.trim() && !captureAttachment)}
+            title={memoryLimit.isAtLimit ? memoryLimit.message ?? undefined : undefined}
+            className={cn(
+              "h-11 px-7 rounded-full font-bold text-xs bg-primary text-white flex items-center gap-1.5",
+              memoryLimit.isAtLimit && "opacity-50 cursor-not-allowed",
+            )}
           >
-            {isSaving ? "Saving..." : (
+            {isSaving ? "Saving..." : memoryLimit.isAtLimit ? (
+              <>
+                Limit reached <ProBadge />
+              </>
+            ) : (
               <>
                 <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-4 w-4" /> Save Memory
               </>

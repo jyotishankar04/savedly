@@ -6,7 +6,10 @@ import { verifyAccessToken } from "../utils/jwt";
 
 // /announcements and /maintenance are public, read-only, and consumed by the
 // marketing site itself — which stays fully usable during maintenance.
-const BYPASS_PATH_PREFIXES = ["/health", "/admin", "/auth", "/announcements", "/maintenance"];
+// /billing/webhook must stay reachable too — Stripe's retries don't know or
+// care that maintenance mode is on, and blocking them just delays a plan
+// assignment that already succeeded on Stripe's side.
+const BYPASS_PATH_PREFIXES = ["/health", "/config", "/admin", "/auth", "/announcements", "/maintenance", "/billing/webhook"];
 
 function extractToken(req: Request): string | null {
   const header = req.headers.authorization;

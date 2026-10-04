@@ -4,30 +4,14 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Search01Icon as Search, ArrowLeft01Icon as ArrowLeft, MoreHorizontalIcon as MoreHorizontal, Edit01Icon as Edit, Share02Icon as Share2, GridIcon as Grid, ListIcon as List, Delete02Icon as Trash2, Copy01Icon as Copy } from "@hugeicons/core-free-icons";
+import { Search01Icon as Search, ArrowLeft01Icon as ArrowLeft, Edit01Icon as Edit, GridIcon as Grid, ListIcon as List } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { toast } from "@/components/ui/toast";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useCollectionsQuery, useDeleteCollectionMutation, useMemoriesQuery } from "@/context/MemoryContext";
+import { CollectionActionsMenu } from "@/components/collection/collection-actions-menu";
+import { EditCollectionDialog } from "@/components/collection/edit-collection-dialog";
+import { useCollectionsQuery, useMemoriesQuery } from "@/context/MemoryContext";
 import { timeAgo } from "@/lib/time";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
 import { QueryErrorState } from "@/components/query-error-state";
@@ -39,15 +23,13 @@ export default function CollectionDetailPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: collections = [] } = useCollectionsQuery();
   const collection = collections.find((c) => c.id === id);
 
   const { data, isLoading, isError, refetch } = useMemoriesQuery({ collectionId: id, q: searchQuery.trim() || undefined, limit: 100 });
   const memories = data?.items ?? [];
-
-  const deleteMutation = useDeleteCollectionMutation();
 
   if (!collection) {
     return (
@@ -93,74 +75,12 @@ export default function CollectionDetailPage() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={() => toast.add({ title: "Rename collection", description: "Editing collection details isn't available yet.", type: "info" })}
+            onClick={() => setEditOpen(true)}
             className="h-9 px-3 rounded-full text-xs font-semibold"
           >
             <HugeiconsIcon icon={Edit} strokeWidth={2.25} className="h-3.5 w-3.5" /> Edit
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (typeof navigator !== "undefined" && navigator.clipboard) {
-                navigator.clipboard.writeText(window.location.href);
-              }
-              toast.add({ title: "Link copied", description: "Collection link copied to clipboard.", type: "success" });
-            }}
-            className="h-9 px-3 rounded-full text-xs font-semibold"
-          >
-            <HugeiconsIcon icon={Share2} strokeWidth={2.25} className="h-3.5 w-3.5" /> Share
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full text-muted-foreground">
-                  <HugeiconsIcon icon={MoreHorizontal} strokeWidth={2.25} className="h-4 w-4" />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => toast.add({ title: "Duplicating collections isn't available yet.", type: "info" })}>
-                <HugeiconsIcon icon={Copy} strokeWidth={2.25} className="h-3.5 w-3.5" /> Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
-                <HugeiconsIcon icon={Trash2} strokeWidth={2.25} className="h-3.5 w-3.5" /> Delete collection
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this collection?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Memories inside won&apos;t be deleted, only unlinked from this collection.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-red-500 hover:bg-red-600 text-white"
-                  onClick={async () => {
-                    try {
-                      await deleteMutation.mutateAsync(collection.id);
-                      toast.add({ title: "Collection deleted", type: "success" });
-                      router.push("/app/collections");
-                    } catch (err) {
-                      toast.add({
-                        title: "Couldn't delete this collection",
-                        description: err instanceof Error ? err.message : undefined,
-                        type: "error",
-                      });
-                    }
-                  }}
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <CollectionActionsMenu collection={collection} redirectTo="/app/collections" />
         </div>
       </div>
 
@@ -254,6 +174,8 @@ export default function CollectionDetailPage() {
           ))}
         </div>
       )}
+
+      <EditCollectionDialog collection={collection} open={editOpen} onOpenChange={setEditOpen} />
 
       {/* Local animation keyframes */}
       <style>{`

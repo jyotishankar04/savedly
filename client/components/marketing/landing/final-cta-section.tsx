@@ -1,64 +1,80 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
+import { motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon as ArrowRight } from "@hugeicons/core-free-icons";
-import { buttonVariants } from "@/components/ui/button";
-import { MagneticButton } from "@/components/ui/magnetic-button";
-import { ParallaxGlow } from "@/components/ui/parallax-glow";
-import { cn } from "@/lib/utils";
-import { ctaHref } from "@/lib/showcase";
+import { ArrowRight01Icon as ArrowRightIcon, CheckIcon as CheckIcon } from "@hugeicons/core-free-icons";
+import { SHOWCASE_MODE } from "@/lib/showcase";
+import { useAuthCta } from "@/hooks/use-auth-cta";
+import { GITHUB_CONFIGURED, GITHUB_URL } from "@/lib/open-source";
 
-export default function FinalCtaSection() {
+// Three facts that are true, in place of the invented social proof CTA
+// templates usually carry (there are no customer counts or ratings to cite).
+const REASSURANCES = ["No card required", "No AI keys needed", "Open source"];
+
+/**
+ * The one fully blue surface on the page. It stays on the deeper brand blue
+ * (#1447E6, light theme's --primary) in dark mode too: the dark theme's
+ * brighter primary only reaches ~3.6:1 against white body text.
+ */
+export function FinalCtaSection() {
+  const cta = useAuthCta();
+  const reduce = useReducedMotion();
+
   return (
-    <section className="relative w-full py-32 md:py-44 bg-background overflow-hidden border-t border-border/20">
-      
-      {/* Background soft blue glow */}
-      <ParallaxGlow className="w-[700px] h-[500px] opacity-20 blur-[130px] dark:opacity-5" />
+    <section className="bg-background px-5 py-16 sm:px-6 md:py-24">
+      <motion.div
+        initial={{ opacity: 0, clipPath: "inset(12% 6% 12% 6% round 32px)" }}
+        whileInView={{ opacity: 1, clipPath: "inset(0% 0% 0% 0% round 32px)" }}
+        viewport={{ once: true, margin: "-10% 0px" }}
+        transition={reduce ? { duration: 0 } : { duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[#1447E6] px-7 py-16 text-white sm:px-12 sm:py-20 lg:px-16 lg:py-24"
+      >
+        <h2 className="max-w-3xl text-4xl leading-[1.04] font-semibold tracking-[-0.035em] text-balance sm:text-5xl lg:text-[4rem]">
+          Save the next thing you don&apos;t want to lose.
+        </h2>
+        <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/85">
+          You don&apos;t have to remember where you saved it. Just ask Memora when you need it back.
+        </p>
 
-      <div className="mx-auto max-w-4xl px-6 relative text-center space-y-8">
-        
-        {/* Section copy */}
-        <div className="space-y-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
-            START YOUR MEMORY
-          </span>
-          <h2 className="text-4xl md:text-6xl font-medium tracking-tight text-foreground leading-[1.15] pt-2">
-            Save it now. <br className="hidden sm:block" /> Find it whenever.
-          </h2>
-          <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
-            The internet is full of things worth remembering. SaveForLatter makes sure they don't get lost.
-          </p>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <MagneticButton strength={0.4}>
-            <Link
-              href={ctaHref("/auth/signup")}
-              className={cn(
-                buttonVariants({ variant: "default", size: "lg" }),
-                "h-12 px-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/95 text-sm font-semibold flex items-center gap-1 shadow-sm transition-all duration-200"
-              )}
-            >
-              Start Saving Free
-              <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
-            </Link>
-          </MagneticButton>
-
+        <div className="mt-10 flex flex-wrap items-center gap-3">
           <Link
-            href="/how-it-works"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "lg" }),
-              "h-12 px-6 rounded-full text-foreground/80 hover:text-foreground text-sm font-medium border border-border/50 hover:bg-muted/50 transition-colors"
-            )}
+            href={cta.href}
+            className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-6 text-[15px] font-medium text-[#0B1B4D] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1447E6] active:translate-y-0"
           >
-            Explore SaveForLatter
+            {cta.isAuthenticated ? cta.label : SHOWCASE_MODE ? "Join the waitlist" : "Start saving"}
+            <HugeiconsIcon icon={ArrowRightIcon} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
+          {GITHUB_CONFIGURED ? (
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-12 items-center rounded-full px-6 text-[15px] font-medium text-white ring-1 ring-white/45 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              View on GitHub
+            </a>
+          ) : (
+            <Link
+              href="/features"
+              className="inline-flex h-12 items-center rounded-full px-6 text-[15px] font-medium text-white ring-1 ring-white/45 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              See how it works
+            </Link>
+          )}
         </div>
 
-      </div>
+        <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/85">
+          {REASSURANCES.map((item) => (
+            <li key={item} className="flex items-center gap-1.5">
+              <HugeiconsIcon icon={CheckIcon} className="h-3.5 w-3.5" strokeWidth={2.5} />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </motion.div>
     </section>
   );
 }
+
+export default FinalCtaSection;

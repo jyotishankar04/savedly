@@ -1,0 +1,392 @@
+/*
+ * FullCalendar, drawn with the app's own tokens. Every edge is Ink at a
+ * fixed percentage (--border equals --card in dark mode, so it can't be
+ * used for edges), the only accent is --primary, and all colors come
+ * from the theme so the calendar follows light and dark mode.
+ */
+
+.sfl-calendar {
+  --sfl-line: color-mix(in oklab, var(--foreground) 8%, transparent);
+  --sfl-line-strong: color-mix(in oklab, var(--foreground) 12%, transparent);
+  --sfl-note-bg: color-mix(in oklab, var(--primary) 14%, var(--background));
+  --sfl-note-bg-hover: color-mix(in oklab, var(--primary) 22%, var(--background));
+  --sfl-note-ink: color-mix(in oklab, var(--primary) 82%, var(--foreground));
+  --sfl-ext-bg: color-mix(in oklab, var(--foreground) 7%, var(--background));
+  --sfl-ext-bg-hover: color-mix(in oklab, var(--foreground) 12%, var(--background));
+
+  --fc-border-color: var(--sfl-line);
+  --fc-page-bg-color: var(--background);
+  --fc-neutral-bg-color: color-mix(in oklab, var(--foreground) 3.5%, var(--background));
+  --fc-neutral-text-color: var(--muted-foreground);
+  --fc-today-bg-color: transparent;
+  --fc-now-indicator-color: var(--primary);
+  --fc-highlight-color: color-mix(in oklab, var(--primary) 10%, transparent);
+  --fc-event-bg-color: var(--primary);
+  --fc-event-border-color: var(--primary);
+  --fc-event-text-color: var(--primary-foreground);
+  --fc-event-selected-overlay-color: transparent;
+  --fc-list-event-hover-bg-color: color-mix(in oklab, var(--foreground) 4%, transparent);
+  --fc-small-font-size: 0.75rem;
+
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--foreground);
+}
+
+.sfl-calendar .fc {
+  height: 100%;
+}
+
+.sfl-calendar .fc-scrollgrid,
+.sfl-calendar .fc-list {
+  border: none;
+}
+
+.sfl-calendar .fc-theme-standard .fc-scrollgrid > thead > tr > th,
+.sfl-calendar .fc-theme-standard td.fc-timegrid-axis,
+.sfl-calendar .fc-scrollgrid-section > td {
+  border-color: var(--sfl-line);
+}
+
+/* The outer frame is the container's ring; no second edge inside it. */
+.sfl-calendar .fc-scrollgrid-section-liquid > td,
+.sfl-calendar .fc-scrollgrid-section-header > th,
+.sfl-calendar .fc-scrollgrid-section-body > td {
+  border-right: none;
+}
+.sfl-calendar .fc-theme-standard td:last-child,
+.sfl-calendar .fc-theme-standard th:last-child {
+  border-right: none;
+}
+.sfl-calendar .fc-daygrid-body tr:last-child td {
+  border-bottom: none;
+}
+
+/* Custom scrollbars from the palette. */
+.sfl-calendar .fc-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 18%, transparent) transparent;
+}
+
+/* ---------- Column headers ---------- */
+
+.sfl-calendar .fc-col-header-cell {
+  border-left: none;
+  border-right: none;
+  font-weight: inherit;
+}
+.sfl-calendar .fc-col-header-cell-cushion {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+}
+.sfl-calendar .fc-dayGridMonth-view .fc-col-header-cell-cushion {
+  padding: 0.625rem 0;
+}
+.sfl-calendar a.fc-col-header-cell-cushion,
+.sfl-calendar .fc-daygrid-day-number,
+.sfl-calendar .fc-list-day-text,
+.sfl-calendar .fc-list-day-side-text {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---------- Time grid (day and week) ---------- */
+
+.sfl-calendar .fc-timegrid-slot {
+  height: 1.625rem;
+  border-color: var(--sfl-line);
+}
+/* Hour lines only; the half-hour line is a snap target, not a visual one. */
+.sfl-calendar .fc-timegrid-slot-minor {
+  border-top-color: transparent;
+}
+.sfl-calendar .fc-timegrid-slot-label {
+  border: none;
+  vertical-align: top;
+}
+.sfl-calendar .fc-timegrid-slot-label-cushion {
+  position: relative;
+  top: -0.6rem;
+  padding: 0 0.5rem 0 0.75rem;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  background: var(--background);
+}
+.sfl-calendar .fc-timegrid-slots tr:first-child .fc-timegrid-slot-label-cushion {
+  visibility: hidden;
+}
+.sfl-calendar .fc-timegrid-axis {
+  border-color: transparent;
+}
+.sfl-calendar .fc-timegrid-axis-cushion {
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+  padding: 0 0.5rem 0 0.75rem;
+}
+.sfl-calendar .fc-timegrid-divider {
+  padding: 0 0 1px;
+  background: var(--sfl-line);
+  border: none;
+}
+.sfl-calendar .fc-timegrid-col.fc-day-today {
+  background: color-mix(in oklab, var(--primary) 3%, transparent);
+}
+.sfl-calendar .fc-timegrid-col-events {
+  margin: 0 6px 0 2px;
+}
+
+/* Now: a blue line with a dot, no arrow in the gutter. */
+.sfl-calendar .fc-timegrid-now-indicator-arrow {
+  display: none;
+}
+.sfl-calendar .fc-timegrid-now-indicator-line {
+  border-width: 2px 0 0;
+  z-index: 5;
+}
+.sfl-calendar .fc-timegrid-now-indicator-line::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--primary);
+}
+
+/* ---------- Events ---------- */
+
+.sfl-calendar .fc-event {
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 150ms ease, opacity 150ms ease;
+}
+.sfl-calendar .fc-event:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary) 60%, transparent);
+  outline-offset: 1px;
+}
+.sfl-calendar .fc-event:focus::after {
+  background: transparent;
+}
+
+.sfl-calendar .sfl-event--note:not(.fc-daygrid-dot-event) {
+  background: var(--sfl-note-bg);
+  color: var(--sfl-note-ink);
+}
+.sfl-calendar .sfl-event--note:not(.fc-daygrid-dot-event):hover {
+  background: var(--sfl-note-bg-hover);
+}
+.sfl-calendar .sfl-event--external:not(.fc-daygrid-dot-event) {
+  background: var(--sfl-ext-bg);
+  color: var(--foreground);
+}
+.sfl-calendar .sfl-event--external:not(.fc-daygrid-dot-event):hover {
+  background: var(--sfl-ext-bg-hover);
+}
+.sfl-calendar .fc-event-main {
+  color: inherit;
+  padding: 2px 0;
+}
+
+/* Stacked events in a column are separated by a hairline of the page color. */
+.sfl-calendar .fc-timegrid-event-harness-inset .fc-timegrid-event {
+  box-shadow: 0 0 0 1.5px var(--background);
+}
+
+.sfl-calendar .fc-event-past {
+  opacity: 0.6;
+}
+.sfl-calendar .fc-event-past:hover {
+  opacity: 0.85;
+}
+
+/* The ghost left behind while dragging, and the event being dragged. */
+.sfl-calendar .fc-event-mirror {
+  box-shadow: 0 10px 24px -10px rgb(0 0 0 / 0.35);
+  opacity: 0.95;
+}
+.sfl-calendar .fc-event-dragging:not(.fc-event-mirror) {
+  opacity: 0.35;
+}
+.sfl-calendar .fc-timegrid-event .fc-event-resizer-end {
+  height: 10px;
+  bottom: 0;
+  cursor: ns-resize;
+}
+
+/* A dragged-out selection shows as a note-colored event while it's drawn. */
+.sfl-calendar .fc-highlight {
+  border-radius: 0.5rem;
+}
+
+/* ---------- Month grid ---------- */
+
+.sfl-calendar .fc-daygrid-day-top {
+  flex-direction: row;
+  padding: 0.375rem 0.375rem 0.125rem;
+}
+.sfl-calendar .fc-daygrid-day-number {
+  padding: 0;
+}
+.sfl-calendar .fc-day-other {
+  background: color-mix(in oklab, var(--foreground) 2%, transparent);
+}
+.sfl-calendar .fc-daygrid-day.fc-day-today {
+  background: color-mix(in oklab, var(--primary) 4%, transparent);
+}
+.sfl-calendar .fc-daygrid-day-frame {
+  transition: background-color 150ms ease;
+}
+.sfl-calendar .fc-dayGridMonth-view .fc-daygrid-day:hover .fc-daygrid-day-frame {
+  background: color-mix(in oklab, var(--foreground) 2.5%, transparent);
+}
+.sfl-calendar .fc-daygrid-event-harness {
+  margin: 1px 4px;
+}
+.sfl-calendar .fc-daygrid-event {
+  margin: 0;
+  padding: 1px 0;
+  font-size: 0.75rem;
+}
+.sfl-calendar .fc-daygrid-dot-event {
+  border-radius: 0.375rem;
+}
+.sfl-calendar .fc-daygrid-dot-event:hover,
+.sfl-calendar .fc-daygrid-dot-event.fc-event-mirror {
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+}
+.sfl-calendar .fc-daygrid-more-link {
+  margin: 1px 4px 0;
+  padding: 1px 6px;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.sfl-calendar .fc-daygrid-more-link:hover {
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+  color: var(--foreground);
+}
+
+/* "+2 more" opens this. */
+.sfl-calendar .fc-popover {
+  border: none;
+  border-radius: 1rem;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--foreground) 10%, transparent),
+    0 16px 40px -12px rgb(0 0 0 / 0.25);
+  overflow: hidden;
+  min-width: 13rem;
+}
+.sfl-calendar .fc-popover-header {
+  background: transparent;
+  padding: 0.625rem 0.75rem 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.sfl-calendar .fc-popover-close {
+  opacity: 0.6;
+}
+.sfl-calendar .fc-more-popover .fc-popover-body {
+  padding: 0.25rem 0.25rem 0.5rem;
+}
+
+/* ---------- Agenda (list) ---------- */
+
+.sfl-calendar .fc-list-table td,
+.sfl-calendar .fc-list-table th {
+  border-color: var(--sfl-line);
+}
+.sfl-calendar .fc-list-day-cushion {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.625rem 1.25rem;
+  background: color-mix(in oklab, var(--foreground) 3.5%, var(--background));
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.sfl-calendar .fc-list-day-side-text {
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.sfl-calendar .fc-list-day.fc-day-today .fc-list-day-text {
+  color: var(--primary);
+}
+.sfl-calendar .fc-list-event td {
+  padding: 0.75rem 1.25rem;
+  background: var(--background);
+}
+.sfl-calendar .fc-list-event-time {
+  width: 9.5rem;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sfl-calendar .fc-list-event-graphic {
+  padding-left: 0 !important;
+  padding-right: 0.25rem !important;
+}
+.sfl-calendar .fc-list-event-dot {
+  border-width: 4px;
+  border-radius: 3px;
+  border-color: color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+.sfl-calendar .sfl-event--note .fc-list-event-dot {
+  border-color: var(--primary);
+}
+.sfl-calendar .fc-list-event:hover td {
+  background: color-mix(in oklab, var(--foreground) 4%, var(--background));
+}
+.sfl-calendar .fc-list-empty {
+  background: var(--background);
+}
+
+@media (max-width: 639px) {
+  .sfl-calendar .fc-timegrid-slot-label-cushion,
+  .sfl-calendar .fc-timegrid-axis-cushion {
+    padding: 0 0.25rem 0 0.375rem;
+    font-size: 0.625rem;
+  }
+  .sfl-calendar .fc-list-event td,
+  .sfl-calendar .fc-list-day-cushion {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+  .sfl-calendar .fc-list-event-time {
+    width: 6.5rem;
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfl-calendar .fc-event,
+  .sfl-calendar .fc-daygrid-day-frame {
+    transition: none;
+  }
+}
+
+/* Toolbar icon buttons. */
+.sfl-icon-btn {
+  display: flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  color: var(--muted-foreground);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.sfl-icon-btn:hover {
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+  color: var(--foreground);
+}
+.sfl-icon-btn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--primary) 50%, transparent);
+  outline-offset: 1px;
+}

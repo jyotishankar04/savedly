@@ -12,6 +12,11 @@ export interface Memory {
   isFavorite: boolean;
   isArchived: boolean;
   inTrash: boolean;
+  /** When this was trashed. Null unless inTrash is true — see the server's 15-day purge job. */
+  trashedAt: string | null;
+  isVaulted: boolean;
+  /** User-set date/time this memory relates to — null means no event attached. Powers "Add to calendar". */
+  eventAt: string | null;
   tags: string[];
   createdAt: string;
   updatedAt: string;
@@ -52,7 +57,11 @@ export interface Collection {
   name: string;
   icon: string;
   description: string | null;
+  // "system" collections (onboarding defaults, AI-suggested groupings) are
+  // hidden by default — see useCollectionsQuery's includeSystem param.
+  source: "user" | "system";
   memoryCount: number;
+  isVaulted: boolean;
   createdAt: string;
   updatedAt: string;
 }

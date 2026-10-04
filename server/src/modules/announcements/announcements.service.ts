@@ -2,6 +2,9 @@ import { and, desc, eq, gte, isNull, lte, ne, or } from "drizzle-orm";
 import { db } from "../../db";
 import { announcements } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
+import { logger } from "../../shared/utils/logger";
+import { EmailCategory } from "../../db/enums";
+import { sendBulkEmail } from "../email";
 import type { CreateAnnouncementInput, UpdateAnnouncementInput } from "./announcements.schema";
 
 export async function listAnnouncements() {
@@ -10,7 +13,7 @@ export async function listAnnouncements() {
 
 /** Only one announcement may be active at a time — enforced here, not by a DB constraint. */
 export async function createAnnouncement(input: CreateAnnouncementInput, adminUserId: string) {
-  return db.transaction(async (tx) => {
+  const row = await db.transaction(async (tx) => {
     if (input.isActive) {
       await tx.update(announcements).set({ isActive: false }).where(eq(announcements.isActive, true));
     }
@@ -34,6 +37,19 @@ export async function createAnnouncement(input: CreateAnnouncementInput, adminUs
 
     return row;
   });
+
+  if (input.notifyByEmail) {
+    sendBulkEmail({
+      subject: row.title,
+      bodyText: row.message,
+      category: EmailCategory.ANNOUNCEMENT,
+      recipients: { all: true },
+      createdBy: adminUserId,
+      auditAction: "email.announcement_sent",
+    }).catch((err) => logger.warn({ err, announcementId: row.id }, "Failed to send announcement email"));
+  }
+
+  return row;
 }
 
 export async function updateAnnouncement(id: string, input: UpdateAnnouncementInput) {

@@ -40,3 +40,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# impeccable design-review scratch output
+.impeccable/
+
+# fumadocs-mdx generated cache
+.source/

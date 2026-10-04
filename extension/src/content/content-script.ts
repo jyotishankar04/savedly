@@ -388,4 +388,40 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+// --- Clipboard monitoring for quick URL saves ----- (new feature)
+//
+// Detects when URLs are copied and offers quick-save. Paste events are
+// MV3-compliant and don't require extra permissions.
+
+const URL_PATTERN = /^https?:\/\/[^\s]+$/;
+let lastSavedUrl = "";
+let clipboardDebounceTimer: number | null = null;
+
+document.addEventListener(
+  "paste",
+  (event) => {
+    const text = event.clipboardData?.getData("text")?.trim();
+    if (!text || !URL_PATTERN.test(text) || text === lastSavedUrl) return;
+
+    lastSavedUrl = text;
+
+    // Debounce rapid pastes (500ms)
+    if (clipboardDebounceTimer) clearTimeout(clipboardDebounceTimer);
+    clipboardDebounceTimer = window.setTimeout(() => {
+      chrome.runtime.sendMessage(
+        { action: "CLIPBOARD_URL_DETECTED", url: text },
+        (response) => {
+          if (!response) return;
+          if (response.ok) {
+            console.log("Memora: Saved URL from clipboard");
+          } else {
+            console.log("Memora: Could not save clipboard URL:", response.error);
+          }
+        }
+      );
+    }, 500);
+  },
+  true
+);
+
 refreshFloatingButtonVisibility();
