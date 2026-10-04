@@ -35,7 +35,7 @@ import { PlanLimitNotice, ProBadge } from "@/components/plan-limit-notice";
  * where they put the link — `url`, or inside `text` — so both are kept, and
  * splitLinkAndCaption sorts out which part is the link when saving.
  */
-function sharedContent(params: URLSearchParams): { text: string; title: string } {
+function sharedContent(params: URLSearchParams): { text: string; title: string; hasFile: boolean } {
   const text = params.get("text")?.trim() ?? "";
   const url = params.get("url")?.trim() ?? "";
   const title = params.get("title")?.trim() ?? "";
@@ -43,6 +43,8 @@ function sharedContent(params: URLSearchParams): { text: string; title: string }
     text: [text, url && !text.includes(url) ? url : ""].filter(Boolean).join("\n"),
     // A shared title is only useful when it isn't just the link again.
     title: title && title !== url && title !== text ? title : "",
+    // A shared photo or file is waiting where the service worker left it.
+    hasFile: params.has("shared-file"),
   };
 }
 
@@ -146,6 +148,30 @@ function CaptureForm() {
       setIsUploadingAttachment(false);
     }
   };
+
+  // A photo or file shared to the installed app: the service worker
+  // (public/sw.js) parked it in the Cache API, since a file can't travel in a
+  // URL. Attach it exactly as if it had been picked here, then clear it.
+  const sharedFileTaken = useRef(false);
+  useEffect(() => {
+    if (!shared.hasFile || sharedFileTaken.current || !("caches" in window)) return;
+    sharedFileTaken.current = true;
+    void (async () => {
+      try {
+        const cache = await caches.open("share-target");
+        const response = await cache.match("/__shared-file");
+        if (!response) return;
+        const blob = await response.blob();
+        const name = decodeURIComponent(response.headers.get("X-File-Name") ?? "shared-file");
+        await cache.delete("/__shared-file");
+        await handleFileUpload(new File([blob], name, { type: blob.type }));
+      } catch {
+        setAttachmentError("Couldn't read the shared file. Attach it here instead.");
+      }
+    })();
+    // Runs once, for the share this page was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
