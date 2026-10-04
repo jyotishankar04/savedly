@@ -290,7 +290,7 @@ export function AskWidget() {
           exit={reduceMotion ? { opacity: 0, transition: { duration: 0.1 } } : { opacity: 0, scale: 0.4, transition: { duration: 0.18, ease: EASE_IN } }}
           whileHover={reduceMotion ? undefined : { y: -2 }}
           whileTap={reduceMotion ? undefined : { scale: 0.92 }}
-          className="group fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 h-14 w-14 rounded-full bg-background ring-1 ring-foreground/10 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.35)] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="group fixed max-md:hidden md:bottom-6 md:right-6 z-40 h-14 w-14 rounded-full bg-background ring-1 ring-foreground/10 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.35)] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           <LogoMark className="h-10 w-10 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105" />
         </motion.button>
