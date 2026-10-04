@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useSearchParams } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusIcon as Plus, XIcon as X, CheckIcon as Check, FileTextIcon as FileText, PaperclipIcon as Paperclip, CloudUploadIcon as UploadCloud } from "@hugeicons/core-free-icons";
+import { PlusIcon as Plus, XIcon as X, ClipboardIcon as Clipboard, CheckIcon as Check, FileTextIcon as FileText, PaperclipIcon as Paperclip, CloudUploadIcon as UploadCloud } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
   InputGroup,
@@ -28,14 +29,43 @@ import { cn } from "@/lib/utils";
 import { usePlanLimit } from "@/hooks/use-plan-limit";
 import { PlanLimitNotice, ProBadge } from "@/components/plan-limit-notice";
 
+/**
+ * What arrived with the URL: from the phone's share sheet (the manifest's
+ * share_target) or any link with ?text= / ?url= / ?title=. Apps differ in
+ * where they put the link — `url`, or inside `text` — so both are kept, and
+ * splitLinkAndCaption sorts out which part is the link when saving.
+ */
+function sharedContent(params: URLSearchParams): { text: string; title: string; hasFile: boolean } {
+  const text = params.get("text")?.trim() ?? "";
+  const url = params.get("url")?.trim() ?? "";
+  const title = params.get("title")?.trim() ?? "";
+  return {
+    text: [text, url && !text.includes(url) ? url : ""].filter(Boolean).join("\n"),
+    // A shared title is only useful when it isn't just the link again.
+    title: title && title !== url && title !== text ? title : "",
+    // A shared photo or file is waiting where the service worker left it.
+    hasFile: params.has("shared-file"),
+  };
+}
+
 export default function CapturePage() {
+  // useSearchParams (the shared content) needs a Suspense boundary.
+  return (
+    <Suspense fallback={null}>
+      <CaptureForm />
+    </Suspense>
+  );
+}
+
+function CaptureForm() {
+  const [shared] = useState(sharedContent(useSearchParams()));
   const { data: collections = [] } = useCollectionsQuery();
   const createMemoryMutation = useCreateMemoryMutation();
   const memoryLimit = usePlanLimit("memory_count");
   const storageLimit = usePlanLimit("storage_mb");
 
-  const [captureText, setCaptureText] = useState("");
-  const [captureTitle, setCaptureTitle] = useState("");
+  const [captureText, setCaptureText] = useState(shared.text);
+  const [captureTitle, setCaptureTitle] = useState(shared.title);
   const [captureCollectionIds, setCaptureCollectionIds] = useState<string[]>([]);
   const [captureAttachment, setCaptureAttachment] = useState<UploadedFile | null>(null);
   const [captureAttachmentName, setCaptureAttachmentName] = useState<string | null>(null);
@@ -45,6 +75,32 @@ export default function CapturePage() {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const dragCounter = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Reading the clipboard needs a secure page and a tap, hence a button, shown
+  // only where the browser can do it (false on the server and on plain http).
+  const canPaste = useSyncExternalStore(
+    () => () => {},
+    () => typeof navigator.clipboard?.readText === "function",
+    () => false,
+  );
+
+  // Once the shared values are in the form, drop them from the address bar so
+  // a refresh or the back button doesn't fill the form in again.
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
+  const pasteFromClipboard = async () => {
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (text) setCaptureText(text);
+    } catch {
+      // Permission denied or an empty clipboard: leave the field for typing.
+    }
+    textareaRef.current?.focus();
+  };
 
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ title: string; collections: { id: string; name: string }[] } | null>(null);
@@ -92,6 +148,30 @@ export default function CapturePage() {
       setIsUploadingAttachment(false);
     }
   };
+
+  // A photo or file shared to the installed app: the service worker
+  // (public/sw.js) parked it in the Cache API, since a file can't travel in a
+  // URL. Attach it exactly as if it had been picked here, then clear it.
+  const sharedFileTaken = useRef(false);
+  useEffect(() => {
+    if (!shared.hasFile || sharedFileTaken.current || !("caches" in window)) return;
+    sharedFileTaken.current = true;
+    void (async () => {
+      try {
+        const cache = await caches.open("share-target");
+        const response = await cache.match("/__shared-file");
+        if (!response) return;
+        const blob = await response.blob();
+        const name = decodeURIComponent(response.headers.get("X-File-Name") ?? "shared-file");
+        await cache.delete("/__shared-file");
+        await handleFileUpload(new File([blob], name, { type: blob.type }));
+      } catch {
+        setAttachmentError("Couldn't read the shared file. Attach it here instead.");
+      }
+    })();
+    // Runs once, for the share this page was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -249,6 +329,7 @@ export default function CapturePage() {
             )}
           >
             <InputGroupTextarea
+              ref={textareaRef}
               autoFocus
               value={captureText}
               onChange={(e) => setCaptureText(e.target.value)}
@@ -305,6 +386,13 @@ export default function CapturePage() {
                 Attach
                 {storageLimit.isAtLimit && <ProBadge className="ml-1" />}
               </InputGroupButton>
+
+              {canPaste && !captureText && (
+                <InputGroupButton type="button" onClick={pasteFromClipboard} className="mr-auto">
+                  <HugeiconsIcon icon={Clipboard} strokeWidth={2.25} className="h-3.5 w-3.5" />
+                  Paste
+                </InputGroupButton>
+              )}
 
               <InputGroupText className="rounded-full bg-primary/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-primary">
                 <HugeiconsIcon icon={DetectedTypeIcon} strokeWidth={2.25} className="h-3 w-3" />
