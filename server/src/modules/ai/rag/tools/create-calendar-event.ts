@@ -56,7 +56,7 @@ export const createCalendarEventTool = tool(
   {
     name: "create_calendar_event",
     description:
-      "Create a calendar event, reminder, or appointment for the user — e.g. \"add a meeting with John tomorrow at 3pm\", \"remind me to call the dentist next Monday at 10am\", \"schedule lunch with Sarah on Friday at noon\". Resolve any relative date/time to an absolute ISO 8601 datetime yourself, using today's date given in your system prompt, before calling this. The event is always saved in SaveForLatter with its date attached, and automatically synced to Google Calendar and/or Outlook if the user has connected one — tell the user which of those it was pushed to (from `pushedTo`) and, if any weren't connected (`notConnected`), mention they can connect one from the Integrations page for it to sync there too. The app shows the event as a card with buttons to open it, so don't write out its links.",
+      "Create a calendar event, reminder, or appointment for the user — e.g. \"add a meeting with John tomorrow at 3pm\", \"remind me to call the dentist next Monday at 10am\", \"schedule lunch with Sarah on Friday at noon\". Resolve any relative date/time to an absolute ISO 8601 datetime yourself, using today's date given in your system prompt, before calling this. The event is always saved in SaveForLatter with its date attached, and automatically synced to Google Calendar if the user has connected it — tell the user which of those it was pushed to (from `pushedTo`) and, if any weren't connected (`notConnected`), mention they can connect one from the Integrations page for it to sync there too. The app shows the event as a card with buttons to open it, so don't write out its links.",
     schema: inputSchema,
   },
 );
