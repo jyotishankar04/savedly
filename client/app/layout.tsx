@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,21 @@ export const metadata: Metadata = {
   applicationName: "SaveForLatter",
   openGraph: { type: "website", siteName: "SaveForLatter", title: TITLE, description: DESCRIPTION, url: "/" },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+  // Installed to an iPhone's home screen, open full-screen under this name.
+  appleWebApp: { capable: true, title: "SaveForLatter", statusBarStyle: "default" },
+};
+
+// The browser and status bar take the page's own background, light or dark.
+// viewportFit lets the layout reach the edges of a notched phone; the safe-area
+// insets are then available to anything that has to stay clear of them.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#171717" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
