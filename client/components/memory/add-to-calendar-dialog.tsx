@@ -151,7 +151,7 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
 
             <section aria-labelledby="cal-direct" className="space-y-2.5">
               <h3 id="cal-direct" className="text-sm font-medium text-foreground">
-                {anyConnected ? "Add to your calendar" : "Sync directly"}
+                {anyConnected ? "Add to your calendar" : calendarOpen ? "Sync directly" : "Saved"}
               </h3>
               <div className="space-y-2">
                 {(["google"] as const).map((provider) => {
@@ -172,8 +172,9 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
                     </Button>
                   ) : !calendarOpen ? (
                     <p key={provider} className="rounded-xl border border-dashed border-border px-4 py-3 text-[13px] leading-snug text-muted-foreground">
-                      <span className="font-medium text-foreground">{label} is coming soon.</span> We&apos;re going through Google&apos;s verification for
-                      calendar access. Until then, use a link or the file below.
+                      <span className="font-medium text-foreground">This event is in your SaveForLatter calendar.</span> Sending it to {label} is
+                      coming soon: we&apos;re going through Google&apos;s verification for calendar access. Until then, you can add it yourself with a
+                      link or the file below.
                     </p>
                   ) : (
                     <Button

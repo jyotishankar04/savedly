@@ -101,6 +101,33 @@ export async function seedDefaultFlags(): Promise<void> {
     await db.insert(featureFlags).values(flag).onConflictDoNothing({ target: featureFlags.key });
   }
   await db.delete(featureFlags).where(inArray(featureFlags.key, RETIRED_FLAG_KEYS));
+  await holdGoogleCalendarForReview();
+}
+
+// Recorded once this hold has been applied, so it never runs twice.
+const GOOGLE_CALENDAR_HOLD_KEY = "holds.google_calendar_review.applied";
+
+/**
+ * The hosted service can't offer Google Calendar until Google has verified
+ * its access to calendars: before that, connecting leads to an "unverified
+ * app" warning. So the hosted service switches new connections off once,
+ * here, and the app shows Google Calendar as coming soon. Events still work
+ * in the in-app calendar, which needs no Google access.
+ *
+ * Applied a single time: after Google approves, an admin turns "Google
+ * Calendar" back on in Admin > Features and it stays on across restarts.
+ * Self-hosted installs use their own Google project and are left alone.
+ */
+async function holdGoogleCalendarForReview(): Promise<void> {
+  if (env.SELF_HOSTED) return;
+  const [applied] = await db
+    .insert(featureFlags)
+    .values({ key: GOOGLE_CALENDAR_HOLD_KEY, value: true, description: "Internal: the one-time Google Calendar review hold has been applied.", category: "internal" })
+    .onConflictDoNothing({ target: featureFlags.key })
+    .returning({ key: featureFlags.key });
+  if (!applied) return;
+  await db.update(featureFlags).set({ value: false, updatedAt: new Date() }).where(eq(featureFlags.key, RESERVED_FLAG_KEYS.CALENDAR_GOOGLE_ENABLED));
+  flagCache.clear();
 }
 
 export async function listFlags() {

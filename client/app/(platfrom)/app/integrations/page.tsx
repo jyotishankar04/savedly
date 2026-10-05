@@ -422,7 +422,7 @@ export default function IntegrationsPage() {
               how={googlePending ? "In review" : undefined}
               description={
                 googlePending
-                  ? "Add events from your saved items to Google Calendar. We're going through Google's verification for calendar access, and connecting opens here as soon as it's approved."
+                  ? "Send events from your saved items to Google Calendar. We're going through Google's verification for calendar access, so this opens once it's approved. Until then, events you accept go to your SaveForLatter calendar."
                   : cardMeta[0].description
               }
               action={
