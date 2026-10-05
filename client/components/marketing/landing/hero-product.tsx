@@ -123,7 +123,10 @@ export function HeroProduct() {
   const cta = useAuthCta();
 
   return (
-    <section className="relative isolate overflow-hidden bg-background selection:bg-primary/25 font-sans antialiased">
+    // z-40: `isolate` makes this section its own stacking layer, and the fixed
+    // navbar lives inside it. Without a level of its own, anything with a
+    // z-index further down the page would draw over the navbar.
+    <section className="relative isolate z-40 overflow-hidden bg-background selection:bg-primary/25 font-sans antialiased">
       {/* Light Mode Background */}
       <motion.img
         variants={skylightVariants}
