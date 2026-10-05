@@ -67,9 +67,9 @@ Then open <http://localhost:3000> and create your admin account. It works out of
 # 1. Server
 cd server
 pnpm install
-cp .env.example .env      # fill in the values you need — see the comments in that file
-docker compose up -d
-npx drizzle-kit migrate
+cp .env.example .env      # generate the five secrets; the rest can stay empty
+docker compose up -d db redis mailhog
+pnpm db:bootstrap         # migrations, plus the roles, flags and plans
 pnpm dev                  # http://localhost:4000
 ```
 
@@ -87,7 +87,7 @@ pnpm install
 pnpm dev
 ```
 
-Sign in, then head to **Settings → AI** to connect a provider key — that's what unlocks summaries, tags, and the Ask assistant. Saving and keyword search both work immediately without one.
+Sign up with an email and password (no OAuth app or cloud account needed locally; the first account is an admin), then head to **Settings → AI** to connect a provider key — that's what unlocks summaries, tags, and the Ask assistant. Saving and keyword search both work immediately without one.
 
 ## Bring your own AI key
 

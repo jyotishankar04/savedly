@@ -5,6 +5,12 @@ export interface ServerConfig {
   selfHosted: boolean;
   /** Paid plans can be bought (hosted, with a payment provider configured). */
   billing: boolean;
+  /**
+   * New Google Calendar connections are open. False while an admin has them
+   * switched off (the hosted service does, during Google's review of its
+   * calendar access); existing connections keep working either way.
+   */
+  googleCalendar: boolean;
 }
 
 export function getServerConfig(): Promise<ServerConfig> {

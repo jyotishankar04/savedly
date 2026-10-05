@@ -13,19 +13,18 @@ export const VIEW_LABELS: Record<CalendarViewKey, string> = {
 };
 
 export const SOURCE_LABEL: Record<EventSource, string> = {
-  memora: "SaveForLatter",
+  saveforlatter: "SaveForLatter",
   google: "Google Calendar",
-  microsoft: "Outlook",
 };
 
-export function providerName(provider: CalendarProviderKey): string {
-  return provider === "google" ? "Google Calendar" : "Outlook";
+export function providerName(_provider: CalendarProviderKey): string {
+  return "Google Calendar";
 }
 
 /** Which API an edit or delete goes through, or null when the event can't be changed from here. */
 export function editTargetFor(event: CalendarEvent): EventEditTarget | null {
   if (event.memoryId) return { kind: "memory", memoryId: event.memoryId };
-  if (event.externalEventId && event.source !== "memora") {
+  if (event.externalEventId && event.source !== "saveforlatter") {
     return { kind: "external", provider: event.source, externalEventId: event.externalEventId };
   }
   return null;
@@ -48,7 +47,7 @@ export function toFullCalendarEvent(event: CalendarEvent): EventInput {
     // An all-day event would turn into a timed one if it were dragged, so it stays put.
     startEditable: target !== null && !event.allDay,
     durationEditable: target !== null && !event.allDay,
-    classNames: [`sfl-event`, `sfl-event--${event.source === "memora" ? "note" : "external"}`],
+    classNames: [`sfl-event`, `sfl-event--${event.source === "saveforlatter" ? "note" : "external"}`],
     extendedProps: { event },
   };
 }

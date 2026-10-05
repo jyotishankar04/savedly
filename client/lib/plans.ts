@@ -85,7 +85,6 @@ export const PLAN_FEATURE_LABEL = {
   batchOperations: "Bulk actions",
   aiEventDetection: "Events found in what you save",
   calendarSync: "Google Calendar sync",
-  calendarMicrosoft: "Microsoft Calendar sync",
   passwordProtectedShares: "Password-protected links",
   directShares: "Invite people to what you share",
   privateShareRequests: "Links people request access to",

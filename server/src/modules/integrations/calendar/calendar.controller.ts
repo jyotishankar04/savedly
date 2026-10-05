@@ -11,11 +11,6 @@ import {
   isGoogleCalendarConfigured,
 } from "./google-calendar-client";
 import {
-  buildMicrosoftCalendarAuthUrl,
-  exchangeMicrosoftCalendarCode,
-  isMicrosoftCalendarConfigured,
-} from "./microsoft-calendar-client";
-import {
   bestEffortRevoke,
   connectCalendar,
   createStandaloneCalendarEvent,
@@ -42,22 +37,20 @@ import { calendarConnections } from "../../../db/schema";
 import { and, eq } from "drizzle-orm";
 import { CalendarProvider } from "../../../db/enums";
 import { decryptToken } from "../../../shared/crypto/token-cipher";
-
-async function isConfigured(provider: CalendarProviderKey): Promise<boolean> {
-  return provider === "google" ? await isGoogleCalendarConfigured() : isMicrosoftCalendarConfigured();
-}
-
-function providerLabel(provider: CalendarProviderKey): string {
-  return provider === "google" ? "Google" : "Microsoft";
-}
+import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../../feature-flags/feature-flags.service";
 
 async function initiateConnect(req: Request, res: Response, provider: CalendarProviderKey) {
-  if (!(await isConfigured(provider))) {
-    return res.status(503).json(ApiResponse.error("CALENDAR_NOT_CONFIGURED", `${providerLabel(provider)} Calendar isn't configured yet`));
+  // Switched off by an admin: back to Integrations, which explains why. This
+  // is a page navigation, so a JSON error would leave the user on a blank page.
+  if (!(await isCalendarSyncEnabled()) || !(await isCalendarProviderEnabled(provider))) {
+    return res.redirect(`${env.FRONTEND_URL}/app/integrations`);
+  }
+  if (!(await isGoogleCalendarConfigured())) {
+    return res.status(503).json(ApiResponse.error("CALENDAR_NOT_CONFIGURED", "Google Calendar isn't configured yet"));
   }
 
   const state = signCalendarStateToken({ typ: "calendar_connect", userId: req.user!.id, provider });
-  const url = provider === "google" ? await buildGoogleCalendarAuthUrl(state) : buildMicrosoftCalendarAuthUrl(state);
+  const url = await buildGoogleCalendarAuthUrl(state);
   res.redirect(url);
 }
 
@@ -71,8 +64,7 @@ async function handleCallback(req: Request, res: Response, provider: CalendarPro
   if (!payload || payload.provider !== provider) return res.redirect(failureUrl);
 
   try {
-    const tokens =
-      provider === "google" ? await exchangeGoogleCalendarCode(code) : await exchangeMicrosoftCalendarCode(code);
+    const tokens = await exchangeGoogleCalendarCode(code);
     await connectCalendar(payload.userId, provider, tokens);
   } catch (err) {
     logger.warn({ err, provider }, "[calendar] connect callback failed");
@@ -96,14 +88,6 @@ export class CalendarController {
     await handleCallback(req, res, "google");
   }
 
-  static async connectMicrosoft(req: Request, res: Response) {
-    await initiateConnect(req, res, "microsoft");
-  }
-
-  static async microsoftCallback(req: Request, res: Response) {
-    await handleCallback(req, res, "microsoft");
-  }
-
   static async disconnect(req: Request, res: Response) {
     const provider = req.params.provider as CalendarProviderKey;
     const [row] = await db
@@ -112,7 +96,7 @@ export class CalendarController {
       .where(
         and(
           eq(calendarConnections.userId, req.user!.id),
-          eq(calendarConnections.provider, provider === "google" ? CalendarProvider.GOOGLE : CalendarProvider.MICROSOFT),
+          eq(calendarConnections.provider, CalendarProvider.GOOGLE),
         ),
       )
       .limit(1);

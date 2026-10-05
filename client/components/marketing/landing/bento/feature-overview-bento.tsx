@@ -47,7 +47,7 @@ const TILES: Tile[] = [
   { icon: Network, title: "A library with a shape", description: "Related by meaning, by tag, or by collection — nothing you save sits alone.", href: "#graph" },
   { icon: Lock, title: "A real lock, not a toggle", description: "PIN-protected. Blurs when you look away, locks for real when you switch tabs.", href: "#vault" },
   { icon: Globe, title: "Wherever you already are", description: "The dashboard today — the browser extension is on the way.", href: "#everywhere" },
-  { icon: Calendar, title: "Plays well with your calendar", description: "Push a detected event straight to Google Calendar or Outlook.", href: "#integrations" },
+  { icon: Calendar, title: "Plays well with your calendar", description: "Push a detected event straight to Google Calendar.", href: "#integrations" },
   { icon: Route, title: "One pipeline, every save", description: "Read, summarized, tagged, and embedded — the same four steps, every time.", href: "#how-it-works" },
   { icon: Layers, title: "Whatever it is, it goes in", description: "Links, videos, notes, images, documents, voice — all one box.", href: "#formats" },
   { icon: Zap, title: "Always shipping", description: "New capability most months — see what actually changed.", href: "/changelog" },

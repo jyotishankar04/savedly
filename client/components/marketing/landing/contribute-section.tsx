@@ -51,7 +51,7 @@ export function ContributeSection({ showDonate = false }: { showDonate?: boolean
               Open source, and yours to run.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
-              Your memories should belong to you. Memora is open source, so you can see how it works, run it yourself, and keep
+              Your memories should belong to you. SaveForLatter is open source, so you can see how it works, run it yourself, and keep
               control of your data.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">

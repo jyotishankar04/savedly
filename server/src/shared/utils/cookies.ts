@@ -2,12 +2,12 @@ import type { Response } from "express";
 import { env } from "../../config/env";
 import { parseDurationMs } from "./duration";
 
-export const ACCESS_TOKEN_COOKIE = "memora_access_token";
-export const REFRESH_TOKEN_COOKIE = "memora_refresh_token";
-export const OAUTH_STATE_COOKIE = "memora_oauth_state";
-export const OAUTH_NEXT_COOKIE = "memora_oauth_next";
-export const SHARE_TOKEN_COOKIE = "memora_share_token";
-export const VAULT_TOKEN_COOKIE = "memora_vault_token";
+export const ACCESS_TOKEN_COOKIE = "saveforlatter_access_token";
+export const REFRESH_TOKEN_COOKIE = "saveforlatter_refresh_token";
+export const OAUTH_STATE_COOKIE = "saveforlatter_oauth_state";
+export const OAUTH_NEXT_COOKIE = "saveforlatter_oauth_next";
+export const SHARE_TOKEN_COOKIE = "saveforlatter_share_token";
+export const VAULT_TOKEN_COOKIE = "saveforlatter_vault_token";
 
 const AUTH_PATH = "/api/v1/auth";
 const SHARE_PATH = "/api/v1/s";

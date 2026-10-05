@@ -27,22 +27,22 @@ const FAQS: Faq[] = [
     answer: "Links, notes, screenshots, PDFs, documents, videos, voice notes, and more.",
   },
   {
-    question: "How does Memora find things?",
+    question: "How does SaveForLatter find things?",
     answer:
-      "Memora understands the content and meaning of what you save, so you can search using normal words instead of remembering exact titles or keywords.",
+      "SaveForLatter understands the content and meaning of what you save, so you can search using normal words instead of remembering exact titles or keywords.",
   },
   {
     question: "Can I ask questions about my saved things?",
-    answer: "Yes. Ask questions in plain English and Memora uses your saved memories to help you find the answer.",
+    answer: "Yes. Ask questions in plain English and SaveForLatter uses your saved memories to help you find the answer.",
   },
   {
-    question: "Is Memora open source?",
-    answer: "Yes. You can inspect the code, run Memora yourself, and contribute to the project.",
+    question: "Is SaveForLatter open source?",
+    answer: "Yes. You can inspect the code, run SaveForLatter yourself, and contribute to the project.",
   },
   {
     question: "Where is my data stored?",
     answer:
-      "Your data is stored according to the deployment you choose. If you self-host Memora, you control the infrastructure and data.",
+      "Your data is stored according to the deployment you choose. If you self-host SaveForLatter, you control the infrastructure and data.",
   },
   {
     question: "Is my vault encrypted?",

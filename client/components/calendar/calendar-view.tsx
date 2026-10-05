@@ -25,6 +25,8 @@ import { useCalendarConnectionsQuery, useCalendarEventsQuery, useUpdateCalendarE
 import { EditEventDialog, NewEventDialog, type NewEventDraft } from "./event-dialogs";
 import { EventPopover, type EventPopoverState } from "./event-popover";
 import { editTargetFor, formatRangeTitle, toFullCalendarEvent, VIEW_LABELS, type CalendarViewKey, type EventSource } from "./calendar-utils";
+import { useQuery } from "@tanstack/react-query";
+import { getServerConfig } from "@/lib/server-config";
 import "./calendar.css";
 
 const VIEW_STORAGE_KEY = "sfl.calendar.view";
@@ -73,7 +75,7 @@ export default function CalendarView() {
   const [view, setView] = React.useState<CalendarViewKey>(initialView);
   const [firstDay] = React.useState(localeFirstDay);
   const [range, setRange] = React.useState<VisibleRange | null>(null);
-  const [hidden, setHidden] = React.useState<Record<EventSource, boolean>>({ memora: false, google: false, microsoft: false });
+  const [hidden, setHidden] = React.useState<Record<EventSource, boolean>>({ saveforlatter: false, google: false });
   const [popover, setPopover] = React.useState<EventPopoverState | null>(null);
   const [editing, setEditing] = React.useState<CalendarEvent | null>(null);
   const [draft, setDraft] = React.useState<NewEventDraft | null>(null);
@@ -86,8 +88,10 @@ export default function CalendarView() {
   });
   const updateMutation = useUpdateCalendarEventMutation();
   const router = useRouter();
-  // Adding events (and sending them to Google or Outlook) is a paid feature; moving the ones already here isn't.
+  // Adding events (and sending them to Google Calendar) is a paid feature; moving the ones already here isn't.
   const canAdd = usePlanFeature("calendarSync");
+  const { data: serverConfig } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const calendarOpen = serverConfig?.googleCalendar ?? true;
 
   const fcEvents = React.useMemo(() => (range ? events.filter((e) => !hidden[e.source]).map(toFullCalendarEvent) : []), [events, hidden, range]);
 
@@ -214,7 +218,7 @@ export default function CalendarView() {
 
   const title = range ? formatRangeTitle(view, range.currentStart, range.currentEnd) : "";
   const connected = (provider: CalendarProviderKey) => connections.find((c) => c.provider === provider);
-  const hiddenCount = (["memora", "google", "microsoft"] as const).filter((s) => hidden[s] && (s === "memora" || connected(s))).length;
+  const hiddenCount = (["saveforlatter", "google"] as const).filter((s) => hidden[s] && (s === "saveforlatter" || connected(s))).length;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -285,12 +289,12 @@ export default function CalendarView() {
                 label="Your notes"
                 detail="Events saved in SaveForLatter"
                 swatch="bg-primary"
-                checked={!hidden.memora}
-                onChange={(on) => setHidden((h) => ({ ...h, memora: !on }))}
+                checked={!hidden.saveforlatter}
+                onChange={(on) => setHidden((h) => ({ ...h, saveforlatter: !on }))}
               />
-              {(["google", "microsoft"] as const).map((provider) => {
+              {(["google"] as const).map((provider) => {
                 const connection = connected(provider);
-                const label = provider === "google" ? "Google Calendar" : "Outlook";
+                const label = "Google Calendar";
                 return connection ? (
                   <SourceRow
                     key={provider}
@@ -304,11 +308,15 @@ export default function CalendarView() {
                   <div key={provider} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2">
                     <div className="min-w-0">
                       <p className="text-[13px] font-medium text-foreground">{label}</p>
-                      <p className="text-xs text-muted-foreground">Not connected</p>
+                      <p className="text-xs text-muted-foreground">{calendarOpen ? "Not connected" : "In Google's review"}</p>
                     </div>
-                    <Link href="/app/integrations" className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10">
-                      Connect
-                    </Link>
+                    {calendarOpen ? (
+                      <Link href="/app/integrations" className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10">
+                        Connect
+                      </Link>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">Coming soon</span>
+                    )}
                   </div>
                 );
               })}
@@ -464,14 +472,14 @@ function DayCell({ arg }: { arg: DayCellContentArg }) {
 
 function EventChip({ arg }: { arg: EventContentArg }) {
   const event = arg.event.extendedProps.event as CalendarEvent | undefined;
-  const isNote = event?.source === "memora";
+  const isNote = event?.source === "saveforlatter";
   const type = arg.view.type;
 
   if (type === "listWeek") {
     return (
       <span className="flex min-w-0 items-baseline gap-2">
         <span className="truncate font-medium text-foreground">{arg.event.title}</span>
-        {event && <span className="shrink-0 text-xs text-muted-foreground">{isNote ? "Note" : event.source === "google" ? "Google" : "Outlook"}</span>}
+        {event && <span className="shrink-0 text-xs text-muted-foreground">{isNote ? "Note" : "Google"}</span>}
       </span>
     );
   }
