@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { getSection, settingsVersion } from "../../modules/instance-settings/instance-settings.service";
+import { htmlToText } from "./html-to-text";
 
 export interface SmtpSettings {
   enabled: boolean;
@@ -56,5 +57,7 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     to: input.to,
     subject: input.subject,
     html: input.html,
+    // Sent as multipart/alternative: see html-to-text.ts for why.
+    text: htmlToText(input.html),
   });
 }
