@@ -4,8 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  AppleIcon,
-  BlueskyIcon,
   Bookmark02Icon,
   ChromeIcon,
   CheckmarkCircle02Icon as CheckCircle,
@@ -14,14 +12,10 @@ import {
   Linkedin01Icon,
   NewTwitterIcon,
   Notion01Icon,
-  PinterestIcon,
-  QuoteDownIcon,
   RedditIcon,
   Search01Icon as SearchIcon,
   SlackIcon,
-  StickyNote02Icon,
   TelegramIcon,
-  TiktokIcon,
   WhatsappIcon,
   YoutubeIcon,
 } from "@hugeicons/core-free-icons";
@@ -57,8 +51,7 @@ const CATEGORIES: Category[] = ["Calendar", "Notes", "Bookmarks & reading", "Soc
  * available yet: none of them connects to anything.
  *
  * `how` is what the platform itself allows: a live sync where it offers an
- * API, a one-time file import where it doesn't (Google Keep and Apple Notes
- * give other apps no access to personal accounts). Most social networks
+ * API. Most social networks
  * don't let an app read what you've saved there, so those are captured one
  * post at a time, from the share menu or the browser extension: the cards
  * say so, and don't promise a sync that the platform wouldn't allow.
@@ -67,7 +60,7 @@ interface PlannedIntegration {
   key: string;
   title: string;
   category: Category;
-  how: "Sync" | "File import" | "Send to bot" | "Extension" | "Share & extension";
+  how: "Sync" | "Send to bot" | "Extension" | "Share & extension";
   description: string;
   brings: string[];
   icon: IconSvgElement;
@@ -86,26 +79,6 @@ const PLANNED: PlannedIntegration[] = [
     iconClassName: "bg-foreground text-background",
   },
   {
-    key: "google-keep",
-    title: "Google Keep",
-    category: "Notes",
-    how: "File import",
-    description: "Import your Keep notes from a Google Takeout export. Google doesn't let apps connect to Keep directly.",
-    brings: ["Notes and checklists", "Labels, as tags", "Attached images"],
-    icon: StickyNote02Icon,
-    iconClassName: "bg-amber-400 text-white",
-  },
-  {
-    key: "apple-notes",
-    title: "Apple Notes",
-    category: "Notes",
-    how: "File import",
-    description: "Import notes exported from the Notes app on your Mac or iPhone.",
-    brings: ["Note text", "Folders, as collections", "Attached images"],
-    icon: AppleIcon,
-    iconClassName: "bg-neutral-800 text-white",
-  },
-  {
     key: "raindrop",
     title: "Raindrop.io",
     category: "Bookmarks & reading",
@@ -114,16 +87,6 @@ const PLANNED: PlannedIntegration[] = [
     brings: ["Bookmarks and their notes", "Collections", "Tags"],
     icon: Bookmark02Icon,
     iconClassName: "bg-sky-500 text-white",
-  },
-  {
-    key: "readwise",
-    title: "Readwise",
-    category: "Bookmarks & reading",
-    how: "Sync",
-    description: "Bring in the highlights you've collected from books, articles and podcasts.",
-    brings: ["Highlights and your notes on them", "The source they came from", "New highlights as they arrive"],
-    icon: QuoteDownIcon,
-    iconClassName: "bg-yellow-500 text-white",
   },
   {
     key: "reddit",
@@ -174,36 +137,6 @@ const PLANNED: PlannedIntegration[] = [
     brings: ["Posts and their author", "Articles, with their full text", "Job listings you want to keep"],
     icon: Linkedin01Icon,
     iconClassName: "bg-sky-700 text-white",
-  },
-  {
-    key: "tiktok",
-    title: "TikTok",
-    category: "Social",
-    how: "Share & extension",
-    description: "Save a video with its caption, so the recipe or tip in it is searchable later.",
-    brings: ["The video link and caption", "The creator", "Shared from the TikTok app"],
-    icon: TiktokIcon,
-    iconClassName: "bg-neutral-900 text-white",
-  },
-  {
-    key: "pinterest",
-    title: "Pinterest",
-    category: "Social",
-    how: "Sync",
-    description: "Bring in your boards, so your pins sit beside everything else you've saved.",
-    brings: ["Pins and their images", "Boards, as collections", "New pins as you add them"],
-    icon: PinterestIcon,
-    iconClassName: "bg-red-700 text-white",
-  },
-  {
-    key: "bluesky",
-    title: "Bluesky",
-    category: "Social",
-    how: "Sync",
-    description: "Keep the posts you like on Bluesky, with their text and links.",
-    brings: ["Posts you've liked", "Threads, in order", "Links shared in them"],
-    icon: BlueskyIcon,
-    iconClassName: "bg-sky-500 text-white",
   },
   {
     key: "telegram",
