@@ -6,7 +6,7 @@ const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 10000;
 const ROBOTS_TIMEOUT_MS = 4000;
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
-const USER_AGENT = "Mozilla/5.0 (compatible; MemoraBot/1.0; +https://memora.app/bot)";
+const USER_AGENT = "Mozilla/5.0 (compatible; SaveForLatterBot/1.0; +https://saveforlatter.tech)";
 
 class UrlSafetyError extends Error {
   constructor(public status: FetchStatus) {
@@ -86,7 +86,7 @@ function parseRobotsTxt(text: string, pathname: string): boolean {
     const value = line.slice(separator + 1).trim();
 
     if (key === "user-agent") {
-      appliesToUs = value === "*" || value.toLowerCase().includes("memorabot");
+      appliesToUs = value === "*" || value.toLowerCase().includes("saveforlatterbot");
     } else if (appliesToUs && key === "disallow" && value) {
       disallows.push(value);
     }

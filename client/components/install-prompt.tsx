@@ -112,7 +112,7 @@ export function InstallPrompt() {
           animate={{ y: 0, opacity: 1, transition: { type: "spring", stiffness: 380, damping: 32 } }}
           exit={{ y: 40, opacity: 0, transition: { duration: 0.18 } }}
           className={
-            "fixed inset-x-3 z-50 mx-auto max-w-md rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-[0_18px_48px_-16px_rgb(0_0_0/0.45)] md:hidden " +
+            "fixed inset-x-3 z-[60] mx-auto max-w-md rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-[0_18px_48px_-16px_rgb(0_0_0/0.45)] md:hidden " +
             (inApp ? "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]" : "bottom-[calc(0.75rem+env(safe-area-inset-bottom))]")
           }
         >

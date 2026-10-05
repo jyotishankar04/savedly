@@ -50,7 +50,7 @@ const CACHEABLE_PREFIXES = [
 // The same for every visitor, signed in or not, and changed only by an admin:
 // the announcement banner, the maintenance notice, the plan list, the sign-in
 // options and the instance config.
-const PUBLIC_PATHS = new Set(["/announcements/active", "/maintenance/status", "/plans", "/auth/providers", "/config"]);
+const PUBLIC_PATHS = new Set(["/announcements/active", "/whats-new/active", "/maintenance/status", "/plans", "/auth/providers", "/config"]);
 const PUBLIC_SCOPE = "public";
 
 // A fresh self-hosted install reports this until its first account exists,

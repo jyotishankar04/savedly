@@ -29,7 +29,7 @@ This is a monorepo of independent apps with no root workspace. Read [`docs/READM
 
 ## Getting set up
 
-See [`docs/GETTING_STARTED.md`](./docs/GETTING_STARTED.md) for the full local setup (Postgres, Redis, environment variables, OAuth). In short: `cd` into the app you're changing, `pnpm install`, then `pnpm dev`.
+See [`docs/GETTING_STARTED.md`](./docs/GETTING_STARTED.md) for the full local setup. You need Node.js, pnpm and Docker, and nothing else: no OAuth app and no cloud account. Sign-in works with an email and password locally, and the first account you create is an admin.
 
 Both `server/` and `client/` have a typecheck you should run before opening a PR — the same checks CI runs on every PR:
 

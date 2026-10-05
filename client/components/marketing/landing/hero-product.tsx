@@ -123,7 +123,10 @@ export function HeroProduct() {
   const cta = useAuthCta();
 
   return (
-    <section className="relative isolate overflow-hidden bg-background selection:bg-primary/25 font-sans antialiased">
+    // z-40: `isolate` makes this section its own stacking layer, and the fixed
+    // navbar lives inside it. Without a level of its own, anything with a
+    // z-index further down the page would draw over the navbar.
+    <section className="relative isolate z-40 overflow-hidden bg-background selection:bg-primary/25 font-sans antialiased">
       {/* Light Mode Background */}
       <motion.img
         variants={skylightVariants}
@@ -172,7 +175,7 @@ export function HeroProduct() {
             variants={riseVariants}
             className="mt-8 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground"
           >
-            Links, notes, screenshots, PDFs, videos, and voice notes—all the things you don&apos;t want to lose. Memora keeps them organized and helps you find them again, even when you don&apos;t remember what you called them.
+            Links, notes, screenshots, PDFs, videos, and voice notes—all the things you don&apos;t want to lose. SaveForLatter keeps them organized and helps you find them again, even when you don&apos;t remember what you called them.
           </motion.p>
 
           <motion.div variants={ctaVariants} className="mt-10 flex flex-wrap items-center justify-center gap-4">

@@ -21,6 +21,7 @@ import {
   AiCredentialProvider,
   AiRole,
   AnnouncementDisplayMode,
+  WhatsNewKind,
   AnnouncementType,
   CalendarProvider,
   CollectionSource,
@@ -106,6 +107,8 @@ export const announcementDisplayModeEnum = pgEnum("announcement_display_mode", [
   AnnouncementDisplayMode.BANNER,
   AnnouncementDisplayMode.FULL_PAGE,
 ]);
+
+export const whatsNewKindEnum = pgEnum("whats_new_kind", [WhatsNewKind.NEW, WhatsNewKind.IMPROVED, WhatsNewKind.UPCOMING]);
 
 export const reportTypeEnum = pgEnum("report_type", [ReportType.BUG, ReportType.FEATURE]);
 
@@ -585,7 +588,7 @@ export const userSettings = pgTable("user_settings", {
   aiSummaries: boolean("ai_summaries").notNull().default(true),
   aiRelatedMemories: boolean("ai_related_memories").notNull().default(true),
   aiSemanticSearch: boolean("ai_semantic_search").notNull().default(true),
-  aiAskMemora: boolean("ai_ask_memora").notNull().default(true),
+  aiAskSaveForLatter: boolean("ai_ask_memora").notNull().default(true),
   captureExtractContent: boolean("capture_extract_content").notNull().default(true),
   captureGenerateTitle: boolean("capture_generate_title").notNull().default(true),
   captureGenerateSummary: boolean("capture_generate_summary").notNull().default(true),
@@ -699,7 +702,7 @@ export const memories = pgTable(
     // User-set, not AI-inferred — when this memory relates to something on a
     // specific date/time (a saved event page, a deadline mentioned in a
     // note). Null means "no event attached." Powers the "Add to calendar"
-    // action, which builds a Google/Outlook link or .ics file client-side —
+    // action, which builds a Google Calendar link or .ics file client-side —
     // no calendar OAuth involved.
     eventAt: timestamp("event_at", { withTimezone: true }),
     // How long that event runs, in minutes. Null means the 1-hour default —
@@ -1168,6 +1171,37 @@ export const announcements = pgTable(
     index("idx_announcements_active").on(table.isActive),
     index("idx_announcements_created_at").on(table.createdAt),
   ]
+);
+
+// -----------------------------------------------------------------------------
+// 21b. What's New Items Table (the cards in the landing page's "What's new"
+//      popup: features that shipped and ones that are coming. Unlike
+//      announcements, any number can be active at once; they show as a
+//      stack, in sort_order.)
+// -----------------------------------------------------------------------------
+export const whatsNewItems = pgTable(
+  "whats_new_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: whatsNewKindEnum("kind").notNull().default(WhatsNewKind.NEW),
+    title: varchar("title", { length: 120 }).notNull(),
+    body: text("body"),
+    // Short points shown as a list under the body.
+    bullets: jsonb("bullets").$type<string[]>().notNull().default([]),
+    imageUrl: text("image_url"),
+    ctaLabel: varchar("cta_label", { length: 60 }),
+    ctaUrl: text("cta_url"),
+    isActive: boolean("is_active").notNull().default(true),
+    // Lower comes first in the stack.
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("idx_whats_new_items_active_order").on(table.isActive, table.sortOrder)]
 );
 
 // -----------------------------------------------------------------------------

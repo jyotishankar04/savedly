@@ -4,18 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository structure
 
-This is **Memora**, a "second brain" capture/search/RAG product, split into four independent apps with no root workspace linking them (no root `package.json`). Each app has its own `pnpm-workspace.yaml` and lockfile — `cd` into an app directory before installing or running anything:
+This is **SaveForLatter**, a "second brain" capture/search/RAG product, split into three independent apps with no root workspace linking them (no root `package.json`). Each app has its own `pnpm-workspace.yaml` and lockfile — `cd` into an app directory before installing or running anything:
 
 - `server/` — Express + TypeScript API (the backend for all clients). This is the primary area of active development.
 - `client/` — Next.js 16 web dashboard.
 - `extension/` — Chrome MV3 extension (Vite + React) for quick-capture from the browser.
-- `mobile/` — Expo / React Native app (file-based routing via `expo-router`).
 - `docs/` — Product/architecture specs (see below) — these describe the *target* design, not always the current implementation.
+
+There is no mobile app — an earlier Expo/React Native `mobile/` app was removed; the web dashboard is the only client on phones for now.
 
 ## `docs/` — read before implementing backend features
 
 - `docs/BACKEND_REQUIREMENTS.md` is the full intended REST API contract (`/api/v1/...` routes, request/response JSON shapes, the `{ success, data, meta, error }` envelope) and a simpler reference DB schema, derived from what the three frontends already expect.
-- `docs/AI_REQUIREMENTS.md` specifies the intended AI subsystem: a LangGraph ingestion state machine (route by media type → summarize/tag → chunk → embed → upsert to `pgvector`) and a LangGraph "Ask Memora" corrective-RAG agent (retrieve → grade → rewrite-or-answer → grounding check), plus the hybrid dense+lexical (RRF) search SQL.
+- `docs/AI_REQUIREMENTS.md` specifies the intended AI subsystem: a LangGraph ingestion state machine (route by media type → summarize/tag → chunk → embed → upsert to `pgvector`) and a LangGraph "Ask SaveForLatter" corrective-RAG agent (retrieve → grade → rewrite-or-answer → grounding check), plus the hybrid dense+lexical (RRF) search SQL.
 - Treat these docs as the product spec, but verify against actual code before assuming something is implemented — the server is early-stage (see below) and `server/src/db/schema.ts` has already diverged from (and is more current/detailed than) the schema sketched in `BACKEND_REQUIREMENTS.md` (e.g. it adds OAuth `authIdentities`, dynamic `roles`/`permissions`, `sessions`, `devices` — no `memories`/`collections`/`tags` tables exist yet).
 
 ## Server (`server/`)
@@ -57,7 +58,9 @@ Follow `src/modules/health/` as the minimal reference implementation. **Note:** 
 Errors: throw `AppError(message, statusCode)` (`src/shared/errors/app-error.ts`); the global `errorHandler` middleware (registered last in `src/app.ts`) converts it to the JSON error response. Unmatched routes fall through to `notFound` (`src/shared/middlewares/not-found.ts`).
 
 ### Config
-- `src/config/env.ts` validates `process.env` with Zod at startup (fails fast on missing vars) — currently requires `DATABASE_URL`, `REDIS_URL`, `MAILHOG_URL`, `BETTER_AUTH_SECRET`, `FRONTEND_URL`. Copy `server/.env.example` and extend it; adding a new required var means adding it to this schema too.
+- `src/config/env.ts` validates `process.env` with Zod at startup (fails fast on missing vars). Copy `server/.env.example` and extend it; adding a new required var means adding it to this schema too. `SELF_HOSTED=true` (the root `docker-compose.yml`) generates secrets on first boot and makes OAuth/R2/SMTP optional; hosted production leaves it false and is configured only through env.
+- Infrastructure that a self-hosted admin can change at runtime (storage, vector store, email, embeddings, OAuth) is read through `modules/instance-settings/` (`getSection`: env > DB setting > default; the DB is never read unless `SELF_HOSTED`). Don't read those env vars directly — add a field to `instance-settings.registry.ts`.
+- `pnpm build` typechecks and bundles `src/server.ts` + `src/db/bootstrap.ts` with esbuild into `dist/` (tsc's output doesn't run under Node ESM: no `.js` import extensions).
 - `src/config/cors.ts` — CORS is currently wide open (`origin: true, credentials: true`).
 - `src/db/index.ts` — Drizzle client over a `pg.Pool`; `src/db/schema.ts` is the single schema file (tables + `pgEnum` + `defineRelations`); enum string values live in `src/db/enums.ts` and are reused by the pgEnum definitions — add new enum values there, not inline.
 
@@ -66,28 +69,3 @@ Next.js 16 App Router. Route groups: `app/(marketing)/` (public/marketing pages)
 
 ## Extension (`extension/`)
 Vite + React, Chrome Manifest V3. Three entry points: `src/popup/` (capture UI reading the active tab), `src/background/service-worker.ts` (context menus, keyboard shortcuts, notifications), `src/content/content-script.ts` (reads the web client's auth token from `localStorage` on the app's own domain and syncs it into `chrome.storage.local` for the extension to use). `pnpm dev` (vite) / `pnpm build` (`tsc && vite build`).
-
-## Mobile (`mobile/`)
-Expo + `expo-router` (file-based routing, tabs layout under `app/(tabs)/`). Global state lives in `context/MemoryContext.tsx`. `pnpm start` / `pnpm android` / `pnpm ios` / `pnpm web`.
-
-
-
-
-
-<!-- 
-export ANDROID_HOME=$HOME/Android/Sdk
-export PATH=$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH
-emulator -avd memora -no-snapshot -gpu host -no-boot-anim -->
-
-<!-- 
-export ANDROID_HOME=$HOME/Android/Sdk
-export PATH=$ANDROID_HOME/platform-tools:$PATH
-adb devices                      # confirm it shows "emulator-5554  device"
-adb reverse tcp:4000 tcp:4000
-adb reverse tcp:8081 tcp:8081 -->
-
-
-<!-- npx expo start --dev-client -->
-
-
-<!-- adb shell am start -n com.memora.app/.MainActivity -->

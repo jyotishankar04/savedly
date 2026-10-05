@@ -21,7 +21,7 @@ export const updateEventTool = tool(
     // Same shape as create_calendar_event's result, so the Ask UI shows the
     // moved event as a card too.
     if (input.memoryId) {
-      // Updates the memory's date and any synced Google/Outlook copy.
+      // Updates the memory's date and any synced Google Calendar copy.
       await updateEventForMemory(userId, input.memoryId, { title: input.title, startAt, durationMinutes: input.durationMinutes });
       const memory = await getMemoryById(userId, input.memoryId);
       const start = memory.eventAt ? memory.eventAt.toISOString() : (startAt ?? null);
@@ -44,7 +44,7 @@ export const updateEventTool = tool(
   {
     name: "update_event",
     description:
-      "Reschedule or rename an event — \"move team sync to 4 pm\", \"push the dentist to next Tuesday\", \"rename it to Planning\". Find it first with list_upcoming_events. Changes to a SaveForLatter event also update its Google/Outlook copy. For a calendar-only event, pass its full new start and title.",
+      "Reschedule or rename an event — \"move team sync to 4 pm\", \"push the dentist to next Tuesday\", \"rename it to Planning\". Find it first with list_upcoming_events. Changes to a SaveForLatter event also update its Google Calendar copy. For a calendar-only event, pass its full new start and title.",
     schema: inputSchema,
   },
 );

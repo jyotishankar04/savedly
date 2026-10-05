@@ -4,13 +4,27 @@ import React from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  Bookmark02Icon,
   ChromeIcon,
   CheckmarkCircle02Icon as CheckCircle,
+  GithubIcon,
+  InstagramIcon,
+  Linkedin01Icon,
+  NewTwitterIcon,
+  Notion01Icon,
+  RedditIcon,
   Search01Icon as SearchIcon,
+  SlackIcon,
+  TelegramIcon,
+  WhatsappIcon,
+  YoutubeIcon,
 } from "@hugeicons/core-free-icons";
+import type { IconSvgElement } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
 import { getCalendarConnectUrl, type CalendarProviderKey } from "@/lib/calendar-api";
+import { getServerConfig } from "@/lib/server-config";
 import { useCalendarConnectionsQuery, useDisconnectCalendarMutation } from "@/hooks/use-calendar";
 import { cn } from "@/lib/utils";
 import { usePlanFeature } from "@/hooks/use-plan-limit";
@@ -28,20 +42,153 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-/** Official Microsoft four-square mark, for Outlook. */
-function MicrosoftLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 21 21" className={className} aria-hidden="true">
-      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
-      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
-    </svg>
-  );
+type Category = "Calendar" | "Notes" | "Bookmarks & reading" | "Social" | "Messaging" | "Developer" | "Browser";
+const CATEGORIES: Category[] = ["Calendar", "Notes", "Bookmarks & reading", "Social", "Messaging", "Developer", "Browser"];
+
+/**
+ * Connectors that are planned but not built. They're listed so people can
+ * see where the product is going, and every card says plainly that it isn't
+ * available yet: none of them connects to anything.
+ *
+ * `how` is what the platform itself allows: a live sync where it offers an
+ * API. Most social networks
+ * don't let an app read what you've saved there, so those are captured one
+ * post at a time, from the share menu or the browser extension: the cards
+ * say so, and don't promise a sync that the platform wouldn't allow.
+ */
+interface PlannedIntegration {
+  key: string;
+  title: string;
+  category: Category;
+  how: "Sync" | "Send to bot" | "Extension" | "Share & extension";
+  description: string;
+  brings: string[];
+  icon: IconSvgElement;
+  iconClassName: string;
 }
 
-type Category = "Calendar" | "Coming soon";
-const CATEGORIES: Category[] = ["Calendar", "Coming soon"];
+const PLANNED: PlannedIntegration[] = [
+  {
+    key: "notion",
+    title: "Notion",
+    category: "Notes",
+    how: "Sync",
+    description: "Bring the Notion pages you choose into your library, and keep them up to date as you edit them.",
+    brings: ["Pages and their text", "Database entries", "New pages as you add them"],
+    icon: Notion01Icon,
+    iconClassName: "bg-foreground text-background",
+  },
+  {
+    key: "raindrop",
+    title: "Raindrop.io",
+    category: "Bookmarks & reading",
+    how: "Sync",
+    description: "Pull in your Raindrop bookmarks so they're summarized and searchable by meaning, alongside everything else.",
+    brings: ["Bookmarks and their notes", "Collections", "Tags"],
+    icon: Bookmark02Icon,
+    iconClassName: "bg-sky-500 text-white",
+  },
+  {
+    key: "reddit",
+    title: "Reddit",
+    category: "Social",
+    how: "Sync",
+    description: "Keep the posts and comments you save on Reddit, where you can actually find them again.",
+    brings: ["Saved posts", "Saved comments", "The subreddit, as a tag"],
+    icon: RedditIcon,
+    iconClassName: "bg-orange-600 text-white",
+  },
+  {
+    key: "youtube",
+    title: "YouTube",
+    category: "Social",
+    how: "Share & extension",
+    description: "Save a video and get a summary of what's in it, so you can find it by what was said, not just its title.",
+    brings: ["The video, with its title and channel", "A summary of the content", "Share it straight from the YouTube app"],
+    icon: YoutubeIcon,
+    iconClassName: "bg-red-600 text-white",
+  },
+  {
+    key: "x-twitter",
+    title: "X (Twitter)",
+    category: "Social",
+    how: "Share & extension",
+    description: "Save a post or a whole thread. X doesn't let apps read your bookmarks, so you save them one at a time.",
+    brings: ["The post's text and author", "Full threads, in order", "Images and links in the post"],
+    icon: NewTwitterIcon,
+    iconClassName: "bg-neutral-900 text-white",
+  },
+  {
+    key: "instagram",
+    title: "Instagram",
+    category: "Social",
+    how: "Share & extension",
+    description: "Keep a post or reel with its caption, and find it later by what it was about.",
+    brings: ["Posts and reels", "The caption and account", "Shared from the Instagram app"],
+    icon: InstagramIcon,
+    iconClassName: "bg-pink-600 text-white",
+  },
+  {
+    key: "linkedin",
+    title: "LinkedIn",
+    category: "Social",
+    how: "Share & extension",
+    description: "Save posts and articles worth coming back to, outside a feed that buries them.",
+    brings: ["Posts and their author", "Articles, with their full text", "Job listings you want to keep"],
+    icon: Linkedin01Icon,
+    iconClassName: "bg-sky-700 text-white",
+  },
+  {
+    key: "telegram",
+    title: "Telegram",
+    category: "Messaging",
+    how: "Send to bot",
+    description: "Forward a message, link or photo to a SaveForLatter bot and it lands in your library.",
+    brings: ["Links and text", "Photos and files", "Forwarded messages"],
+    icon: TelegramIcon,
+    iconClassName: "bg-sky-500 text-white",
+  },
+  {
+    key: "whatsapp",
+    title: "WhatsApp",
+    category: "Messaging",
+    how: "Send to bot",
+    description: "Message a link or a note to a SaveForLatter number to save it without opening the app.",
+    brings: ["Links and text", "Photos", "Voice notes"],
+    icon: WhatsappIcon,
+    iconClassName: "bg-emerald-500 text-white",
+  },
+  {
+    key: "slack",
+    title: "Slack",
+    category: "Messaging",
+    how: "Sync",
+    description: "Save a Slack message to your library from its menu, with a link back to the thread.",
+    brings: ["Messages you choose to save", "Links shared in them", "A link back to the conversation"],
+    icon: SlackIcon,
+    iconClassName: "bg-purple-700 text-white",
+  },
+  {
+    key: "github",
+    title: "GitHub stars",
+    category: "Developer",
+    how: "Sync",
+    description: "Add the repositories you star to your library, with a summary of what each one does.",
+    brings: ["Starred repositories", "Their description and topics", "New stars as you add them"],
+    icon: GithubIcon,
+    iconClassName: "bg-neutral-900 text-white",
+  },
+  {
+    key: "browser-extension",
+    title: "Browser extension",
+    category: "Browser",
+    how: "Extension",
+    description: "Quick-capture from any tab with a keyboard shortcut. Built, but not yet published to the Chrome Web Store.",
+    brings: ["The page you're on", "Selected text", "Links from the right-click menu"],
+    icon: ChromeIcon,
+    iconClassName: "bg-amber-500 text-white",
+  },
+];
 
 interface CardMeta {
   key: string;
@@ -111,6 +258,8 @@ function IntegrationCard({
   category,
   description,
   action,
+  how,
+  brings,
 }: {
   iconBg: string;
   icon: React.ReactNode;
@@ -119,6 +268,10 @@ function IntegrationCard({
   category: Category;
   description: string;
   action: React.ReactNode;
+  /** How it connects: shown beside the category. */
+  how?: string;
+  /** What it brings in, as a short list. */
+  brings?: string[];
 }) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm">
@@ -135,10 +288,25 @@ function IntegrationCard({
           />
         )}
       </h3>
-      <div className="mt-1">
+      <div className="mt-1 flex flex-wrap items-center gap-1">
         <CategoryTag category={category} />
+        {how && (
+          <span className="inline-flex w-fit items-center rounded-full border border-border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {how}
+          </span>
+        )}
       </div>
-      <p className="mt-2 flex-1 text-[11px] leading-relaxed text-muted-foreground">{description}</p>
+      <p className={cn("mt-2 text-[11px] leading-relaxed text-muted-foreground", !brings && "flex-1")}>{description}</p>
+      {brings && (
+        <ul className="mt-2.5 flex-1 space-y-1 border-t border-border/60 pt-2.5">
+          {brings.map((item) => (
+            <li key={item} className="flex items-start gap-1.5 text-[11px] leading-snug text-muted-foreground">
+              <span aria-hidden className="mt-[5px] h-1 w-1 shrink-0 rounded-full bg-muted-foreground/50" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-3">{action}</div>
     </div>
@@ -162,7 +330,11 @@ export default function IntegrationsPage() {
   // Connecting a calendar is a plan feature; an existing connection keeps
   // working and can always be disconnected.
   const googleSync = usePlanFeature("calendarSync");
-  const microsoftSync = usePlanFeature("calendarMicrosoft");
+  // Until the config has loaded, assume it's open: that's every self-hosted
+  // install and the hosted service once Google's review is done.
+  const { data: serverConfig } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const googleCalendarOpen = serverConfig?.googleCalendar ?? true;
+  const googlePending = !googleCalendarOpen && !isCalendarConnected("google");
   const disconnectMutation = useDisconnectCalendarMutation();
   function isCalendarConnected(provider: CalendarProviderKey): boolean {
     return calendarConnections?.some((c) => c.provider === provider) ?? false;
@@ -170,8 +342,7 @@ export default function IntegrationsPage() {
 
   const cardMeta: CardMeta[] = [
     { key: "google-calendar", title: "Google Calendar", description: "Sync detected and manually added events straight to your Google Calendar.", category: "Calendar", connected: isCalendarConnected("google") },
-    { key: "microsoft-outlook", title: "Outlook", description: "Sync detected and manually added events straight to your Outlook calendar.", category: "Calendar", connected: isCalendarConnected("microsoft") },
-    { key: "browser-extension", title: "Browser extension", description: "Quick-capture from any tab with a keyboard shortcut. Not yet published to the Chrome Web Store.", category: "Coming soon", connected: false },
+    ...PLANNED.map((p) => ({ key: p.key, title: p.title, description: `${p.description} ${p.brings.join(" ")}`, category: p.category, connected: false })),
   ];
 
   const q = query.trim().toLowerCase();
@@ -189,7 +360,11 @@ export default function IntegrationsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Integrations</h1>
           <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">
-            {visibleCount} of {cardMeta.length} connectors {activeCategory !== "All" || q ? "matching" : "available"}
+            {activeCategory !== "All" || q
+              ? `${visibleCount} of ${cardMeta.length} matching`
+              : googlePending
+                ? `${cardMeta.length} connectors on the way. None can be connected yet.`
+                : `${cardMeta.length - PLANNED.length} available now, ${PLANNED.length} planned. Planned connectors can't be connected yet.`}
           </p>
         </div>
 
@@ -244,9 +419,16 @@ export default function IntegrationsPage() {
               title="Google Calendar"
               category="Calendar"
               connected={isCalendarConnected("google")}
-              description={cardMeta[0].description}
+              how={googlePending ? "In review" : undefined}
+              description={
+                googlePending
+                  ? "Send events from your saved items to Google Calendar. We're going through Google's verification for calendar access, so this opens once it's approved. Until then, events you accept go to your SaveForLatter calendar."
+                  : cardMeta[0].description
+              }
               action={
-                isCalendarConnected("google") ? (
+                googlePending ? (
+                  <ConnectPill state="coming-soon">Coming soon</ConnectPill>
+                ) : isCalendarConnected("google") ? (
                   <div className="flex items-center gap-2">
                     <ConnectPill state="connected" render={<Link href="/app/calendar" />} nativeButton={false}>
                       Manage
@@ -273,53 +455,20 @@ export default function IntegrationsPage() {
             />
           )}
 
-          {visible.has("microsoft-outlook") && (
+          {PLANNED.filter((p) => visible.has(p.key)).map((p) => (
             <IntegrationCard
-              iconBg="bg-white border border-border"
-              icon={<MicrosoftLogo className="h-5 w-5" />}
-              title="Outlook"
-              category="Calendar"
-              connected={isCalendarConnected("microsoft")}
-              description={cardMeta[1].description}
-              action={
-                isCalendarConnected("microsoft") ? (
-                  <div className="flex items-center gap-2">
-                    <ConnectPill state="connected" render={<Link href="/app/calendar" />} nativeButton={false}>
-                      Manage
-                    </ConnectPill>
-                    <button
-                      type="button"
-                      disabled={disconnectMutation.isPending}
-                      onClick={() => disconnectMutation.mutate("microsoft")}
-                      className="text-[10px] font-semibold text-muted-foreground hover:text-destructive"
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                ) : (
-                  microsoftSync.allowed ? (
-                    <ConnectPill state="available" render={<a href={getCalendarConnectUrl("microsoft")} />} nativeButton={false}>
-                    Connect
-                  </ConnectPill>
-                  ) : (
-                    <UpgradePill plan={microsoftSync.requiredPlan} />
-                  )
-                )
-              }
-            />
-          )}
-
-          {visible.has("browser-extension") && (
-            <IntegrationCard
-              iconBg="bg-amber-500"
-              icon={<HugeiconsIcon icon={ChromeIcon} strokeWidth={2.25} className="h-4.5 w-4.5 text-white" />}
-              title="Browser extension"
-              category="Coming soon"
+              key={p.key}
+              iconBg={p.iconClassName}
+              icon={<HugeiconsIcon icon={p.icon} strokeWidth={2} className="h-[18px] w-[18px]" />}
+              title={p.title}
+              category={p.category}
+              how={p.how}
               connected={false}
-              description={cardMeta[2].description}
+              description={p.description}
+              brings={p.brings}
               action={<ConnectPill state="coming-soon">Coming soon</ConnectPill>}
             />
-          )}
+          ))}
 
         </div>
       )}

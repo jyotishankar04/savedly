@@ -21,7 +21,7 @@ export const removeEventTool = tool(
   {
     name: "remove_event",
     description:
-      "Take an event off the user's calendar — only when they clearly asked to remove or cancel a specific event. Find it first with list_upcoming_events. For a SaveForLatter event, the saved memory itself is kept; only its date and any Google/Outlook copy go.",
+      "Take an event off the user's calendar — only when they clearly asked to remove or cancel a specific event. Find it first with list_upcoming_events. For a SaveForLatter event, the saved memory itself is kept; only its date and any Google Calendar copy go.",
     schema: inputSchema,
   },
 );

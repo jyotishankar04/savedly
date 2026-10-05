@@ -109,14 +109,14 @@ export function verifyVaultToken(token: string): VaultTokenPayload | null {
 /**
  * Carries the initiating user's id across a calendar-connect OAuth
  * redirect. The connect route (`GET /integrations/calendar/:provider/connect`) is
- * authenticated normally, but Google/Microsoft's callback redirect carries
+ * authenticated normally, but Google's callback redirect carries
  * no session cookie of its own — this token, passed as the OAuth `state`
  * param, is how the callback recovers who initiated the connection.
  */
 export interface CalendarStateTokenPayload {
   typ: "calendar_connect";
   userId: string;
-  provider: "google" | "microsoft";
+  provider: "google";
 }
 
 // Matches the existing OAuth login flow's state-cookie window
@@ -136,7 +136,7 @@ export function verifyCalendarStateToken(token: string): CalendarStateTokenPaylo
     if (
       payload.typ !== "calendar_connect" ||
       typeof payload.userId !== "string" ||
-      (payload.provider !== "google" && payload.provider !== "microsoft")
+      payload.provider !== "google"
     )
       return null;
     return { typ: "calendar_connect", userId: payload.userId, provider: payload.provider };

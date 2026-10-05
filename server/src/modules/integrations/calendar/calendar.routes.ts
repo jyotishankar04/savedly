@@ -20,12 +20,12 @@ const router = Router();
 router.get("/connections", authenticate, CalendarController.listConnections);
 
 // The in-app calendar view — merges connected providers' real events with
-// any Memora memory that has an eventAt but isn't (yet) pushed anywhere.
+// any SaveForLatter memory that has an eventAt but isn't (yet) pushed anywhere.
 router.get("/events", authenticate, validateListEventsQuery, CalendarController.listEvents);
 router.post("/events", authenticate, requireFeature("calendarSync"), validateCreateEvent, CalendarController.createEvent);
 
 // A purely external event — one that lives only on a connected calendar and
-// was never created through Memora, so there's no memory to key off (see
+// was never created through SaveForLatter, so there's no memory to key off (see
 // memory.routes.ts for the memory-backed edit/delete pair instead).
 router.patch(
   "/events/:provider/:externalId",
@@ -43,9 +43,6 @@ router.get("/google/connect", authenticate, requireFeature("calendarSync"), Cale
 // initiating user is instead recovered from the signed `state` param (see
 // calendar.controller.ts's handleCallback / verifyCalendarStateToken).
 router.get("/google/callback", CalendarController.googleCallback);
-
-router.get("/microsoft/connect", authenticate, requireFeature("calendarMicrosoft"), CalendarController.connectMicrosoft);
-router.get("/microsoft/callback", CalendarController.microsoftCallback);
 
 router.delete("/:provider", authenticate, validateDisconnectParams, CalendarController.disconnect);
 

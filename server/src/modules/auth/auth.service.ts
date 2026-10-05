@@ -41,7 +41,7 @@ interface TokenPair {
   refreshToken: string;
 }
 
-const GITHUB_USER_AGENT = "memora-server";
+const GITHUB_USER_AGENT = "saveforlatter-server";
 
 // Google only allows "localhost" (bare, no other IP/hostname) as an
 // unverified-domain exception for OAuth redirect URIs — an emulator-only

@@ -17,7 +17,7 @@ import { VaultDemoCard } from "@/components/marketing/landing/vault-demo-card";
 // on this site (drag the graph, switch tabs on the vault card — both
 // genuinely respond), and the other three are small frozen snippets built
 // from the same real primitives (Badge, MEMORY_TYPE_ICONS, the actual
-// Google/Microsoft logos) rather than invented ones.
+// Google logo) rather than invented ones.
 interface Feature {
   icon: LucideIcon;
   title: string;
@@ -86,23 +86,11 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-function MicrosoftLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 21 21" className={className} aria-hidden="true">
-      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
-      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
-    </svg>
-  );
-}
-
 function MiniIntegrations() {
   return (
     <div className="flex w-full items-center justify-center gap-3 p-3">
       {[
         { Logo: GoogleLogo, label: "Google Calendar" },
-        { Logo: MicrosoftLogo, label: "Microsoft Outlook" },
       ].map(({ Logo, label }) => (
         <div key={label} className="flex flex-1 flex-col items-center gap-2 rounded-xl border border-border bg-background px-3 py-4">
           <Logo className="h-6 w-6" />
@@ -210,7 +198,7 @@ const FEATURES: Feature[] = [
   {
     icon: CalendarClock,
     title: "Plays well with your calendar",
-    description: "Push a detected event straight to Google Calendar or Outlook — no copying it over by hand.",
+    description: "Push a detected event straight to Google Calendar — no copying it over by hand.",
     visual: <MiniIntegrations />,
   },
   {

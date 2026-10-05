@@ -189,6 +189,15 @@ export function Navbar() {
   const [mounted, setMounted] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
   const pathname = usePathname();
+  const bannerRef = React.useRef<HTMLDivElement>(null);
+  const [bannerHeight, setBannerHeight] = React.useState(0);
+  React.useEffect(() => {
+    const el = bannerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setBannerHeight(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [compareOpen, setCompareOpen] = React.useState(false);
   const closeMenu = () => setMenuOpen(false);
@@ -215,9 +224,17 @@ export function Navbar() {
   }, []);
 
   return (
+    <>
+    {/* The banner is part of the fixed header, so it takes no room in the
+        page. This spacer gives it some: without it, a banner (taller still
+        once it wraps on a phone) pushes the navbar down over the page's
+        heading. */}
+    <div aria-hidden style={{ height: bannerHeight }} />
     <div className="fixed inset-x-0 top-0 z-50">
       <MaintenanceModal />
-      <AnnouncementBanner />
+      <div ref={bannerRef}>
+        <AnnouncementBanner />
+      </div>
       <header className="mt-4 w-full px-4 sm:px-8">
       <nav
         className={cn(
@@ -553,5 +570,6 @@ export function Navbar() {
       </nav>
       </header>
     </div>
+    </>
   );
 }

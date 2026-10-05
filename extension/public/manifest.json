@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Memora Capture",
+  "name": "SaveForLatter Capture",
   "version": "1.0.0",
-  "description": "Save anything from the web to Memora in one click.",
+  "description": "Save anything from the web to SaveForLatter in one click.",
   "icons": {
     "16": "icon-16.png",
     "48": "icon-48.png",
@@ -39,7 +39,7 @@
         "default": "Ctrl+Shift+S",
         "mac": "Command+Shift+S"
       },
-      "description": "Quick save the current page to Memora"
+      "description": "Quick save the current page to SaveForLatter"
     }
   }
 }

@@ -34,7 +34,7 @@ export function FinalCtaSection() {
           Save the next thing you don&apos;t want to lose.
         </h2>
         <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/85">
-          You don&apos;t have to remember where you saved it. Just ask Memora when you need it back.
+          You don&apos;t have to remember where you saved it. Just ask SaveForLatter when you need it back.
         </p>
 
         <div className="mt-10 flex flex-wrap items-center gap-3">

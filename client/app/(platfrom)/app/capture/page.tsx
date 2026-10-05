@@ -1,10 +1,11 @@
 "use client";
 
 import React, { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusIcon as Plus, XIcon as X, ClipboardIcon as Clipboard, CheckIcon as Check, FileTextIcon as FileText, PaperclipIcon as Paperclip, CloudUploadIcon as UploadCloud } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
   InputGroup,
   InputGroupAddon,
@@ -58,6 +59,7 @@ export default function CapturePage() {
 }
 
 function CaptureForm() {
+  const router = useRouter();
   const [shared] = useState(sharedContent(useSearchParams()));
   const { data: collections = [] } = useCollectionsQuery();
   const createMemoryMutation = useCreateMemoryMutation();
@@ -103,7 +105,6 @@ function CaptureForm() {
   };
 
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<{ title: string; collections: { id: string; name: string }[] } | null>(null);
 
   // The single source of truth for "what kind of memory is this" — rule-based
   // for now, isolated in lib/detect-memory-type.ts so it's a one-place swap
@@ -124,7 +125,6 @@ function CaptureForm() {
     setCaptureAttachmentMimeType(null);
     setAttachmentError(null);
     setSaveError(null);
-    setSaved(null);
   };
 
   const handleFileUpload = async (file: File) => {
@@ -249,47 +249,16 @@ function CaptureForm() {
         attachments: captureAttachment ? [captureAttachment] : undefined,
       });
       // AI ingestion runs async in the background from here — this page
-      // doesn't wait for it. Once it finishes, the enrichment shows up
-      // wherever the memory is viewed next.
-      setSaved({ title: memory.title, collections: memory.collections });
+      // doesn't wait for it. Go straight to the library, where the new
+      // memory is at the top and fills in as processing finishes.
+      toast.add({ title: "Saved to SaveForLatter", description: memory.title, type: "success" });
+      router.push("/app/memories");
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Couldn't save that memory.");
     }
   };
 
   const isSaving = createMemoryMutation.isPending;
-
-  if (saved) {
-    return (
-      <div className="max-w-2xl mx-auto px-6 py-20 flex flex-col items-center text-center">
-        <div className="relative w-14 h-14 flex items-center justify-center mb-6">
-          <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-pulse" />
-          <div className="w-12 h-12 rounded-2xl border border-emerald-500/30 flex items-center justify-center bg-card shadow-md text-emerald-600">
-            <HugeiconsIcon icon={Check} strokeWidth={2.25} className="h-6 w-6 stroke-[3]" />
-          </div>
-        </div>
-
-        <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-full">
-          Saved to SaveForLatter
-        </span>
-        <h1 className="text-3xl font-medium tracking-tight text-foreground pt-3">{saved.title}</h1>
-
-        {saved.collections.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1.5 pt-4">
-            {saved.collections.map((c) => (
-              <span key={c.id} className="text-[9px] font-bold uppercase bg-primary/5 border border-primary/10 text-primary px-2.5 py-1 rounded-full">
-                {c.name}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <Button onClick={resetForm} className="h-11 px-8 rounded-full font-bold text-xs bg-primary text-white mt-8">
-          Capture another
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-12">
