@@ -183,7 +183,12 @@ const envSchema = z
     CALENDAR_STATE_SECRET: z.string().min(32, "CALENDAR_STATE_SECRET must be at least 32 characters"),
   })
   .superRefine((data, ctx) => {
-    if (data.SELF_HOSTED) return;
+    // The hosted service needs OAuth and object storage. Local development
+    // doesn't: without them sign-in falls back to email and password and
+    // uploads go to local disk, so the app runs from a fresh clone with no
+    // Google, GitHub or Cloudflare account. A self-hosted install configures
+    // them, if at all, from its admin pages.
+    if (data.SELF_HOSTED || data.NODE_ENV !== "production") return;
     const requiredInProduction = [
       "GOOGLE_CLIENT_ID",
       "GOOGLE_CLIENT_SECRET",
@@ -259,4 +264,9 @@ const envSchema = z
     }
   );
 
-export const env = envSchema.parse(process.env);
+// A value left empty in .env (`GOOGLE_CLIENT_ID=""`, as .env.example ships
+// them) means "not set", the same as leaving the line out. Without this an
+// optional setting fails validation for being an empty string.
+const definedEnv = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== ""));
+
+export const env = envSchema.parse(definedEnv);

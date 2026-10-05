@@ -184,9 +184,13 @@ export async function isProviderEnabled(provider: "google" | "github"): Promise<
   return getFlagValue<boolean>(key, true);
 }
 
-/** Always on for a self-hosted install — it's how the first admin gets in without setting up OAuth. */
+/**
+ * Always on for a self-hosted install — it's how the first admin gets in
+ * without setting up OAuth — and in local development, for the same reason:
+ * a contributor can sign up with an email and password straight after cloning.
+ */
 export async function isPasswordAuthEnabled(): Promise<boolean> {
-  if (env.SELF_HOSTED) return true;
+  if (env.SELF_HOSTED || env.NODE_ENV === "development") return true;
   return getFlagValue<boolean>(RESERVED_FLAG_KEYS.AUTH_PASSWORD_ENABLED, false);
 }
 
