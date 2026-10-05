@@ -61,6 +61,13 @@ export enum AnnouncementType {
   UPDATE = "update",
 }
 
+// What a "What's new" card is telling the visitor about (see whatsNewItems).
+export enum WhatsNewKind {
+  NEW = "new",
+  IMPROVED = "improved",
+  UPCOMING = "upcoming",
+}
+
 export enum AnnouncementDisplayMode {
   BANNER = "banner",
   FULL_PAGE = "full_page",

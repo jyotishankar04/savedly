@@ -18,6 +18,7 @@ import {
   Sun01Icon as Sun,
   Layers01Icon as Layers,
   Mail01Icon as Mail,
+  Megaphone01Icon as Megaphone,
   SlideIcon as Sliders,
   CloudServerIcon as CloudServer,
 } from "@hugeicons/core-free-icons";
@@ -62,6 +63,7 @@ const NAV_ENTRIES: NavEntry[] = [
   { label: "Analytics", href: "/admin/analytics", icon: BarChart },
   { label: "Emails", href: "/admin/emails", icon: Mail },
   { label: "AI Usage", href: "/admin/ai-usage", icon: Cpu },
+  { label: "What's new", href: "/admin/whats-new", icon: Megaphone },
   { label: "Features", href: "/admin/features", icon: Sliders },
   { label: "Configuration", href: "/admin/configuration", icon: Settings },
   { label: "Infrastructure", href: "/admin/infrastructure", icon: CloudServer },

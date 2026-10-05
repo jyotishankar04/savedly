@@ -1,3 +1,4 @@
+import { WhatsNewPopup } from "@/components/whats-new/whats-new-popup";
 import { HeroProduct } from "@/components/marketing/landing/hero-product";
 import { ManifestoSection } from "@/components/marketing/landing/manifesto-section";
 import { PipelineSection } from "@/components/marketing/landing/pipeline-section";
@@ -36,6 +37,7 @@ export default function MarketingPage() {
           }),
         }}
       />
+      <WhatsNewPopup />
       <HeroProduct />
       <ManifestoSection />
       <PipelineSection />
