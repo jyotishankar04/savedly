@@ -26,7 +26,7 @@ Frontend code bases and configuration files in the workspace:
 ### Assumptions and Limitations
 - The backend runs on `http://localhost:4000` in local development (the actual default `PORT` in `server/src/config/env.ts`), reachable at `http://localhost:4000/api/v1`. **Note:** the Chrome Extension's popup and background worker currently disagree with each other on this — `Popup.tsx` targets `https://api.saveforlatter.tech/api/memories` while `service-worker.ts` targets `http://localhost:3000/api/memories`, and neither includes the `/v1` prefix. Both should be updated to point at `http://localhost:4000/api/v1/memories` for local development.
 - AI operations (summarization, speech-to-text, embeddings) are assumed to run asynchronously or via direct API calls during capture, without blocking frontend UI interactions.
-- The web client uses `localStorage` (key: `memora_token` or `token`) which is accessed by the extension content script when visiting authorized domains.
+- The web client uses `localStorage` (key: `saveforlatter_token` or `token`) which is accessed by the extension content script when visiting authorized domains.
 - **Authentication is a custom, hand-rolled implementation** — JWT access/refresh tokens signed and verified in-house, with `bcrypt` for password hashing. See Section 6 for details. This requires adding `jsonwebtoken` and `bcrypt` (not currently installed) to `server/package.json`, and adding a `password_hash` column back to the `users` table (Section 5, table 1) — neither exists yet in `server/src/db/schema.ts`. The `BETTER_AUTH_SECRET` env var in `server/src/config/env.ts` is a leftover from an earlier direction and should be renamed to `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` (or similar) once custom auth is implemented.
 - Mobile's voice capture (`mobile/app/voice-capture.tsx`) is currently fully simulated — it has no microphone/recording dependency and never produces a real audio file. `POST /ai/process-voice` (which expects an `audio_url` from a prior upload) therefore has no real client producer yet; treat it as a documented target, not something with an active caller today.
 
@@ -1103,7 +1103,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
         "summaries": true,
         "related_memories": true,
         "semantic_search": true,
-        "ask_memora": true
+        "ask_saveforlatter": true
       },
       "capture": {
         "extract_content": true,
@@ -1152,7 +1152,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
         "summaries": false,
         "related_memories": true,
         "semantic_search": true,
-        "ask_memora": true
+        "ask_saveforlatter": true
       },
       "capture": {
         "extract_content": true,

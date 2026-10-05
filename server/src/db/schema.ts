@@ -588,7 +588,7 @@ export const userSettings = pgTable("user_settings", {
   aiSummaries: boolean("ai_summaries").notNull().default(true),
   aiRelatedMemories: boolean("ai_related_memories").notNull().default(true),
   aiSemanticSearch: boolean("ai_semantic_search").notNull().default(true),
-  aiAskMemora: boolean("ai_ask_memora").notNull().default(true),
+  aiAskSaveForLatter: boolean("ai_ask_memora").notNull().default(true),
   captureExtractContent: boolean("capture_extract_content").notNull().default(true),
   captureGenerateTitle: boolean("capture_generate_title").notNull().default(true),
   captureGenerateSummary: boolean("capture_generate_summary").notNull().default(true),

@@ -17,7 +17,7 @@ export const updateSettingsSchema = z.object({
       summaries: z.boolean().optional(),
       relatedMemories: z.boolean().optional(),
       semanticSearch: z.boolean().optional(),
-      askMemora: z.boolean().optional(),
+      askSaveForLatter: z.boolean().optional(),
     })
     .optional(),
   capture: z

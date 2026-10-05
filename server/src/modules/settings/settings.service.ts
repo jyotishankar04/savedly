@@ -12,7 +12,7 @@ export interface SettingsResponse {
     summaries: boolean;
     relatedMemories: boolean;
     semanticSearch: boolean;
-    askMemora: boolean;
+    askSaveForLatter: boolean;
   };
   capture: {
     extractContent: boolean;
@@ -38,7 +38,7 @@ export interface SettingsResponse {
 
 const DEFAULTS: Omit<SettingsResponse, "connectedAccounts"> = {
   timezone: null,
-  ai: { autoOrganization: true, summaries: true, relatedMemories: true, semanticSearch: true, askMemora: true },
+  ai: { autoOrganization: true, summaries: true, relatedMemories: true, semanticSearch: true, askSaveForLatter: true },
   capture: { extractContent: true, generateTitle: true, generateSummary: true, suggestTags: true, defaultCollectionId: null },
   notifications: { weeklySummary: true, forgottenMemories: true, productUpdates: false },
   appearance: { theme: SettingsTheme.SYSTEM, accentColor: AccentColor.BLUE },
@@ -71,7 +71,7 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
       summaries: row.aiSummaries,
       relatedMemories: row.aiRelatedMemories,
       semanticSearch: row.aiSemanticSearch,
-      askMemora: row.aiAskMemora,
+      askSaveForLatter: row.aiAskSaveForLatter,
     },
     capture: {
       extractContent: row.captureExtractContent,
@@ -102,7 +102,7 @@ export async function updateSettings(userId: string, patch: UpdateSettingsInput)
   if (patch.ai?.summaries !== undefined) columns.aiSummaries = patch.ai.summaries;
   if (patch.ai?.relatedMemories !== undefined) columns.aiRelatedMemories = patch.ai.relatedMemories;
   if (patch.ai?.semanticSearch !== undefined) columns.aiSemanticSearch = patch.ai.semanticSearch;
-  if (patch.ai?.askMemora !== undefined) columns.aiAskMemora = patch.ai.askMemora;
+  if (patch.ai?.askSaveForLatter !== undefined) columns.aiAskSaveForLatter = patch.ai.askSaveForLatter;
 
   if (patch.capture?.extractContent !== undefined) columns.captureExtractContent = patch.capture.extractContent;
   if (patch.capture?.generateTitle !== undefined) columns.captureGenerateTitle = patch.capture.generateTitle;

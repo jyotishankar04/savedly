@@ -226,8 +226,8 @@ export async function bestEffortRevoke(_provider: CalendarProviderKey, refreshTo
 
 export interface MergedCalendarEvent {
   id: string;
-  /** "memora" for an event that only exists as a memory's eventAt (no connected provider, or not yet pushed); otherwise which provider it was fetched from. */
-  source: "memora" | CalendarProviderKey;
+  /** "saveforlatter" for an event that only exists as a memory's eventAt (no connected provider, or not yet pushed); otherwise which provider it was fetched from. */
+  source: "saveforlatter" | CalendarProviderKey;
   title: string;
   description: string | null;
   startAt: string;
@@ -310,8 +310,8 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
   const savedEvents: MergedCalendarEvent[] = savedRows
     .filter((row) => !linkedMemoryIds.has(row.id))
     .map((row) => ({
-      id: `memora:${row.id}`,
-      source: "memora",
+      id: `saveforlatter:${row.id}`,
+      source: "saveforlatter",
       title: row.title,
       description: row.description,
       startAt: row.eventAt!.toISOString(),

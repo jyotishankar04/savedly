@@ -41,9 +41,9 @@ export const listUpcomingEventsTool = tool(
           start: e.startAt,
           end: e.endAt,
           when: e.allDay ? allDayLabel(e.startAt, e.endAt) : `${local(e.startAt)} – ${local(e.endAt)}`,
-          from: e.source === "memora" ? "saved in SaveForLatter" : "Google Calendar",
+          from: e.source === "saveforlatter" ? "saved in SaveForLatter" : "Google Calendar",
           memoryId: e.memoryId,
-          provider: e.source === "memora" ? null : e.source,
+          provider: e.source === "saveforlatter" ? null : e.source,
           externalEventId: e.externalEventId,
         })),
     };

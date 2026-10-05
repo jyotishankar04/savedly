@@ -121,7 +121,7 @@ export function EventPopover({
                 <div className="mt-1 flex gap-3">
                   <span
                     aria-hidden
-                    className={cn("mt-1.5 size-3 shrink-0 rounded-[4px]", event.source === "memora" ? "bg-primary" : "bg-foreground/70")}
+                    className={cn("mt-1.5 size-3 shrink-0 rounded-[4px]", event.source === "saveforlatter" ? "bg-primary" : "bg-foreground/70")}
                   />
                   <div className="min-w-0 flex-1">
                     <PopoverPrimitive.Title className="text-[17px] leading-snug font-semibold tracking-[-0.01em] text-balance break-words text-foreground">
@@ -132,8 +132,8 @@ export function EventPopover({
                       {formatEventWhen(event)}
                     </p>
                     <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                      <HugeiconsIcon icon={event.source === "memora" ? Note : CalendarIcon} strokeWidth={2} className="size-3.5 shrink-0" />
-                      {event.source === "memora" ? "Saved as a note" : event.memoryId ? `${SOURCE_LABEL[event.source]} · from a note` : SOURCE_LABEL[event.source]}
+                      <HugeiconsIcon icon={event.source === "saveforlatter" ? Note : CalendarIcon} strokeWidth={2} className="size-3.5 shrink-0" />
+                      {event.source === "saveforlatter" ? "Saved as a note" : event.memoryId ? `${SOURCE_LABEL[event.source]} · from a note` : SOURCE_LABEL[event.source]}
                     </p>
                   </div>
                 </div>
@@ -173,7 +173,7 @@ export function EventPopover({
                           <HugeiconsIcon icon={Note} strokeWidth={2} className="size-3.5" /> Open note
                         </Button>
                       )}
-                      {event.htmlLink && event.source !== "memora" && (
+                      {event.htmlLink && event.source !== "saveforlatter" && (
                         <Button
                           render={<a href={event.htmlLink} target="_blank" rel="noreferrer" />}
                           nativeButton={false}

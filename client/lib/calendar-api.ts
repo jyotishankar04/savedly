@@ -38,7 +38,7 @@ export function getCalendarConnectUrl(provider: CalendarProviderKey): string {
 
 export interface CalendarEvent {
   id: string;
-  source: "memora" | CalendarProviderKey;
+  source: "saveforlatter" | CalendarProviderKey;
   title: string;
   description: string | null;
   startAt: string;

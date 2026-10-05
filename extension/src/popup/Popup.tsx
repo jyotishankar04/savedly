@@ -121,8 +121,8 @@ export default function Popup() {
     const proceedFromStorage = () => {
       if (settled) return;
       settled = true;
-      chrome.storage.local.get(["memora_token"], (result) => {
-        if (!result.memora_token) {
+      chrome.storage.local.get(["saveforlatter_token"], (result) => {
+        if (!result.saveforlatter_token) {
           setState("unauthorized");
         } else {
           loadPageInfo();

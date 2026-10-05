@@ -14,8 +14,8 @@
 // nothing in the build catches "this chunk must stay import-free").
 // TOKEN_STORAGE_KEY and SHOW_FLOATING_ICON_STORAGE_KEY below must be kept
 // in sync with ../lib/config.ts by hand.
-const TOKEN_STORAGE_KEY = "memora_token";
-const SHOW_FLOATING_ICON_STORAGE_KEY = "memora_show_floating_icon";
+const TOKEN_STORAGE_KEY = "saveforlatter_token";
+const SHOW_FLOATING_ICON_STORAGE_KEY = "saveforlatter_show_floating_icon";
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "GET_METADATA") {
