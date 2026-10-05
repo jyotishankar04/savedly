@@ -129,7 +129,10 @@ export async function responseCache(req: Request, res: Response, next: NextFunct
   const userId = isPublic ? null : userIdOf(req);
   if (!isPublic && !userId) return next();
 
-  if (userId && req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+  // A POST that only renders something back (the email composer's preview,
+  // fired on every edit) changes no data, so there's nothing to invalidate.
+  const readOnlyPost = req.method === "POST" && req.path.endsWith("/preview");
+  if (userId && !readOnlyPost && req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
     invalidateOnWrite(userId, req, res);
     return next();
   }
