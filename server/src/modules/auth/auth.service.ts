@@ -41,7 +41,7 @@ interface TokenPair {
   refreshToken: string;
 }
 
-const GITHUB_USER_AGENT = "memora-server";
+const GITHUB_USER_AGENT = "saveforlatter-server";
 
 const GOOGLE_CALLBACK_URL = `${env.SERVER_URL}/api/v1/auth/google/callback`;
 const GITHUB_CALLBACK_URL = `${env.SERVER_URL}/api/v1/auth/github/callback`;

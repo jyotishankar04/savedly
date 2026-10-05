@@ -4,7 +4,7 @@
 
 ## 1. Guarantee
 
-**If the user gives Memora a valid `http(s)://` URL, a memory for it is always saved** — regardless of whether the page can be fetched, parsed, or enriched by AI. Quality degrades gracefully (`ready` → `partial` → still-saved-but-minimal); a memory is never silently dropped, and a failed preview never means a failed save.
+**If the user gives SaveForLatter a valid `http(s)://` URL, a memory for it is always saved** — regardless of whether the page can be fetched, parsed, or enriched by AI. Quality degrades gracefully (`ready` → `partial` → still-saved-but-minimal); a memory is never silently dropped, and a failed preview never means a failed save.
 
 ## 2. Architecture
 
@@ -148,7 +148,7 @@ No new tables — `memories` was extended directly (`server/src/db/schema.ts`), 
 - No automated test suite exists yet in this repo (`server/CLAUDE.md` confirms this — a project-wide setup decision, not scoped to this feature). Verified via live throwaway `_debug_*.ts` scripts instead, per this repo's established pattern.
 - Chrome extension: only the popup's save flow is wired to the real API. The background service worker's context-menu ("save this page") and keyboard-shortcut flows are still simulated.
 - Duplicate detection is a non-blocking hint only — no confirm-before-save dialog.
-- No image caching/mirroring — `previewImageUrl` always points at the original external URL (or a client-rendered fallback tile), never a Memora-hosted copy. A future `externalImageUrl`/`cachedImageUrl` split would be needed for images that expire.
+- No image caching/mirroring — `previewImageUrl` always points at the original external URL (or a client-rendered fallback tile), never a SaveForLatter-hosted copy. A future `externalImageUrl`/`cachedImageUrl` split would be needed for images that expire.
 - The ingestion graph stayed sequential (no parallel fan-out) — an intentional choice, since memory creation already happens synchronously before ingestion starts, so AI/embedding latency was never on the save's critical path to begin with.
 
 ## 14. Worked examples

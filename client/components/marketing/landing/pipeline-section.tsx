@@ -113,7 +113,7 @@ export function PipelineSection() {
             You paste a link. The rest happens on its own.
           </h2>
           <p className="max-w-md text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
-            Paste a link, upload a file, send a screenshot, or drop in a voice note. Memora reads it, understands what matters, and makes it easy to find later.
+            Paste a link, upload a file, send a screenshot, or drop in a voice note. SaveForLatter reads it, understands what matters, and makes it easy to find later.
           </p>
         </div>
 

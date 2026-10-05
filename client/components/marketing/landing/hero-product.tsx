@@ -175,7 +175,7 @@ export function HeroProduct() {
             variants={riseVariants}
             className="mt-8 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground"
           >
-            Links, notes, screenshots, PDFs, videos, and voice notes—all the things you don&apos;t want to lose. Memora keeps them organized and helps you find them again, even when you don&apos;t remember what you called them.
+            Links, notes, screenshots, PDFs, videos, and voice notes—all the things you don&apos;t want to lose. SaveForLatter keeps them organized and helps you find them again, even when you don&apos;t remember what you called them.
           </motion.p>
 
           <motion.div variants={ctaVariants} className="mt-10 flex flex-wrap items-center justify-center gap-4">

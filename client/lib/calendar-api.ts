@@ -43,11 +43,11 @@ export interface CalendarEvent {
   description: string | null;
   startAt: string;
   endAt: string;
-  /** The provider's own UI link, or null for a memora-only event. */
+  /** The provider's own UI link, or null for an event that only exists in SaveForLatter. */
   htmlLink: string | null;
-  /** The Memora memory backing this event, when there is one. */
+  /** The SaveForLatter memory backing this event, when there is one. */
   memoryId: string | null;
-  /** The provider's own event id, for a provider-sourced event with no memoryId — null for a memora-only event. */
+  /** The provider's own event id, for a provider-sourced event with no memoryId — null for an event that only exists in SaveForLatter. */
   externalEventId: string | null;
   /** A whole-day event: startAt/endAt are midnight UTC of its dates, end exclusive — use their YYYY-MM-DD part, not the instant. */
   allDay: boolean;
@@ -86,7 +86,7 @@ export interface UpdateCalendarEventInput {
   durationMinutes?: number;
 }
 
-/** For an event backed by a Memora memory — updates the memory and re-syncs any calendar it's already been pushed to. */
+/** For an event backed by a SaveForLatter memory — updates the memory and re-syncs any calendar it's already been pushed to. */
 export const updateCalendarEventForMemory = (memoryId: string, input: UpdateCalendarEventInput) =>
   apiFetch<{ updated: true }>(`/memories/${memoryId}/calendar-event`, { method: "PATCH", body: input });
 
@@ -94,7 +94,7 @@ export const updateCalendarEventForMemory = (memoryId: string, input: UpdateCale
 export const deleteCalendarEventForMemory = (memoryId: string) =>
   apiFetch<{ deleted: true }>(`/memories/${memoryId}/calendar-event`, { method: "DELETE" });
 
-/** For an event that lives only on a connected calendar with no Memora memory behind it at all. */
+/** For an event that lives only on a connected calendar with no SaveForLatter memory behind it at all. */
 export const updateExternalCalendarEvent = (
   provider: CalendarProviderKey,
   externalEventId: string,
