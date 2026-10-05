@@ -112,6 +112,10 @@ export function TourAutoStart({ userId }: { userId: string }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // The tour points at the sidebar and header, which a phone doesn't show:
+    // there it would dim the screen and block taps on things that aren't
+    // visible. Not marked as seen, so it still runs on a wider screen later.
+    if (!window.matchMedia("(min-width: 768px)").matches) return;
     const key = `saveforlatter:tour-seen:${userId}`;
     if (window.localStorage.getItem(key)) return;
     window.localStorage.setItem(key, "1");

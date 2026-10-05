@@ -1,4 +1,4 @@
-// Background service worker for Memora Chrome Extension V1
+// Background service worker for SaveForLatter Chrome Extension V1
 import { ACCESS_TOKEN_COOKIE, SERVER_ORIGIN, TOKEN_STORAGE_KEY } from "../lib/config";
 import { apiFetch, ApiError } from "../lib/api";
 
@@ -68,17 +68,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 chrome.runtime.onInstalled.addListener(() => {
   syncAuthToken();
 
-  // Root menu for Memora actions
+  // Root menu for SaveForLatter actions
   chrome.contextMenus.create({
-    id: "memora-root",
-    title: "Save to Memora",
+    id: "saveforlatter-root",
+    title: "Save to SaveForLatter",
     contexts: ["page", "selection", "image", "link"]
   });
 
   // Save page option
   chrome.contextMenus.create({
     id: "save-page",
-    parentId: "memora-root",
+    parentId: "saveforlatter-root",
     title: "Save this page",
     contexts: ["page"]
   });
@@ -86,7 +86,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Save selected text
   chrome.contextMenus.create({
     id: "save-selection",
-    parentId: "memora-root",
+    parentId: "saveforlatter-root",
     title: "Save selected text",
     contexts: ["selection"]
   });
@@ -94,7 +94,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Save link (new feature)
   chrome.contextMenus.create({
     id: "save-link",
-    parentId: "memora-root",
+    parentId: "saveforlatter-root",
     title: "Save link",
     contexts: ["link"]
   });
@@ -102,7 +102,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Save image
   chrome.contextMenus.create({
     id: "save-image",
-    parentId: "memora-root",
+    parentId: "saveforlatter-root",
     title: "Save image",
     contexts: ["image"]
   });
@@ -110,7 +110,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // Capture screenshot submenu
   chrome.contextMenus.create({
     id: "capture-submenu",
-    parentId: "memora-root",
+    parentId: "saveforlatter-root",
     title: "Capture screenshot",
     contexts: ["page", "selection"]
   });
@@ -131,7 +131,7 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ["page"]
   });
 
-  console.log("Memora Extension context menus initialized.");
+  console.log("SaveForLatter Extension context menus initialized.");
 });
 
 // Reads the real session token synced into storage by the popup/content script,
@@ -284,12 +284,12 @@ function dispatchCaptureToActiveTab(
 ): void {
   const proceed = (tabId: number, tabUrl: string | undefined) => {
     if (isRestrictedPage(tabUrl)) {
-      console.log("Memora: target tab is a restricted page", tabUrl);
+      console.log("SaveForLatter: target tab is a restricted page", tabUrl);
       notifyCannotCapture();
       sendResponse({ ok: false });
       return;
     }
-    console.log(`Memora: forwarding ${contentScriptAction} to tab ${tabId} (${tabUrl})`);
+    console.log(`SaveForLatter: forwarding ${contentScriptAction} to tab ${tabId} (${tabUrl})`);
     // No callback here previously meant a failure (most commonly: this
     // tab was open before the extension was installed/reloaded, so it
     // never got the content script) failed completely silently — the
@@ -297,7 +297,7 @@ function dispatchCaptureToActiveTab(
     // chrome.runtime.lastError is what surfaces that as a real message.
     chrome.tabs.sendMessage(tabId, { action: contentScriptAction, ...extra }, () => {
       if (chrome.runtime.lastError) {
-        console.error("Memora: content script didn't respond —", chrome.runtime.lastError.message);
+        console.error("SaveForLatter: content script didn't respond —", chrome.runtime.lastError.message);
         notifyCannotCapture();
       }
       sendResponse({ ok: true });
@@ -309,11 +309,11 @@ function dispatchCaptureToActiveTab(
     return;
   }
 
-  console.log("Memora: no tabId passed in, falling back to querying the active tab");
+  console.log("SaveForLatter: no tabId passed in, falling back to querying the active tab");
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tab = tabs[0];
     if (!tab?.id) {
-      console.log("Memora: fallback query found no active tab");
+      console.log("SaveForLatter: fallback query found no active tab");
       notifyCannotCapture();
       sendResponse({ ok: false });
       return;
@@ -335,7 +335,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "CAPTURE_FULL_PAGE_SCREENSHOT") {
-    console.log("Memora: CAPTURE_FULL_PAGE_SCREENSHOT received from popup", request.tabId, request.tabUrl);
+    console.log("SaveForLatter: CAPTURE_FULL_PAGE_SCREENSHOT received from popup", request.tabId, request.tabUrl);
     dispatchCaptureToActiveTab(
       "CAPTURE_FULL_PAGE",
       request.tabId,
@@ -394,14 +394,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return undefined;
 });
 
-/** Always logs to this worker's own console in addition to trying a desktop notification — if notifications are blocked at the OS/browser level (or anything else about chrome.notifications.create fails), the console is what's still guaranteed to show something. Check via chrome://extensions -> Memora Capture -> "service worker". */
+/** Always logs to this worker's own console in addition to trying a desktop notification — if notifications are blocked at the OS/browser level (or anything else about chrome.notifications.create fails), the console is what's still guaranteed to show something. Check via chrome://extensions -> SaveForLatter Capture -> "service worker". */
 function notify(title: string, message: string): void {
-  console.log(`Memora: ${title} — ${message}`);
+  console.log(`SaveForLatter: ${title} — ${message}`);
   chrome.notifications?.create(
     { type: "basic", iconUrl: "icon-128.png", title, message, priority: 1 },
     () => {
       if (chrome.runtime.lastError) {
-        console.error("Memora: notification failed to display —", chrome.runtime.lastError.message);
+        console.error("SaveForLatter: notification failed to display —", chrome.runtime.lastError.message);
       }
     },
   );
@@ -410,7 +410,7 @@ function notify(title: string, message: string): void {
 function notifyCannotCapture(): void {
   notify(
     "Can't capture this page",
-    "This page doesn't support screenshot capture — that's usually a browser system page (chrome://, the Web Store, PDF viewer), or a tab that was already open before Memora was installed or updated. Reloading the tab fixes the latter.",
+    "This page doesn't support screenshot capture — that's usually a browser system page (chrome://, the Web Store, PDF viewer), or a tab that was already open before SaveForLatter was installed or updated. Reloading the tab fixes the latter.",
   );
 }
 
@@ -508,14 +508,14 @@ async function createMemory(payload: MemoryCreatePayload): Promise<void> {
     body: JSON.stringify({ ...payload, captureMethod: "extension" }),
   });
 
-  notify("Saved to Memora", memory.title || payload.title);
+  notify("Saved to SaveForLatter", memory.title || payload.title);
 }
 
 function notifySignInRequired(): void {
-  notify("Sign in to Memora", "Open the Memora extension popup and sign in before saving.");
+  notify("Sign in to SaveForLatter", "Open the SaveForLatter extension popup and sign in before saving.");
 }
 
 function notifySaveError(err: unknown): void {
   const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Something went wrong.";
-  notify("Couldn't save to Memora", message);
+  notify("Couldn't save to SaveForLatter", message);
 }

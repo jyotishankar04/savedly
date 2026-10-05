@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository structure
 
-This is **Memora**, a "second brain" capture/search/RAG product, split into three independent apps with no root workspace linking them (no root `package.json`). Each app has its own `pnpm-workspace.yaml` and lockfile — `cd` into an app directory before installing or running anything:
+This is **SaveForLatter**, a "second brain" capture/search/RAG product, split into three independent apps with no root workspace linking them (no root `package.json`). Each app has its own `pnpm-workspace.yaml` and lockfile — `cd` into an app directory before installing or running anything:
 
 - `server/` — Express + TypeScript API (the backend for all clients). This is the primary area of active development.
 - `client/` — Next.js 16 web dashboard.
@@ -16,7 +16,7 @@ There is no mobile app — an earlier Expo/React Native `mobile/` app was remove
 ## `docs/` — read before implementing backend features
 
 - `docs/BACKEND_REQUIREMENTS.md` is the full intended REST API contract (`/api/v1/...` routes, request/response JSON shapes, the `{ success, data, meta, error }` envelope) and a simpler reference DB schema, derived from what the three frontends already expect.
-- `docs/AI_REQUIREMENTS.md` specifies the intended AI subsystem: a LangGraph ingestion state machine (route by media type → summarize/tag → chunk → embed → upsert to `pgvector`) and a LangGraph "Ask Memora" corrective-RAG agent (retrieve → grade → rewrite-or-answer → grounding check), plus the hybrid dense+lexical (RRF) search SQL.
+- `docs/AI_REQUIREMENTS.md` specifies the intended AI subsystem: a LangGraph ingestion state machine (route by media type → summarize/tag → chunk → embed → upsert to `pgvector`) and a LangGraph "Ask SaveForLatter" corrective-RAG agent (retrieve → grade → rewrite-or-answer → grounding check), plus the hybrid dense+lexical (RRF) search SQL.
 - Treat these docs as the product spec, but verify against actual code before assuming something is implemented — the server is early-stage (see below) and `server/src/db/schema.ts` has already diverged from (and is more current/detailed than) the schema sketched in `BACKEND_REQUIREMENTS.md` (e.g. it adds OAuth `authIdentities`, dynamic `roles`/`permissions`, `sessions`, `devices` — no `memories`/`collections`/`tags` tables exist yet).
 
 ## Server (`server/`)

@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusIcon as Plus, XIcon as X, CheckIcon as Check, FileTextIcon as FileText, PaperclipIcon as Paperclip, CloudUploadIcon as UploadCloud } from "@hugeicons/core-free-icons";
+import { PlusIcon as Plus, XIcon as X, ClipboardIcon as Clipboard, CheckIcon as Check, FileTextIcon as FileText, PaperclipIcon as Paperclip, CloudUploadIcon as UploadCloud } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import {
   InputGroup,
   InputGroupAddon,
@@ -28,14 +30,44 @@ import { cn } from "@/lib/utils";
 import { usePlanLimit } from "@/hooks/use-plan-limit";
 import { PlanLimitNotice, ProBadge } from "@/components/plan-limit-notice";
 
+/**
+ * What arrived with the URL: from the phone's share sheet (the manifest's
+ * share_target) or any link with ?text= / ?url= / ?title=. Apps differ in
+ * where they put the link — `url`, or inside `text` — so both are kept, and
+ * splitLinkAndCaption sorts out which part is the link when saving.
+ */
+function sharedContent(params: URLSearchParams): { text: string; title: string; hasFile: boolean } {
+  const text = params.get("text")?.trim() ?? "";
+  const url = params.get("url")?.trim() ?? "";
+  const title = params.get("title")?.trim() ?? "";
+  return {
+    text: [text, url && !text.includes(url) ? url : ""].filter(Boolean).join("\n"),
+    // A shared title is only useful when it isn't just the link again.
+    title: title && title !== url && title !== text ? title : "",
+    // A shared photo or file is waiting where the service worker left it.
+    hasFile: params.has("shared-file"),
+  };
+}
+
 export default function CapturePage() {
+  // useSearchParams (the shared content) needs a Suspense boundary.
+  return (
+    <Suspense fallback={null}>
+      <CaptureForm />
+    </Suspense>
+  );
+}
+
+function CaptureForm() {
+  const router = useRouter();
+  const [shared] = useState(sharedContent(useSearchParams()));
   const { data: collections = [] } = useCollectionsQuery();
   const createMemoryMutation = useCreateMemoryMutation();
   const memoryLimit = usePlanLimit("memory_count");
   const storageLimit = usePlanLimit("storage_mb");
 
-  const [captureText, setCaptureText] = useState("");
-  const [captureTitle, setCaptureTitle] = useState("");
+  const [captureText, setCaptureText] = useState(shared.text);
+  const [captureTitle, setCaptureTitle] = useState(shared.title);
   const [captureCollectionIds, setCaptureCollectionIds] = useState<string[]>([]);
   const [captureAttachment, setCaptureAttachment] = useState<UploadedFile | null>(null);
   const [captureAttachmentName, setCaptureAttachmentName] = useState<string | null>(null);
@@ -46,8 +78,33 @@ export default function CapturePage() {
   const dragCounter = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Reading the clipboard needs a secure page and a tap, hence a button, shown
+  // only where the browser can do it (false on the server and on plain http).
+  const canPaste = useSyncExternalStore(
+    () => () => {},
+    () => typeof navigator.clipboard?.readText === "function",
+    () => false,
+  );
+
+  // Once the shared values are in the form, drop them from the address bar so
+  // a refresh or the back button doesn't fill the form in again.
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
+  const pasteFromClipboard = async () => {
+    try {
+      const text = (await navigator.clipboard.readText()).trim();
+      if (text) setCaptureText(text);
+    } catch {
+      // Permission denied or an empty clipboard: leave the field for typing.
+    }
+    textareaRef.current?.focus();
+  };
+
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<{ title: string; collections: { id: string; name: string }[] } | null>(null);
 
   // The single source of truth for "what kind of memory is this" — rule-based
   // for now, isolated in lib/detect-memory-type.ts so it's a one-place swap
@@ -68,7 +125,6 @@ export default function CapturePage() {
     setCaptureAttachmentMimeType(null);
     setAttachmentError(null);
     setSaveError(null);
-    setSaved(null);
   };
 
   const handleFileUpload = async (file: File) => {
@@ -92,6 +148,30 @@ export default function CapturePage() {
       setIsUploadingAttachment(false);
     }
   };
+
+  // A photo or file shared to the installed app: the service worker
+  // (public/sw.js) parked it in the Cache API, since a file can't travel in a
+  // URL. Attach it exactly as if it had been picked here, then clear it.
+  const sharedFileTaken = useRef(false);
+  useEffect(() => {
+    if (!shared.hasFile || sharedFileTaken.current || !("caches" in window)) return;
+    sharedFileTaken.current = true;
+    void (async () => {
+      try {
+        const cache = await caches.open("share-target");
+        const response = await cache.match("/__shared-file");
+        if (!response) return;
+        const blob = await response.blob();
+        const name = decodeURIComponent(response.headers.get("X-File-Name") ?? "shared-file");
+        await cache.delete("/__shared-file");
+        await handleFileUpload(new File([blob], name, { type: blob.type }));
+      } catch {
+        setAttachmentError("Couldn't read the shared file. Attach it here instead.");
+      }
+    })();
+    // Runs once, for the share this page was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAttachmentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -169,47 +249,16 @@ export default function CapturePage() {
         attachments: captureAttachment ? [captureAttachment] : undefined,
       });
       // AI ingestion runs async in the background from here — this page
-      // doesn't wait for it. Once it finishes, the enrichment shows up
-      // wherever the memory is viewed next.
-      setSaved({ title: memory.title, collections: memory.collections });
+      // doesn't wait for it. Go straight to the library, where the new
+      // memory is at the top and fills in as processing finishes.
+      toast.add({ title: "Saved to SaveForLatter", description: memory.title, type: "success" });
+      router.push("/app/memories");
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Couldn't save that memory.");
     }
   };
 
   const isSaving = createMemoryMutation.isPending;
-
-  if (saved) {
-    return (
-      <div className="max-w-2xl mx-auto px-6 py-20 flex flex-col items-center text-center">
-        <div className="relative w-14 h-14 flex items-center justify-center mb-6">
-          <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl animate-pulse" />
-          <div className="w-12 h-12 rounded-2xl border border-emerald-500/30 flex items-center justify-center bg-card shadow-md text-emerald-600">
-            <HugeiconsIcon icon={Check} strokeWidth={2.25} className="h-6 w-6 stroke-[3]" />
-          </div>
-        </div>
-
-        <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-full">
-          Saved to SaveForLatter
-        </span>
-        <h1 className="text-3xl font-medium tracking-tight text-foreground pt-3">{saved.title}</h1>
-
-        {saved.collections.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1.5 pt-4">
-            {saved.collections.map((c) => (
-              <span key={c.id} className="text-[9px] font-bold uppercase bg-primary/5 border border-primary/10 text-primary px-2.5 py-1 rounded-full">
-                {c.name}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <Button onClick={resetForm} className="h-11 px-8 rounded-full font-bold text-xs bg-primary text-white mt-8">
-          Capture another
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-12">
@@ -249,6 +298,7 @@ export default function CapturePage() {
             )}
           >
             <InputGroupTextarea
+              ref={textareaRef}
               autoFocus
               value={captureText}
               onChange={(e) => setCaptureText(e.target.value)}
@@ -305,6 +355,13 @@ export default function CapturePage() {
                 Attach
                 {storageLimit.isAtLimit && <ProBadge className="ml-1" />}
               </InputGroupButton>
+
+              {canPaste && !captureText && (
+                <InputGroupButton type="button" onClick={pasteFromClipboard} className="mr-auto">
+                  <HugeiconsIcon icon={Clipboard} strokeWidth={2.25} className="h-3.5 w-3.5" />
+                  Paste
+                </InputGroupButton>
+              )}
 
               <InputGroupText className="rounded-full bg-primary/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-primary">
                 <HugeiconsIcon icon={DetectedTypeIcon} strokeWidth={2.25} className="h-3 w-3" />

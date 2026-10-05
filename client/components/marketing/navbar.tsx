@@ -34,6 +34,7 @@ import {
   HelpCircleIcon,
   GitBranchIcon,
   BalanceScaleIcon,
+  Tag01Icon,
   UserMultiple02Icon as UsersGroupIcon,
   UserIcon,
   HeartIcon,
@@ -142,6 +143,33 @@ const companyLinks: MenuEntry[] = [
 ];
 
 /** One dropdown row: rounded icon tile, bold title, muted subtitle. */
+// The phone menu's rows: 44px tall, so they're easy to hit with a thumb.
+const MOBILE_MENU_ROW =
+  "flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
+
+function MobileMenuSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h4 className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">{label}</h4>
+      <div className="space-y-0.5">{children}</div>
+    </div>
+  );
+}
+
+function MobileMenuRow({ entry, active, onNavigate }: { entry: MenuEntry; active: boolean; onNavigate: () => void }) {
+  return (
+    <Link
+      href={entry.href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      className={cn(MOBILE_MENU_ROW, active ? "bg-primary/10 text-primary" : "text-foreground active:bg-muted")}
+    >
+      <HugeiconsIcon icon={entry.icon} strokeWidth={2} className={cn("h-5 w-5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+      <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+    </Link>
+  );
+}
+
 function MenuRow({ entry }: { entry: MenuEntry }) {
   return (
     <Link href={entry.href} className="group flex items-center gap-3.5 rounded-xl p-2.5 transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none">
@@ -160,6 +188,19 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const pathname = usePathname();
+  const bannerRef = React.useRef<HTMLDivElement>(null);
+  const [bannerHeight, setBannerHeight] = React.useState(0);
+  React.useEffect(() => {
+    const el = bannerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setBannerHeight(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [compareOpen, setCompareOpen] = React.useState(false);
+  const closeMenu = () => setMenuOpen(false);
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUserQuery();
   const isAuthenticated = !!currentUser;
 
@@ -183,9 +224,17 @@ export function Navbar() {
   }, []);
 
   return (
+    <>
+    {/* The banner is part of the fixed header, so it takes no room in the
+        page. This spacer gives it some: without it, a banner (taller still
+        once it wraps on a phone) pushes the navbar down over the page's
+        heading. */}
+    <div aria-hidden style={{ height: bannerHeight }} />
     <div className="fixed inset-x-0 top-0 z-50">
       <MaintenanceModal />
-      <AnnouncementBanner />
+      <div ref={bannerRef}>
+        <AnnouncementBanner />
+      </div>
       <header className="mt-4 w-full px-4 sm:px-8">
       <nav
         className={cn(
@@ -403,7 +452,7 @@ export function Navbar() {
           )}
 
           {/* Hamburger Sheet */}
-          <Sheet>
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger
               render={
                 <Button
@@ -419,127 +468,101 @@ export function Navbar() {
               <HugeiconsIcon icon={Menu} strokeWidth={2.25} className="h-5 w-5" />
               <span className="sr-only">Open menu</span>
             </SheetTrigger>
-            <SheetContent
-              side="right"
-              className="w-full sm:max-w-sm p-6 bg-background border-l border-border flex flex-col justify-between"
-            >
+            {/* Three rows: the logo, a list that scrolls on its own, and the
+                sign-in actions pinned where a thumb reaches them. */}
+            <SheetContent side="right" className="w-[88vw] max-w-sm gap-0 border-l border-border bg-background p-0">
               <SheetTitle className="sr-only">Menu</SheetTitle>
               <SheetDescription className="sr-only">
                 Mobile navigation menu for SaveForLatter.
               </SheetDescription>
-              <div>
-                <div className="flex items-center gap-2 mb-8 pr-10">
-                  <Logo className="text-[17px] text-foreground" />
-                </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                      Product
-                    </h4>
-                    <div className="space-y-1 mb-6">
-                      {productLinks.map((entry) => (
-                        <Link
-                          key={entry.title}
-                          href={entry.href}
-                          className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
-                        >
-                          {entry.title}
-                        </Link>
-                      ))}
-                      <Link
-                        href="/pricing"
-                        className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
-                      >
-                        Pricing
-                      </Link>
-                    </div>
-
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                      Compare
-                    </h4>
-                    <div className="space-y-1 mb-6">
-                      {compareLinks.map((entry) => (
-                        <Link
-                          key={entry.title}
-                          href={entry.href}
-                          className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
-                        >
-                          {entry.title}
-                        </Link>
-                      ))}
-                    </div>
-
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                      Resources
-                    </h4>
-                    <div className="space-y-1 mb-6">
-                      {resourceLinks.map((entry) => (
-                        <Link
-                          key={entry.title}
-                          href={entry.href}
-                          className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
-                        >
-                          {entry.title}
-                        </Link>
-                      ))}
-                    </div>
-
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                      Company
-                    </h4>
-                    <div className="space-y-1">
-                      {companyLinks.map((entry) => (
-                        <Link
-                          key={entry.title}
-                          href={entry.href}
-                          className="block px-2 py-1.5 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
-                        >
-                          {entry.title}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+              <div className="flex h-16 shrink-0 items-center border-b border-border/60 px-5 pt-[env(safe-area-inset-top)] box-content">
+                <Logo className="text-[17px] text-foreground" />
               </div>
 
-              <div className="space-y-3 pt-6 border-t border-border mt-auto">
-                <GithubStarButton variant="menu" />
+              <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-3 py-5 [-webkit-overflow-scrolling:touch]">
+                <MobileMenuSection label="Product">
+                  {productLinks.map((entry) => (
+                    <MobileMenuRow key={entry.title} entry={entry} active={pathname === entry.href} onNavigate={closeMenu} />
+                  ))}
+                  <MobileMenuRow entry={{ title: "Pricing", href: "/pricing", icon: Tag01Icon, description: "" }} active={pathname === "/pricing"} onNavigate={closeMenu} />
+                </MobileMenuSection>
+
+                <MobileMenuSection label="Resources">
+                  {resourceLinks.map((entry) => (
+                    <MobileMenuRow key={entry.title} entry={entry} active={pathname === entry.href} onNavigate={closeMenu} />
+                  ))}
+                </MobileMenuSection>
+
+                {/* A dozen competitor pages would bury everything below them, so
+                    the list stays folded behind its own row. */}
+                <MobileMenuSection label="Compare">
+                  <MobileMenuRow entry={compareLinks[0]} active={pathname === compareLinks[0].href} onNavigate={closeMenu} />
+                  <button
+                    type="button"
+                    onClick={() => setCompareOpen((open) => !open)}
+                    aria-expanded={compareOpen}
+                    className={cn(MOBILE_MENU_ROW, "w-full text-left text-foreground active:bg-muted")}
+                  >
+                    <span className="w-5 shrink-0" />
+                    <span className="flex-1">{compareOpen ? "Hide the list" : `Compare with ${compareLinks.length - 1} tools`}</span>
+                    <HugeiconsIcon icon={ChevronRight} strokeWidth={2.25} className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", compareOpen && "rotate-90")} />
+                  </button>
+                  {compareOpen &&
+                    compareLinks.slice(1).map((entry) => (
+                      <Link
+                        key={entry.title}
+                        href={entry.href}
+                        onClick={closeMenu}
+                        className={cn(MOBILE_MENU_ROW, "h-10 pl-11 text-[14px]", pathname === entry.href ? "bg-primary/10 text-primary" : "text-muted-foreground active:bg-muted")}
+                      >
+                        {entry.title}
+                      </Link>
+                    ))}
+                </MobileMenuSection>
+
+                <MobileMenuSection label="Company">
+                  {companyLinks.map((entry) => (
+                    <MobileMenuRow key={entry.title} entry={entry} active={pathname === entry.href} onNavigate={closeMenu} />
+                  ))}
+                </MobileMenuSection>
+              </div>
+
+              <div className="shrink-0 space-y-2.5 border-t border-border/60 bg-background px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 {isAuthenticated ? (
                   <Link
                     href={ctaHref("/app")}
+                    onClick={closeMenu}
                     className={cn(
                       buttonVariants({ variant: "default", size: "default" }),
-                      "w-full h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/95 flex items-center justify-center font-medium"
+                      "w-full h-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/95 flex items-center justify-center font-medium"
                     )}
                   >
                     <HugeiconsIcon icon={LayoutDashboard} strokeWidth={2.25} className="mr-1.5 h-4 w-4" />
                     Go to Dashboard
                   </Link>
                 ) : (
-                  <>
+                  <div className="grid grid-cols-2 gap-2.5">
                     <Link
                       href={ctaHref("/auth/login")}
-                      className="
-                        flex h-10 items-center justify-center rounded-full
-                        text-sm font-medium text-foreground border border-border
-                        hover:bg-muted transition-colors
-                      "
+                      onClick={closeMenu}
+                      className="flex h-11 items-center justify-center rounded-full border border-border text-sm font-medium text-foreground transition-colors active:bg-muted"
                     >
                       Sign in
                     </Link>
                     <Link
                       href={ctaHref("/auth/signup")}
+                      onClick={closeMenu}
                       className={cn(
                         buttonVariants({ variant: "default", size: "default" }),
-                        "w-full h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/95 flex items-center justify-center font-medium"
+                        "h-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/95 flex items-center justify-center font-medium"
                       )}
                     >
                       Get started
-                      <HugeiconsIcon icon={ChevronRight} strokeWidth={2.25} className="ml-1 h-4 w-4" />
                     </Link>
-                  </>
+                  </div>
                 )}
+                <GithubStarButton variant="menu" />
               </div>
             </SheetContent>
           </Sheet>
@@ -547,5 +570,6 @@ export function Navbar() {
       </nav>
       </header>
     </div>
+    </>
   );
 }

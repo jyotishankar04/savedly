@@ -30,8 +30,8 @@ const FEATURE_CATEGORIES = {
   },
   calendar: {
     title: "Calendar Integration",
-    description: "OAuth sync with Google Calendar and Microsoft Outlook",
-    flags: ["features.calendar.sync.enabled", "features.calendar.google.enabled", "features.calendar.microsoft.enabled"],
+    description: "OAuth sync with Google Calendar",
+    flags: ["features.calendar.sync.enabled", "features.calendar.google.enabled"],
   },
   email: {
     title: "Email Campaigns",
@@ -104,12 +104,7 @@ const FLAG_LABELS: Record<string, { label: string; type: "boolean" | "number"; h
   "features.calendar.google.enabled": {
     label: "Google Calendar",
     type: "boolean",
-    help: "Allow Google Calendar OAuth",
-  },
-  "features.calendar.microsoft.enabled": {
-    label: "Microsoft Calendar",
-    type: "boolean",
-    help: "Allow Outlook/Microsoft Calendar OAuth",
+    help: "Let people connect Google Calendar. While off, it shows as coming soon (use this during Google's verification); existing connections keep working.",
   },
   "features.email.campaigns.enabled": {
     label: "Campaigns enabled",

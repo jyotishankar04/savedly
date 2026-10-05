@@ -6,7 +6,6 @@ This page walks through a full local setup — server, database, and client — 
 
 - [Node.js](https://nodejs.org) and [pnpm](https://pnpm.io)
 - [Docker](https://www.docker.com) (for local Postgres, Redis, and Mailhog)
-- A Google or GitHub OAuth app, for sign-in — see [OAuth setup](#oauth-setup) below
 - Optional: an API key from any AI provider (OpenAI, Anthropic, Groq, Google, or an OpenAI-compatible endpoint), for testing AI features later
 
 This repository has **no root workspace** — `server/`, `client/`, and `extension/` are independent apps, each with its own `pnpm-workspace.yaml` and lockfile. `cd` into an app directory before running any command in it.
@@ -30,19 +29,24 @@ pnpm install
 cp .env.example .env
 ```
 
-Open `.env` and fill in the values — every variable has a comment explaining what it's for and how to get it. At minimum, you need:
+Open `.env` and generate the five secrets. Each one has the command to run in its comment:
 
-- `DATABASE_URL` and `REDIS_URL` — already correct for the `docker compose` services above
-- `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `SHARE_TOKEN_SECRET`, `VAULT_TOKEN_SECRET`, `CALENDAR_STATE_SECRET` — each generated with the command in its own comment in `.env.example`
-- `GOOGLE_CLIENT_ID`/`SECRET` or `GITHUB_CLIENT_ID`/`SECRET` — see [OAuth setup](#oauth-setup)
-- `R2_*` — Cloudflare R2 credentials, for file attachments (see the comment block in `.env.example` for setup)
+- `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `SHARE_TOKEN_SECRET`, `VAULT_TOKEN_SECRET`, `CALENDAR_STATE_SECRET`
 
-Then apply the database schema and start the server:
+That's all a local setup needs. `DATABASE_URL` and `REDIS_URL` already match the `docker compose` services above, and everything else can stay empty:
+
+- **Sign-in** works with an email and password. Google and GitHub are optional; see [OAuth setup](#oauth-setup).
+- **Uploads** are stored on local disk. Cloudflare R2 (`R2_*`) is optional.
+- **AI keys and calendar connections** are stored encrypted. Generate `TOKEN_ENCRYPTION_KEY` too (its command is in its comment) if you plan to add an AI key in **Settings** > **AI**.
+
+Then set up the database and start the server:
 
 ```bash
-npx drizzle-kit migrate
+pnpm db:bootstrap
 pnpm dev
 ```
+
+`pnpm db:bootstrap` applies the migrations and creates the roles, feature flags and plans the app expects. Run it again after pulling changes that add a migration.
 
 Confirm it's running:
 
@@ -54,12 +58,12 @@ The response is `{"success":true,"data":{"uptime":...},...}`.
 
 ## OAuth setup
 
-Sign-in is OAuth only — there's no password to configure. Set up at least one provider:
+Optional. Without it, the sign-in page offers email and password only. To test Google or GitHub sign-in, create an OAuth app and add its values to `.env`:
 
-- **Google** — [Google Cloud Console](https://console.cloud.google.com) → APIs & Services → Credentials → create an OAuth client. Authorized redirect URI: `http://localhost:4000/api/v1/auth/google/callback`.
-- **GitHub** — [github.com/settings/developers](https://github.com/settings/developers) → New OAuth App. Authorization callback URL: `http://localhost:4000/api/v1/auth/github/callback`.
+- **Google:** [Google Cloud Console](https://console.cloud.google.com) > **APIs & Services** > **Credentials** > create an OAuth client. Authorized redirect URI: `http://localhost:4000/api/v1/auth/google/callback`.
+- **GitHub:** [github.com/settings/developers](https://github.com/settings/developers) > **New OAuth App**. Authorization callback URL: `http://localhost:4000/api/v1/auth/github/callback`.
 
-Both `GOOGLE_CLIENT_ID`/`SECRET` and `GITHUB_CLIENT_ID`/`SECRET` are required by `server/src/config/env.ts` at startup — you need at least one real pair, even if you only intend to sign in with one provider (fill the other with a placeholder if you're not using it, but see that file if it rejects a blank value).
+Each provider appears on the sign-in page once both its `CLIENT_ID` and `CLIENT_SECRET` are set.
 
 ## Start the client
 
@@ -71,7 +75,9 @@ pnpm install
 pnpm dev
 ```
 
-Open `http://localhost:3000`, sign in, and save something — a link or a plain note. Confirm it appears on the Memories page, and that keyword search finds it from the Search page. Both work with no further setup.
+Open `http://localhost:3000` and click **Sign up** to create an account with an email and password. The first account in a local database is an admin, so `http://localhost:3000/admin` works too.
+
+Save something — a link or a plain note. Confirm it appears on the Memories page, and that keyword search finds it from the Search page. Both work with no further setup.
 
 ## Connect an AI key
 

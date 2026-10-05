@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import bgDark from "@/public/memora-bg-dark.webp";
-import bgLight from "@/public/memora-bg-light.webp";
+import bgDark from "@/public/hero-bg-dark.webp";
+import bgLight from "@/public/hero-bg-light.webp";
 import { motion, type Variants } from "motion/react";
 import { ArrowRight, Layers, MessageSquareQuote, SearchCheck } from "lucide-react";
 import { SHOWCASE_MODE } from "@/lib/showcase";

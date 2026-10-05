@@ -211,26 +211,29 @@ export default function PrivacySettingsPage() {
             </AlertDialogMedia>
             <AlertDialogTitle>Delete your account?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete {user?.email ?? "your account"} and everything in it. Choose a 30-day grace period (log back in
-              anytime before then to cancel) or delete everything immediately with no way back.
+              This deletes <span className="break-all font-medium text-foreground">{user?.email ?? "your account"}</span> and everything in it.
+              Deactivating gives you 30 days to change your mind: sign in again before then to cancel. Deleting now can&apos;t be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletePending}>Cancel</AlertDialogCancel>
+          {/* Three choices don't fit in a row: stacked, with the reversible one first. */}
+          <AlertDialogFooter className="flex-col sm:flex-col">
             <AlertDialogAction
               disabled={deletePending}
-              className="border border-border bg-transparent text-foreground hover:bg-muted"
+              className="w-full border border-border bg-transparent text-foreground hover:bg-muted"
               onClick={() => runDeleteAccount("soft")}
             >
-              Deactivate (30-day grace period)
+              Deactivate for 30 days
             </AlertDialogAction>
             <AlertDialogAction
               disabled={deletePending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => runDeleteAccount("hard")}
             >
               Delete everything now
             </AlertDialogAction>
+            <AlertDialogCancel disabled={deletePending} className="w-full">
+              Cancel
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

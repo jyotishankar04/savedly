@@ -2,7 +2,7 @@
 
 This page describes how the application connects to external calendar providers. Use this as a reference before modifying the OAuth flow or event creation logic.
 
-The `server/src/modules/integrations/calendar/calendar.service.ts` file connects Google Calendar or Microsoft Outlook via OAuth. It stores encrypted access and refresh tokens per (user, provider) pair in `calendar_connections`.
+The `server/src/modules/integrations/calendar/calendar.service.ts` file connects Google Calendar via OAuth. It stores encrypted access and refresh tokens per (user, provider) pair in `calendar_connections`.
 
 The following list describes the calendar event behaviors:
 

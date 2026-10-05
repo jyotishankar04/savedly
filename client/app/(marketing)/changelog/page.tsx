@@ -35,7 +35,7 @@ const updates: Entry[] = [
     icon: Layers,
     changes: [
       "Hosted plans are now Free, Lite, and Pro — AI is run for you on every one of them, up to each plan's monthly allowance, so there's nothing to configure to start saving or asking.",
-      "Lite adds the private vault, calendar sync, and bulk actions across memories; Pro adds Outlook sync, direct shares, and invite-only access with approval.",
+      "Lite adds the private vault, calendar sync, and bulk actions across memories; Pro adds direct shares and invite-only access with approval.",
       "Self-hosting is unaffected: every feature stays free and unlimited, and you can still connect your own AI key from Settings → AI.",
     ],
   },
@@ -58,7 +58,7 @@ const updates: Entry[] = [
     icon: Share,
     changes: [
       "Share a memory or collection with a public link, a password-protected link, or invite-only access with approval requests.",
-      "Connect Google Calendar or Outlook — AI-detected events can be pushed to your calendar in one click.",
+      "Connect Google Calendar — AI-detected events can be pushed to your calendar in one click.",
       "Advanced search filters (type, collection, tag, date range) and bulk batch actions across memories.",
     ],
   },

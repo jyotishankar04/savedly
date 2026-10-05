@@ -1,4 +1,4 @@
-// Content script to scrape webpage metadata for Memora Capture extension.
+// Content script to scrape webpage metadata for SaveForLatter Capture extension.
 // Auth token sync lives in background/service-worker.ts via chrome.cookies —
 // the web app's auth cookie is httpOnly, so page-context JS (this file)
 // can never read it directly; a prior version tried a localStorage read here
@@ -14,8 +14,8 @@
 // nothing in the build catches "this chunk must stay import-free").
 // TOKEN_STORAGE_KEY and SHOW_FLOATING_ICON_STORAGE_KEY below must be kept
 // in sync with ../lib/config.ts by hand.
-const TOKEN_STORAGE_KEY = "memora_token";
-const SHOW_FLOATING_ICON_STORAGE_KEY = "memora_show_floating_icon";
+const TOKEN_STORAGE_KEY = "saveforlatter_token";
+const SHOW_FLOATING_ICON_STORAGE_KEY = "saveforlatter_show_floating_icon";
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "GET_METADATA") {
@@ -69,7 +69,7 @@ function getMetaTag(nameOrProperty: string): string | null {
 // scripts), so on mouseup this just hands the rect off via a message and
 // gets out of the way.
 
-const OVERLAY_ID = "memora-screenshot-selection-overlay";
+const OVERLAY_ID = "saveforlatter-screenshot-selection-overlay";
 const MAX_EXTRACTED_TEXT_LENGTH = 5000;
 
 interface SelectionMeta {
@@ -260,8 +260,8 @@ function extractTextInRect(rect: { x: number; y: number; width: number; height: 
 // Reacts live to both changing (storage.onChanged), so signing in makes
 // it appear immediately rather than needing a page reload.
 
-const FLOATING_BUTTON_ID = "memora-floating-button";
-const FLOATING_MENU_ID = "memora-floating-menu";
+const FLOATING_BUTTON_ID = "saveforlatter-floating-button";
+const FLOATING_MENU_ID = "saveforlatter-floating-menu";
 
 let floatingButtonEl: HTMLButtonElement | null = null;
 let floatingMenuEl: HTMLDivElement | null = null;
@@ -290,8 +290,8 @@ function createFloatingButton(): void {
   const button = document.createElement("button");
   button.id = FLOATING_BUTTON_ID;
   button.type = "button";
-  button.setAttribute("aria-label", "Memora quick actions");
-  button.title = "Memora quick actions";
+  button.setAttribute("aria-label", "SaveForLatter quick actions");
+  button.title = "SaveForLatter quick actions";
   button.textContent = "M";
   button.style.cssText =
     "position:fixed;right:20px;bottom:20px;width:44px;height:44px;border-radius:50%;border:none;" +
@@ -413,9 +413,9 @@ document.addEventListener(
         (response) => {
           if (!response) return;
           if (response.ok) {
-            console.log("Memora: Saved URL from clipboard");
+            console.log("SaveForLatter: Saved URL from clipboard");
           } else {
-            console.log("Memora: Could not save clipboard URL:", response.error);
+            console.log("SaveForLatter: Could not save clipboard URL:", response.error);
           }
         }
       );

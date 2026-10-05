@@ -48,9 +48,9 @@ function sendClipboardUrlToBackground(url: string): void {
     (response) => {
       if (!response) return;
       if (response.ok) {
-        console.log("Memora: Saved URL from clipboard");
+        console.log("SaveForLatter: Saved URL from clipboard");
       } else {
-        console.log("Memora: Could not save clipboard URL:", response.error);
+        console.log("SaveForLatter: Could not save clipboard URL:", response.error);
       }
     }
   );

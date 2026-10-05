@@ -1,7 +1,7 @@
 /**
  * Client-side "Add to calendar" helpers — no calendar OAuth anywhere. Google
- * and Outlook both support a plain "quick add" URL, and every other
- * calendar app (Apple Calendar, Thunderbird, etc.) can open a downloaded
+ * Calendar supports a plain "quick add" URL, and every other calendar app
+ * (Apple Calendar, Outlook, Thunderbird, etc.) can open a downloaded
  * .ics file, so a one-click add works everywhere without ever asking for
  * calendar access.
  */
@@ -37,21 +37,6 @@ export function googleCalendarUrl(event: CalendarEventInput): string {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-export function outlookCalendarUrl(event: CalendarEventInput): string {
-  const end = event.end ?? defaultEnd(event.start);
-  const params = new URLSearchParams({
-    path: "/calendar/action/compose",
-    rru: "addevent",
-    subject: event.title,
-    startdt: new Date(event.start).toISOString(),
-    enddt: new Date(end).toISOString(),
-  });
-  const body = [event.description, event.url].filter(Boolean).join("\n\n");
-  if (body) params.set("body", body);
-  if (event.url) params.set("location", event.url);
-  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
-}
-
 function escapeIcsText(text: string): string {
   return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
@@ -62,9 +47,9 @@ export function buildIcsContent(event: CalendarEventInput): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Memora//Add to Calendar//EN",
+    "PRODID:-//SaveForLatter//Add to Calendar//EN",
     "BEGIN:VEVENT",
-    `UID:${crypto.randomUUID()}@memora`,
+    `UID:${crypto.randomUUID()}@saveforlatter`,
     `DTSTAMP:${toUtcStamp(new Date().toISOString())}`,
     `DTSTART:${toUtcStamp(event.start)}`,
     `DTEND:${toUtcStamp(end)}`,

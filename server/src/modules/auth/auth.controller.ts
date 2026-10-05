@@ -188,8 +188,10 @@ export class AuthController {
     }
     const { user, isFirstUser } = await registerWithPassword(req.body as RegisterInput);
     await assignDefaultRole(user.id);
-    // The first account on a self-hosted install owns it.
-    if (isFirstUser && env.SELF_HOSTED) await assignAdminRole(user.id);
+    // The first account on a self-hosted install owns it. The same goes for
+    // a local development database, so the admin pages are reachable
+    // without editing the database by hand.
+    if (isFirstUser && (env.SELF_HOSTED || env.NODE_ENV === "development")) await assignAdminRole(user.id);
     sendWelcomeEmail(user);
 
     const userWithRoles = await startSession(req, res, user);

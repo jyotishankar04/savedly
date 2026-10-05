@@ -33,7 +33,7 @@ Free and open source, with no paid tier behind it. Every answer from "Ask" links
 
 ## Brand Commitments
 
-- Name is **SaveForLatter** (the repo is called "memora"; never use that name in copy). Wordmark "save·for·latter" with a de-emphasized "for".
+- Name is **SaveForLatter**. Wordmark "save·for·latter" with a de-emphasized "for".
 - Logo mark: tilted blue note with a smiling face and curled corner (`components/logo.tsx`, `public/logo.svg`).
 - Brand color is blue: `#1447E6` light / `#2B7FFF` dark (`--primary` in `app/globals.css`).
 - Marketing pages follow the site's light/dark theme toggle (user decision, 2026-09-27).
