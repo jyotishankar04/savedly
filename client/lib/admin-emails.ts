@@ -26,9 +26,27 @@ export interface EmailMessage {
 
 export type EmailRecipients = { all: true } | { userIds: string[] };
 
+export type EmailTone = "primary" | "success" | "warning" | "danger" | "neutral";
+
+/** One piece of a composed email. Mirrors EmailBlock in the server's mailer templates. */
+export type EmailBlock =
+  | { type: "text"; text: string }
+  | { type: "bullets"; items: string[] }
+  | { type: "button"; label: string; url: string }
+  | { type: "note"; text: string; tone?: EmailTone }
+  | { type: "image"; url: string; alt?: string }
+  | { type: "divider" };
+
+export interface EmailContent {
+  label?: string;
+  tone?: EmailTone;
+  headline?: string;
+  blocks: EmailBlock[];
+}
+
 export interface SendEmailInput {
   subject: string;
-  body: string;
+  content: EmailContent;
   category: EmailCampaignCategory;
   recipients: EmailRecipients;
 }
@@ -50,6 +68,16 @@ export interface CampaignMessagesResult {
 
 export async function sendEmail(input: SendEmailInput): Promise<{ campaignId: string; recipientCount: number }> {
   return apiFetch<{ campaignId: string; recipientCount: number }>("/admin/emails/send", { method: "POST", body: input });
+}
+
+/** The exact HTML the server would send for this email. */
+export async function previewEmail(input: { subject: string; content: EmailContent }): Promise<{ html: string }> {
+  return apiFetch<{ html: string }>("/admin/emails/preview", { method: "POST", body: input });
+}
+
+/** Sends the email to the signed-in admin's own address only. */
+export async function sendTestEmail(input: { subject: string; content: EmailContent }): Promise<{ to: string }> {
+  return apiFetch<{ to: string }>("/admin/emails/test", { method: "POST", body: input });
 }
 
 export async function listCampaigns(params: { page?: number; limit?: number } = {}): Promise<ListCampaignsResult> {

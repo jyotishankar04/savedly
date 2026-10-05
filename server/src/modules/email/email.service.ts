@@ -3,7 +3,7 @@ import { db } from "../../db";
 import { emailCampaigns, emailMessages, users } from "../../db/schema";
 import { EmailCategory, EmailTemplateKey, UserStatus } from "../../db/enums";
 import { logAdminAction } from "../../shared/utils/audit-log";
-import { adminComposedEmailTemplate } from "../../shared/mailer/templates";
+import { adminComposedEmailTemplate, composedEmailTemplate, composedEmailToText, type ComposedEmail } from "../../shared/mailer/templates";
 import { enqueueEmail } from "./email.queue";
 
 export interface SendEmailInput {
@@ -42,7 +42,10 @@ export type BulkEmailRecipients = { all: true } | { userIds: string[] };
 
 export interface SendBulkEmailInput {
   subject: string;
-  bodyText: string;
+  /** Plain text. Ignored when `content` is given. */
+  bodyText?: string;
+  /** What the admin composer built. Takes the place of `bodyText`. */
+  content?: ComposedEmail;
   category: EmailCategory;
   recipients: BulkEmailRecipients;
   createdBy: string;
@@ -63,7 +66,11 @@ export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campai
       ? await db.select({ id: users.id, email: users.email }).from(users).where(eq(users.status, UserStatus.ACTIVE))
       : await db.select({ id: users.id, email: users.email }).from(users).where(inArray(users.id, input.recipients.userIds));
 
-  const { html } = adminComposedEmailTemplate({ subject: input.subject, bodyText: input.bodyText });
+  // The campaign keeps a plain-text copy either way, for the admin list.
+  const bodyText = input.content ? composedEmailToText(input.content) : (input.bodyText ?? "");
+  const { html } = input.content
+    ? composedEmailTemplate({ subject: input.subject, content: input.content })
+    : adminComposedEmailTemplate({ subject: input.subject, bodyText });
 
   const result = await db.transaction(async (tx) => {
     const [campaign] = await tx
@@ -71,7 +78,7 @@ export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campai
       .values({
         category: input.category,
         subject: input.subject,
-        bodyText: input.bodyText,
+        bodyText,
         recipientFilter: input.recipients,
         recipientCount: recipients.length,
         createdBy: input.createdBy,
