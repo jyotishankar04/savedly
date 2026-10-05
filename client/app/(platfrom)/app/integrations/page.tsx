@@ -5,18 +5,25 @@ import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   AppleIcon,
+  BlueskyIcon,
   Bookmark02Icon,
   ChromeIcon,
   CheckmarkCircle02Icon as CheckCircle,
   GithubIcon,
+  InstagramIcon,
+  Linkedin01Icon,
+  NewTwitterIcon,
   Notion01Icon,
+  PinterestIcon,
   QuoteDownIcon,
   RedditIcon,
   Search01Icon as SearchIcon,
   SlackIcon,
   StickyNote02Icon,
   TelegramIcon,
+  TiktokIcon,
   WhatsappIcon,
+  YoutubeIcon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
@@ -41,8 +48,8 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-type Category = "Calendar" | "Notes" | "Bookmarks & reading" | "Messaging" | "Developer" | "Browser";
-const CATEGORIES: Category[] = ["Calendar", "Notes", "Bookmarks & reading", "Messaging", "Developer", "Browser"];
+type Category = "Calendar" | "Notes" | "Bookmarks & reading" | "Social" | "Messaging" | "Developer" | "Browser";
+const CATEGORIES: Category[] = ["Calendar", "Notes", "Bookmarks & reading", "Social", "Messaging", "Developer", "Browser"];
 
 /**
  * Connectors that are planned but not built. They're listed so people can
@@ -51,13 +58,16 @@ const CATEGORIES: Category[] = ["Calendar", "Notes", "Bookmarks & reading", "Mes
  *
  * `how` is what the platform itself allows: a live sync where it offers an
  * API, a one-time file import where it doesn't (Google Keep and Apple Notes
- * give other apps no access to personal accounts).
+ * give other apps no access to personal accounts). Most social networks
+ * don't let an app read what you've saved there, so those are captured one
+ * post at a time, from the share menu or the browser extension: the cards
+ * say so, and don't promise a sync that the platform wouldn't allow.
  */
 interface PlannedIntegration {
   key: string;
   title: string;
   category: Category;
-  how: "Sync" | "File import" | "Send to bot" | "Extension";
+  how: "Sync" | "File import" | "Send to bot" | "Extension" | "Share & extension";
   description: string;
   brings: string[];
   icon: IconSvgElement;
@@ -118,12 +128,82 @@ const PLANNED: PlannedIntegration[] = [
   {
     key: "reddit",
     title: "Reddit",
-    category: "Bookmarks & reading",
+    category: "Social",
     how: "Sync",
     description: "Keep the posts and comments you save on Reddit, where you can actually find them again.",
     brings: ["Saved posts", "Saved comments", "The subreddit, as a tag"],
     icon: RedditIcon,
     iconClassName: "bg-orange-600 text-white",
+  },
+  {
+    key: "youtube",
+    title: "YouTube",
+    category: "Social",
+    how: "Share & extension",
+    description: "Save a video and get a summary of what's in it, so you can find it by what was said, not just its title.",
+    brings: ["The video, with its title and channel", "A summary of the content", "Share it straight from the YouTube app"],
+    icon: YoutubeIcon,
+    iconClassName: "bg-red-600 text-white",
+  },
+  {
+    key: "x-twitter",
+    title: "X (Twitter)",
+    category: "Social",
+    how: "Share & extension",
+    description: "Save a post or a whole thread. X doesn't let apps read your bookmarks, so you save them one at a time.",
+    brings: ["The post's text and author", "Full threads, in order", "Images and links in the post"],
+    icon: NewTwitterIcon,
+    iconClassName: "bg-neutral-900 text-white",
+  },
+  {
+    key: "instagram",
+    title: "Instagram",
+    category: "Social",
+    how: "Share & extension",
+    description: "Keep a post or reel with its caption, and find it later by what it was about.",
+    brings: ["Posts and reels", "The caption and account", "Shared from the Instagram app"],
+    icon: InstagramIcon,
+    iconClassName: "bg-pink-600 text-white",
+  },
+  {
+    key: "linkedin",
+    title: "LinkedIn",
+    category: "Social",
+    how: "Share & extension",
+    description: "Save posts and articles worth coming back to, outside a feed that buries them.",
+    brings: ["Posts and their author", "Articles, with their full text", "Job listings you want to keep"],
+    icon: Linkedin01Icon,
+    iconClassName: "bg-sky-700 text-white",
+  },
+  {
+    key: "tiktok",
+    title: "TikTok",
+    category: "Social",
+    how: "Share & extension",
+    description: "Save a video with its caption, so the recipe or tip in it is searchable later.",
+    brings: ["The video link and caption", "The creator", "Shared from the TikTok app"],
+    icon: TiktokIcon,
+    iconClassName: "bg-neutral-900 text-white",
+  },
+  {
+    key: "pinterest",
+    title: "Pinterest",
+    category: "Social",
+    how: "Sync",
+    description: "Bring in your boards, so your pins sit beside everything else you've saved.",
+    brings: ["Pins and their images", "Boards, as collections", "New pins as you add them"],
+    icon: PinterestIcon,
+    iconClassName: "bg-red-700 text-white",
+  },
+  {
+    key: "bluesky",
+    title: "Bluesky",
+    category: "Social",
+    how: "Sync",
+    description: "Keep the posts you like on Bluesky, with their text and links.",
+    brings: ["Posts you've liked", "Threads, in order", "Links shared in them"],
+    icon: BlueskyIcon,
+    iconClassName: "bg-sky-500 text-white",
   },
   {
     key: "telegram",
