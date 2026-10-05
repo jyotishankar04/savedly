@@ -21,7 +21,9 @@ import {
 import type { IconSvgElement } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
 import { getCalendarConnectUrl, type CalendarProviderKey } from "@/lib/calendar-api";
+import { getServerConfig } from "@/lib/server-config";
 import { useCalendarConnectionsQuery, useDisconnectCalendarMutation } from "@/hooks/use-calendar";
 import { cn } from "@/lib/utils";
 import { usePlanFeature } from "@/hooks/use-plan-limit";
@@ -315,6 +317,11 @@ export default function IntegrationsPage() {
   // Connecting a calendar is a plan feature; an existing connection keeps
   // working and can always be disconnected.
   const googleSync = usePlanFeature("calendarSync");
+  // Until the config has loaded, assume it's open: that's every self-hosted
+  // install and the hosted service once Google's review is done.
+  const { data: serverConfig } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const googleCalendarOpen = serverConfig?.googleCalendar ?? true;
+  const googlePending = !googleCalendarOpen && !isCalendarConnected("google");
   const disconnectMutation = useDisconnectCalendarMutation();
   function isCalendarConnected(provider: CalendarProviderKey): boolean {
     return calendarConnections?.some((c) => c.provider === provider) ?? false;
@@ -342,7 +349,9 @@ export default function IntegrationsPage() {
           <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">
             {activeCategory !== "All" || q
               ? `${visibleCount} of ${cardMeta.length} matching`
-              : `${cardMeta.length - PLANNED.length} available now, ${PLANNED.length} planned. Planned connectors can't be connected yet.`}
+              : googlePending
+                ? `${cardMeta.length} connectors on the way. None can be connected yet.`
+                : `${cardMeta.length - PLANNED.length} available now, ${PLANNED.length} planned. Planned connectors can't be connected yet.`}
           </p>
         </div>
 
@@ -397,9 +406,16 @@ export default function IntegrationsPage() {
               title="Google Calendar"
               category="Calendar"
               connected={isCalendarConnected("google")}
-              description={cardMeta[0].description}
+              how={googlePending ? "In review" : undefined}
+              description={
+                googlePending
+                  ? "Add events from your saved items to Google Calendar. We're going through Google's verification for calendar access, and connecting opens here as soon as it's approved."
+                  : cardMeta[0].description
+              }
               action={
-                isCalendarConnected("google") ? (
+                googlePending ? (
+                  <ConnectPill state="coming-soon">Coming soon</ConnectPill>
+                ) : isCalendarConnected("google") ? (
                   <div className="flex items-center gap-2">
                     <ConnectPill state="connected" render={<Link href="/app/calendar" />} nativeButton={false}>
                       Manage

@@ -17,7 +17,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { useUpdateMemoryMutation } from "@/context/MemoryContext";
 import { buildIcsContent, downloadTextFile, googleCalendarUrl } from "@/lib/calendar";
+import { useQuery } from "@tanstack/react-query";
 import { getCalendarConnectUrl, type CalendarProviderKey } from "@/lib/calendar-api";
+import { getServerConfig } from "@/lib/server-config";
 import { useCalendarConnectionsQuery, usePushToCalendarMutation } from "@/hooks/use-calendar";
 import type { Memory } from "@/types/memory";
 
@@ -98,6 +100,8 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
 
   const start = memory.eventAt ? new Date(memory.eventAt) : null;
   const anyConnected = (["google"] as const).some(isConnected);
+  const { data: serverConfig } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const calendarOpen = serverConfig?.googleCalendar ?? true;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,6 +170,11 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
                       </span>
                       {!added && <span className="text-xs font-normal opacity-80">Connected</span>}
                     </Button>
+                  ) : !calendarOpen ? (
+                    <p key={provider} className="rounded-xl border border-dashed border-border px-4 py-3 text-[13px] leading-snug text-muted-foreground">
+                      <span className="font-medium text-foreground">{label} is coming soon.</span> We&apos;re going through Google&apos;s verification for
+                      calendar access. Until then, use a link or the file below.
+                    </p>
                   ) : (
                     <Button
                       key={provider}

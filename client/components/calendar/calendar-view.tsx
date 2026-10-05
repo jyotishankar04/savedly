@@ -25,6 +25,8 @@ import { useCalendarConnectionsQuery, useCalendarEventsQuery, useUpdateCalendarE
 import { EditEventDialog, NewEventDialog, type NewEventDraft } from "./event-dialogs";
 import { EventPopover, type EventPopoverState } from "./event-popover";
 import { editTargetFor, formatRangeTitle, toFullCalendarEvent, VIEW_LABELS, type CalendarViewKey, type EventSource } from "./calendar-utils";
+import { useQuery } from "@tanstack/react-query";
+import { getServerConfig } from "@/lib/server-config";
 import "./calendar.css";
 
 const VIEW_STORAGE_KEY = "sfl.calendar.view";
@@ -88,6 +90,8 @@ export default function CalendarView() {
   const router = useRouter();
   // Adding events (and sending them to Google Calendar) is a paid feature; moving the ones already here isn't.
   const canAdd = usePlanFeature("calendarSync");
+  const { data: serverConfig } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
+  const calendarOpen = serverConfig?.googleCalendar ?? true;
 
   const fcEvents = React.useMemo(() => (range ? events.filter((e) => !hidden[e.source]).map(toFullCalendarEvent) : []), [events, hidden, range]);
 
@@ -304,11 +308,15 @@ export default function CalendarView() {
                   <div key={provider} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2">
                     <div className="min-w-0">
                       <p className="text-[13px] font-medium text-foreground">{label}</p>
-                      <p className="text-xs text-muted-foreground">Not connected</p>
+                      <p className="text-xs text-muted-foreground">{calendarOpen ? "Not connected" : "In Google's review"}</p>
                     </div>
-                    <Link href="/app/integrations" className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10">
-                      Connect
-                    </Link>
+                    {calendarOpen ? (
+                      <Link href="/app/integrations" className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10">
+                        Connect
+                      </Link>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">Coming soon</span>
+                    )}
                   </div>
                 );
               })}

@@ -104,7 +104,7 @@ const FLAG_LABELS: Record<string, { label: string; type: "boolean" | "number"; h
   "features.calendar.google.enabled": {
     label: "Google Calendar",
     type: "boolean",
-    help: "Allow Google Calendar OAuth",
+    help: "Let people connect Google Calendar. While off, it shows as coming soon (use this during Google's verification); existing connections keep working.",
   },
   "features.email.campaigns.enabled": {
     label: "Campaigns enabled",

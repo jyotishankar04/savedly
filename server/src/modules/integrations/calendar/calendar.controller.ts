@@ -37,8 +37,14 @@ import { calendarConnections } from "../../../db/schema";
 import { and, eq } from "drizzle-orm";
 import { CalendarProvider } from "../../../db/enums";
 import { decryptToken } from "../../../shared/crypto/token-cipher";
+import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../../feature-flags/feature-flags.service";
 
 async function initiateConnect(req: Request, res: Response, provider: CalendarProviderKey) {
+  // Switched off by an admin: back to Integrations, which explains why. This
+  // is a page navigation, so a JSON error would leave the user on a blank page.
+  if (!(await isCalendarSyncEnabled()) || !(await isCalendarProviderEnabled(provider))) {
+    return res.redirect(`${env.FRONTEND_URL}/app/integrations`);
+  }
   if (!(await isGoogleCalendarConfigured())) {
     return res.status(503).json(ApiResponse.error("CALENDAR_NOT_CONFIGURED", "Google Calendar isn't configured yet"));
   }
