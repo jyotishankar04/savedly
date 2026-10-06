@@ -108,6 +108,53 @@ To restart everything by hand, pull first. A plain `docker compose up -d` uses t
 docker compose pull && docker compose up -d
 ```
 
+## Back up and restore
+
+The instance holds no user data you can't rebuild. What must be backed up lives in three other places:
+
+| What | Where | If it's lost |
+| --- | --- | --- |
+| Accounts, saved items, plans, settings | The managed Postgres database | Everything is gone. Back this up. |
+| Uploaded images and PDFs | The Cloudflare R2 bucket | Those files are gone. |
+| `TOKEN_ENCRYPTION_KEY` and the other secrets | `/opt/saveforlatter/.env.prod` | Saved AI keys and calendar connections can't be read, even with a database backup. |
+
+The vector index and Redis don't need backups. Vectors are rebuilt from the database, and Redis only holds queued jobs and the response cache.
+
+### Turn on automatic backups
+
+1. In the database provider's dashboard, turn on daily backups, and point-in-time recovery if the plan has it. Note how many days are kept.
+2. Keep a copy of `.env.prod` in a password manager. Update it each time you change a secret.
+
+### Take a backup by hand
+
+Take one before a risky change, such as a migration that drops a column or a bulk SQL edit. Run the following command on the instance. It reads the connection string from `.env.prod` and never prints it:
+
+```sh
+cd /opt/saveforlatter
+docker run --rm --env-file .env.prod postgres:18 \
+  sh -c 'pg_dump --no-owner --format=custom "$DATABASE_URL"' > "backup-$(date +%F).dump"
+```
+
+The file is a full copy of your users' data. Move it off the instance to private storage, then delete it from the instance. Never put it in the repository or a public bucket.
+
+### Restore
+
+Restore into a new, empty database first, and check it, before you point the API at it.
+
+1. Create an empty database with the provider and copy its connection string.
+2. Restore the backup into it. The leading space keeps the command out of your shell history:
+
+   ```sh
+    NEW_DATABASE_URL='<connection string of the empty database>'
+   docker run --rm -i -e NEW_DATABASE_URL="$NEW_DATABASE_URL" postgres:18 \
+     sh -c 'pg_restore --no-owner --dbname "$NEW_DATABASE_URL"' < backup-2026-10-06.dump
+   ```
+
+3. Set `DATABASE_URL` in `.env.prod` to the new database, then restart the API. See [Change a setting](#change-a-setting).
+4. Sign in and open a few saved items. If search by meaning misses items, open **Admin** > **Infrastructure** > **Embeddings**. It shows how many items have no search index and has a button to index them.
+
+Practise a restore once before you need one. A backup you have never restored is not yet a backup.
+
 ## Measure latency
 
 To see how long the API's calls to Postgres, Redis and Pinecone take from the instance, copy `deploy/aws/latency-probe.sh` to the instance and run it:

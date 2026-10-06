@@ -28,12 +28,12 @@ const STEPS: Step[] = [
   {
     numeral: "01",
     title: "In",
-    body: "Paste a link, drop a file, or send a voice note. One box takes all six formats.",
+    body: "Paste a link, drop a file, or type a note. One box takes all of it.",
   },
   {
     numeral: "02",
     title: "Read",
-    body: "Audio is transcribed, images go through OCR and vision, documents and pages get their text pulled out.",
+    body: "Images go through OCR and vision, documents and pages get their text pulled out.",
   },
   {
     numeral: "03",

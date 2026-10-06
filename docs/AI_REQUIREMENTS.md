@@ -1,5 +1,7 @@
 # SaveForLatter AI Architecture & Pipeline Requirements
 
+> **Historical design notes.** This was written before the server existed and describes the plan at that time. The code has moved on: `server/src/db/schema.ts` and the modules under `server/src/modules/` are the source of truth. Don't implement from this document without checking the code first.
+
 ## 1. Document & System Overview
 
 ### Purpose

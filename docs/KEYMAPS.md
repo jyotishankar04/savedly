@@ -4,7 +4,7 @@ Keyboard shortcuts implemented in the web client (`client/`). Everything here
 is `Ctrl`-based; on macOS the equivalent `Cmd` key works identically for every
 global shortcut, since each listener checks `e.ctrlKey || e.metaKey`.
 
-There is no keymaps implementation in `extension/` or `mobile/` — these are web client (`client/`) only.
+There is no keymaps implementation in `extension/` — these are web client (`client/`) only.
 
 ## Global (anywhere under `/app`)
 

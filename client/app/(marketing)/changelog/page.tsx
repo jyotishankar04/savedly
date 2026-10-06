@@ -100,7 +100,7 @@ const updates: Entry[] = [
     badge: "Early build",
     icon: Key,
     changes: [
-      "Capture links, notes, images, documents, and voice into one place, each read and enriched on the way in.",
+      "Capture links, notes, images and documents into one place, each read and enriched on the way in.",
       "Collections and tags for organizing what you save.",
       "Google and GitHub sign-in — no passwords to manage.",
     ],

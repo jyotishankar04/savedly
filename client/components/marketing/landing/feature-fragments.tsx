@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Search01Icon as SearchIcon, SparklesIcon as SparklesIcon, TextFontIcon as TypeIcon, LockPasswordIcon as LockIcon, Mic01Icon as MicIcon } from "@hugeicons/core-free-icons";
+import { Search01Icon as SearchIcon, SparklesIcon as SparklesIcon, TextFontIcon as TypeIcon, LockPasswordIcon as LockIcon } from "@hugeicons/core-free-icons";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { cn } from "@/lib/utils";
 
@@ -148,7 +148,7 @@ export function SearchFragment() {
 const VAULT_ITEMS = [
   { title: "Q3 planning — reading list and goals", meta: "PDF · 12 pages", thumb: "/landing/demo/q3.webp" },
   { title: "Lisbon — 4 days, 3 neighbourhoods", meta: "Screenshot", thumb: "/landing/demo/lisbon.webp" },
-  { title: "Voice memo: podcast episode ideas", meta: "Voice memo · 2:14", thumb: null },
+  { title: "Podcast episode ideas", meta: "Note", thumb: null },
 ];
 
 /**
@@ -196,7 +196,7 @@ export function VaultFragment() {
                 <Thumb src={item.thumb} />
               ) : (
                 <span className="flex h-9 w-16 shrink-0 items-center justify-center rounded-md bg-foreground/[0.06] text-muted-foreground">
-                  <HugeiconsIcon icon={MicIcon} className="h-4 w-4" strokeWidth={2} />
+                  <HugeiconsIcon icon={TypeIcon} className="h-4 w-4" strokeWidth={2} />
                 </span>
               )}
               <span className="min-w-0">

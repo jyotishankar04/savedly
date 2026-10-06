@@ -21,7 +21,7 @@ export interface Competitor {
 
 export const ourFeatures = {
   coreIdea: "AI second brain",
-  whatTheySave: "Links, images, notes, voice, PDFs, screenshots",
+  whatTheySave: "Links, images, notes, videos, PDFs, screenshots",
   hasSemanticSearch: "Yes (Hybrid + Ask Assistant)",
   hasAutoOrg: "Yes (Auto-tagging & embeddings)",
   hasChatCapture: "Adding Soon",

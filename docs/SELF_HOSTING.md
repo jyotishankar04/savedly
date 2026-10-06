@@ -162,6 +162,20 @@ docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine tar czf /
 
 Also keep a copy of the `saveforlatter_secrets` volume. It holds the key that encrypts saved API keys; without it, saved keys can't be read after a restore.
 
+### Restore from a backup
+
+To restore, start from a fresh install on the new machine, then run the following commands from the `saveforlatter` directory. They replace whatever that install holds:
+
+```sh
+docker compose stop server
+docker compose exec -T db psql -U saveforlatter -d saveforlatter -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
+docker compose exec -T db psql -U saveforlatter -d saveforlatter < saveforlatter-db.sql
+docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine sh -c 'rm -rf /files/* && tar xzf /backup/saveforlatter-files.tar.gz -C /files'
+docker compose start server
+```
+
+Restore your copy of the `saveforlatter_secrets` volume as well, before you start the server. Without the original key, saved API keys must be entered again.
+
 ## Upgrade
 
 To upgrade to the latest version, run the following commands from the `saveforlatter` directory:
