@@ -40,7 +40,7 @@ const DEFAULTS: Omit<SettingsResponse, "connectedAccounts"> = {
   timezone: null,
   ai: { autoOrganization: true, summaries: true, relatedMemories: true, semanticSearch: true, askSaveForLatter: true },
   capture: { extractContent: true, generateTitle: true, generateSummary: true, suggestTags: true, defaultCollectionId: null },
-  notifications: { weeklySummary: true, forgottenMemories: true, productUpdates: false },
+  notifications: { weeklySummary: true, forgottenMemories: true, productUpdates: true },
   appearance: { theme: SettingsTheme.SYSTEM, accentColor: AccentColor.BLUE },
 };
 
@@ -83,7 +83,8 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
     notifications: {
       weeklySummary: row.notifyWeeklySummary,
       forgottenMemories: row.notifyForgottenMemories,
-      productUpdates: row.notifyProductUpdates,
+      // On unless they unsubscribed from announcement emails.
+      productUpdates: row.emailUnsubscribedAt === null,
     },
     appearance: {
       theme: row.theme,
@@ -94,7 +95,7 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
 }
 
 export async function updateSettings(userId: string, patch: UpdateSettingsInput): Promise<SettingsResponse> {
-  const columns: Record<string, boolean | string | SettingsTheme | AccentColor | Date> = { updatedAt: new Date() };
+  const columns: Record<string, boolean | string | SettingsTheme | AccentColor | Date | null> = { updatedAt: new Date() };
 
   if (patch.timezone !== undefined) columns.timezone = patch.timezone;
 
@@ -111,7 +112,7 @@ export async function updateSettings(userId: string, patch: UpdateSettingsInput)
 
   if (patch.notifications?.weeklySummary !== undefined) columns.notifyWeeklySummary = patch.notifications.weeklySummary;
   if (patch.notifications?.forgottenMemories !== undefined) columns.notifyForgottenMemories = patch.notifications.forgottenMemories;
-  if (patch.notifications?.productUpdates !== undefined) columns.notifyProductUpdates = patch.notifications.productUpdates;
+  if (patch.notifications?.productUpdates !== undefined) columns.emailUnsubscribedAt = patch.notifications.productUpdates ? null : new Date();
 
   if (patch.appearance?.theme !== undefined) columns.theme = patch.appearance.theme as SettingsTheme;
   if (patch.appearance?.accentColor !== undefined) columns.accentColor = patch.appearance.accentColor as AccentColor;

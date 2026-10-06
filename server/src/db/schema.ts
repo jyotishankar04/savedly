@@ -596,6 +596,10 @@ export const userSettings = pgTable("user_settings", {
   notifyWeeklySummary: boolean("notify_weekly_summary").notNull().default(true),
   notifyForgottenMemories: boolean("notify_forgotten_memories").notNull().default(true),
   notifyProductUpdates: boolean("notify_product_updates").notNull().default(false),
+  // Set when the user opts out of announcement emails (the link in the email,
+  // or Settings > Notifications). Null means they get them. Account emails,
+  // such as a share invitation, are sent either way.
+  emailUnsubscribedAt: timestamp("email_unsubscribed_at", { withTimezone: true }),
   theme: settingsThemeEnum("theme").notNull().default(SettingsTheme.SYSTEM),
   accentColor: accentColorEnum("accent_color").notNull().default(AccentColor.BLUE),
   // IANA name ("Asia/Kolkata"), set from the browser. Event detection reads

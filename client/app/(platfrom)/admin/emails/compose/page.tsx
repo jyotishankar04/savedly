@@ -344,7 +344,7 @@ export default function ComposeEmailPage() {
         recipients: sendToAll ? { all: true } : { userIds: Array.from(selectedUsers.keys()) },
       });
       queryClient.invalidateQueries({ queryKey: ["admin", "emails"] });
-      toast.add({ title: "Email queued", description: `${result.recipientCount} recipient${result.recipientCount === 1 ? "" : "s"}`, type: "success" });
+      toast.add({ title: "Email queued", description: `${result.recipientCount} recipient${result.recipientCount === 1 ? "" : "s"}${result.unsubscribedCount > 0 ? `. ${result.unsubscribedCount} left out: unsubscribed` : ""}`, type: "success" });
       router.push("/admin/emails");
     } catch (err) {
       toast.add({ title: "Couldn't send the email", description: err instanceof Error ? err.message : undefined, type: "error" });

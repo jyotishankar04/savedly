@@ -40,6 +40,8 @@ export interface SendMailInput {
   to: string;
   subject: string;
   html: string;
+  /** Extra message headers, such as List-Unsubscribe. */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -59,5 +61,6 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     html: input.html,
     // Sent as multipart/alternative: see html-to-text.ts for why.
     text: htmlToText(input.html),
+    headers: input.headers,
   });
 }
