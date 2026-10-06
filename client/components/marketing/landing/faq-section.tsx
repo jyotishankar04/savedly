@@ -24,7 +24,7 @@ interface Faq {
 const FAQS: Faq[] = [
   {
     question: "What can I save?",
-    answer: "Links, notes, screenshots, PDFs, documents, videos, voice notes, and more.",
+    answer: "Links, notes, screenshots, PDFs and videos.",
   },
   {
     question: "How does SaveForLatter find things?",

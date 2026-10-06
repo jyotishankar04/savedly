@@ -19,13 +19,13 @@ A personal memory tool that reads, organizes, and helps you find what you save �
 
 ## Overview
 
-Send SaveForLatter a link, a note, an image, a document, or a voice memo, and it's read, summarized, tagged, and made searchable — automatically, the same pipeline every time, whatever format it came in. Ask it a question in plain English and it answers from what you've actually saved, citing exactly which memory it came from.
+Send SaveForLatter a link, a note, an image, or a document, and it's read, summarized, tagged, and made searchable — automatically, the same pipeline every time, whatever format it came in. Ask it a question in plain English and it answers from what you've actually saved, citing exactly which memory it came from.
 
 Self-host it for free with every feature unlocked and your own AI key, or use the hosted version, where we supply the AI: the Free plan covers the essentials, and Lite and Pro add more room, more AI and features like the private vault.
 
 ## Features
 
-- **Capture anything** — links, notes, images, documents, and voice memos, all through one capture bar
+- **Capture anything** — links, notes, images, and documents, all through one capture bar
 - **Automatic enrichment** — read, summarized, tagged, and embedded on the way in, no manual tagging required
 - **Hybrid search** — keyword and meaning-based (semantic) search merged into a single ranked list
 - **Ask SaveForLatter** — a chat assistant over your saved content that can also create, edit, organize, and delete memories directly, not just answer questions about them

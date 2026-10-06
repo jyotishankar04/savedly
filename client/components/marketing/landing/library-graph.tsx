@@ -27,7 +27,7 @@ const ITEMS: Item[] = [
   { id: "dash", label: "Analytics dashboard, dark", x: 540, y: 470, hub: "design" },
   { id: "plain", label: "Plain-text notes", x: 655, y: 228, hub: "writing" },
   { id: "q3", label: "Q3 planning", x: 945, y: 62, hub: "writing", side: "left" },
-  { id: "voice", label: "Podcast ideas (voice memo)", x: 955, y: 258, hub: "writing", side: "left" },
+  { id: "voice", label: "Podcast ideas", x: 955, y: 258, hub: "writing", side: "left" },
   { id: "lisbon", label: "Lisbon, 4 days", x: 950, y: 488, hub: "travel", side: "left" },
 ];
 
