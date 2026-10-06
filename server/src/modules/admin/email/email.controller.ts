@@ -1,12 +1,21 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../../shared/response/api-response";
-import type { ListCampaignMessagesQuery, ListCampaignsQuery, SendEmailInput } from "./email.schema";
-import { getCampaignMessages, listCampaigns, sendAdminEmail } from "./email.service";
+import type { ListCampaignMessagesQuery, ListCampaignsQuery, PreviewEmailInput, SendEmailInput } from "./email.schema";
+import { getCampaignMessages, listCampaigns, previewAdminEmail, sendAdminEmail, sendTestAdminEmail } from "./email.service";
 
 export class AdminEmailController {
   static async send(req: Request, res: Response) {
     const body = req.body as SendEmailInput;
     const result = await sendAdminEmail(body, req.user!.id);
+    res.status(201).json(ApiResponse.success(result));
+  }
+
+  static preview(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(previewAdminEmail(req.body as PreviewEmailInput)));
+  }
+
+  static async sendTest(req: Request, res: Response) {
+    const result = await sendTestAdminEmail(req.body as PreviewEmailInput, req.user!.id);
     res.status(201).json(ApiResponse.success(result));
   }
 

@@ -1,19 +1,49 @@
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../../../db";
 import { emailCampaigns, emailMessages } from "../../../db/schema";
-import { EmailStatus } from "../../../db/enums";
+import { EmailCategory, EmailStatus } from "../../../db/enums";
 import { AppError } from "../../../shared/errors/app-error";
-import { sendBulkEmail } from "../../email";
-import type { ListCampaignMessagesQuery, ListCampaignsQuery, SendEmailInput } from "./email.schema";
+import { sendBulkEmail, sendEmail } from "../../email";
+import { users } from "../../../db/schema";
+import { EmailTemplateKey } from "../../../db/enums";
+import { composedEmailTemplate, withUnsubscribeUrl } from "../../../shared/mailer/templates";
+import { unsubscribePageUrl } from "../../../shared/mailer/unsubscribe";
+import { env } from "../../../config/env";
+import type { ListCampaignMessagesQuery, ListCampaignsQuery, PreviewEmailInput, SendEmailInput } from "./email.schema";
 
 export async function sendAdminEmail(input: SendEmailInput, adminUserId: string) {
   return sendBulkEmail({
     subject: input.subject,
     bodyText: input.body,
+    content: input.content,
     category: input.category,
     recipients: input.recipients,
     createdBy: adminUserId,
   });
+}
+
+/** The exact HTML a composed email will be sent as, for the composer's live preview. */
+export function previewAdminEmail(input: PreviewEmailInput): { html: string } {
+  const { html } = composedEmailTemplate({ subject: input.subject || "Your subject", content: input.content });
+  // The preview has no recipient, so its unsubscribe link goes nowhere in particular.
+  return { html: withUnsubscribeUrl(html, `${env.FRONTEND_URL}/unsubscribe`) };
+}
+
+/** Sends the composed email to the admin's own address only, through the real queue and mail server. */
+export async function sendTestAdminEmail(input: PreviewEmailInput, adminUserId: string): Promise<{ to: string }> {
+  const [admin] = await db.select({ id: users.id, email: users.email }).from(users).where(eq(users.id, adminUserId)).limit(1);
+  if (!admin) throw new AppError("Account not found", 404, "NOT_FOUND");
+  const subject = input.subject || "Your subject";
+  const { html } = composedEmailTemplate({ subject, content: input.content });
+  await sendEmail({
+    to: admin.email,
+    recipientUserId: admin.id,
+    category: EmailCategory.CUSTOM,
+    templateKey: EmailTemplateKey.ADMIN_CUSTOM,
+    subject: `[Test] ${subject}`,
+    html: withUnsubscribeUrl(html, unsubscribePageUrl(admin.id)),
+  });
+  return { to: admin.email };
 }
 
 export async function listCampaigns(query: ListCampaignsQuery) {

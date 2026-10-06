@@ -6,6 +6,7 @@ import { emailMessages } from "../../db/schema";
 import { EmailStatus } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
 import { isEmailEnabled, sendMail } from "../../shared/mailer/mailer";
+import { unsubscribeHeaders } from "../../shared/mailer/unsubscribe";
 import type { EmailJobData } from "./email.queue";
 
 /** Mirrors startIngestionWorker/startTrashPurgeWorker's shape — call once from server.ts. */
@@ -33,7 +34,13 @@ export function startEmailWorker(): Worker<EmailJobData> {
 
       await db.update(emailMessages).set({ status: EmailStatus.SENDING, attempts: row.attempts + 1 }).where(eq(emailMessages.id, row.id));
 
-      await sendMail({ to: row.recipientEmail, subject: row.subject, html: row.bodyHtml });
+      await sendMail({
+        to: row.recipientEmail,
+        subject: row.subject,
+        html: row.bodyHtml,
+        // A campaign is bulk mail, so the inbox gets its own unsubscribe button.
+        headers: row.campaignId && row.recipientUserId ? unsubscribeHeaders(row.recipientUserId) : undefined,
+      });
 
       await db.update(emailMessages).set({ status: EmailStatus.SENT, sentAt: new Date() }).where(eq(emailMessages.id, row.id));
     },

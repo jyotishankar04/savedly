@@ -1,9 +1,10 @@
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
-import { emailCampaigns, emailMessages, users } from "../../db/schema";
+import { emailCampaigns, emailMessages, userSettings, users } from "../../db/schema";
 import { EmailCategory, EmailTemplateKey, UserStatus } from "../../db/enums";
 import { logAdminAction } from "../../shared/utils/audit-log";
-import { adminComposedEmailTemplate } from "../../shared/mailer/templates";
+import { adminComposedEmailTemplate, composedEmailTemplate, composedEmailToText, withUnsubscribeUrl, type ComposedEmail } from "../../shared/mailer/templates";
+import { unsubscribePageUrl } from "../../shared/mailer/unsubscribe";
 import { enqueueEmail } from "./email.queue";
 
 export interface SendEmailInput {
@@ -42,7 +43,10 @@ export type BulkEmailRecipients = { all: true } | { userIds: string[] };
 
 export interface SendBulkEmailInput {
   subject: string;
-  bodyText: string;
+  /** Plain text. Ignored when `content` is given. */
+  bodyText?: string;
+  /** What the admin composer built. Takes the place of `bodyText`. */
+  content?: ComposedEmail;
   category: EmailCategory;
   recipients: BulkEmailRecipients;
   createdBy: string;
@@ -57,13 +61,22 @@ export interface SendBulkEmailInput {
  * caller — the manual composer and the announcement opt-in — gets it for
  * free without double-logging.
  */
-export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campaignId: string; recipientCount: number }> {
-  const recipients =
-    "all" in input.recipients
-      ? await db.select({ id: users.id, email: users.email }).from(users).where(eq(users.status, UserStatus.ACTIVE))
-      : await db.select({ id: users.id, email: users.email }).from(users).where(inArray(users.id, input.recipients.userIds));
+export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campaignId: string; recipientCount: number; unsubscribedCount: number }> {
+  // People who unsubscribed are left out, whoever was picked.
+  const chosen = "all" in input.recipients ? eq(users.status, UserStatus.ACTIVE) : inArray(users.id, input.recipients.userIds);
+  const everyone = await db
+    .select({ id: users.id, email: users.email, unsubscribedAt: userSettings.emailUnsubscribedAt })
+    .from(users)
+    .leftJoin(userSettings, eq(userSettings.userId, users.id))
+    .where(chosen);
+  const recipients = everyone.filter((r) => r.unsubscribedAt === null);
+  const unsubscribedCount = everyone.length - recipients.length;
 
-  const { html } = adminComposedEmailTemplate({ subject: input.subject, bodyText: input.bodyText });
+  // The campaign keeps a plain-text copy either way, for the admin list.
+  const bodyText = input.content ? composedEmailToText(input.content) : (input.bodyText ?? "");
+  const { html } = input.content
+    ? composedEmailTemplate({ subject: input.subject, content: input.content })
+    : adminComposedEmailTemplate({ subject: input.subject, bodyText });
 
   const result = await db.transaction(async (tx) => {
     const [campaign] = await tx
@@ -71,7 +84,7 @@ export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campai
       .values({
         category: input.category,
         subject: input.subject,
-        bodyText: input.bodyText,
+        bodyText,
         recipientFilter: input.recipients,
         recipientCount: recipients.length,
         createdBy: input.createdBy,
@@ -86,7 +99,7 @@ export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campai
         category: input.category,
         templateKey: EmailTemplateKey.ADMIN_CUSTOM,
         subject: input.subject,
-        bodyHtml: html,
+        bodyHtml: withUnsubscribeUrl(html, unsubscribePageUrl(r.id)),
       }));
       const inserted = await tx.insert(emailMessages).values(rows).returning({ id: emailMessages.id });
       return { campaignId: campaign.id, messageIds: inserted.map((m) => m.id) };
@@ -105,8 +118,8 @@ export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campai
     action: input.auditAction ?? "email.campaign.sent",
     targetType: "email_campaign",
     targetId: result.campaignId,
-    afterValue: { subject: input.subject, category: input.category, recipientCount: recipients.length },
+    afterValue: { subject: input.subject, category: input.category, recipientCount: recipients.length, unsubscribedCount },
   });
 
-  return { campaignId: result.campaignId, recipientCount: recipients.length };
+  return { campaignId: result.campaignId, recipientCount: recipients.length, unsubscribedCount };
 }
