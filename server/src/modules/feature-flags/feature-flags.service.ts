@@ -101,32 +101,33 @@ export async function seedDefaultFlags(): Promise<void> {
     await db.insert(featureFlags).values(flag).onConflictDoNothing({ target: featureFlags.key });
   }
   await db.delete(featureFlags).where(inArray(featureFlags.key, RETIRED_FLAG_KEYS));
-  await holdGoogleCalendarForReview();
+  await releaseGoogleCalendarHold();
 }
 
-// Recorded once this hold has been applied, so it never runs twice.
-const GOOGLE_CALENDAR_HOLD_KEY = "holds.google_calendar_review.applied";
+// The hosted service once switched new Google Calendar connections off while
+// Google reviewed its access to calendars. Google's reviewers have to be able
+// to connect a calendar to finish that review, so the switch is turned back on
+// here, once. While the OAuth app is still unverified only the test users
+// listed in Google Cloud can connect; everyone else is stopped by Google.
+//
+// Applied a single time, so an admin can still turn "Google Calendar" off (or
+// on) in Admin > Features afterwards and it stays that way across restarts.
+const GOOGLE_CALENDAR_RELEASE_KEY = "holds.google_calendar_review.released";
 
-/**
- * The hosted service can't offer Google Calendar until Google has verified
- * its access to calendars: before that, connecting leads to an "unverified
- * app" warning. So the hosted service switches new connections off once,
- * here, and the app shows Google Calendar as coming soon. Events still work
- * in the in-app calendar, which needs no Google access.
- *
- * Applied a single time: after Google approves, an admin turns "Google
- * Calendar" back on in Admin > Features and it stays on across restarts.
- * Self-hosted installs use their own Google project and are left alone.
- */
-async function holdGoogleCalendarForReview(): Promise<void> {
+async function releaseGoogleCalendarHold(): Promise<void> {
   if (env.SELF_HOSTED) return;
   const [applied] = await db
     .insert(featureFlags)
-    .values({ key: GOOGLE_CALENDAR_HOLD_KEY, value: true, description: "Internal: the one-time Google Calendar review hold has been applied.", category: "internal" })
+    .values({ key: GOOGLE_CALENDAR_RELEASE_KEY, value: true, description: "Internal: Google Calendar was switched back on after the review hold.", category: "internal" })
     .onConflictDoNothing({ target: featureFlags.key })
     .returning({ key: featureFlags.key });
   if (!applied) return;
-  await db.update(featureFlags).set({ value: false, updatedAt: new Date() }).where(eq(featureFlags.key, RESERVED_FLAG_KEYS.CALENDAR_GOOGLE_ENABLED));
+  await db.update(featureFlags).set({ value: true, updatedAt: new Date() }).where(eq(featureFlags.key, RESERVED_FLAG_KEYS.CALENDAR_GOOGLE_ENABLED));
+  // The earlier hold's marker stays, so it can never run again on this database.
+  await db
+    .insert(featureFlags)
+    .values({ key: "holds.google_calendar_review.applied", value: true, description: "Internal: the one-time Google Calendar review hold has been applied.", category: "internal" })
+    .onConflictDoNothing({ target: featureFlags.key });
   flagCache.clear();
 }
 
