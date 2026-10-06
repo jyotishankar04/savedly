@@ -115,6 +115,7 @@ docs/       Contributor documentation — start at docs/README.md
 
 ## Getting help
 
+- **Have a question, or want to talk it through?** Join the [Discord server](https://discord.gg/PzGFcMNyRK).
 - **Found a bug or want a feature?** [Open an issue](https://github.com/jyotishankar04/saveforlatter/issues) or use the in-app report form (`/report`).
 - **Want to contribute code?** See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for setup and PR conventions, and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) for the ground rules.
 - **Found a security issue?** Please don't open a public issue — see [`SECURITY.md`](./SECURITY.md).

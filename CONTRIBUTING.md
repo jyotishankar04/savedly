@@ -54,4 +54,4 @@ There's no linter configured on the server yet, and `client/`'s ESLint config is
 
 ## Questions
 
-Not sure where to start, or want to talk through an idea before building it? Open an issue and ask — that's what they're for.
+Not sure where to start, or want to talk through an idea before building it? Ask in the [Discord server](https://discord.gg/PzGFcMNyRK) (`#contributing`), or open an issue.
