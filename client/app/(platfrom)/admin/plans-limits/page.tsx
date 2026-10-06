@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 import { listAdminPlans, createPlan, updatePlan, type AdminPlan, type PlanLimitInput } from "@/lib/admin-plans";
 import { LIMIT_ORDER, PLAN_LIMIT_LABEL, formatPriceMinor, type PlanLimitType } from "@/lib/plans";
+import { PlanFeaturesMatrix } from "@/components/admin/plan-features-matrix";
 
 const LIMIT_TYPES: PlanLimitType[] = LIMIT_ORDER;
 
@@ -108,6 +109,8 @@ export default function AdminPlansLimitsPage() {
 
       {isLoading && <p className="text-xs text-muted-foreground">Loading...</p>}
       {isError && <p className="text-xs text-destructive">Failed to load plans.</p>}
+
+      {plans && <PlanFeaturesMatrix plans={plans} onChanged={invalidate} />}
 
       <div className="space-y-4">
         {plans?.map((plan) => {

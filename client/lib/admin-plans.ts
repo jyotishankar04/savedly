@@ -21,6 +21,8 @@ export interface UpsertPlanInput {
   isDefault?: boolean;
   sortOrder?: number;
   limits?: PlanLimitInput[];
+  /** What the plan unlocks. Sent whole: it replaces the plan's features. */
+  features?: Record<string, boolean>;
 }
 
 export async function listAdminPlans(): Promise<AdminPlan[]> {
