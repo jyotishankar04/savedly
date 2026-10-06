@@ -108,7 +108,7 @@ const STARTERS: { name: string; draft: () => Omit<Draft, "category"> & { categor
   {
     name: "New feature",
     draft: () => ({
-      subject: "New in SaveForLatter",
+      subject: "New in Savedly",
       category: "announcement",
       label: "New",
       tone: "primary",
@@ -133,7 +133,7 @@ const STARTERS: { name: string; draft: () => Omit<Draft, "category"> & { categor
         newBlock("bullets", { items: "First improvement\nSecond improvement\nThird improvement" }),
         newBlock("divider"),
         newBlock("text", { text: "As always, reply through the contact page if anything isn't working for you." }),
-        newBlock("button", { label: "Open SaveForLatter", url: "/app" }),
+        newBlock("button", { label: "Open Savedly", url: "/app" }),
       ],
     }),
   },
@@ -144,7 +144,7 @@ const STARTERS: { name: string; draft: () => Omit<Draft, "category"> & { categor
       category: "alert",
       label: "Heads up",
       tone: "warning",
-      headline: "SaveForLatter will be briefly unavailable",
+      headline: "Savedly will be briefly unavailable",
       blocks: [
         newBlock("text", { text: "We're doing some planned maintenance to keep things running well." }),
         newBlock("note", { text: "When: add the date and time here\nHow long: about 30 minutes", tone: "warning" }),
@@ -362,7 +362,7 @@ export default function ComposeEmailPage() {
           </Link>
           <h1 className="mt-1 text-lg font-bold text-foreground">Compose email</h1>
           <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-            Build the email from blocks. The preview is exactly what recipients get, in the same design as every other SaveForLatter email.
+            Build the email from blocks. The preview is exactly what recipients get, in the same design as every other Savedly email.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -425,7 +425,7 @@ export default function ComposeEmailPage() {
             </Field>
             <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
               <Field label="Label" hint="Optional. The small tag above the headline">
-                <Input value={draft.label} maxLength={40} onChange={(e) => set("label", e.target.value)} placeholder="From the SaveForLatter team" />
+                <Input value={draft.label} maxLength={40} onChange={(e) => set("label", e.target.value)} placeholder="From the Savedly team" />
               </Field>
               <div className="space-y-1.5">
                 <span className="block text-xs font-semibold text-foreground">Label colour</span>

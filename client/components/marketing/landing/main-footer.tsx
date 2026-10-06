@@ -213,14 +213,14 @@ export function MainFooter() {
           <LogoMark className="h-auto w-[11%] shrink-0 opacity-90" />
           <svg className="h-auto min-w-0 flex-1" viewBox="0 0 1000 150" preserveAspectRatio="xMinYMax meet">
             <text x="0" y="128" textLength="1000" lengthAdjust="spacingAndGlyphs" fontSize="160" className="fill-foreground/[0.09] font-sans font-semibold tracking-tight">
-              saveforlatter
+              savedly
             </text>
           </svg>
         </motion.div>
 
         <motion.div variants={riseItem} className="mt-10 flex flex-col gap-5 border-t border-foreground/10 pt-6 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} SaveForLatter · Free and open source under the {LICENSE} license · Made in Bengaluru
+            &copy; {new Date().getFullYear()} Savedly · Free and open source under the {LICENSE} license · Made in Bengaluru
           </p>
 
           <div role="radiogroup" aria-label="Theme" className="flex h-9 w-fit items-center rounded-full bg-foreground/[0.06] p-1">

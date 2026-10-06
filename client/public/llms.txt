@@ -1,13 +1,13 @@
-# SaveForLatter AI Context
+# Savedly AI Context
 
-> This file provides context for LLMs and AI agents interacting with the SaveForLatter platform.
+> This file provides context for LLMs and AI agents interacting with the Savedly platform.
 
-SaveForLatter is an open-source personal memory tool that helps users save links, notes, images, documents, and voice memos. It automatically extracts, summarizes, tags, and embeds saved content for hybrid search (keyword and semantic).
+Savedly is an open-source personal memory tool that helps users save links, notes, images, documents, and voice memos. It automatically extracts, summarizes, tags, and embeds saved content for hybrid search (keyword and semantic).
 
 ## Key Features
 - Automatic Enrichment: Auto-summarizes, tags, and embeds content upon capture.
 - Hybrid Search: Combines keyword search with semantic similarity.
-- Ask SaveForLatter: AI assistant that answers questions based strictly on a user's saved content.
+- Ask Savedly: AI assistant that answers questions based strictly on a user's saved content.
 - Self-Hosting: Fully open-source (AGPL v3). Users can self-host and bring their own AI API keys.
 
 ## Important Links

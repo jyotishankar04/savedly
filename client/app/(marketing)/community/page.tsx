@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 // A card without an href isn't open yet, and shows as "coming soon".
 const communityLinks: { title: string; desc: string; icon: typeof Users; cta: string; href?: string }[] = [
   { title: "Join the Discord server", desc: "Ask questions, get help with the hosted app or your own install, and suggest ideas.", icon: MessageSquare, cta: "Open Discord", href: "https://discord.gg/PzGFcMNyRK" },
-  { title: "GitHub", desc: "Read the code, report a bug, or pick up an issue. SaveForLatter is open source under AGPL-3.0.", icon: Code, cta: "Open GitHub", href: "https://github.com/jyotishankar04/saveforlatter" },
+  { title: "GitHub", desc: "Read the code, report a bug, or pick up an issue. Savedly is open source under AGPL-3.0.", icon: Code, cta: "Open GitHub", href: "https://github.com/jyotishankar04/saveforlatter" },
   { title: "Twitter / X Community", desc: "Follow product update logs, feature announcements, user stories, and productivity advice.", icon: Users, cta: "Follow updates" },
   { title: "Community Showcase", desc: "Share your own personal curation workflows, browser extensions setup, and capture collections.", icon: HelpCircle, cta: "See showcase" },
 ];

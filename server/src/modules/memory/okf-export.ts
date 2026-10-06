@@ -15,7 +15,7 @@ export interface OkfCollection {
   createdAt: Date;
 }
 
-const ROOT = "saveforlatter-okf";
+const ROOT = "savedly-okf";
 
 const MEMORY_TYPE: Record<string, string> = {
   web: "Web Page",
@@ -69,7 +69,7 @@ export function buildOkfBundle(items: MemoryDetail[], collections: OkfCollection
       membersByCollection.set(c.id, [...(membersByCollection.get(c.id) ?? []), m]);
     }
   }
-  const generated = { by: "process:saveforlatter-export", at: iso(now) };
+  const generated = { by: "process:savedly-export", at: iso(now) };
 
   // --- memories -------------------------------------------------------------
   for (const m of items) {
@@ -101,7 +101,7 @@ export function buildOkfBundle(items: MemoryDetail[], collections: OkfCollection
         archived: m.isArchived || undefined,
         event_at: m.eventAt ? iso(m.eventAt) : undefined,
         collections: memberOf.map((c) => c.name),
-        saveforlatter_id: m.id,
+        savedly_id: m.id,
         generated,
       }) + `\n${body.join("\n").trimEnd()}\n`;
   }
@@ -124,7 +124,7 @@ export function buildOkfBundle(items: MemoryDetail[], collections: OkfCollection
         description: oneLine(c.description, 300) || undefined,
         timestamp: iso(c.createdAt),
         memory_count: members.length,
-        saveforlatter_id: c.id,
+        savedly_id: c.id,
         generated,
       }) + `\n${body.join("\n").trimEnd()}\n`;
   }
@@ -146,9 +146,9 @@ export function buildOkfBundle(items: MemoryDetail[], collections: OkfCollection
   ].join("\n");
   files["index.md"] = [
     frontMatter({ okf_version: "0.2" }),
-    "# SaveForLatter library",
+    "# Savedly library",
     "",
-    `Everything saved in SaveForLatter as of ${iso(now).slice(0, 10)}: ${items.length} memories and ${collections.length} collections, in the Open Knowledge Format. Vault and Trash contents are not included.`,
+    `Everything saved in Savedly as of ${iso(now).slice(0, 10)}: ${items.length} memories and ${collections.length} collections, in the Open Knowledge Format. Vault and Trash contents are not included.`,
     "",
     `* [Memories](/memories/index.md) - every saved link, note, image, document and voice memo`,
     `* [Collections](/collections/index.md) - how those memories are organized`,
@@ -158,7 +158,7 @@ export function buildOkfBundle(items: MemoryDetail[], collections: OkfCollection
     "# Update Log",
     "",
     `## ${iso(now).slice(0, 10)}`,
-    `* **Creation**: Exported ${items.length} memories and ${collections.length} collections from SaveForLatter.`,
+    `* **Creation**: Exported ${items.length} memories and ${collections.length} collections from Savedly.`,
     "",
   ].join("\n");
 

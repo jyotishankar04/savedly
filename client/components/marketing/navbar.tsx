@@ -66,7 +66,7 @@ const productLinks: MenuEntry[] = [
   {
     title: "Features",
     icon: CloudUploadIcon,
-    description: "The full breakdown of what SaveForLatter can do.",
+    description: "The full breakdown of what Savedly can do.",
     href: "/features",
   },
   {
@@ -473,7 +473,7 @@ export function Navbar() {
             <SheetContent side="right" className="w-[88vw] max-w-sm gap-0 border-l border-border bg-background p-0">
               <SheetTitle className="sr-only">Menu</SheetTitle>
               <SheetDescription className="sr-only">
-                Mobile navigation menu for SaveForLatter.
+                Mobile navigation menu for Savedly.
               </SheetDescription>
 
               <div className="flex h-16 shrink-0 items-center border-b border-border/60 px-5 pt-[env(safe-area-inset-top)] box-content">

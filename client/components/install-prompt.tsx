@@ -107,7 +107,7 @@ export function InstallPrompt() {
       {mode && (
         <motion.div
           role="dialog"
-          aria-label="Install SaveForLatter"
+          aria-label="Install Savedly"
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1, transition: { type: "spring", stiffness: 380, damping: 32 } }}
           exit={{ y: 40, opacity: 0, transition: { duration: 0.18 } }}
@@ -128,7 +128,7 @@ export function InstallPrompt() {
           <div className="flex items-start gap-3 pr-8">
             <Image src="/icons/icon-192.png" alt="" width={44} height={44} className="h-11 w-11 shrink-0" />
             <div className="min-w-0">
-              <p className="text-[15px] font-semibold leading-tight">Install SaveForLatter</p>
+              <p className="text-[15px] font-semibold leading-tight">Install Savedly</p>
               <p className="mt-1 text-[13px] leading-snug text-muted-foreground">
                 {mode === "android"
                   ? "Open it from your home screen, and share links and photos straight into it from any app."

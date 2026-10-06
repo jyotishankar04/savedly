@@ -1,11 +1,11 @@
-# SaveForLatter AI Architecture & Pipeline Requirements
+# Savedly AI Architecture & Pipeline Requirements
 
 > **Historical design notes.** This was written before the server existed and describes the plan at that time. The code has moved on: `server/src/db/schema.ts` and the modules under `server/src/modules/` are the source of truth. Don't implement from this document without checking the code first.
 
 ## 1. Document & System Overview
 
 ### Purpose
-This document specifies the technical architecture, data flow, agentic workflows, and implementation requirements for the **AI Ingestion, Indexing, and Retrieval Subsystems** of SaveForLatter.
+This document specifies the technical architecture, data flow, agentic workflows, and implementation requirements for the **AI Ingestion, Indexing, and Retrieval Subsystems** of Savedly.
 
 **Status: documentation only — nothing in this document is installed or implemented yet.** `server/` currently has no `langchain`, `@langchain/langgraph`, or LLM SDK packages, and no `memories`/`memory_chunks` tables exist in `server/src/db/schema.ts`. This doc describes the target architecture for whenever that work starts, written in TypeScript to match the actual backend stack (Express + TypeScript + Drizzle ORM) — an earlier version of this doc used Python (`langgraph`/`langchain_core`) blueprints, which don't match this codebase and have been replaced below.
 
@@ -13,7 +13,7 @@ The AI system is responsible for:
 1. **Multi-Modal Ingestion Pipeline:** Ingesting, parsing, transcribing, summarizing, tagging, and indexing URLs, notes, images, voice recordings, videos, and documents into a structured memory graph.
 2. **Intent & Motive Inference:** Beyond describing *what* a captured item is, inferring *why the user likely saved it* — a link's category and purpose, an image's inferred motive (design reference? receipt? shopping wishlist? debugging note?), a note's intent (idea, task, quote, journal entry). This is a first-class classification step, not an afterthought of summarization.
 3. **Hybrid Vector & Lexical Search:** Storing and querying vector embeddings alongside full-text inverted indexes in PostgreSQL using `pgvector`.
-4. **Agentic RAG Engine ("Ask SaveForLatter"):** Executing multi-step reasoning, query rewriting, self-grading, and grounded conversational memory synthesis — with a deeper multi-agent decomposition path for complex queries — using **LangChain.js** and **LangGraph.js**.
+4. **Agentic RAG Engine ("Ask Savedly"):** Executing multi-step reasoning, query rewriting, self-grading, and grounded conversational memory synthesis — with a deeper multi-agent decomposition path for complex queries — using **LangChain.js** and **LangGraph.js**.
 5. **Autonomous Insights & Knowledge Graph:** Generating semantic relationship graphs, topic clustering, and forgotten memory rediscovery ("Forgotten Gems").
 
 ---
@@ -67,7 +67,7 @@ flowchart TD
         N11 --> DB_FTS[(tsvector / GIN Index)]
     end
 
-    subgraph LangGraphRAG["4. LangGraph.js 'Ask SaveForLatter' Multi-Agent RAG"]
+    subgraph LangGraphRAG["4. LangGraph.js 'Ask Savedly' Multi-Agent RAG"]
         U_QUERY[User Chat / Search Query] --> PLANNER[Query Planner Agent: simple vs complex?]
         PLANNER -->|Simple| RAG_SIMPLE[Single-pass Hybrid Retrieve]
         PLANNER -->|Complex| DECOMPOSE[Decompose into Sub-queries]
@@ -168,7 +168,7 @@ interface IntentClassification {
 ## 3. Chunking, Summarization & Tagging Pipeline
 
 ### Chunking Strategy
-SaveForLatter employs a two-tier embedding hierarchy:
+Savedly employs a two-tier embedding hierarchy:
 1. **Document-Level Embedding:** Encodes the entire memory (Title + Summary + Inferred Intent + Top Tags) into a single 1536-dimensional vector for fast macro-clustering, graph generation, and "Related Memories" calculation.
 2. **Chunk-Level Embeddings:** Encodes sub-sections of long web pages, transcripts, and documents for fine-grained chunk retrieval in RAG.
 
@@ -528,9 +528,9 @@ export const compiledIngestionGraph = ingestionGraph.compile();
 
 ---
 
-## 6. Multi-Agent "Ask SaveForLatter" RAG Pipeline
+## 6. Multi-Agent "Ask Savedly" RAG Pipeline
 
-The "Ask SaveForLatter" conversational interface implements an **Agentic Corrective RAG (CRAG)** state machine to prevent hallucinations and provide cited answers based on the user's personal memories — with an additional **query-planning branch** so complex, multi-part questions get decomposed and answered with cross-referenced synthesis rather than a single shallow retrieval pass.
+The "Ask Savedly" conversational interface implements an **Agentic Corrective RAG (CRAG)** state machine to prevent hallucinations and provide cited answers based on the user's personal memories — with an additional **query-planning branch** so complex, multi-part questions get decomposed and answered with cross-referenced synthesis rather than a single shallow retrieval pass.
 
 ### LangGraph.js RAG State Schema
 
@@ -736,7 +736,7 @@ async function generateAnswer(state: RAGStateType): Promise<Partial<RAGStateType
     .join("\n\n");
 
   const prompt = ChatPromptTemplate.fromMessages([
-    ["system", `You are SaveForLatter, the user's personal AI memory assistant.
+    ["system", `You are Savedly, the user's personal AI memory assistant.
 Answer the user's question using ONLY the provided memory snippets. Be direct, helpful, and concise.
 You MUST also provide:
 1. A list of exact source titles you cited.
@@ -860,12 +860,12 @@ The final `answer`/`topics`/`sources` fields match `docs/BACKEND_REQUIREMENTS.md
 |---|---|---|
 | **Chrome Extension Quick Save** | < 250 ms | Immediate HTTP 201 response; queue async background ingestion via BullMQ |
 | **Mobile Voice Transcription** | < 2.5 s | Direct streaming to STT API |
-| **"Ask SaveForLatter" RAG Turnaround (simple query)** | < 1.8 s | Streaming response (Server-Sent Events) via LangChain.js callback |
-| **"Ask SaveForLatter" RAG Turnaround (complex/decomposed query)** | < 4 s | Parallel sub-query retrieval keeps this sub-linear in sub-query count; stream partial progress if it exceeds budget |
+| **"Ask Savedly" RAG Turnaround (simple query)** | < 1.8 s | Streaming response (Server-Sent Events) via LangChain.js callback |
+| **"Ask Savedly" RAG Turnaround (complex/decomposed query)** | < 4 s | Parallel sub-query retrieval keeps this sub-linear in sub-query count; stream partial progress if it exceeds budget |
 | **Hybrid Vector Search Query** | < 45 ms | PostgreSQL HNSW index on cached embeddings |
 
 ### Cost Optimization Guidelines
-1. **Tiered Model Routing:** Use fast/cheap models for all ingestion scraping, tagging, OCR, intent classification, and grading. Reserve high-reasoning models strictly for user-facing synthesis in "Ask SaveForLatter" (both the simple-path `generateAnswer` and the complex-path `synthesizeSubAnswers`).
+1. **Tiered Model Routing:** Use fast/cheap models for all ingestion scraping, tagging, OCR, intent classification, and grading. Reserve high-reasoning models strictly for user-facing synthesis in "Ask Savedly" (both the simple-path `generateAnswer` and the complex-path `synthesizeSubAnswers`).
 2. **Embedding Caching:** Compute content hashes of raw text chunks; avoid re-embedding identical content.
 3. **Semantic Query Caching:** Store recent Q&A pairs in Redis with cosine similarity matching threshold > 0.96 to serve instant answers for repeated questions.
 4. **Token Truncation:** Limit web scrape ingestion to top 15,000 tokens per page, ignoring bloated media and script metadata.

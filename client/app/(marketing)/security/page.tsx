@@ -62,7 +62,7 @@ export default function SecurityPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Run it yourself</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              You can self-host SaveForLatter on your own server. Your data then stays in your database and storage, and AI requests go only to the provider you choose.
+              You can self-host Savedly on your own server. Your data then stays in your database and storage, and AI requests go only to the provider you choose.
             </p>
           </div>
         </div>
@@ -76,7 +76,7 @@ export default function SecurityPage() {
               On the hosted service, your account and saved items are kept in a managed PostgreSQL database, uploaded files in Cloudflare R2, and search vectors in a managed vector index. Every record is tied to your account, and every request is checked against it, so one person can&apos;t read another&apos;s library.
             </p>
             <p>
-              SaveForLatter is a small, independent project. We don&apos;t hold security certifications such as SOC 2 or ISO 27001, and we won&apos;t claim otherwise.
+              Savedly is a small, independent project. We don&apos;t hold security certifications such as SOC 2 or ISO 27001, and we won&apos;t claim otherwise.
             </p>
           </section>
 

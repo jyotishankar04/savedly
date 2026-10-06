@@ -45,7 +45,7 @@ export default function SignupPage() {
 
         {/* Card Footer copy */}
         <p className="text-[11px] text-muted-foreground relative z-10">
-          &copy; 2026 SaveForLatter. All rights reserved.
+          &copy; 2026 Savedly. All rights reserved.
         </p>
 
       </div>

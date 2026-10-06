@@ -251,7 +251,7 @@ function CaptureForm() {
       // AI ingestion runs async in the background from here — this page
       // doesn't wait for it. Go straight to the library, where the new
       // memory is at the top and fills in as processing finishes.
-      toast.add({ title: "Saved to SaveForLatter", description: memory.title, type: "success" });
+      toast.add({ title: "Saved to Savedly", description: memory.title, type: "success" });
       router.push("/app/memories");
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Couldn't save that memory.");

@@ -47,8 +47,8 @@ const envSchema = z
     SMTP_SECURE: z.coerce.boolean().default(false),
     SMTP_USERNAME: z.string().optional(),
     SMTP_PASSWORD: z.string().optional(),
-    SMTP_FROM_ADDRESS: z.string().email().default("noreply@saveforlatter.local"),
-    SMTP_FROM_NAME: z.string().default("SaveForLatter"),
+    SMTP_FROM_ADDRESS: z.string().email().default("noreply@savedly.local"),
+    SMTP_FROM_NAME: z.string().default("Savedly"),
     FRONTEND_URL: z.string().url().min(1, "FRONTEND_URL is required"),
     SERVER_URL: z.string().url().min(1, "SERVER_URL is required"),
     // Custom URL scheme the mobile app registers (app.json's "scheme") — the

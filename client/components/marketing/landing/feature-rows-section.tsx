@@ -112,7 +112,7 @@ export function FeatureRowsSection() {
               <>
                 <p className="font-medium text-foreground">Search when you know what you&apos;re looking for. Ask when you don&apos;t.</p>
                 <p className="mt-3">
-                  Search by words, topics, or names—or describe what you remember in plain English and let SaveForLatter find the relevant
+                  Search by words, topics, or names—or describe what you remember in plain English and let Savedly find the relevant
                   memories for you.
                 </p>
               </>
@@ -170,7 +170,7 @@ export function FeatureRowsSection() {
         <div className="mx-auto max-w-6xl">
           <SectionHead
             title="Everything you saved. One place."
-            body="Notes, links, screenshots, documents, and videos. SaveForLatter brings them together so your knowledge isn't scattered across a dozen different apps."
+            body="Notes, links, screenshots, documents, and videos. Savedly brings them together so your knowledge isn't scattered across a dozen different apps."
           />
           <ul className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {SAVE_TYPES.map((item, i) => (

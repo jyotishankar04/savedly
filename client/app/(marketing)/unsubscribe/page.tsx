@@ -66,7 +66,7 @@ function Unsubscribe() {
     return (
       <>
         <h1 className="text-2xl font-medium tracking-tight text-foreground">You&apos;re subscribed again</h1>
-        <p className="text-sm text-muted-foreground">You&apos;ll get announcement emails from SaveForLatter.</p>
+        <p className="text-sm text-muted-foreground">You&apos;ll get announcement emails from Savedly.</p>
       </>
     );
   }

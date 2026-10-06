@@ -1,11 +1,11 @@
 # Changelog
 
-Notable changes to SaveForLatter. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). There are no tagged releases yet; the first will be `v0.1.0`.
+Notable changes to Savedly. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). There are no tagged releases yet; the first will be `v0.1.0`.
 
 ## Unreleased
 
 ### Added
-- Installable web app (PWA) with a share target, so links, text, photos and PDFs can be shared to SaveForLatter from a phone.
+- Installable web app (PWA) with a share target, so links, text, photos and PDFs can be shared to Savedly from a phone.
 - "What's new" popup, managed from the admin area.
 - Pinecone as a vector store, alongside pgvector.
 - Redis caching for read requests.
@@ -13,7 +13,7 @@ Notable changes to SaveForLatter. The format follows [Keep a Changelog](https://
 - Planned-integration cards on the Integrations page.
 
 ### Changed
-- The product is named SaveForLatter everywhere (it was Memora in places). Session cookies were renamed, so everyone is signed out once.
+- The product is now named **Savedly**, at getsavedly.com. It was SaveForLatter before, and Memora before that. Session cookies were renamed, so everyone is signed out once.
 - Mobile layout: scrolling, the menu, safe areas and the bottom navigation.
 
 ### Removed

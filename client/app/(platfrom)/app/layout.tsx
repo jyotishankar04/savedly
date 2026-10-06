@@ -289,8 +289,8 @@ const KEYBOARD_SHORTCUTS: { mac: string[]; other: string[]; label: string }[] = 
   { mac: ["⌘", "M"], other: ["Ctrl", "M"], label: "Open sidebar menu (collapses sidebar first)" },
   { mac: ["⌘", "N"], other: ["Ctrl", "N"], label: "Go to notifications" },
   { mac: ["⌘", "P"], other: ["Ctrl", "P"], label: "Go to settings" },
-  { mac: ["⌘", "J"], other: ["Ctrl", "J"], label: "New chat (on Ask SaveForLatter)" },
-  { mac: ["⌘", "H"], other: ["Ctrl", "H"], label: "Open chat history (on Ask SaveForLatter)" },
+  { mac: ["⌘", "J"], other: ["Ctrl", "J"], label: "New chat (on Ask Savedly)" },
+  { mac: ["⌘", "H"], other: ["Ctrl", "H"], label: "Open chat history (on Ask Savedly)" },
   { mac: ["⌘", "/"], other: ["Ctrl", "/"], label: "Show keyboard shortcuts" },
   { mac: ["Esc"], other: ["Esc"], label: "Close open menu" },
 ];
@@ -630,7 +630,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       // AI ingestion runs async in the background from here — the modal
       // doesn't wait for it. Once it finishes, the enrichment (corrected
       // caption, real title, tags, collection) shows up wherever the memory
-      // is viewed next: the memories list, its detail page's "SaveForLatter
+      // is viewed next: the memories list, its detail page's "Savedly
       // Understood" panel, and the list's slide-in drawer.
       setSavedTitle(memory.title);
       setSavedCollections(memory.collections);
@@ -780,7 +780,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const primaryNavItems: NavItem[] = [
     { label: "Home", href: "/app", icon: Compass },
     { label: "Search", href: "/app/search", icon: Search },
-    { label: "Ask SaveForLatter", href: "/app/ask", icon: Sparkles, logo: true },
+    { label: "Ask Savedly", href: "/app/ask", icon: Sparkles, logo: true },
     { label: "Memories", href: "/app/memories", icon: FolderOpen },
     { label: "Collections", href: "/app/collections", icon: Layers },
     { label: "Tags", href: "/app/tags", icon: Tag },
@@ -1169,7 +1169,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetContent side="left" className="w-[86vw] max-w-sm gap-0 p-0 md:hidden">
             <SheetTitle className="sr-only">Menu</SheetTitle>
-            <SheetDescription className="sr-only">Every section of SaveForLatter, your collections and your account.</SheetDescription>
+            <SheetDescription className="sr-only">Every section of Savedly, your collections and your account.</SheetDescription>
 
             <div className="flex items-center gap-3 border-b border-border/40 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))]">
               <UserAvatar user={currentUser} className="h-10 w-10 shrink-0 text-sm" />
@@ -1247,7 +1247,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           <div className="bg-card border border-border rounded-2xl w-full max-w-lg p-6 shadow-xl space-y-5 animate-scale-up">
 
             <div className="flex items-center justify-between border-b border-border/20 pb-2">
-              <span className="text-xs font-bold text-foreground">Add to SaveForLatter</span>
+              <span className="text-xs font-bold text-foreground">Add to Savedly</span>
               <button onClick={() => setSaveModalOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <HugeiconsIcon icon={X} strokeWidth={2.25} className="h-4 w-4" />
               </button>
@@ -1390,7 +1390,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <div className="space-y-1">
-                  <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest block">Saved to SaveForLatter</span>
+                  <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest block">Saved to Savedly</span>
                   <h4 className="text-xs font-bold text-foreground">{savedTitle}</h4>
                 </div>
 
@@ -1580,7 +1580,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </CommandItem>
             <CommandItem onSelect={() => { setSearchModalOpen(false); router.push("/app/ask"); }}>
               <LogoMark ticks={false} className="mr-2 h-3.5 w-3.5" />
-              <span>Ask SaveForLatter</span>
+              <span>Ask Savedly</span>
             </CommandItem>
             <CommandItem onSelect={() => { setSearchModalOpen(false); router.push("/app/collections"); }}>
               <HugeiconsIcon icon={FolderPlus} strokeWidth={2.25} className="mr-2 h-3.5 w-3.5 text-muted-foreground" />

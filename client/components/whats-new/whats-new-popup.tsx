@@ -64,14 +64,14 @@ export function WhatsNewDeck({ items, open, onOpenChange }: { items: WhatsNewCar
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop className="fixed inset-0 z-[70] bg-black/55 backdrop-blur-sm duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
         <DialogPrimitive.Popup
-          aria-label="What's new in SaveForLatter"
+          aria-label="What's new in Savedly"
           onKeyDown={(event) => {
             if (event.key === "ArrowRight") go(1);
             if (event.key === "ArrowLeft") go(-1);
           }}
           className="fixed top-1/2 left-1/2 z-[70] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 outline-none duration-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
         >
-          <DialogPrimitive.Title className="sr-only">What&apos;s new in SaveForLatter</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="sr-only">What&apos;s new in Savedly</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
             {items.length === 1 ? "One update." : `${items.length} updates. Use Next and Back to move through them.`}
           </DialogPrimitive.Description>

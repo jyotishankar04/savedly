@@ -39,7 +39,7 @@ export function WaitlistLanding() {
     try {
       const ok = await submitWaitlist({
         email: email.trim(),
-        _subject: "New SaveForLatter waitlist signup",
+        _subject: "New Savedly waitlist signup",
       });
       if (!ok) throw new Error("Request not accepted");
 
@@ -94,7 +94,7 @@ export function WaitlistLanding() {
 
         <div className="space-y-5">
           <Badge variant="secondary" className="rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em]">
-            SaveForLatter
+            Savedly
           </Badge>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-medium tracking-tight leading-[1.15]">
             The wait is part
@@ -102,7 +102,7 @@ export function WaitlistLanding() {
             of the <span className="font-serif italic font-normal">journey</span>.
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto">
-            We&apos;re still building. Leave your email and we&apos;ll notify you the moment SaveForLatter is ready.
+            We&apos;re still building. Leave your email and we&apos;ll notify you the moment Savedly is ready.
           </p>
         </div>
 

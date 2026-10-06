@@ -12,7 +12,7 @@ People who save a lot from the web and can't find it again: articles, videos, sc
 
 ## Product Purpose
 
-SaveForLatter is a personal memory for the internet. Everything saved is read (transcribed, OCR'd, or extracted), summarized, tagged, filed into a collection, and embedded, so it can be found again by meaning or keyword, or asked about in plain English with answers that cite the saved item.
+Savedly is a personal memory for the internet. Everything saved is read (transcribed, OCR'd, or extracted), summarized, tagged, filed into a collection, and embedded, so it can be found again by meaning or keyword, or asked about in plain English with answers that cite the saved item.
 
 ## Positioning
 
@@ -33,7 +33,7 @@ Free and open source, with no paid tier behind it. Every answer from "Ask" links
 
 ## Brand Commitments
 
-- Name is **SaveForLatter**. Wordmark "save·for·latter" with a de-emphasized "for".
+- Name is **Savedly**. Wordmark "saved·ly", with the "ly" in the accent colour.
 - Logo mark: tilted blue note with a smiling face and curled corner (`components/logo.tsx`, `public/logo.svg`).
 - Brand color is blue: `#1447E6` light / `#2B7FFF` dark (`--primary` in `app/globals.css`).
 - Marketing pages follow the site's light/dark theme toggle (user decision, 2026-09-27).
@@ -42,7 +42,7 @@ Free and open source, with no paid tier behind it. Every answer from "Ask" links
 
 - The real app UI, which can be shown with demo data.
 - No customers, testimonials, usage numbers, press, or ratings exist. Never invent them.
-- Real links: GitHub via `lib/open-source.ts` (when configured), booking link `lib/booking.ts`, support@saveforlatter.com.
+- Real links: GitHub via `lib/open-source.ts` (when configured), booking link `lib/booking.ts`, support@getsavedly.com.
 
 ## Product Principles
 

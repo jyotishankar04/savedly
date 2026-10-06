@@ -588,7 +588,7 @@ export const userSettings = pgTable("user_settings", {
   aiSummaries: boolean("ai_summaries").notNull().default(true),
   aiRelatedMemories: boolean("ai_related_memories").notNull().default(true),
   aiSemanticSearch: boolean("ai_semantic_search").notNull().default(true),
-  aiAskSaveForLatter: boolean("ai_ask_memora").notNull().default(true),
+  aiAskSavedly: boolean("ai_ask_memora").notNull().default(true),
   captureExtractContent: boolean("capture_extract_content").notNull().default(true),
   captureGenerateTitle: boolean("capture_generate_title").notNull().default(true),
   captureGenerateSummary: boolean("capture_generate_summary").notNull().default(true),
@@ -1053,7 +1053,7 @@ export const memoryChunks = pgTable(
 );
 
 // -----------------------------------------------------------------------------
-// 19. Threads Table (Ask SaveForLatter chat threads — listing/naming only;
+// 19. Threads Table (Ask Savedly chat threads — listing/naming only;
 //     message content lives in LangGraph's own Postgres checkpointer tables,
 //     keyed by this table's id as thread_id)
 // -----------------------------------------------------------------------------

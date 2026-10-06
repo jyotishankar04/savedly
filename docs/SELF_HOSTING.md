@@ -1,8 +1,8 @@
-# Self-host SaveForLatter
+# Self-host Savedly
 
-This guide is for anyone who wants to run their own SaveForLatter on a computer or server they control. You need basic comfort with a terminal. Self-hosting is free: every feature works, with no plan limits.
+This guide is for anyone who wants to run their own Savedly on a computer or server they control. You need basic comfort with a terminal. Self-hosting is free: every feature works, with no plan limits.
 
-This guide covers installing, first sign-in, connecting services, backups, upgrades and running it on your own domain. It doesn't cover developing SaveForLatter itself; for that, see [Getting started](./GETTING_STARTED.md).
+This guide covers installing, first sign-in, connecting services, backups, upgrades and running it on your own domain. It doesn't cover developing Savedly itself; for that, see [Getting started](./GETTING_STARTED.md).
 
 ## Before you begin
 
@@ -11,7 +11,7 @@ You need:
 - [Docker](https://docs.docker.com/get-docker/) with the Compose plugin (`docker compose version` prints a version).
 - [Git](https://git-scm.com/downloads).
 - About 2 GB of free memory and a few GB of disk for your library.
-- An API key from an AI provider (OpenAI, Anthropic, Google Gemini, Groq, OpenRouter, or any OpenAI-compatible server). SaveForLatter uses it to read, summarize and tag what you save.
+- An API key from an AI provider (OpenAI, Anthropic, Google Gemini, Groq, OpenRouter, or any OpenAI-compatible server). Savedly uses it to read, summarize and tag what you save.
 
 ## Install
 
@@ -21,13 +21,13 @@ Run the installer:
 curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh
 ```
 
-The installer clones the repository into `./saveforlatter` and starts it. The first run builds the images and takes a few minutes.
+The installer clones the repository into `./savedly` and starts it. The first run builds the images and takes a few minutes.
 
 To install by hand instead, run the following commands:
 
 ```sh
 git clone https://github.com/jyotishankar04/saveforlatter.git
-cd saveforlatter
+cd savedly
 docker compose up -d
 ```
 
@@ -38,7 +38,7 @@ The remaining service settings are optional and can be added as needed.
 When the command finishes, open the address in `PUBLIC_URL` (by default,
 <http://localhost:3000>).
 
-On first start, SaveForLatter:
+On first start, Savedly:
 
 - Creates the database tables.
 - Generates its signing and encryption secrets and stores them in the `secrets` volume.
@@ -110,7 +110,7 @@ SMTP_SECURE=false
 SMTP_USERNAME=SMTP_USERNAME
 SMTP_PASSWORD=SMTP_PASSWORD
 SMTP_FROM_ADDRESS=noreply@example.com
-SMTP_FROM_NAME=SaveForLatter
+SMTP_FROM_NAME=Savedly
 
 # Embeddings for the whole install
 EMBEDDINGS_PROVIDER=openai
@@ -128,13 +128,13 @@ Replace each uppercase placeholder with your own value. After you change `.env`,
 
 ## Run it on your own domain
 
-By default, SaveForLatter expects to be opened at `http://localhost:3000`. To serve it from a domain with HTTPS, put a reverse proxy in front of it. This example uses [Caddy](https://caddyserver.com/), which gets certificates automatically.
+By default, Savedly expects to be opened at `http://localhost:3000`. To serve it from a domain with HTTPS, put a reverse proxy in front of it. This example uses [Caddy](https://caddyserver.com/), which gets certificates automatically.
 
 1. Point your domain's DNS at the server.
-2. Add these lines to `.env`, replacing `saveforlatter.example.com` with your domain:
+2. Add these lines to `.env`, replacing `savedly.example.com` with your domain:
 
    ```sh
-   PUBLIC_URL=https://saveforlatter.example.com
+   PUBLIC_URL=https://savedly.example.com
    TRUST_PROXY=2
    ```
 
@@ -142,7 +142,7 @@ By default, SaveForLatter expects to be opened at `http://localhost:3000`. To se
 3. Create a `Caddyfile`:
 
    ```
-   saveforlatter.example.com {
+   savedly.example.com {
        reverse_proxy localhost:3000
    }
    ```
@@ -153,24 +153,24 @@ If you use Google or GitHub sign-in, register the new callback URLs shown on the
 
 ## Back up your data
 
-Your library lives in two places: the database and the uploaded files. To back up both, run the following commands from the `saveforlatter` directory:
+Your library lives in two places: the database and the uploaded files. To back up both, run the following commands from the `savedly` directory:
 
 ```sh
-docker compose exec -T db pg_dump -U saveforlatter saveforlatter > saveforlatter-db.sql
-docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine tar czf /backup/saveforlatter-files.tar.gz -C /files .
+docker compose exec -T db pg_dump -U saveforlatter saveforlatter > savedly-db.sql
+docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine tar czf /backup/savedly-files.tar.gz -C /files .
 ```
 
 Also keep a copy of the `saveforlatter_secrets` volume. It holds the key that encrypts saved API keys; without it, saved keys can't be read after a restore.
 
 ### Restore from a backup
 
-To restore, start from a fresh install on the new machine, then run the following commands from the `saveforlatter` directory. They replace whatever that install holds:
+To restore, start from a fresh install on the new machine, then run the following commands from the `savedly` directory. They replace whatever that install holds:
 
 ```sh
 docker compose stop server
 docker compose exec -T db psql -U saveforlatter -d saveforlatter -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
-docker compose exec -T db psql -U saveforlatter -d saveforlatter < saveforlatter-db.sql
-docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine sh -c 'rm -rf /files/* && tar xzf /backup/saveforlatter-files.tar.gz -C /files'
+docker compose exec -T db psql -U saveforlatter -d saveforlatter < savedly-db.sql
+docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine sh -c 'rm -rf /files/* && tar xzf /backup/savedly-files.tar.gz -C /files'
 docker compose start server
 ```
 
@@ -178,7 +178,7 @@ Restore your copy of the `saveforlatter_secrets` volume as well, before you star
 
 ## Upgrade
 
-To upgrade to the latest version, run the following commands from the `saveforlatter` directory:
+To upgrade to the latest version, run the following commands from the `savedly` directory:
 
 ```sh
 git pull
@@ -189,7 +189,7 @@ Database changes apply automatically when the new version starts. Back up first;
 
 ## Run the hosted API
 
-The hosted version of SaveForLatter runs the API by itself, with managed
+The hosted version of Savedly runs the API by itself, with managed
 Postgres and Redis. That setup isn't a self-hosted install; see
 [Deploy the API to AWS](./DEPLOY_AWS.md).
 
@@ -201,5 +201,5 @@ Postgres and Redis. That setup isn't a self-hosted install; see
 
 ## What's next
 
-- [Getting started](./GETTING_STARTED.md): run SaveForLatter from source to develop it.
+- [Getting started](./GETTING_STARTED.md): run Savedly from source to develop it.
 - [Architecture](./ARCHITECTURE.md): how the pieces fit together.

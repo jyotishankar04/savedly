@@ -31,21 +31,21 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">1. Agreement to terms</h2>
             <p>
-              By accessing or using SaveForLatter — the web dashboard or browser extension — you agree to these Terms of Service. If you don&apos;t agree, please don&apos;t use the service.
+              By accessing or using Savedly — the web dashboard or browser extension — you agree to these Terms of Service. If you don&apos;t agree, please don&apos;t use the service.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">2. Account registration</h2>
             <p>
-              You sign in with Google or GitHub, or with an email and password where that&apos;s enabled. You&apos;re responsible for keeping those sign-in details secure, and for telling us if you believe your SaveForLatter account has been accessed without your permission.
+              You sign in with Google or GitHub, or with an email and password where that&apos;s enabled. You&apos;re responsible for keeping those sign-in details secure, and for telling us if you believe your Savedly account has been accessed without your permission.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">3. Open source, free plan and paid plans</h2>
             <p>
-              SaveForLatter is open source{LICENSE ? ` (${LICENSE} licensed)` : ""}. You can run your own copy for free, with every feature and no limits. On the hosted service at this website, plans differ in storage and usage limits, in how much AI we supply each month, and in which features they include. The Free plan costs nothing. Current plans and limits are listed on the <a href="/pricing" className="text-primary hover:underline">pricing page</a>.
+              Savedly is open source{LICENSE ? ` (${LICENSE} licensed)` : ""}. You can run your own copy for free, with every feature and no limits. On the hosted service at this website, plans differ in storage and usage limits, in how much AI we supply each month, and in which features they include. The Free plan costs nothing. Current plans and limits are listed on the <a href="/pricing" className="text-primary hover:underline">pricing page</a>.
               {GITHUB_CONFIGURED ? (
                 <>
                   {" "}The source code is public at <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{GITHUB_URL}</a>, and you&apos;re welcome to read it, self-host it, or contribute to it under that license.
@@ -72,7 +72,7 @@ export default function TermsPage() {
               <li>When your plan&apos;s monthly allowance is used up, new saves are still stored, without AI processing, until the allowance resets or you upgrade.</li>
             </ul>
             <p>
-              If you self-host SaveForLatter, you connect your own AI provider instead, and you&apos;re responsible for that account, its costs and its terms.
+              If you self-host Savedly, you connect your own AI provider instead, and you&apos;re responsible for that account, its costs and its terms.
             </p>
           </section>
 

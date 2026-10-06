@@ -22,7 +22,7 @@ export const CATEGORIES: HelpCategory[] = [
   { id: "get-started", title: "Get started", blurb: "Set up and save your first memories." },
   { id: "find", title: "Organize and find", blurb: "Keep things tidy and get back to them fast." },
   { id: "ai", title: "Ask and AI", blurb: "The assistant, your AI key, and picking models." },
-  { id: "self-host", title: "Self-hosting", blurb: "Run your own SaveForLatter on your own server." },
+  { id: "self-host", title: "Self-hosting", blurb: "Run your own Savedly on your own server." },
   { id: "share", title: "Share and protect", blurb: "Control who sees what." },
   { id: "stay", title: "Stay on top", blurb: "Calendar events and notifications." },
   { id: "account", title: "Account and tools", blurb: "Your data, settings and shortcuts." },
