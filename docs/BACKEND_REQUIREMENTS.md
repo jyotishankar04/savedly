@@ -26,7 +26,7 @@ Frontend code bases and configuration files in the workspace:
 **Status:** Approved for Backend Implementation
 
 ### Assumptions and Limitations
-- The backend runs on `http://localhost:4000` in local development (the actual default `PORT` in `server/src/config/env.ts`), reachable at `http://localhost:4000/api/v1`. **Note:** the Chrome Extension's popup and background worker currently disagree with each other on this — `Popup.tsx` targets `https://api.getsavedly.com/api/memories` while `service-worker.ts` targets `http://localhost:3000/api/memories`, and neither includes the `/v1` prefix. Both should be updated to point at `http://localhost:4000/api/v1/memories` for local development.
+- The backend runs on `http://localhost:4000` in local development (the actual default `PORT` in `server/src/config/env.ts`), reachable at `http://localhost:4000/api/v1`. **Note:** the Chrome Extension's popup and background worker currently disagree with each other on this — `Popup.tsx` targets `https://api.savedly.app/api/memories` while `service-worker.ts` targets `http://localhost:3000/api/memories`, and neither includes the `/v1` prefix. Both should be updated to point at `http://localhost:4000/api/v1/memories` for local development.
 - AI operations (summarization, speech-to-text, embeddings) are assumed to run asynchronously or via direct API calls during capture, without blocking frontend UI interactions.
 - The web client uses `localStorage` (key: `savedly_token` or `token`) which is accessed by the extension content script when visiting authorized domains.
 - **Authentication is a custom, hand-rolled implementation** — JWT access/refresh tokens signed and verified in-house, with `bcrypt` for password hashing. See Section 6 for details. This requires adding `jsonwebtoken` and `bcrypt` (not currently installed) to `server/package.json`, and adding a `password_hash` column back to the `users` table (Section 5, table 1) — neither exists yet in `server/src/db/schema.ts`. The `BETTER_AUTH_SECRET` env var in `server/src/config/env.ts` is a leftover from an earlier direction and should be renamed to `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` (or similar) once custom auth is implemented.
@@ -53,7 +53,7 @@ Savedly is a "second brain" platform designed to collect, process, search, and r
 ### Chrome Extension Architecture
 - **Popup (`Popup.tsx`):** Reads the current active browser tab (URL, Title, Favicon). Simulates a duplication check. If valid, performs an automatic save. Allows subsequent updates to tags, collection folders, and custom notes.
 - **Background Worker (`service-worker.ts`):** Context menu options ("Save page", "Save selected text", "Save image") and keyboard shortcuts (`quick-save-page`) invoke background `fetch` calls carrying user JWT tokens. Displays browser notifications upon success.
-- **Content Script (`content-script.ts`):** Automatically reads active token storage from `localhost`/`getsavedly.com` pages, synchronizing authentication state into `chrome.storage.local`. Injects scraping listeners for metadata fields (`description`, `og:image`, `keywords`).
+- **Content Script (`content-script.ts`):** Automatically reads active token storage from `localhost`/`savedly.app` pages, synchronizing authentication state into `chrome.storage.local`. Injects scraping listeners for metadata fields (`description`, `og:image`, `keywords`).
 
 ### Mobile Architecture (React Native / Expo)
 - **State Management (`MemoryContext.tsx`):** Exposes state contexts (`memories`), and actions (`addMemory`, `deleteMemory`, `toggleFavorite`).
@@ -455,7 +455,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
         "id": "c0017c60-8bb0-47b8-b4b1-8b27f1c1a2f6",
         "email": "user@example.com",
         "name": "Subham Jyoti",
-        "avatar_url": "https://api.getsavedly.com/uploads/avatars/sj.png",
+        "avatar_url": "https://api.savedly.app/uploads/avatars/sj.png",
         "status": "active"
       },
       "tokens": {
@@ -528,7 +528,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
         "id": "c0017c60-8bb0-47b8-b4b1-8b27f1c1a2f6",
         "email": "user@example.com",
         "name": "Subham Jyoti",
-        "avatar_url": "https://api.getsavedly.com/uploads/avatars/sj.png",
+        "avatar_url": "https://api.savedly.app/uploads/avatars/sj.png",
         "status": "active",
         "roles": ["free_user"]
       }
@@ -957,7 +957,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
   {
     "success": true,
     "data": {
-      "file_url": "https://api.getsavedly.com/uploads/files/vector_db_sheet_2026.pdf",
+      "file_url": "https://api.savedly.app/uploads/files/vector_db_sheet_2026.pdf",
       "mime_type": "application/pdf",
       "file_size": 1048576
     },
@@ -1012,7 +1012,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
 - **Request Body:**
   ```json
   {
-    "audio_url": "https://api.getsavedly.com/uploads/files/voicerecord_8736.wav"
+    "audio_url": "https://api.savedly.app/uploads/files/voicerecord_8736.wav"
   }
   ```
 - **Success Response (200 OK):**

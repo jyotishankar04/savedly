@@ -13,7 +13,7 @@ Notable changes to Savedly. The format follows [Keep a Changelog](https://keepac
 - Planned-integration cards on the Integrations page.
 
 ### Changed
-- The product is now named **Savedly**, at getsavedly.com. It was SaveForLatter before, and Memora before that. Session cookies were renamed, so everyone is signed out once.
+- The product is now named **Savedly**, at savedly.app. It was SaveForLatter before, and Memora before that. Session cookies were renamed, so everyone is signed out once.
 - Mobile layout: scrolling, the menu, safe areas and the bottom navigation.
 
 ### Removed

@@ -42,7 +42,7 @@ Free and open source, with no paid tier behind it. Every answer from "Ask" links
 
 - The real app UI, which can be shown with demo data.
 - No customers, testimonials, usage numbers, press, or ratings exist. Never invent them.
-- Real links: GitHub via `lib/open-source.ts` (when configured), booking link `lib/booking.ts`, support@getsavedly.com.
+- Real links: GitHub via `lib/open-source.ts` (when configured), booking link `lib/booking.ts`, support@savedly.app.
 
 ## Product Principles
 

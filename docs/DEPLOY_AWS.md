@@ -1,6 +1,6 @@
 # Deploy the API to AWS
 
-This page is for a maintainer who runs the hosted Savedly API. It sets up one small AWS instance and automatic deploys from the `prod-server` branch. When you finish, `https://api.getsavedly.com` serves the API, and a merge into `prod-server` ships a new version.
+This page is for a maintainer who runs the hosted Savedly API. It sets up one small AWS instance and automatic deploys from the `prod-server` branch. When you finish, `https://api.savedly.app` serves the API, and a merge into `prod-server` ships a new version.
 
 This page doesn't cover the web client (it's deployed separately) or a self-hosted install (see [Self-hosting](./SELF_HOSTING.md)).
 
@@ -15,7 +15,7 @@ This page doesn't cover the web client (it's deployed separately) or a self-host
 You need:
 
 - An AWS account, and access to the domain's DNS.
-- `server/.env.prod` filled in. Set `FRONTEND_URL` to the web app's address and `SERVER_URL` to `https://api.getsavedly.com`, both without a trailing slash.
+- `server/.env.prod` filled in. Set `FRONTEND_URL` to the web app's address and `SERVER_URL` to `https://api.savedly.app`, both without a trailing slash.
 - Admin access to the GitHub repository.
 
 > [!NOTE]
@@ -73,14 +73,14 @@ The first deploy needs one extra step, because the image package starts out priv
 To confirm the deploy, run the following command. It prints `200`:
 
 ```sh
-curl -s -o /dev/null -w '%{http_code}\n' https://api.getsavedly.com/api/v1/health
+curl -s -o /dev/null -w '%{http_code}\n' https://api.savedly.app/api/v1/health
 ```
 
 Caddy gets the HTTPS certificate by itself on the first start. Database changes apply when the new version starts.
 
 ## 5. Update the sign-in and payment settings
 
-These services call the API by its address. Point each at `https://api.getsavedly.com`:
+These services call the API by its address. Point each at `https://api.savedly.app`:
 
 - Google and GitHub OAuth apps: the callback URLs.
 - Dodo Payments: the webhook URL.

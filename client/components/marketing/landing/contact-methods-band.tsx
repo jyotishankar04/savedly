@@ -11,7 +11,7 @@ import { BOOKING_URL } from "@/lib/booking";
 // Adapted from a pasted "Contact5" reference. react-icons' IconType swapped
 // for this repo's HugeiconsIcon convention; @/components/base-ui/badge
 // doesn't exist here (real path is @/components/ui/badge). Content is real
-// facts the previous /contact page already had — support@getsavedly.com,
+// facts the previous /contact page already had — support@savedly.app,
 // Slack for Pro subscribers, Bengaluru — plus a real Cal.com link, not the
 // phone-number fourth card the reference assumed (no phone number exists
 // anywhere in this codebase).
@@ -28,7 +28,7 @@ const CONTACT_METHODS: ContactMethod[] = [
     icon: Mail,
     title: "Email us",
     description: "For anything — billing, bugs, feature requests.",
-    details: "support@getsavedly.com",
+    details: "support@savedly.app",
   },
   {
     icon: Calendar,

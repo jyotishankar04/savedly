@@ -6,7 +6,7 @@ const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 10000;
 const ROBOTS_TIMEOUT_MS = 4000;
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
-const USER_AGENT = "Mozilla/5.0 (compatible; SavedlyBot/1.0; +https://getsavedly.com)";
+const USER_AGENT = "Mozilla/5.0 (compatible; SavedlyBot/1.0; +https://savedly.app)";
 
 class UrlSafetyError extends Error {
   constructor(public status: FetchStatus) {
