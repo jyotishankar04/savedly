@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       # server/package.json has no "packageManager" field (client's does),
       # so pnpm/action-setup needs an explicit version here.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.18.0
       - uses: actions/setup-node@v4
@@ -46,7 +46,7 @@ jobs:
       # repo root, and there isn't one (each app is independent), so this
       # job needs the version spelled out too. Keep in step with
       # client/package.json's packageManager.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.18.0
       - uses: actions/setup-node@v4
