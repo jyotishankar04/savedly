@@ -18,7 +18,7 @@ jobs:
       run:
         working-directory: server
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # server/package.json has no "packageManager" field (client's does),
       # so pnpm/action-setup needs an explicit version here.
       - uses: pnpm/action-setup@v4
@@ -41,7 +41,7 @@ jobs:
       run:
         working-directory: client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # The action only reads "packageManager" from a package.json at the
       # repo root, and there isn't one (each app is independent), so this
       # job needs the version spelled out too. Keep in step with
