@@ -455,7 +455,7 @@ export async function claimPendingGrantsForEmail(
     .set({ userId, status: ShareGrantStatus.ACTIVE, acceptedAt: new Date(), updatedAt: new Date() })
     .where(
       and(
-        isNull(shareGrants.userId),
+        isNull(shareGrants.userId), // here isNull checks that the grant is still pending
         eq(shareGrants.status, ShareGrantStatus.PENDING),
         eq(shareGrants.inviteeEmail, email.toLowerCase())
       )

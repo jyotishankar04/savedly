@@ -70,18 +70,7 @@ async function startSession(req: Request, res: Response, user: { id: string; ema
 function loginUrl(error: string): string {
   return `${env.FRONTEND_URL}/auth/login?error=${error}`;
 }
-
-/**
- * Where to send someone after sign-in, when they arrived from a shared
- * link ("sign in to view this").
- *
- * The allowlist is intentionally one exact shape — a shared-link path and
- * nothing else. This value comes in on a query string that is reachable
- * straight from an invite email, so anything looser is an open redirect
- * with a credible delivery mechanism attached. Rejecting rather than
- * sanitizing keeps that impossible to get subtly wrong: no protocol-relative
- * "//evil.com", no "/app/settings", no encoded traversal.
- */
+// This regex validates the next path for safe redirects after OAuth to the frontend.
 const SAFE_NEXT_PATH = /^\/s\/[A-Za-z0-9_-]{1,32}$/;
 
 export function sanitizeNextPath(next: unknown): string | null {
@@ -90,9 +79,6 @@ export function sanitizeNextPath(next: unknown): string | null {
 
 async function handleOAuthCallback(req: Request, res: Response, exchangeCode: (code: string) => Promise<OAuthProfile>) {
   const cookieState = req.cookies?.[OAUTH_STATE_COOKIE];
-  // Re-validated on the way out as well as on the way in: the cookie is
-  // ours and httpOnly, but the redirect is the dangerous side, so the check
-  // belongs where the value is used.
   const nextPath = sanitizeNextPath(req.cookies?.[OAUTH_NEXT_COOKIE]);
   clearOAuthStateCookie(res);
   clearOAuthNextCookie(res);
@@ -102,6 +88,7 @@ async function handleOAuthCallback(req: Request, res: Response, exchangeCode: (c
   if (providerError) {
     return res.redirect(loginUrl("oauth_denied"));
   }
+
   if (!code || !state || !cookieState || state !== cookieState) {
     return res.redirect(loginUrl("oauth_invalid_state"));
   }

@@ -21,14 +21,11 @@ export function createApp() {
   // default (same-origin) would block that.
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
-  // The payment provider's webhook needs the raw body for signature verification — must be
-  // registered with express.raw() on this exact path BEFORE the global
-  // express.json() below, or json() will have already consumed the stream.
+  // The payment provider webhook which needs the raw body for signature verification.
   app.use("/api/v1/billing/webhook", express.raw({ type: "application/json" }));
 
   // 5mb, not the 100kb default — a Netscape bookmark export with hundreds/
-  // thousands of entries can be several hundred KB to a few MB (see
-  // modules/import).
+  // thousands of entries can be several hundred KB to a few MB (see modules/import).
   app.use(express.json({ limit: "5mb" }));
   app.use(cookieParser());
   app.use(cors(corsOptions));
