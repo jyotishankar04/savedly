@@ -44,7 +44,7 @@ export const updateEventTool = tool(
   {
     name: "update_event",
     description:
-      "Reschedule or rename an event — \"move team sync to 4 pm\", \"push the dentist to next Tuesday\", \"rename it to Planning\". Find it first with list_upcoming_events. Changes to a SaveForLatter event also update its Google Calendar copy. For a calendar-only event, pass its full new start and title.",
+      "Reschedule or rename an event — \"move team sync to 4 pm\", \"push the dentist to next Tuesday\", \"rename it to Planning\". Find it first with list_upcoming_events. Changes to a Savedly event also update its Google Calendar copy. For a calendar-only event, pass its full new start and title.",
     schema: inputSchema,
   },
 );

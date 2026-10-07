@@ -6,7 +6,9 @@ import { AppError } from "../../../shared/errors/app-error";
 import { sendBulkEmail, sendEmail } from "../../email";
 import { users } from "../../../db/schema";
 import { EmailTemplateKey } from "../../../db/enums";
-import { composedEmailTemplate } from "../../../shared/mailer/templates";
+import { composedEmailTemplate, withUnsubscribeUrl } from "../../../shared/mailer/templates";
+import { unsubscribePageUrl } from "../../../shared/mailer/unsubscribe";
+import { env } from "../../../config/env";
 import type { ListCampaignMessagesQuery, ListCampaignsQuery, PreviewEmailInput, SendEmailInput } from "./email.schema";
 
 export async function sendAdminEmail(input: SendEmailInput, adminUserId: string) {
@@ -23,7 +25,8 @@ export async function sendAdminEmail(input: SendEmailInput, adminUserId: string)
 /** The exact HTML a composed email will be sent as, for the composer's live preview. */
 export function previewAdminEmail(input: PreviewEmailInput): { html: string } {
   const { html } = composedEmailTemplate({ subject: input.subject || "Your subject", content: input.content });
-  return { html };
+  // The preview has no recipient, so its unsubscribe link goes nowhere in particular.
+  return { html: withUnsubscribeUrl(html, `${env.FRONTEND_URL}/unsubscribe`) };
 }
 
 /** Sends the composed email to the admin's own address only, through the real queue and mail server. */
@@ -38,7 +41,7 @@ export async function sendTestAdminEmail(input: PreviewEmailInput, adminUserId: 
     category: EmailCategory.CUSTOM,
     templateKey: EmailTemplateKey.ADMIN_CUSTOM,
     subject: `[Test] ${subject}`,
-    html,
+    html: withUnsubscribeUrl(html, unsubscribePageUrl(admin.id)),
   });
   return { to: admin.email };
 }

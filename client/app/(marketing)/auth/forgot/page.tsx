@@ -54,13 +54,13 @@ export default function ForgotPasswordPage() {
             Save everything you discover, search by what you remember.
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Links, notes, screenshots, PDFs and voice memos in one place, organized for you and searchable by meaning.
+            Links, notes, screenshots and PDFs in one place, organized for you and searchable by meaning.
           </p>
         </div>
 
         {/* Card Footer copy */}
         <p className="text-[11px] text-muted-foreground relative z-10">
-          &copy; 2026 SaveForLatter. All rights reserved.
+          &copy; 2026 Savedly. All rights reserved.
         </p>
 
       </div>
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
               <span>Passwordless OAuth Active</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              SaveForLatter uses passwordless OAuth login. Since your account is linked directly to your Google or GitHub profile, there are no passwords to reset or recover.
+              Savedly uses passwordless OAuth login. Since your account is linked directly to your Google or GitHub profile, there are no passwords to reset or recover.
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Simply log in using the same social account you registered with.

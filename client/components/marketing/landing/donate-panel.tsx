@@ -14,7 +14,7 @@ export function DonatePanel() {
       <div>
         <h3 className="text-2xl font-semibold tracking-[-0.02em] text-foreground sm:text-3xl">Help keep the servers running</h3>
         <p className="mt-3 max-w-lg leading-relaxed text-muted-foreground">
-          Hosting the database, storage and email, and the AI we supply, costs real money every month. If SaveForLatter is useful to
+          Hosting the database, storage and email, and the AI we supply, costs real money every month. If Savedly is useful to
           you, a small contribution helps keep the Free plan free for everyone.
         </p>
         <a
@@ -36,7 +36,7 @@ export function DonatePanel() {
         rel="noopener noreferrer"
         className="mx-auto flex w-full max-w-[220px] flex-col items-center gap-3 rounded-2xl bg-white p-4 shadow-[0_20px_50px_-24px_rgb(0_0_0/0.4)] ring-1 ring-black/5 lg:justify-self-end"
       >
-        <Image src={BMC_QR_IMAGE} alt="QR code for SaveForLatter's Buy Me a Coffee page" width={188} height={188} className="h-auto w-full" />
+        <Image src={BMC_QR_IMAGE} alt="QR code for Savedly's Buy Me a Coffee page" width={188} height={188} className="h-auto w-full" />
         <span className="text-center text-xs font-medium text-neutral-600">Scan to support from your phone</span>
       </a>
     </div>

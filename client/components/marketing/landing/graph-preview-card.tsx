@@ -20,7 +20,7 @@ const MemoryGraphCanvas = dynamic(
   { ssr: false, loading: () => null },
 );
 
-export const NODE_LEGEND: MemoryType[] = ["web", "video", "note", "image", "document", "voice"];
+export const NODE_LEGEND: MemoryType[] = ["web", "video", "note", "image", "document"];
 export const EDGE_LEGEND: GraphEdgeKind[] = ["semantic", "tag", "collection"];
 
 // A fixed demo graph, not live data — same reasoning as every other scripted
@@ -33,7 +33,7 @@ export const DEMO_NODES: GraphNode[] = [
   { id: "n1", title: "Synology vs. self-built TrueNAS: a real cost breakdown", type: "web", resourceCategory: null, previewImageUrl: null, tags: ["nas"], collections: [{ id: "c1", name: "Home Lab" }], createdAt: "" },
   { id: "n2", title: "Building a 6-bay ZFS NAS from scratch", type: "video", resourceCategory: null, previewImageUrl: null, tags: ["nas"], collections: [{ id: "c1", name: "Home Lab" }], createdAt: "" },
   { id: "n3", title: "home lab — drive shortlist", type: "note", resourceCategory: null, previewImageUrl: null, tags: ["nas"], collections: [{ id: "c1", name: "Home Lab" }], createdAt: "" },
-  { id: "n4", title: "Podcast episode — home networking basics", type: "voice", resourceCategory: null, previewImageUrl: null, tags: [], collections: [{ id: "c1", name: "Home Lab" }], createdAt: "" },
+  { id: "n4", title: "Podcast episode — home networking basics", type: "web", resourceCategory: null, previewImageUrl: null, tags: [], collections: [{ id: "c1", name: "Home Lab" }], createdAt: "" },
   { id: "n5", title: "10 cheap cable organizers under $15", type: "web", resourceCategory: null, previewImageUrl: null, tags: ["desk"], collections: [{ id: "c2", name: "Desk Setup" }], createdAt: "" },
   { id: "n6", title: "used an old shoebox to route the power strip cords out of sight", type: "note", resourceCategory: null, previewImageUrl: null, tags: ["desk"], collections: [{ id: "c2", name: "Desk Setup" }], createdAt: "" },
   { id: "n7", title: "Six standing desks under $600, tested for wobble", type: "web", resourceCategory: null, previewImageUrl: null, tags: ["desk"], collections: [{ id: "c2", name: "Desk Setup" }], createdAt: "" },

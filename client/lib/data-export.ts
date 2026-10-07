@@ -14,7 +14,7 @@ export async function downloadMemoriesExport(): Promise<void> {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `saveforlatter-export-${Date.now()}.json`;
+  link.download = `savedly-export-${Date.now()}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -29,7 +29,7 @@ export async function downloadOkfExport(): Promise<void> {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `saveforlatter-okf-${new Date().toISOString().slice(0, 10)}.zip`;
+  link.download = `savedly-okf-${new Date().toISOString().slice(0, 10)}.zip`;
   document.body.appendChild(link);
   link.click();
   link.remove();

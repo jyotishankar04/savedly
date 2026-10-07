@@ -172,7 +172,7 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
                     </Button>
                   ) : !calendarOpen ? (
                     <p key={provider} className="rounded-xl border border-dashed border-border px-4 py-3 text-[13px] leading-snug text-muted-foreground">
-                      <span className="font-medium text-foreground">This event is in your SaveForLatter calendar.</span> Sending it to {label} is
+                      <span className="font-medium text-foreground">This event is in your Savedly calendar.</span> Sending it to {label} is
                       coming soon: we&apos;re going through Google&apos;s verification for calendar access. Until then, you can add it yourself with a
                       link or the file below.
                     </p>

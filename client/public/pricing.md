@@ -1,6 +1,6 @@
-# Pricing — SaveForLatter
+# Pricing — Savedly
 
-SaveForLatter offers a hosted cloud version and a fully featured self-hosted community version.
+Savedly offers a hosted cloud version and a fully featured self-hosted community version.
 
 ## Self-Hosted (Community)
 - Price: $0
@@ -11,7 +11,7 @@ SaveForLatter offers a hosted cloud version and a fully featured self-hosted com
 ## Free (Hosted)
 - Price: $0/month
 - Limits: Essential storage limits apply
-- AI Access: Supplied by SaveForLatter
+- AI Access: Supplied by Savedly
 
 ## Lite (Hosted)
 - Price: Coming Soon

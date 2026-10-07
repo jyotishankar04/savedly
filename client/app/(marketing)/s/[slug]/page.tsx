@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // per-share robots directives, and without them a protected collection's
   // real name would end up in search results and Slack unfurls.
   if (!result.ok || result.data.mode === "gated") {
-    return { title: "Shared with you · SaveForLatter", robots: NOINDEX };
+    return { title: "Shared with you · Savedly", robots: NOINDEX };
   }
 
   const meta = result.data;
@@ -40,10 +40,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     meta.description ??
     (meta.resourceType === "collection"
       ? `A collection of ${meta.memoryCount} saved ${meta.memoryCount === 1 ? "item" : "items"}.`
-      : "A saved item, shared via SaveForLatter.");
+      : "A saved item, shared via Savedly.");
 
   return {
-    title: `${meta.title} · SaveForLatter`,
+    title: `${meta.title} · Savedly`,
     description,
     // Indexing is opt-in per share and only ever honoured for a genuinely
     // public link — the API applies the same rule to the X-Robots-Tag it
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: meta.title,
       description,
       type: "article",
-      siteName: "SaveForLatter",
+      siteName: "Savedly",
     },
   };
 }
@@ -135,7 +135,7 @@ function UnavailableNotice() {
     <div className="py-20 text-center">
       <h1 className="text-2xl font-bold tracking-tight">Couldn&apos;t load this link</h1>
       <p className="mx-auto mt-2 max-w-sm text-xs leading-relaxed text-muted-foreground">
-        Something went wrong reaching SaveForLatter. Try again in a moment.
+        Something went wrong reaching Savedly. Try again in a moment.
       </p>
     </div>
   );

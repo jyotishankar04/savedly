@@ -163,7 +163,7 @@ export function AskSection() {
     <section className="mx-auto w-full max-w-2xl px-6 py-24 sm:py-32 md:px-12">
       <div className="mx-auto mb-14 max-w-2xl text-center sm:mb-20">
         <span className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-          Ask SaveForLatter
+          Ask Savedly
         </span>
         <h2 className="mt-4 text-3xl font-normal tracking-tight text-balance text-foreground sm:text-5xl">
           Ask a question. Get an answer with receipts.
@@ -184,7 +184,7 @@ export function AskSection() {
             </Avatar>
             <div className="flex flex-col gap-0.5">
               <span className="text-sm leading-none font-semibold tracking-tight text-foreground">
-                SaveForLatter
+                Savedly
               </span>
               <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                 <HugeiconsIcon icon={Search} strokeWidth={2.25} className="h-3 w-3" />

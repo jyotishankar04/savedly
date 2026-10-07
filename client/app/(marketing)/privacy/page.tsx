@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">1. Introduction</h2>
             <p>
-              SaveForLatter is a personal memory tool: you save links, notes, images, documents, and voice memos, and it reads, organizes, and helps you find them again. This is open source software — the code is public, and you can run your own copy. The hosted service has a free plan and optional paid plans. This policy explains what information we collect, how it&apos;s used, and what choices you have.
+              Savedly is a personal memory tool: you save links, notes, images, documents, and voice memos, and it reads, organizes, and helps you find them again. This is open source software — the code is public, and you can run your own copy. The hosted service has a free plan and optional paid plans. This policy explains what information we collect, how it&apos;s used, and what choices you have.
             </p>
             <p>
               Your saved content belongs to you. We don&apos;t sell it, we don&apos;t use it to train AI models, and we don&apos;t show you ads.
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
               On the hosted service, AI features (summaries, tags, image analysis, semantic search, the Ask assistant) run on AI provider accounts we operate. When something needs AI, the relevant piece of your content (what you save, or the question you ask along with the saved content it draws on) is sent to that provider to be processed, and the result (the summary, tags, or answer) is written back into your account. We don&apos;t keep the provider&apos;s response beyond that.
             </p>
             <p>
-              If you self-host SaveForLatter, your install sends this content to the AI provider you or your admin configure instead, and none of it reaches us.
+              If you self-host Savedly, your install sends this content to the AI provider you or your admin configure instead, and none of it reaches us.
             </p>
             <p>
               <strong>We do not use your saved content, your questions, or your AI provider responses to train any model — ours or anyone else&apos;s.</strong>
@@ -65,19 +65,19 @@ export default function PrivacyPage() {
           <section id="google-user-data" className="space-y-3 scroll-mt-28">
             <h2 className="text-base font-bold text-foreground">4. Google user data</h2>
             <p>
-              This section covers the information SaveForLatter receives from Google when you sign in with Google or connect Google Calendar. Both are optional: you can sign in another way, and you can use SaveForLatter without connecting a calendar.
+              This section covers the information Savedly receives from Google when you sign in with Google or connect Google Calendar. Both are optional: you can sign in another way, and you can use Savedly without connecting a calendar.
             </p>
 
             <h3 className="text-sm font-semibold text-foreground pt-1">What we access</h3>
             <ul className="list-disc pl-5 space-y-2">
               <li><strong>When you sign in with Google:</strong> your name, email address, profile picture and Google account ID. We request only the <code>openid</code>, <code>email</code> and <code>profile</code> permissions.</li>
-              <li><strong>When you connect Google Calendar:</strong> the events on your calendar, through the <code>calendar.events</code> permission. This lets SaveForLatter view, create, change and delete events. We don&apos;t request access to your calendar settings, your other calendars&apos; sharing settings, your contacts, your Gmail or your Drive.</li>
+              <li><strong>When you connect Google Calendar:</strong> the events on your calendar, through the <code>calendar.events</code> permission. This lets Savedly view, create, change and delete events. We don&apos;t request access to your calendar settings, your other calendars&apos; sharing settings, your contacts, your Gmail or your Drive.</li>
             </ul>
 
             <h3 className="text-sm font-semibold text-foreground pt-1">How we use it</h3>
             <ul className="list-disc pl-5 space-y-2">
               <li><strong>Your name, email and picture</strong> are used to create your account, sign you in, show your profile inside the app, and send you emails about your account, such as a welcome message or a sharing invitation.</li>
-              <li><strong>Your calendar events</strong> are used to show your upcoming events on the Calendar page next to the events from your saved items, to add an event to your Google Calendar when you choose to, and to update or delete an event when you edit or remove it in SaveForLatter.</li>
+              <li><strong>Your calendar events</strong> are used to show your upcoming events on the Calendar page next to the events from your saved items, to add an event to your Google Calendar when you choose to, and to update or delete an event when you edit or remove it in Savedly.</li>
               <li>If you ask the Ask assistant about your schedule (for example, &ldquo;what&apos;s on this week?&rdquo;), the title and time of the relevant events are read so it can answer you.</li>
             </ul>
             <p>
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
               We don&apos;t sell Google user data or share it with advertisers or data brokers. It is disclosed only in these cases:
             </p>
             <ul className="list-disc pl-5 space-y-2">
-              <li><strong>Service providers that run SaveForLatter for us:</strong> our cloud hosting and database providers store your account information on our behalf, and our email delivery provider receives your email address so we can send you account emails. They process it only on our instructions.</li>
+              <li><strong>Service providers that run Savedly for us:</strong> our cloud hosting and database providers store your account information on our behalf, and our email delivery provider receives your email address so we can send you account emails. They process it only on our instructions.</li>
               <li><strong>Our AI provider, only when you ask:</strong> when you ask the Ask assistant about your schedule, the titles and times of the events needed to answer are sent to the AI provider that processes your question, together with the question. This happens only as a direct result of your request.</li>
               <li><strong>Google:</strong> when you add, change or delete an event, we send that change to Google Calendar, since that is the action you asked for.</li>
               <li><strong>When the law requires it:</strong> if we are legally compelled to disclose information, or to protect against fraud or abuse.</li>
@@ -109,16 +109,16 @@ export default function PrivacyPage() {
 
             <h3 className="text-sm font-semibold text-foreground pt-1">How long we keep it, and how to delete it</h3>
             <ul className="list-disc pl-5 space-y-2">
-              <li><strong>Calendar events are not copied into our database.</strong> We read them from Google when you open the Calendar page or ask about your schedule. For an event you add to Google Calendar from SaveForLatter, we keep only its Google event ID and link, so we can update or remove that event later.</li>
+              <li><strong>Calendar events are not copied into our database.</strong> We read them from Google when you open the Calendar page or ask about your schedule. For an event you add to Google Calendar from Savedly, we keep only its Google event ID and link, so we can update or remove that event later.</li>
               <li><strong>Calendar tokens</strong> are kept until you disconnect Google Calendar from the Integrations page. Disconnecting deletes them from our database and asks Google to revoke them.</li>
               <li><strong>Your name, email and picture</strong> are kept for as long as you have an account.</li>
               <li><strong>Deleting your account</strong> (Settings → Privacy &amp; Data) removes your profile, your saved content and any calendar connection. You can delete immediately, or deactivate with a 30-day period in which signing in again cancels the deletion.</li>
-              <li>You can also remove SaveForLatter&apos;s access at any time from your Google Account, under Security → Third-party apps and services.</li>
+              <li>You can also remove Savedly&apos;s access at any time from your Google Account, under Security → Third-party apps and services.</li>
             </ul>
 
             <h3 className="text-sm font-semibold text-foreground pt-1">Google API Services User Data Policy</h3>
             <p>
-              SaveForLatter&apos;s use and transfer to any other app of information received from Google APIs will adhere to the{" "}
+              Savedly&apos;s use and transfer to any other app of information received from Google APIs will adhere to the{" "}
               <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noreferrer" className="text-primary hover:underline">
                 Google API Services User Data Policy
               </a>

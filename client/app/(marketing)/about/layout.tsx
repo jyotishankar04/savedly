@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About — SaveForLatter",
-  description: "SaveForLatter is built by digital explorers who believe the bookmarks bar is broken. We are designing a seamless second brain.",
+  title: "About — Savedly",
+  description: "Savedly is built by digital explorers who believe the bookmarks bar is broken. We are designing a seamless second brain.",
   alternates: { canonical: "/about" },
 };
 

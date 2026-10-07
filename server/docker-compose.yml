@@ -103,15 +103,15 @@ services:
       # there's no manual sign-up step — these are the exact keys to put in
       # server/.env as LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY.
       LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://localhost:9090
-      LANGFUSE_INIT_ORG_ID: saveforlatter
-      LANGFUSE_INIT_ORG_NAME: SaveForLatter
-      LANGFUSE_INIT_PROJECT_ID: saveforlatter-ingestion
-      LANGFUSE_INIT_PROJECT_NAME: SaveForLatter Ingestion
-      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-saveforlatter-dev
-      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-saveforlatter-dev-secret
-      LANGFUSE_INIT_USER_EMAIL: dev@saveforlatter.local
-      LANGFUSE_INIT_USER_NAME: SaveForLatter Dev
-      LANGFUSE_INIT_USER_PASSWORD: saveforlatter-dev-password
+      LANGFUSE_INIT_ORG_ID: savedly
+      LANGFUSE_INIT_ORG_NAME: Savedly
+      LANGFUSE_INIT_PROJECT_ID: savedly-ingestion
+      LANGFUSE_INIT_PROJECT_NAME: Savedly Ingestion
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-savedly-dev
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-savedly-dev-secret
+      LANGFUSE_INIT_USER_EMAIL: dev@savedly.local
+      LANGFUSE_INIT_USER_NAME: Savedly Dev
+      LANGFUSE_INIT_USER_PASSWORD: savedly-dev-password
 
   langfuse-worker:
     image: docker.langfuse.com/langfuse/langfuse-worker:4

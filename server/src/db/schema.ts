@@ -588,7 +588,7 @@ export const userSettings = pgTable("user_settings", {
   aiSummaries: boolean("ai_summaries").notNull().default(true),
   aiRelatedMemories: boolean("ai_related_memories").notNull().default(true),
   aiSemanticSearch: boolean("ai_semantic_search").notNull().default(true),
-  aiAskSaveForLatter: boolean("ai_ask_memora").notNull().default(true),
+  aiAskSavedly: boolean("ai_ask_memora").notNull().default(true),
   captureExtractContent: boolean("capture_extract_content").notNull().default(true),
   captureGenerateTitle: boolean("capture_generate_title").notNull().default(true),
   captureGenerateSummary: boolean("capture_generate_summary").notNull().default(true),
@@ -596,6 +596,10 @@ export const userSettings = pgTable("user_settings", {
   notifyWeeklySummary: boolean("notify_weekly_summary").notNull().default(true),
   notifyForgottenMemories: boolean("notify_forgotten_memories").notNull().default(true),
   notifyProductUpdates: boolean("notify_product_updates").notNull().default(false),
+  // Set when the user opts out of announcement emails (the link in the email,
+  // or Settings > Notifications). Null means they get them. Account emails,
+  // such as a share invitation, are sent either way.
+  emailUnsubscribedAt: timestamp("email_unsubscribed_at", { withTimezone: true }),
   theme: settingsThemeEnum("theme").notNull().default(SettingsTheme.SYSTEM),
   accentColor: accentColorEnum("accent_color").notNull().default(AccentColor.BLUE),
   // IANA name ("Asia/Kolkata"), set from the browser. Event detection reads
@@ -1049,7 +1053,7 @@ export const memoryChunks = pgTable(
 );
 
 // -----------------------------------------------------------------------------
-// 19. Threads Table (Ask SaveForLatter chat threads — listing/naming only;
+// 19. Threads Table (Ask Savedly chat threads — listing/naming only;
 //     message content lives in LangGraph's own Postgres checkpointer tables,
 //     keyed by this table's id as thread_id)
 // -----------------------------------------------------------------------------

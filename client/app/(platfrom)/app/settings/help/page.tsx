@@ -13,7 +13,7 @@ export default function HelpSettingsPage() {
 
       <div className="space-y-1 pb-4 border-b border-border/25">
         <h3 className="text-sm font-bold text-foreground">Help</h3>
-        <p className="text-[10px] text-muted-foreground">Get help finding your way around SaveForLatter.</p>
+        <p className="text-[10px] text-muted-foreground">Get help finding your way around Savedly.</p>
       </div>
 
       <div className="p-3.5 border border-border bg-card rounded-xl flex items-start justify-between gap-4">
@@ -24,7 +24,7 @@ export default function HelpSettingsPage() {
           <div>
             <h4 className="text-foreground">Take the product tour</h4>
             <p className="text-[9.5px] text-muted-foreground mt-0.5 leading-relaxed font-medium">
-              A guided walkthrough of quick capture, search, memories, collections, and Ask SaveForLatter.
+              A guided walkthrough of quick capture, search, memories, collections, and Ask Savedly.
             </p>
           </div>
         </div>

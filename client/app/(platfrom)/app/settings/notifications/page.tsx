@@ -26,7 +26,7 @@ export default function NotificationsSettingsPage() {
             [
               { key: "weeklySummary", title: "Weekly memories summary email", desc: "Receive highlights of items saved during the week." },
               { key: "forgottenMemories", title: "Forgotten memories alerts", desc: "Periodic notification of high-value saves from months ago." },
-              { key: "productUpdates", title: "Product news & announcements", desc: "Notifications detailing browser plugin releases." },
+              { key: "productUpdates", title: "Product news & announcements", desc: "Emails from the team about new features and changes." },
             ] as const
           ).map((item) => (
             <button

@@ -47,7 +47,7 @@ const updates: Entry[] = [
     changes: [
       "No more paid tiers or usage limits — every feature is unlimited on every account, and the code itself is open source.",
       "AI is bring-your-own-key: connect OpenAI, Anthropic, Groq, Google, or any OpenAI-compatible endpoint from Settings → AI. We cover embeddings by default so search works without any setup.",
-      "Ask SaveForLatter can now create, edit, and delete memories and file them into collections directly — not just search and report back.",
+      "Ask Savedly can now create, edit, and delete memories and file them into collections directly — not just search and report back.",
       "A floating Ask button is available from anywhere in the app, as a popup or a resizable docked sidebar.",
     ],
   },
@@ -75,7 +75,7 @@ const updates: Entry[] = [
   },
   {
     period: "September 2026",
-    title: "Ask SaveForLatter launches",
+    title: "Ask Savedly launches",
     badge: "Feature",
     icon: MessageSquare,
     changes: [
@@ -89,7 +89,7 @@ const updates: Entry[] = [
     badge: "Update",
     icon: Rocket,
     changes: [
-      "Rebranded from an earlier working name to SaveForLatter.",
+      "Rebranded from an earlier working name to Savedly.",
       "Replaced mocked Archive, Trash, Notifications, and Insights pages with real data throughout the dashboard.",
       "A first-time product tour for new accounts.",
     ],
@@ -100,7 +100,7 @@ const updates: Entry[] = [
     badge: "Early build",
     icon: Key,
     changes: [
-      "Capture links, notes, images, documents, and voice into one place, each read and enriched on the way in.",
+      "Capture links, notes, images and documents into one place, each read and enriched on the way in.",
       "Collections and tags for organizing what you save.",
       "Google and GitHub sign-in — no passwords to manage.",
     ],

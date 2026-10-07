@@ -44,7 +44,7 @@ export interface VectorStore {
   searchByEmbedding(userId: string, embedding: number[], limit: number): Promise<VectorSearchResult[]>;
   /**
    * Nearest-neighbor search against per-chunk embeddings — passage-level
-   * retrieval for the "Ask SaveForLatter" RAG agent (see ../rag/), unlike
+   * retrieval for the "Ask Savedly" RAG agent (see ../rag/), unlike
    * searchByEmbedding above which is document-level for the Search feature.
    * Same userId/in_trash=false scoping, same best-first cosine ordering.
    */

@@ -13,7 +13,7 @@ export const listCollectionsTool = tool(
         id: c.id,
         name: c.name,
         memoryCount: c.memoryCount,
-        madeBy: c.source === CollectionSource.USER ? "user" : "SaveForLatter",
+        madeBy: c.source === CollectionSource.USER ? "user" : "Savedly",
       })),
     };
   },

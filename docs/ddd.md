@@ -1,11 +1,11 @@
-# SaveForLatter Script 1
+# Savedly Script 1
 
 Hey everyone. 
 
-I am suvam and i want to show you saveforlatter. It's a free tool I've been building from the last few weeks. 
+I am suvam and i want to show you savedly. It's a free tool I've been building from the last few weeks. 
 
 It lets you save absolutely anyting, and then ask it anythings.
-I built saveforlatter because i was saving a lot of things everythime - 
+I built savedly because i was saving a lot of things everythime - 
 
 - some in bookmarks
 - some in notes
@@ -17,7 +17,7 @@ but latter, finding them again is a chanllenge
 
 So i wanted to build one place where i could save anything and find it latter, without to manually organize everything
 
-Thats why i build saveforlatter
+Thats why i build savedly
 
 Let me quickly show you how it works.
 

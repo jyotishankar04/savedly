@@ -59,7 +59,7 @@ export function GithubStarButton({ variant = "nav", className, label }: GithubSt
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={stars ? `Star SaveForLatter on GitHub (${stars.toLocaleString("en-US")} stars)` : "Star SaveForLatter on GitHub"}
+      aria-label={stars ? `Star Savedly on GitHub (${stars.toLocaleString("en-US")} stars)` : "Star Savedly on GitHub"}
       className={cn(
         "group inline-flex items-center whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25",
         styles,

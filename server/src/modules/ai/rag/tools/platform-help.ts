@@ -3,7 +3,7 @@ import { z } from "zod";
 import { env } from "../../../../config/env";
 import { logger } from "../../../../shared/utils/logger";
 
-// Answers "how do I…" questions about SaveForLatter itself from the Help
+// Answers "how do I…" questions about Savedly itself from the Help
 // Center's own guides, served by the web app at /api/help
 // (client/app/api/help/route.ts). Reading them live keeps one source of
 // truth: a guide edited on the site is what the assistant says next.
@@ -48,7 +48,7 @@ async function loadHelp(): Promise<{ guides: HelpGuide[]; tools: HelpTool[] }> {
   }
 }
 
-const STOP = new Set(["how", "do", "i", "can", "to", "the", "a", "an", "my", "in", "on", "of", "and", "or", "is", "it", "what", "where", "does", "for", "with", "use", "using", "saveforlatter", "app", "you", "me", "this", "that", "work", "works", "get", "there", "way", "memory", "memories", "are", "am", "be", "should"]);
+const STOP = new Set(["how", "do", "i", "can", "to", "the", "a", "an", "my", "in", "on", "of", "and", "or", "is", "it", "what", "where", "does", "for", "with", "use", "using", "savedly", "app", "you", "me", "this", "that", "work", "works", "get", "there", "way", "memory", "memories", "are", "am", "be", "should"]);
 
 // Everyday words people use for things the guides name differently.
 const SYNONYMS: Record<string, string> = { delet: "trash", remov: "trash", bin: "trash", recover: "trash", restor: "trash", privat: "vault", secret: "vault", hid: "vault", hidden: "vault", lock: "vault", folder: "collection", bookmark: "import", key: "key", model: "model" };
@@ -89,7 +89,7 @@ function score(guide: HelpGuide, query: Set<string>): number {
 }
 
 const inputSchema = z.object({
-  question: z.string().min(1).describe("The user's question about how to use SaveForLatter, in their own words."),
+  question: z.string().min(1).describe("The user's question about how to use Savedly, in their own words."),
 });
 
 // Two outputs: the model gets the guide text and the *names* of the buttons
@@ -124,7 +124,7 @@ export const platformHelpTool = tool(
   {
     name: "get_platform_help",
     description:
-      "Look up how to use SaveForLatter itself — saving memories, organizing, search, Ask, AI keys and models, sharing, the vault, calendar, importing, the browser extension, notifications, account settings, keyboard shortcuts. Returns the matching Help Center guides with their steps, and the names of the buttons the app shows under your answer. Use for questions about the app, not about the user's saved content.",
+      "Look up how to use Savedly itself — saving memories, organizing, search, Ask, AI keys and models, sharing, the vault, calendar, importing, the browser extension, notifications, account settings, keyboard shortcuts. Returns the matching Help Center guides with their steps, and the names of the buttons the app shows under your answer. Use for questions about the app, not about the user's saved content.",
     schema: inputSchema,
     responseFormat: "content_and_artifact",
   },

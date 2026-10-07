@@ -122,7 +122,7 @@ export const ROLE_LABEL: Record<AiRole, string> = {
 
 export const ROLE_DESCRIPTION: Record<AiRole, string> = {
   fast: "Quick extraction, tagging, and classification — runs on every memory you save.",
-  reasoning: "The Ask SaveForLatter chat assistant and anything needing real judgment.",
+  reasoning: "The Ask Savedly chat assistant and anything needing real judgment.",
   vision: "Reading and describing images you save (OCR + visual description).",
   embeddings: "Powers semantic search and the Ask assistant's memory lookup. Must be exactly 1536-dimensional — see the note below.",
 };

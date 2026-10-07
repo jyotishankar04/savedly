@@ -23,7 +23,7 @@ export default function SecurityPage() {
             Security & Privacy
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Your second brain holds your most important thoughts. We treat it with the highest level of cryptographic and architectural security.
+            What you save is personal. This page says plainly how it is protected, and where the limits are.
           </p>
         </div>
 
@@ -33,18 +33,18 @@ export default function SecurityPage() {
             <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <HugeiconsIcon icon={Lock} className="text-primary h-5 w-5" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Encrypted at Rest</h3>
+            <h3 className="text-lg font-semibold mb-2">Encrypted in transit, secrets encrypted at rest</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              All memories, documents, and vector embeddings are encrypted at rest using industry-standard AES-256 encryption. We enforce HTTPS (TLS 1.2+) for all data in transit.
+              Everything between your browser and our servers travels over HTTPS. The most sensitive things we hold for you, such as AI provider keys and calendar tokens, are encrypted with AES-256-GCM before they are stored.
             </p>
           </div>
           <div className="p-6 border rounded-2xl bg-card">
             <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <HugeiconsIcon icon={Brain} className="text-primary h-5 w-5" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Zero AI Retention</h3>
+            <h3 className="text-lg font-semibold mb-2">Never used for training</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              We exclusively use zero-retention enterprise API endpoints. Your data is <strong>never</strong> used by OpenAI, Anthropic, or any other provider to train their models.
+              When something needs AI, only the relevant content is sent to the AI provider, and the result is written back to your account. We <strong>don&apos;t</strong> use what you save to train any model, ours or anyone else&apos;s.
             </p>
           </div>
           <div className="p-6 border rounded-2xl bg-card">
@@ -53,16 +53,16 @@ export default function SecurityPage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Open Source Trust</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Security through transparency. Our core engine is open-source under the AGPL-3.0 license, allowing security researchers and the community to audit our architecture.
+              The whole product is open source under the AGPL-3.0 license, so anyone can read exactly how your data is handled and check it against what we say here.
             </p>
           </div>
           <div className="p-6 border rounded-2xl bg-card">
             <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mb-4">
               <HugeiconsIcon icon={Shield} className="text-primary h-5 w-5" />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Total Air-Gap (Self-Host)</h3>
+            <h3 className="text-lg font-semibold mb-2">Run it yourself</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              If cloud storage isn&apost an option, you can self-host the entire SaveForLatter stack on your own infrastructure, ensuring your data never leaves your private network.
+              You can self-host Savedly on your own server. Your data then stays in your database and storage, and AI requests go only to the provider you choose.
             </p>
           </div>
         </div>
@@ -71,37 +71,35 @@ export default function SecurityPage() {
         <div className="prose prose-zinc dark:prose-invert max-w-none text-sm md:text-base leading-relaxed text-foreground/80 space-y-8 border-t pt-12">
 
           <section className="space-y-4">
-            <h2 className="text-xl font-bold text-foreground">Infrastructure Security</h2>
+            <h2 className="text-xl font-bold text-foreground">Where your data lives</h2>
             <p>
-              SaveForLatter is hosted on world-class infrastructure providers that maintain strict SOC 2 Type II, ISO 27001, and HIPAA compliance.
-              Our database clusters are logically isolated, and access to production environments is strictly limited to authorized core personnel using
-              hardware-backed multi-factor authentication (MFA).
+              On the hosted service, your account and saved items are kept in a managed PostgreSQL database, uploaded files in Cloudflare R2, and search vectors in a managed vector index. Every record is tied to your account, and every request is checked against it, so one person can&apos;t read another&apos;s library.
+            </p>
+            <p>
+              Savedly is a small, independent project. We don&apos;t hold security certifications such as SOC 2 or ISO 27001, and we won&apos;t claim otherwise.
             </p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-bold text-foreground">Vector Privacy & Embeddings</h2>
+            <h2 className="text-xl font-bold text-foreground">Sign-in and sessions</h2>
             <p>
-              When you save a link or note, SaveForLatter generates a mathematical representation (a vector embedding) of the text to enable semantic search.
-              These vectors are generated via secure API boundaries.
-              <strong> The vectors themselves are purely mathematical arrays and cannot be reverse-engineered back into your original text by external parties. </strong>
-              Furthermore, all vector search databases are strictly siloed per-user.
+              You sign in with Google or GitHub, so we never see or store that password. Your session is held in cookies that scripts on the page can&apos;t read. On a self-hosted install that uses email and password, passwords are hashed with scrypt and never stored in plain text.
             </p>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-bold text-foreground">Authentication & Access</h2>
+            <h2 className="text-xl font-bold text-foreground">The vault</h2>
             <p>
-              We offload credential management to highly secure, battle-tested identity providers (like Google, Apple, and GitHub OAuth).
-              If you choose email authentication, passwords are not stored in plaintext; they are securely hashed and salted using robust algorithms (e.g., bcrypt).
+              Items in the vault are hidden behind a PIN, which is hashed with scrypt and checked on the server. This is access control, not end-to-end encryption: the content itself is stored like the rest of your library.
             </p>
           </section>
 
           <section className="space-y-4 pt-8 border-t border-border">
             <h2 className="text-xl font-bold text-foreground">Reporting Vulnerabilities</h2>
             <p>
-              We take the security of our platform and our users&apos data very seriously. If you are a security researcher and have discovered a vulnerability,
-              please <Link href="/contact" className="text-primary hover:underline">contact us</Link> immediately. We request that you provide us with a reasonable timeframe to address the issue before public disclosure.
+              If you find a vulnerability, please report it privately through{" "}
+              <a href="https://github.com/jyotishankar04/saveforlatter/security/advisories/new" target="_blank" rel="noreferrer" className="text-primary hover:underline">GitHub&apos;s private vulnerability reporting</a>{" "}
+              or the <Link href="/contact" className="text-primary hover:underline">contact page</Link>, not in a public issue. Give us a reasonable time to fix it before you disclose it.
             </p>
           </section>
 

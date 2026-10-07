@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-If you find a security vulnerability in SaveForLatter, please **don't open a public GitHub issue** — that gives anyone a head start on exploiting it before it's fixed.
+If you find a security vulnerability in Savedly, please **don't open a public GitHub issue** — that gives anyone a head start on exploiting it before it's fixed.
 
 Instead, report it privately:
 

@@ -1,7 +1,12 @@
-# Caddy gets and renews a Let's Encrypt certificate for this name by itself.
+# Caddy gets and renews a Let's Encrypt certificate for each name by itself.
 # The DNS record must point at the instance, and ports 80 and 443 must be open.
 # See docs/DEPLOY_AWS.md.
-api.saveforlatter.tech {
+#
+# Two names during the move to savedly.app: the old one keeps the API
+# reachable until the new domain's DNS is live. A name whose DNS isn't set up
+# yet just fails its own certificate; the other keeps working. Remove
+# api.saveforlatter.tech once nothing calls it.
+api.savedly.app, api.saveforlatter.tech {
 	# The largest plan allows 100 MB files; leave room for the multipart wrapper.
 	request_body {
 		max_size 110MB

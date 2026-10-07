@@ -55,7 +55,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   const title = setup ? "Create your admin account" : creating ? "Create an account" : "Sign in";
   const subtitle = setup
-    ? "You're the first person here, so this account will run this SaveForLatter install."
+    ? "You're the first person here, so this account will run this Savedly install."
     : creating
       ? "Start your personal memory for the internet."
       : "Welcome back.";

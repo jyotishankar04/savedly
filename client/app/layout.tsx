@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const TITLE = "SaveForLatter — Save it now, find it later";
+const TITLE = "Savedly — Save it now, find it later";
 const DESCRIPTION = "Your personal memory for the internet. Save links, notes, videos, and screenshots, and find them again with a search that understands what you meant.";
 
 // Social previews need absolute image URLs. Netlify sets URL at build time;
@@ -37,11 +37,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: TITLE,
   description: DESCRIPTION,
-  applicationName: "SaveForLatter",
-  openGraph: { type: "website", siteName: "SaveForLatter", title: TITLE, description: DESCRIPTION, url: "/" },
+  applicationName: "Savedly",
+  openGraph: { type: "website", siteName: "Savedly", title: TITLE, description: DESCRIPTION, url: "/" },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
   // Installed to an iPhone's home screen, open full-screen under this name.
-  appleWebApp: { capable: true, title: "SaveForLatter", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Savedly", statusBarStyle: "default" },
 };
 
 // The browser and status bar take the page's own background, light or dark.
