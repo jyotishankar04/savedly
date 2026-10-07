@@ -63,7 +63,7 @@ export function useCreateCalendarEventMutation() {
   });
 }
 
-/** Which API an edit/delete goes through — an event backed by a saved memory (the vast majority) vs. a purely external one with no SaveForLatter memory at all. */
+/** Which API an edit/delete goes through — an event backed by a saved memory (the vast majority) vs. a purely external one with no Savedly memory at all. */
 export type EventEditTarget =
   | { kind: "memory"; memoryId: string }
   | { kind: "external"; provider: CalendarProviderKey; externalEventId: string };

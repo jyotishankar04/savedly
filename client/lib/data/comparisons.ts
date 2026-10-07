@@ -21,7 +21,7 @@ export interface Competitor {
 
 export const ourFeatures = {
   coreIdea: "AI second brain",
-  whatTheySave: "Links, images, notes, voice, PDFs, screenshots",
+  whatTheySave: "Links, images, notes, videos, PDFs, screenshots",
   hasSemanticSearch: "Yes (Hybrid + Ask Assistant)",
   hasAutoOrg: "Yes (Auto-tagging & embeddings)",
   hasChatCapture: "Adding Soon",
@@ -58,7 +58,7 @@ export const competitors: Competitor[] = [
       "You want a purely visual, color-driven mood board aesthetic",
       "You want an experience strictly isolated from public sharing"
     ],
-    whereWeExcel: "SaveForLatter provides full data ownership, public sharing, and an interactive knowledge graph.",
+    whereWeExcel: "Savedly provides full data ownership, public sharing, and an interactive knowledge graph.",
     whereTheyExcel: "mymind provides a highly polished, visual-first grid ideal for designers."
   },
   {
@@ -110,7 +110,7 @@ export const competitors: Competitor[] = [
       "You want a visual canvas or spatial whiteboard to arrange notes",
       "You need complex AI agents to draft documents for you"
     ],
-    whereWeExcel: "Simplicity. SaveForLatter captures data instantly and indexes it. No endless canvases to manually arrange.",
+    whereWeExcel: "Simplicity. Savedly captures data instantly and indexes it. No endless canvases to manually arrange.",
     whereTheyExcel: "Fabric acts as a spatial knowledge base where you can visually arrange objects."
   },
   {
@@ -136,7 +136,7 @@ export const competitors: Competitor[] = [
       "You love meticulously organizing deep folder hierarchies",
       "You only need a traditional bookmark manager"
     ],
-    whereWeExcel: "SaveForLatter operates entirely folderless. Everything is automatically read, tagged, and embedded for hybrid search without manual effort.",
+    whereWeExcel: "Savedly operates entirely folderless. Everything is automatically read, tagged, and embedded for hybrid search without manual effort.",
     whereTheyExcel: "Raindrop offers deep, nested folder structures and extensive manual organization tools."
   },
   {
@@ -162,7 +162,7 @@ export const competitors: Competitor[] = [
       "Your primary goal is highlighting articles and reviewing them via spaced repetition",
       "You heavily consume newsletters and EPUBs"
     ],
-    whereWeExcel: "SaveForLatter is a generalized second brain. It captures anything and connects it via embeddings.",
+    whereWeExcel: "Savedly is a generalized second brain. It captures anything and connects it via embeddings.",
     whereTheyExcel: "Readwise Reader is arguably the best dedicated reading and highlighting environment."
   },
   {
@@ -240,7 +240,7 @@ export const competitors: Competitor[] = [
       "You only need to quickly jot down a grocery list or a very short text snippet",
       "You live entirely within the Google Workspace ecosystem"
     ],
-    whereWeExcel: "SaveForLatter acts as a full-fledged memory graph for rich content, not just sticky notes.",
+    whereWeExcel: "Savedly acts as a full-fledged memory graph for rich content, not just sticky notes.",
     whereTheyExcel: "Google Keep is incredibly fast for opening and typing a 3-word reminder."
   },
   {
@@ -266,7 +266,7 @@ export const competitors: Competitor[] = [
       "You love creating strict types (e.g., 'Book', 'Meeting') and mapping data",
       "You enjoy the concept of an Object-Oriented Second Brain"
     ],
-    whereWeExcel: "Frictionless capture. SaveForLatter doesn't force you to declare what an object is. It just saves it and understands it.",
+    whereWeExcel: "Frictionless capture. Savedly doesn't force you to declare what an object is. It just saves it and understands it.",
     whereTheyExcel: "Capacities forces structure, which is brilliant if you want everything to fit a specific schema."
   },
   {
@@ -292,7 +292,7 @@ export const competitors: Competitor[] = [
       "You want to see what other people are highlighting on the same article",
       "You want a social feed of knowledge"
     ],
-    whereWeExcel: "SaveForLatter is a private, encrypted-at-rest second brain where you own your data.",
+    whereWeExcel: "Savedly is a private, encrypted-at-rest second brain where you own your data.",
     whereTheyExcel: "Glasp is essentially a social network for readers and highlight-sharers."
   },
   {
@@ -318,7 +318,7 @@ export const competitors: Competitor[] = [
       "You are exclusively deep in the iOS/Mac ecosystem",
       "You prefer to organize things manually into 'Spaces'"
     ],
-    whereWeExcel: "SaveForLatter is OS-agnostic, open-source, and heavily relies on AI to do the organizing for you.",
+    whereWeExcel: "Savedly is OS-agnostic, open-source, and heavily relies on AI to do the organizing for you.",
     whereTheyExcel: "ToMe is a beautifully designed, native Apple app that integrates flawlessly with the iOS share sheet."
   }
 ];

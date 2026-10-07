@@ -14,7 +14,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 // The link, title and numbers are the demo library's, not real data.
 const STAGES = [
   { name: "Saved", does: "You paste a link. That's the only step that's yours." },
-  { name: "Read", does: "The page is fetched and its text pulled out. Audio is transcribed, images are read, PDFs extracted." },
+  { name: "Read", does: "The page is fetched and its text pulled out. Images are read, PDFs extracted." },
   { name: "Understood", does: "It gets a real title, a short summary and tags, written by the AI you connected." },
   { name: "Filed", does: "It joins a related collection, or starts a new one if nothing fits." },
   { name: "Findable", does: "It's indexed by meaning, so the words you remember later still find it." },
@@ -113,7 +113,7 @@ export function PipelineSection() {
             You paste a link. The rest happens on its own.
           </h2>
           <p className="max-w-md text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
-            Paste a link, upload a file, send a screenshot, or drop in a voice note. SaveForLatter reads it, understands what matters, and makes it easy to find later.
+            Paste a link, upload a file, or send a screenshot. Savedly reads it, understands what matters, and makes it easy to find later.
           </p>
         </div>
 

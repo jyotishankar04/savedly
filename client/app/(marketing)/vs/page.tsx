@@ -5,8 +5,8 @@ import { competitors } from "@/lib/data/comparisons";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Compare SaveForLatter Alternatives",
-  description: "See how SaveForLatter compares to traditional bookmark managers, note-taking apps, and read-it-later tools.",
+  title: "Compare Savedly Alternatives",
+  description: "See how Savedly compares to traditional bookmark managers, note-taking apps, and read-it-later tools.",
   alternates: { canonical: "/vs" },
 };
 
@@ -19,7 +19,7 @@ export default function CompareHubPage() {
           <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
             Comparisons
           </span>
-          <h1 className="mt-6 text-4xl md:text-5xl font-medium tracking-tight">Compare SaveForLatter</h1>
+          <h1 className="mt-6 text-4xl md:text-5xl font-medium tracking-tight">Compare Savedly</h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
             See how our AI-powered second brain stacks up against the alternatives.
           </p>
@@ -33,7 +33,7 @@ export default function CompareHubPage() {
               className="group block p-6 border rounded-2xl bg-card hover:bg-muted/50 transition-colors shadow-sm"
             >
               <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
-                SaveForLatter vs {c.name}
+                Savedly vs {c.name}
               </h2>
               <p className="text-sm text-muted-foreground">
                 Comparing our AI second brain against their {c.type.toLowerCase()}.

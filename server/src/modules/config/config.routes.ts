@@ -5,9 +5,6 @@ import { ApiResponse } from "../../shared/response/api-response";
 import { isBillingEnabled } from "../billing";
 import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../feature-flags/feature-flags.service";
 
-// Mounted at /config by ../../routes/index.ts. Public, unauthenticated: lets
-// the client decide at runtime (not build time) whether it's talking to a
-// self-hosted install, so one client image works for both.
 const router = Router();
 
 router.get("/", async (_req: Request, res: Response) => {

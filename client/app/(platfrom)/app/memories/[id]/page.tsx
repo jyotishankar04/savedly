@@ -392,11 +392,11 @@ export default function MemoryDetailPage() {
           )}
         </div>
 
-        {/* Right: what SaveForLatter made of it */}
+        {/* Right: what Savedly made of it */}
         <aside className="rounded-2xl border border-border/60 bg-card p-5 space-y-5 lg:sticky lg:top-6">
           <div className="flex items-center gap-2">
             <LogoMark ticks={false} className="h-4 w-4" />
-            <h2 className="text-xs font-bold text-foreground">What SaveForLatter understood</h2>
+            <h2 className="text-xs font-bold text-foreground">What Savedly understood</h2>
           </div>
 
           <div className="space-y-1.5">

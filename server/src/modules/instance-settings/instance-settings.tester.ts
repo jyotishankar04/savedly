@@ -20,7 +20,7 @@ export async function testSection(id: SectionId, settings: ResolvedSection): Pro
     case "storage": {
       const driver = settings.driver === "s3" ? createS3Driver(settings as unknown as S3Settings) : localDriver;
       const key = `${randomUUID()}.txt`;
-      const body = Buffer.from("SaveForLatter connection test");
+      const body = Buffer.from("Savedly connection test");
       await driver.write(key, body, "text/plain");
       const read = await driver.read(key);
       await driver.delete(key);

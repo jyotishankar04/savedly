@@ -71,14 +71,14 @@ export class MemoryController {
   static async exportAll(req: Request, res: Response) {
     const items = await exportAllMemories(req.user!.id);
     res.setHeader("Content-Type", "application/json");
-    res.setHeader("Content-Disposition", `attachment; filename="saveforlatter-export-${Date.now()}.json"`);
+    res.setHeader("Content-Disposition", `attachment; filename="savedly-export-${Date.now()}.json"`);
     res.send(JSON.stringify(items, null, 2));
   }
 
   static async exportOkf(req: Request, res: Response) {
     const zip = await exportOkfBundle(req.user!.id);
     res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", `attachment; filename="saveforlatter-okf-${new Date().toISOString().slice(0, 10)}.zip"`);
+    res.setHeader("Content-Disposition", `attachment; filename="savedly-okf-${new Date().toISOString().slice(0, 10)}.zip"`);
     res.send(Buffer.from(zip));
   }
 }

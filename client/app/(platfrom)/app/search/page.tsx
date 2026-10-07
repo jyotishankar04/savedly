@@ -374,7 +374,7 @@ export default function SearchPage() {
                   href={`/app/ask?q=${encodeURIComponent(trimmedQuery)}`}
                   className="flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground"
                 >
-                  <LogoMark ticks={false} className="h-4 w-4 rounded-sm bg-white/90" /> Ask SaveForLatter
+                  <LogoMark ticks={false} className="h-4 w-4 rounded-sm bg-white/90" /> Ask Savedly
                 </Link>
               </div>
             </div>

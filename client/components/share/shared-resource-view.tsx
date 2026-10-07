@@ -30,8 +30,8 @@ export function SharedResourceView({ payload }: { payload: SharedResourcePayload
 
         <p className="pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {isSingleMemory
-            ? "Shared via SaveForLatter"
-            : `${memories.length} ${memories.length === 1 ? "memory" : "memories"} · shared via SaveForLatter`}
+            ? "Shared via Savedly"
+            : `${memories.length} ${memories.length === 1 ? "memory" : "memories"} · shared via Savedly`}
           {payload.ownerName && ` · by ${payload.ownerName}`}
         </p>
       </header>

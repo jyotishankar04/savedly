@@ -41,7 +41,7 @@ interface TokenPair {
   refreshToken: string;
 }
 
-const GITHUB_USER_AGENT = "saveforlatter-server";
+const GITHUB_USER_AGENT = "savedly-server";
 
 // Google only allows "localhost" (bare, no other IP/hostname) as an
 // unverified-domain exception for OAuth redirect URIs — an emulator-only
@@ -452,7 +452,7 @@ export async function registerWithPassword(input: {
   // Serialized on an advisory lock so two sign-ups racing on a fresh install
   // can't both see "no users yet" and both become admin.
   return db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('saveforlatter:first-user'))`);
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('savedly:first-user'))`);
 
     const [existing] = await tx.select().from(users).where(eq(users.email, email)).limit(1);
     if (existing) {

@@ -8,7 +8,7 @@ export interface Settings {
     summaries: boolean;
     relatedMemories: boolean;
     semanticSearch: boolean;
-    askSaveForLatter: boolean;
+    askSavedly: boolean;
   };
   capture: {
     extractContent: boolean;

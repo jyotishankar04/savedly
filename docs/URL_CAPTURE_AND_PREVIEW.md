@@ -4,7 +4,7 @@
 
 ## 1. Guarantee
 
-**If the user gives SaveForLatter a valid `http(s)://` URL, a memory for it is always saved** — regardless of whether the page can be fetched, parsed, or enriched by AI. Quality degrades gracefully (`ready` → `partial` → still-saved-but-minimal); a memory is never silently dropped, and a failed preview never means a failed save.
+**If the user gives Savedly a valid `http(s)://` URL, a memory for it is always saved** — regardless of whether the page can be fetched, parsed, or enriched by AI. Quality degrades gracefully (`ready` → `partial` → still-saved-but-minimal); a memory is never silently dropped, and a failed preview never means a failed save.
 
 ## 2. Architecture
 
@@ -106,7 +106,7 @@ New `memories.status` enum (`server/src/db/enums.ts`): `processing | ready | par
 
 The extension only ever submits what's already visible to the user's own browser session — it does **not** attempt to bypass auth, CAPTCHAs, or bot protection.
 
-- **Auth**: `server/src/shared/middlewares/authenticate.ts` already accepts `Authorization: Bearer <token>` as a first-class path (checked before the cookie fallback), so no backend change was needed. The extension's background service worker (`extension/src/background/service-worker.ts`) reads the httpOnly `saveforlatter_access_token` cookie via `chrome.cookies.get` (requires the `cookies` permission + a host permission for the API origin) and mirrors it into `chrome.storage.local`, which the popup and `extension/src/lib/api.ts` read to attach the Bearer header. A prior version tried to read this cookie from page-context `localStorage` in the content script — that can never work against an httpOnly cookie, and has been removed.
+- **Auth**: `server/src/shared/middlewares/authenticate.ts` already accepts `Authorization: Bearer <token>` as a first-class path (checked before the cookie fallback), so no backend change was needed. The extension's background service worker (`extension/src/background/service-worker.ts`) reads the httpOnly `savedly_access_token` cookie via `chrome.cookies.get` (requires the `cookies` permission + a host permission for the API origin) and mirrors it into `chrome.storage.local`, which the popup and `extension/src/lib/api.ts` read to attach the Bearer header. A prior version tried to read this cookie from page-context `localStorage` in the content script — that can never work against an httpOnly cookie, and has been removed.
 - **Popup flow** (`extension/src/popup/Popup.tsx`): on open, syncs auth, reads the active tab, asks the content script for already-scraped `og:description`/`og:image`/`keywords` (`GET_METADATA` message — unchanged, this part already worked), then makes a real `POST /api/v1/memories` with `type: "web"`, the tab's URL/title/favicon, and the scraped description/previewImageUrl/keywords — fixing the previously-documented bug where this metadata was scraped and then dropped on the floor.
 - Background service worker's context-menu / keyboard-shortcut save paths are **not** wired to the real API in this pass (see §13) — popup-only.
 
@@ -148,7 +148,7 @@ No new tables — `memories` was extended directly (`server/src/db/schema.ts`), 
 - No automated test suite exists yet in this repo (`server/CLAUDE.md` confirms this — a project-wide setup decision, not scoped to this feature). Verified via live throwaway `_debug_*.ts` scripts instead, per this repo's established pattern.
 - Chrome extension: only the popup's save flow is wired to the real API. The background service worker's context-menu ("save this page") and keyboard-shortcut flows are still simulated.
 - Duplicate detection is a non-blocking hint only — no confirm-before-save dialog.
-- No image caching/mirroring — `previewImageUrl` always points at the original external URL (or a client-rendered fallback tile), never a SaveForLatter-hosted copy. A future `externalImageUrl`/`cachedImageUrl` split would be needed for images that expire.
+- No image caching/mirroring — `previewImageUrl` always points at the original external URL (or a client-rendered fallback tile), never a Savedly-hosted copy. A future `externalImageUrl`/`cachedImageUrl` split would be needed for images that expire.
 - The ingestion graph stayed sequential (no parallel fan-out) — an intentional choice, since memory creation already happens synchronously before ingestion starts, so AI/embedding latency was never on the save's critical path to begin with.
 
 ## 14. Worked examples

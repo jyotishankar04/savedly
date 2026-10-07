@@ -13,8 +13,8 @@ const SHARED_FILE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif",
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/app",
-    name: "SaveForLatter",
-    short_name: "SaveForLatter",
+    name: "Savedly",
+    short_name: "Savedly",
     description: "Save links, notes, videos and screenshots, and find them again later.",
     start_url: "/app",
     scope: "/",

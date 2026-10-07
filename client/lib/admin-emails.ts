@@ -66,8 +66,15 @@ export interface CampaignMessagesResult {
   summary: { sent: number; failed: number; queued: number; sending: number };
 }
 
-export async function sendEmail(input: SendEmailInput): Promise<{ campaignId: string; recipientCount: number }> {
-  return apiFetch<{ campaignId: string; recipientCount: number }>("/admin/emails/send", { method: "POST", body: input });
+export interface SendEmailResult {
+  campaignId: string;
+  recipientCount: number;
+  /** People who were picked but have unsubscribed, so were left out. */
+  unsubscribedCount: number;
+}
+
+export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
+  return apiFetch<SendEmailResult>("/admin/emails/send", { method: "POST", body: input });
 }
 
 /** The exact HTML the server would send for this email. */

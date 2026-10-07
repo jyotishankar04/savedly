@@ -140,8 +140,8 @@ async function seedMemories() {
     },
     {
       type: MemoryType.NOTE,
-      title: "SaveForLatter duplicate saves idea",
-      description: "What if SaveForLatter could automatically detect duplicate saves and merge summaries together?",
+      title: "Savedly duplicate saves idea",
+      description: "What if Savedly could automatically detect duplicate saves and merge summaries together?",
       content: "Hash content + compare embeddings to catch near-duplicate saves before they clutter the list.",
       tags: ["AI"],
       collection: "ai",

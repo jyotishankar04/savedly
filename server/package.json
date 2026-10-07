@@ -37,6 +37,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
     "fflate": "^0.8.3",
+    "helmet": "^8.3.0",
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "langfuse-langchain": "^3.38.20",

@@ -5,8 +5,8 @@ import { ArrowRight01Icon as ArrowRight, Bug01Icon as Bug, Mail01Icon as Mail, S
 import { CATEGORIES, docsCategoryHref } from "@/lib/help-content";
 
 export const metadata: Metadata = {
-  title: "Help Center · SaveForLatter",
-  description: "Step-by-step guides for every SaveForLatter feature, plus a live model chooser for picking your AI models.",
+  title: "Help Center · Savedly",
+  description: "Step-by-step guides for every Savedly feature, plus a live model chooser for picking your AI models.",
 };
 
 export default function HelpHubPage() {

@@ -26,7 +26,7 @@ export default function MarketingPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            "name": "SaveForLatter",
+            "name": "Savedly",
             "applicationCategory": "Productivity",
             "operatingSystem": "Any",
             "offers": {

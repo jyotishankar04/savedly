@@ -7,6 +7,20 @@ const rateLimitHandler = (_req: unknown, res: import("express").Response) => {
     .json(ApiResponse.error("RATE_LIMITED", "Too many requests, try again later."));
 };
 
+// A ceiling on everything, per IP: stops one client flooding the API. Far
+// above what a person browsing can reach (a dashboard page makes a dozen or
+// so requests). The narrower limiters below still apply on top of it.
+// Counted in memory, so it is per API process.
+export const apiRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  // The uptime check and the payment provider's webhook must never be refused.
+  skip: (req) => req.path.startsWith("/health") || req.path === "/billing/webhook",
+});
+
 export const oauthRateLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 10,

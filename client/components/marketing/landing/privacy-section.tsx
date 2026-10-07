@@ -36,7 +36,7 @@ export default function PrivacySection() {
             Your memories are yours.
           </h2>
           <p className="mt-4 text-muted-foreground text-base">
-            SaveForLatter is built around your personal knowledge. You control what you save, what you share, and what you delete.
+            Savedly is built around your personal knowledge. You control what you save, what you share, and what you delete.
           </p>
         </div>
 

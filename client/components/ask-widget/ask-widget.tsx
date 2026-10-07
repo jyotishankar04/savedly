@@ -38,9 +38,9 @@ import {
 
 type WidgetMode = "popup" | "sidebar";
 
-const MODE_STORAGE_KEY = "saveforlatter:ask-widget-mode";
-const POPUP_SIZE_KEY = "saveforlatter:ask-widget-popup-size";
-const SIDEBAR_WIDTH_KEY = "saveforlatter:ask-widget-sidebar-width";
+const MODE_STORAGE_KEY = "savedly:ask-widget-mode";
+const POPUP_SIZE_KEY = "savedly:ask-widget-popup-size";
+const SIDEBAR_WIDTH_KEY = "savedly:ask-widget-sidebar-width";
 
 const DEFAULT_POPUP_SIZE = { width: 384, height: 544 };
 const MIN_POPUP_WIDTH = 320;
@@ -284,7 +284,7 @@ export function AskWidget() {
         <motion.button
           key="launcher"
           onClick={() => setIsOpen(true)}
-          aria-label="Ask SaveForLatter"
+          aria-label="Ask Savedly"
           initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.4, rotate: -20 }}
           animate={{ opacity: 1, scale: 1, rotate: 0, transition: { duration: reduceMotion ? 0.15 : 0.45, ease: EASE_OUT, delay: reduceMotion ? 0 : 0.18 } }}
           exit={reduceMotion ? { opacity: 0, transition: { duration: 0.1 } } : { opacity: 0, scale: 0.4, transition: { duration: 0.18, ease: EASE_IN } }}
@@ -298,7 +298,7 @@ export function AskWidget() {
     <motion.div
       key="panel"
       role="dialog"
-      aria-label="Ask SaveForLatter"
+      aria-label="Ask Savedly"
       initial={reduceMotion ? { opacity: 0 } : { "--reveal": 0, opacity: 1 }}
       animate={reduceMotion ? { opacity: 1, transition: { duration: 0.15 } } : { "--reveal": 1, opacity: 1, transition: { duration: mode === "popup" ? 0.6 : 0.45, ease: EASE_OUT } }}
       exit={
@@ -338,7 +338,7 @@ export function AskWidget() {
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/60 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <LogoMark ticks={false} className="h-7 w-7" />
-          <span className="text-sm font-semibold text-foreground truncate">Ask SaveForLatter</span>
+          <span className="text-sm font-semibold text-foreground truncate">Ask Savedly</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="icon-sm" title="New chat" onClick={handleNewChat}>

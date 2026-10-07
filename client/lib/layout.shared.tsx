@@ -5,7 +5,7 @@ import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: "SaveForLatter Help",
+      title: "Savedly Help",
       url: "/help",
     },
     links: [{ text: "← Back to Help Center", url: "/help", active: "none" }],

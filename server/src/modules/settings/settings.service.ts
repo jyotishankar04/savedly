@@ -12,7 +12,7 @@ export interface SettingsResponse {
     summaries: boolean;
     relatedMemories: boolean;
     semanticSearch: boolean;
-    askSaveForLatter: boolean;
+    askSavedly: boolean;
   };
   capture: {
     extractContent: boolean;
@@ -38,9 +38,9 @@ export interface SettingsResponse {
 
 const DEFAULTS: Omit<SettingsResponse, "connectedAccounts"> = {
   timezone: null,
-  ai: { autoOrganization: true, summaries: true, relatedMemories: true, semanticSearch: true, askSaveForLatter: true },
+  ai: { autoOrganization: true, summaries: true, relatedMemories: true, semanticSearch: true, askSavedly: true },
   capture: { extractContent: true, generateTitle: true, generateSummary: true, suggestTags: true, defaultCollectionId: null },
-  notifications: { weeklySummary: true, forgottenMemories: true, productUpdates: false },
+  notifications: { weeklySummary: true, forgottenMemories: true, productUpdates: true },
   appearance: { theme: SettingsTheme.SYSTEM, accentColor: AccentColor.BLUE },
 };
 
@@ -71,7 +71,7 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
       summaries: row.aiSummaries,
       relatedMemories: row.aiRelatedMemories,
       semanticSearch: row.aiSemanticSearch,
-      askSaveForLatter: row.aiAskSaveForLatter,
+      askSavedly: row.aiAskSavedly,
     },
     capture: {
       extractContent: row.captureExtractContent,
@@ -83,7 +83,8 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
     notifications: {
       weeklySummary: row.notifyWeeklySummary,
       forgottenMemories: row.notifyForgottenMemories,
-      productUpdates: row.notifyProductUpdates,
+      // On unless they unsubscribed from announcement emails.
+      productUpdates: row.emailUnsubscribedAt === null,
     },
     appearance: {
       theme: row.theme,
@@ -94,7 +95,7 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
 }
 
 export async function updateSettings(userId: string, patch: UpdateSettingsInput): Promise<SettingsResponse> {
-  const columns: Record<string, boolean | string | SettingsTheme | AccentColor | Date> = { updatedAt: new Date() };
+  const columns: Record<string, boolean | string | SettingsTheme | AccentColor | Date | null> = { updatedAt: new Date() };
 
   if (patch.timezone !== undefined) columns.timezone = patch.timezone;
 
@@ -102,7 +103,7 @@ export async function updateSettings(userId: string, patch: UpdateSettingsInput)
   if (patch.ai?.summaries !== undefined) columns.aiSummaries = patch.ai.summaries;
   if (patch.ai?.relatedMemories !== undefined) columns.aiRelatedMemories = patch.ai.relatedMemories;
   if (patch.ai?.semanticSearch !== undefined) columns.aiSemanticSearch = patch.ai.semanticSearch;
-  if (patch.ai?.askSaveForLatter !== undefined) columns.aiAskSaveForLatter = patch.ai.askSaveForLatter;
+  if (patch.ai?.askSavedly !== undefined) columns.aiAskSavedly = patch.ai.askSavedly;
 
   if (patch.capture?.extractContent !== undefined) columns.captureExtractContent = patch.capture.extractContent;
   if (patch.capture?.generateTitle !== undefined) columns.captureGenerateTitle = patch.capture.generateTitle;
@@ -111,7 +112,7 @@ export async function updateSettings(userId: string, patch: UpdateSettingsInput)
 
   if (patch.notifications?.weeklySummary !== undefined) columns.notifyWeeklySummary = patch.notifications.weeklySummary;
   if (patch.notifications?.forgottenMemories !== undefined) columns.notifyForgottenMemories = patch.notifications.forgottenMemories;
-  if (patch.notifications?.productUpdates !== undefined) columns.notifyProductUpdates = patch.notifications.productUpdates;
+  if (patch.notifications?.productUpdates !== undefined) columns.emailUnsubscribedAt = patch.notifications.productUpdates ? null : new Date();
 
   if (patch.appearance?.theme !== undefined) columns.theme = patch.appearance.theme as SettingsTheme;
   if (patch.appearance?.accentColor !== undefined) columns.accentColor = patch.appearance.accentColor as AccentColor;

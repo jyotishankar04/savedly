@@ -47,9 +47,9 @@ export function buildIcsContent(event: CalendarEventInput): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//SaveForLatter//Add to Calendar//EN",
+    "PRODID:-//Savedly//Add to Calendar//EN",
     "BEGIN:VEVENT",
-    `UID:${crypto.randomUUID()}@saveforlatter`,
+    `UID:${crypto.randomUUID()}@savedly`,
     `DTSTAMP:${toUtcStamp(new Date().toISOString())}`,
     `DTSTART:${toUtcStamp(event.start)}`,
     `DTEND:${toUtcStamp(end)}`,

@@ -40,7 +40,7 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 }
 
 /**
- * Axios instance for the SaveForLatter API. `withCredentials` rides the httpOnly
+ * Axios instance for the Savedly API. `withCredentials` rides the httpOnly
  * auth cookies along with every request — the backend owns the
  * access/refresh tokens entirely, this client never reads or stores them.
  */
@@ -107,7 +107,7 @@ export interface ApiRequestOptions {
 }
 
 /**
- * Calls the SaveForLatter API and unwraps the {success,data,meta,error} envelope.
+ * Calls the Savedly API and unwraps the {success,data,meta,error} envelope.
  */
 export async function apiFetchRaw<T>(
   path: string,

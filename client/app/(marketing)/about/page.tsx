@@ -9,7 +9,7 @@ import { Brain01Icon as Brain, SparklesIcon as Sparkles, Shield01Icon as Shield 
 const values = [
   { title: "User Ownership", desc: "Your data belongs to you. You can export or delete your entire memory graph at any point.", icon: Shield },
   { title: "Local-First Focus", desc: "We prioritize local-first computing and secure sandboxes so your records remain private.", icon: Brain },
-  { title: "Minimal Interactions", desc: "We believe in folderless design. SaveForLatter operates in the background, working when you search.", icon: Sparkles },
+  { title: "Minimal Interactions", desc: "We believe in folderless design. Savedly operates in the background, working when you search.", icon: Sparkles },
 ];
 
 export default function AboutPage() {
@@ -28,7 +28,7 @@ export default function AboutPage() {
             Save it. Find it. <br className="hidden sm:block" /> Never lose a good idea.
           </h1>
           <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            SaveForLatter is built by digital explorers who believe the bookmarks bar is broken. We are designing a seamless second brain.
+            Savedly is built by digital explorers who believe the bookmarks bar is broken. We are designing a seamless second brain.
           </p>
         </div>
 
@@ -41,7 +41,7 @@ export default function AboutPage() {
             Traditional bookmark managers force us to build manual hierarchies of folders and tag collections. It&apos;s a chore, so we stop doing it. In the end, we lose the very ideas we set out to save.
           </p>
           <p>
-            We built SaveForLatter to change this. By using semantic vector embeddings and LLM reasoning, SaveForLatter reads the content of what you save—automatically grouping, indexing, and preparing it for retrieval in natural language queries.
+            We built Savedly to change this. By using semantic vector embeddings and LLM reasoning, Savedly reads the content of what you save—automatically grouping, indexing, and preparing it for retrieval in natural language queries.
           </p>
         </div>
 

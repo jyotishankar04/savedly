@@ -1,6 +1,6 @@
 {
   "title": "Self-hosting",
-  "description": "Run your own SaveForLatter on your own server.",
+  "description": "Run your own Savedly on your own server.",
   "pages": [
     "self-host",
     "ai-setup"

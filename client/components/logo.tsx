@@ -2,7 +2,7 @@ import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * The SaveForLatter mark: a tilted blue note with a happy face and a curled
+ * The Savedly mark: a tilted blue note with a happy face and a curled
  * corner, with two motion ticks. The same drawing lives in public/logo.svg
  * and (without the ticks, cropped tighter) in app/icon.svg for the favicon;
  * change all three together.
@@ -39,26 +39,24 @@ export function LogoMark({ className, ticks = true }: { className?: string; tick
 }
 
 /**
- * Mark + wordmark. "for" is de-emphasized (smaller, lighter weight, accent
- * color) so it reads as a connector between the two verbs that actually name
- * the product, "save" and "latter". The mark scales with the text size.
+ * Mark + wordmark. The "ly" takes the accent colour and a lighter weight, so
+ * "saved" reads first. The mark scales with the text size.
  */
 export function Logo({
   className,
-  forClassName = "text-primary",
+  accentClassName = "text-primary",
   mark = true,
 }: {
   className?: string;
-  forClassName?: string;
+  accentClassName?: string;
   mark?: boolean;
 }) {
   return (
     <span className={cn("inline-flex items-center gap-[0.4em] font-semibold tracking-[-0.03em] select-none whitespace-nowrap", className)}>
       {mark && <LogoMark className="h-[1.7em] w-[1.7em] -my-[0.35em]" />}
       <span>
-        save
-        <span className={cn("font-normal text-[0.78em] align-baseline mx-[0.02em]", forClassName)}>for</span>
-        latter
+        saved
+        <span className={cn("font-medium", accentClassName)}>ly</span>
       </span>
     </span>
   );

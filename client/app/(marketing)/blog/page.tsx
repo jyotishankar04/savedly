@@ -26,7 +26,7 @@ export default function BlogPage() {
         {/* Content text */}
         <div className="space-y-4 max-w-md mx-auto">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
-            The SaveForLatter Blog
+            The Savedly Blog
           </span>
           <h1 className="text-4xl md:text-5xl font-medium tracking-tight text-foreground leading-[1.15] pt-2">
             Adding soon.

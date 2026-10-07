@@ -347,7 +347,7 @@ export const SECTIONS: SectionDef[] = [
       },
       { name: "fromName", label: "From name", kind: "text", showWhen: { field: "enabled", equals: [true] }, fromEnv: () => env("SMTP_FROM_NAME") },
     ],
-    defaults: { enabled: false, port: 587, secure: false, fromName: "SaveForLatter", fromAddress: "noreply@saveforlatter.local" },
+    defaults: { enabled: false, port: 587, secure: false, fromName: "Savedly", fromAddress: "noreply@savedly.local" },
     hostedDefaults: { enabled: true, host: "localhost", port: 1025 },
     schema: z
       .object({

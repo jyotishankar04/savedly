@@ -1,10 +1,10 @@
-# Contributing to SaveForLatter
+# Contributing to Savedly
 
 Thanks for considering a contribution — bug fixes, new features, documentation, or just fixing something that bugs you are all welcome.
 
 By participating, you're expected to follow the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
-SaveForLatter is licensed under [AGPL-3.0](./LICENSE). By submitting a contribution, you agree that it's licensed under the same terms.
+Savedly is licensed under [AGPL-3.0](./LICENSE). By submitting a contribution, you agree that it's licensed under the same terms.
 
 ## Ways to contribute
 
@@ -54,4 +54,4 @@ There's no linter configured on the server yet, and `client/`'s ESLint config is
 
 ## Questions
 
-Not sure where to start, or want to talk through an idea before building it? Open an issue and ask — that's what they're for.
+Not sure where to start, or want to talk through an idea before building it? Ask in the [Discord server](https://discord.gg/PzGFcMNyRK) (`#contributing`), or open an issue.

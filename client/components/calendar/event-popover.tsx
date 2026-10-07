@@ -121,7 +121,7 @@ export function EventPopover({
                 <div className="mt-1 flex gap-3">
                   <span
                     aria-hidden
-                    className={cn("mt-1.5 size-3 shrink-0 rounded-[4px]", event.source === "saveforlatter" ? "bg-primary" : "bg-foreground/70")}
+                    className={cn("mt-1.5 size-3 shrink-0 rounded-[4px]", event.source === "savedly" ? "bg-primary" : "bg-foreground/70")}
                   />
                   <div className="min-w-0 flex-1">
                     <PopoverPrimitive.Title className="text-[17px] leading-snug font-semibold tracking-[-0.01em] text-balance break-words text-foreground">
@@ -132,8 +132,8 @@ export function EventPopover({
                       {formatEventWhen(event)}
                     </p>
                     <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                      <HugeiconsIcon icon={event.source === "saveforlatter" ? Note : CalendarIcon} strokeWidth={2} className="size-3.5 shrink-0" />
-                      {event.source === "saveforlatter" ? "Saved as a note" : event.memoryId ? `${SOURCE_LABEL[event.source]} · from a note` : SOURCE_LABEL[event.source]}
+                      <HugeiconsIcon icon={event.source === "savedly" ? Note : CalendarIcon} strokeWidth={2} className="size-3.5 shrink-0" />
+                      {event.source === "savedly" ? "Saved as a note" : event.memoryId ? `${SOURCE_LABEL[event.source]} · from a note` : SOURCE_LABEL[event.source]}
                     </p>
                   </div>
                 </div>
@@ -149,7 +149,7 @@ export function EventPopover({
                     <p className="text-[13px] font-medium text-foreground">
                       Delete this event from {target?.kind === "external" ? providerName(target.provider) : "your calendar"}?
                     </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">It isn&apos;t saved anywhere else in SaveForLatter.</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">It isn&apos;t saved anywhere else in Savedly.</p>
                     <div className="mt-3 flex justify-end gap-2">
                       <Button variant="ghost" size="sm" className="h-8 rounded-full px-3" onClick={() => setConfirmingFor(null)}>
                         Keep it
@@ -173,7 +173,7 @@ export function EventPopover({
                           <HugeiconsIcon icon={Note} strokeWidth={2} className="size-3.5" /> Open note
                         </Button>
                       )}
-                      {event.htmlLink && event.source !== "saveforlatter" && (
+                      {event.htmlLink && event.source !== "savedly" && (
                         <Button
                           render={<a href={event.htmlLink} target="_blank" rel="noreferrer" />}
                           nativeButton={false}

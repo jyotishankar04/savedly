@@ -31,9 +31,9 @@ const PARAGRAPHS: React.ReactNode[] = [
       yourself.
     </span>
   </>,
-  <>SaveForLatter takes care of that part.</>,
+  <>Savedly takes care of that part.</>,
   <>
-    Save something once and SaveForLatter understands what&apos;s inside. Later, find
+    Save something once and Savedly understands what&apos;s inside. Later, find
     it the way you remember it—or just ask.{" "}
     <span className="text-muted-foreground">
       And when it answers, it shows you exactly which saved item it came from.

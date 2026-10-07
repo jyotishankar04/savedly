@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
  * light/dark toggle. Recapture both themes whenever the screen changes.
  */
 export const SCREENS = {
-  home: { path: "/app", alt: "SaveForLatter Home: a greeting, a search box, quick-save actions, and recently saved items with link previews" },
+  home: { path: "/app", alt: "Savedly Home: a greeting, a search box, quick-save actions, and recently saved items with link previews" },
   ask: { path: "/app/ask", alt: "Ask: a question about vector search answered in plain English, with the two saved articles it used listed as sources" },
   search: { path: "/app/search", alt: "Search results for “vector search tuning”, ranked by meaning, with matching words highlighted" },
   memories: { path: "/app/memories", alt: "Memories: saved links, videos and screenshots grouped by day" },
