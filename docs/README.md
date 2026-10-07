@@ -1,6 +1,6 @@
 # Documentation
 
-This is the contributor documentation for SaveForLatter — everything past "how do I install it," which the [repo README](../README.md) already covers.
+This is the contributor documentation for Savedly — everything past "how do I install it," which the [repo README](../README.md) already covers.
 
 Read these three in order the first time; after that, come back to whichever page answers your question.
 

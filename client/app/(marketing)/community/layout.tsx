@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Community — SaveForLatter",
-  description: "Join the SaveForLatter community of digital explorers and developers.",
+  title: "Community — Savedly",
+  description: "Join the Savedly community of digital explorers and developers.",
   alternates: { canonical: "/community" },
 };
 

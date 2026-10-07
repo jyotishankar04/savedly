@@ -6,7 +6,7 @@ import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import type { MemoryType } from "@/types/memory";
 import { Marquee } from "./marquee";
 
-// Concrete things people actually save, each mapped back to one of the six
+// Concrete things people actually save, each mapped back to one of the five
 // real ingestion pipelines (route-media-type.ts) via its icon — not a fixed
 // count of "formats" to enumerate, which is the honest version of "multiple
 // formats": the pipeline count is fixed, the things it accepts aren't.
@@ -18,7 +18,6 @@ interface Example {
 const ROW_A: Example[] = [
   { label: "Article", type: "web" },
   { label: "YouTube video", type: "video" },
-  { label: "Voice memo", type: "voice" },
   { label: "PDF", type: "document" },
   { label: "Screenshot", type: "image" },
   { label: "Markdown note", type: "note" },
@@ -26,7 +25,7 @@ const ROW_A: Example[] = [
 ];
 
 const ROW_B: Example[] = [
-  { label: "Podcast episode", type: "voice" },
+  { label: "Podcast episode", type: "web" },
   { label: "Recipe", type: "web" },
   { label: "Slide deck", type: "document" },
   { label: "Conference talk", type: "video" },
@@ -35,7 +34,7 @@ const ROW_B: Example[] = [
   { label: "Research paper", type: "document" },
 ];
 
-// The six pipelines those examples actually resolve to — shown once, below
+// The five pipelines those examples actually resolve to — shown once, below
 // the marquee, so the open-ended list above stays grounded in something real
 // rather than implying infinite distinct formats.
 const PIPELINES: { type: MemoryType; label: string }[] = [
@@ -44,7 +43,6 @@ const PIPELINES: { type: MemoryType; label: string }[] = [
   { type: "note", label: "Notes" },
   { type: "image", label: "Images" },
   { type: "document", label: "Documents" },
-  { type: "voice", label: "Voice" },
 ];
 
 function Chip({ example }: { example: Example }) {
@@ -66,7 +64,7 @@ const fadeUpVariants: Variants = {
 
 /**
  * Two marquee rows of concrete saved-item examples, scrolling opposite
- * directions, closing on a static legend of the six real ingestion
+ * directions, closing on a static legend of the five real ingestion
  * pipelines those examples resolve to. The marquee's open-endedness is the
  * point: it never claims a fixed number of "formats," only that whatever
  * you throw at it has already been seen.

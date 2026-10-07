@@ -35,7 +35,7 @@ export default function FeaturesPage() {
             Everything you save, <br className="hidden sm:block" /> fully searchable.
           </h1>
           <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            SaveForLatter is built for researchers, creators, and developers. A personal library that grows smarter over time.
+            Savedly is built for researchers, creators, and developers. A personal library that grows smarter over time.
           </p>
         </div>
 

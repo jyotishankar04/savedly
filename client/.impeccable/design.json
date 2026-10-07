@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-09-27T09:33:53.486Z",
-  "title": "Design System: SaveForLatter",
+  "title": "Design System: Savedly",
   "extensions": {
     "colorMeta": {
       "primary": {
@@ -472,7 +472,7 @@
   ],
   "narrative": {
     "northStar": "The Working Window",
-    "overview": "SaveForLatter's marketing surface doesn't describe the product. It shows the product running. The first viewport already holds a real app window, and the sections below it use small coded pieces of the real screens (an Ask answer with its sources, a search result with its match badges, a vault that really locks when you switch tabs, a hand-laid library graph). The page is flat and quiet. It's built from a white or near-black background, hairline rings, large soft-cornered panels and one blue. Headlines are Geist set tight and heavy, and they carry the hierarchy without eyebrows or kickers. Copy is short and declarative, and every claim has something next to it you can look at.\n\nThe density is low, and the pacing is editorial. Each section is one idea: a heading-and-lede pair on a two-column split, then one demo on one tinted panel. Sections change their composition as the page goes: a pipeline strip, a side-by-side pair, a wide graph band, a two-up, a spec list. They don't repeat alternating rows or fall back to a card grid. Blue is rationed. It marks the primary action, the \"your library\" hub, selected states, meaning-links in the graph, and one fully blue closing block.\n\nThe page follows the site's light/dark toggle, and every token has a dark counterpart. The logged-in app (`app/(platfrom)/...`) uses the same tokens from `app/globals.css`. The composition rules below were built and verified on the marketing surface only. Treat them as this world's rules and don't assume the app already follows them.",
+    "overview": "Savedly's marketing surface doesn't describe the product. It shows the product running. The first viewport already holds a real app window, and the sections below it use small coded pieces of the real screens (an Ask answer with its sources, a search result with its match badges, a vault that really locks when you switch tabs, a hand-laid library graph). The page is flat and quiet. It's built from a white or near-black background, hairline rings, large soft-cornered panels and one blue. Headlines are Geist set tight and heavy, and they carry the hierarchy without eyebrows or kickers. Copy is short and declarative, and every claim has something next to it you can look at.\n\nThe density is low, and the pacing is editorial. Each section is one idea: a heading-and-lede pair on a two-column split, then one demo on one tinted panel. Sections change their composition as the page goes: a pipeline strip, a side-by-side pair, a wide graph band, a two-up, a spec list. They don't repeat alternating rows or fall back to a card grid. Blue is rationed. It marks the primary action, the \"your library\" hub, selected states, meaning-links in the graph, and one fully blue closing block.\n\nThe page follows the site's light/dark toggle, and every token has a dark counterpart. The logged-in app (`app/(platfrom)/...`) uses the same tokens from `app/globals.css`. The composition rules below were built and verified on the marketing surface only. Treat them as this world's rules and don't assume the app already follows them.",
     "keyCharacteristics": [
       "The real product in window chrome, never abstract hero art.",
       "Neutrals plus one brand blue, and no second accent.",

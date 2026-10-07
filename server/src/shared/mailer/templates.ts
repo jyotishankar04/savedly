@@ -1,4 +1,5 @@
 import { env } from "../../config/env";
+import { UNSUBSCRIBE_URL_PLACEHOLDER } from "./unsubscribe";
 import { UserStatus } from "../../db/enums";
 
 // -----------------------------------------------------------------------------
@@ -166,11 +167,19 @@ function dateTile(date: Date): string {
 
 /** Why this person got the email. Everyone with an account gets the first;
  * a share invitation can reach someone who has never heard of the product. */
-type FooterReason = { kind: "account" } | { kind: "shared"; by: string } | { kind: "custom"; text: string };
+type FooterReason =
+  | { kind: "account" }
+  | { kind: "shared"; by: string }
+  | { kind: "custom"; text: string }
+  /** Sent to many people at once: says so, and carries the way out. */
+  | { kind: "announcement" };
 
 function footerText(reason: FooterReason): string {
   const product = escapeHtml(env.SMTP_FROM_NAME);
   if (reason.kind === "account") return `You're receiving this because you have a ${product} account.`;
+  if (reason.kind === "announcement") {
+    return `You're receiving this because you have a ${product} account and get its announcements. <a href="${UNSUBSCRIBE_URL_PLACEHOLDER}" style="color:${COLOR.muted};text-decoration:underline;">Unsubscribe</a>`;
+  }
   if (reason.kind === "shared") return `You're receiving this because ${escapeHtml(reason.by)} shared something with you on ${product}. You don't need to do anything if this wasn't meant for you.`;
   return escapeHtml(reason.text);
 }
@@ -518,9 +527,15 @@ export function composedEmailTemplate({ subject, content }: { subject: string; c
       `${eyebrow(content.label?.trim() || `From the ${env.SMTP_FROM_NAME} team`, content.tone ?? "primary")}
       ${heading(escapeHtml(content.headline?.trim() || subject))}
       ${content.blocks.map((block, i) => renderBlock(block, i === 0)).join("")}`,
-      { preheader: text.replace(/\s+/g, " ").trim().slice(0, 120) },
+      // Everything the composer sends is bulk mail, so it always carries the unsubscribe link.
+      { preheader: text.replace(/\s+/g, " ").trim().slice(0, 120), footer: { kind: "announcement" } },
     ),
   };
+}
+
+/** Puts one recipient's own unsubscribe link into an email rendered by composedEmailTemplate. */
+export function withUnsubscribeUrl(html: string, url: string): string {
+  return html.split(UNSUBSCRIBE_URL_PLACEHOLDER).join(url);
 }
 
 /** A plain-text email an admin writes (the announcement "notify by email" option): their subject as the headline. */

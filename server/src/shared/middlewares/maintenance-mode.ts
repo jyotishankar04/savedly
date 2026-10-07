@@ -9,7 +9,7 @@ import { verifyAccessToken } from "../utils/jwt";
 // /billing/webhook must stay reachable too — Stripe's retries don't know or
 // care that maintenance mode is on, and blocking them just delays a plan
 // assignment that already succeeded on Stripe's side.
-const BYPASS_PATH_PREFIXES = ["/health", "/config", "/admin", "/auth", "/announcements", "/whats-new", "/maintenance", "/billing/webhook"];
+const BYPASS_PATH_PREFIXES = ["/health", "/config", "/admin", "/auth", "/announcements", "/whats-new", "/maintenance", "/billing/webhook", "/email"];
 
 function extractToken(req: Request): string | null {
   const header = req.headers.authorization;

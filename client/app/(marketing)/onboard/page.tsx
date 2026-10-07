@@ -178,7 +178,7 @@ function OnboardingFlow() {
           <div className="w-full space-y-12 text-center animate-fade-in my-auto">
             <div className="space-y-4">
               <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
-                Welcome to SaveForLatter
+                Welcome to Savedly
               </span>
               <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-foreground pt-2">
                 What&apos;s your name?
@@ -214,10 +214,10 @@ function OnboardingFlow() {
           <div className="w-full space-y-8 animate-fade-in">
             <div className="text-center space-y-3">
               <h2 className="text-3xl font-medium tracking-tight text-foreground">
-                What will you use SaveForLatter for?
+                What will you use Savedly for?
               </h2>
               <p className="text-sm text-muted-foreground">
-                Choose what you want SaveForLatter to help you remember.
+                Choose what you want Savedly to help you remember.
               </p>
             </div>
 
@@ -349,10 +349,10 @@ function OnboardingFlow() {
           <div className="w-full space-y-8 animate-fade-in">
             <div className="text-center space-y-3">
               <h2 className="text-3xl font-medium tracking-tight text-foreground">
-                How should SaveForLatter organize your memories?
+                How should Savedly organize your memories?
               </h2>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                SaveForLatter can understand what you save and organize it without folders or manual tags.
+                Savedly can understand what you save and organize it without folders or manual tags.
               </p>
             </div>
 
@@ -386,7 +386,7 @@ function OnboardingFlow() {
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1.5 leading-relaxed">
-                        Let SaveForLatter understand and organize everything for you. No tags or folders to maintain.
+                        Let Savedly understand and organize everything for you. No tags or folders to maintain.
                         {selfHosted ? " Needs an AI key, which you can connect after setup." : ""}
                       </p>
                     </div>
@@ -539,7 +539,7 @@ function OnboardingFlow() {
                 disabled={completeOnboardingMutation.isPending}
                 className="w-full h-12 rounded-full font-medium shadow-md"
               >
-                {completeOnboardingMutation.isPending ? "Saving..." : "Add to SaveForLatter"}
+                {completeOnboardingMutation.isPending ? "Saving..." : "Add to Savedly"}
               </Button>
             </form>
           </div>
@@ -572,7 +572,7 @@ function OnboardingFlow() {
               onClick={() => router.push(nextDestination)}
               className="w-full max-w-xs h-11 rounded-full font-medium flex items-center justify-center gap-1.5 shadow-md"
             >
-              Enter SaveForLatter <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
+              Enter Savedly <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
             </Button>
 
 {selfHosted && (

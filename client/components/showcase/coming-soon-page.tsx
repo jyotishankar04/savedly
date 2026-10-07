@@ -23,7 +23,7 @@ export function ComingSoonPage() {
           We&apos;re <SquigglyText scale={[3, 6]} stepDuration={90} className="text-primary">building</SquigglyText> this
         </h1>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          This part of SaveForLatter isn&apos;t live in this preview yet. Take a look around the rest of the site in the meantime.
+          This part of Savedly isn&apos;t live in this preview yet. Take a look around the rest of the site in the meantime.
         </p>
       </div>
 

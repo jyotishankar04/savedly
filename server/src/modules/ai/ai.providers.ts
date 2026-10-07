@@ -244,7 +244,7 @@ function buildEmbeddings(credential: ProviderCredentialInput): EmbeddingsInterfa
 // Fast tier: extraction/tagging/classification — every ingestion node's
 // small, normal-question-shaped calls (fill in this field, classify this
 // into one of N buckets, write a 2-3 sentence summary).
-// Reasoning tier: the Ask SaveForLatter agent and anything needing real
+// Reasoning tier: the Ask Savedly agent and anything needing real
 // judgment. Both are just the user's own chosen model for that role now —
 // see docs/AI_REQUIREMENTS.md for the original two-tier design this mirrors.
 // `purpose` says what the call is for, which is what lets it fall back to
@@ -362,8 +362,8 @@ export async function testRoleCredential(input: ProviderCredentialInput, role: A
 
 /** Admin -> Infrastructure's "Test connection" for the embeddings key: one real embedding call. */
 export async function testEmbeddingsCredential(credential: ProviderCredentialInput): Promise<void> {
-  const vector = await buildEmbeddings(credential).embedQuery("SaveForLatter connection test");
+  const vector = await buildEmbeddings(credential).embedQuery("Savedly connection test");
   if (vector.length !== EMBEDDING_DIMENSIONS) {
-    throw new Error(`This model returns ${vector.length}-dimensional vectors; SaveForLatter needs ${EMBEDDING_DIMENSIONS}.`);
+    throw new Error(`This model returns ${vector.length}-dimensional vectors; Savedly needs ${EMBEDDING_DIMENSIONS}.`);
   }
 }

@@ -1,4 +1,4 @@
-// SaveForLatter's service worker. It does one job: receive what another app
+// Savedly's service worker. It does one job: receive what another app
 // shares to the installed app (the manifest's share_target), which arrives as
 // a form POST that only a service worker can read on a static site.
 //

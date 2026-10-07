@@ -11,7 +11,7 @@ import { getSection } from "../../instance-settings/instance-settings.service";
 // tagging or other AI steps, so it doesn't spend anyone's AI allowance. It
 // embeds what ingestion already stored (title, summary, intent, tags, the
 // user's text and extracted details) — the original page text isn't kept,
-// so a link is found by what SaveForLatter understood about it.
+// so a link is found by what Savedly understood about it.
 
 // Same splitter settings as nodes/semantic-chunker.ts.
 const splitter = new RecursiveCharacterTextSplitter({

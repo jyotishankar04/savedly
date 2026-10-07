@@ -15,7 +15,7 @@ function getToken(): Promise<string | null> {
 }
 
 /**
- * Calls the SaveForLatter API with the token the background worker mirrored from
+ * Calls the Savedly API with the token the background worker mirrored from
  * the httpOnly auth cookie (see background/service-worker.ts), and unwraps
  * the {success,data,meta,error} envelope — same contract client/lib/auth.ts
  * uses.
@@ -23,7 +23,7 @@ function getToken(): Promise<string | null> {
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();
   if (!token) {
-    throw new ApiError("Not signed in to SaveForLatter", 401, "UNAUTHORIZED");
+    throw new ApiError("Not signed in to Savedly", 401, "UNAUTHORIZED");
   }
 
   let response: Response;
@@ -37,7 +37,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
       },
     });
   } catch {
-    throw new ApiError("Couldn't reach the SaveForLatter server.", 0);
+    throw new ApiError("Couldn't reach the Savedly server.", 0);
   }
 
   if (response.status === 204) {

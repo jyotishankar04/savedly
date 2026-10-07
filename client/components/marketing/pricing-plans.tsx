@@ -44,7 +44,7 @@ const FACTS = [
 
 const FAQ = [
   {
-    q: "Is SaveForLatter free?",
+    q: "Is Savedly free?",
     a: "Yes. The hosted Free plan has the essentials and some AI we supply each month, with no card required. Self-hosting is free too, with every feature and no limits. Lite and Pro add more room, more AI and more features.",
   },
   {
@@ -53,11 +53,11 @@ const FAQ = [
   },
   {
     q: "What is included AI?",
-    a: "SaveForLatter reads, summarizes, tags and files what you save, and answers your questions. That needs an AI model. With included AI we run it on our own account, up to your plan's monthly allowance, so you don't need an AI key of your own. AI processing counts each item you save once, however many steps it takes, reading images included. Ask questions have their own allowance.",
+    a: "Savedly reads, summarizes, tags and files what you save, and answers your questions. That needs an AI model. With included AI we run it on our own account, up to your plan's monthly allowance, so you don't need an AI key of your own. AI processing counts each item you save once, however many steps it takes, reading images included. Ask questions have their own allowance.",
   },
   {
     q: "Do I need my own AI key?",
-    a: "No. On every hosted plan we supply the AI, so there's nothing to set up. If you'd rather use your own key from OpenAI, Anthropic, Google Gemini, Groq, OpenRouter or any OpenAI-compatible service, self-host SaveForLatter: it's free, and your own key is never limited.",
+    a: "No. On every hosted plan we supply the AI, so there's nothing to set up. If you'd rather use your own key from OpenAI, Anthropic, Google Gemini, Groq, OpenRouter or any OpenAI-compatible service, self-host Savedly: it's free, and your own key is never limited.",
   },
   {
     q: "What happens when I reach a limit?",
@@ -68,7 +68,7 @@ const FAQ = [
     a: "Payments go through Dodo Payments, our merchant of record, which also handles sales tax, VAT or GST. You can pay by card, or with UPI in India. Cancel any time from Settings; you keep the paid plan until the end of the period you paid for.",
   },
   {
-    q: "What license is SaveForLatter under?",
+    q: "What license is Savedly under?",
     a: "The code is open source under AGPL-3.0. You can use, change and self-host it freely. If you run a modified version as a public service, you share your changes under the same license.",
   },
 ];
@@ -198,7 +198,7 @@ export function PricingPlans() {
             onClick={showSelfHosted}
             className="inline-flex h-11 items-center rounded-lg px-6 text-[15px] font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-muted"
           >
-            Self-host SaveForLatter
+            Self-host Savedly
           </button>
         </div>
 
@@ -228,7 +228,7 @@ export function PricingPlans() {
             <div className="inline-flex w-fit rounded-xl bg-muted p-1 text-sm font-medium" role="tablist" aria-label="How to run it">
               {(
                 [
-                  ["cloud", "SaveForLatter Cloud"],
+                  ["cloud", "Savedly Cloud"],
                   ["self", "Self-hosted"],
                 ] as const
               ).map(([value, label]) => (
@@ -415,7 +415,7 @@ export function PricingPlans() {
       <section className="mx-auto max-w-6xl pb-20">
         <div className="grid gap-6 rounded-2xl p-8 ring-1 ring-foreground/10 md:grid-cols-[1fr_auto] md:items-center md:p-10">
           <div>
-            <h2 className="text-xl font-semibold tracking-[-0.02em]">Like SaveForLatter? Help keep it running.</h2>
+            <h2 className="text-xl font-semibold tracking-[-0.02em]">Like Savedly? Help keep it running.</h2>
             <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
               It&apos;s built in the open. A contribution, a bug report or a star on GitHub helps as much as a paid plan.
             </p>

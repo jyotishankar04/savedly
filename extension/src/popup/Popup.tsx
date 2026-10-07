@@ -121,8 +121,8 @@ export default function Popup() {
     const proceedFromStorage = () => {
       if (settled) return;
       settled = true;
-      chrome.storage.local.get(["saveforlatter_token"], (result) => {
-        if (!result.saveforlatter_token) {
+      chrome.storage.local.get(["savedly_token"], (result) => {
+        if (!result.savedly_token) {
           setState("unauthorized");
         } else {
           loadPageInfo();
@@ -159,7 +159,7 @@ export default function Popup() {
   // Just reads the tab — no network write. Opening the popup used to
   // auto-save the page immediately, with no way to know whether that's
   // actually what the user wanted; now it only loads a preview, and
-  // nothing is saved until "Save to SaveForLatter" is clicked below.
+  // nothing is saved until "Save to Savedly" is clicked below.
   const loadPageInfo = async () => {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!activeTab?.url || !activeTab.id) {
@@ -274,7 +274,7 @@ export default function Popup() {
     }
   };
 
-  const handleOpenSaveForLatter = (path = "/app") => {
+  const handleOpenSavedly = (path = "/app") => {
     if (typeof chrome !== "undefined" && chrome.tabs) {
       chrome.tabs.create({ url: `${WEB_APP_URL}${path}` });
     } else {
@@ -290,7 +290,7 @@ export default function Popup() {
         <div style={styles.logoRow}>
           <img src={chrome.runtime.getURL("icon-48.png")} alt="" width={22} height={22} />
           <span style={styles.logoText}>
-            save<span style={{ fontWeight: 400, fontSize: "0.78em", color: "#1447E6" }}>for</span>latter
+            saved<span style={{ fontWeight: 500, color: "#1447E6" }}>ly</span>
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -303,7 +303,7 @@ export default function Popup() {
               {showFloatingIcon ? <Eye size={14} color="#8e8e93" /> : <EyeOff size={14} color="#8e8e93" />}
             </button>
           )}
-          <button style={styles.iconButton} onClick={() => handleOpenSaveForLatter()}>
+          <button style={styles.iconButton} onClick={() => handleOpenSavedly()}>
             <Settings size={14} color="#8e8e93" />
           </button>
         </div>
@@ -314,7 +314,7 @@ export default function Popup() {
       {state === "checking" && (
         <div style={styles.centerContainer}>
           <RefreshCw size={24} color="#1447E6" className="animate-spin" />
-          <p style={styles.statusLabel}>Connecting to SaveForLatter...</p>
+          <p style={styles.statusLabel}>Connecting to Savedly...</p>
         </div>
       )}
 
@@ -322,7 +322,7 @@ export default function Popup() {
         <div style={styles.centerContainer}>
           <ShieldAlert size={28} color="#ff3b30" />
           <p style={styles.unauthLabel}>Save anything you find.</p>
-          <p style={styles.unauthSub}>Connect this extension to your main SaveForLatter dashboard account.</p>
+          <p style={styles.unauthSub}>Connect this extension to your main Savedly dashboard account.</p>
           <button style={styles.primaryButton} onClick={handleSignIn}>
             Sign in
           </button>
@@ -331,7 +331,7 @@ export default function Popup() {
 
       {state === "saving" && (
         <div style={styles.centerContainer}>
-          <p style={styles.savingLabel}>Saving to SaveForLatter...</p>
+          <p style={styles.savingLabel}>Saving to Savedly...</p>
           <div style={styles.progressTrack}>
             <div style={styles.progressBar} />
           </div>
@@ -353,7 +353,7 @@ export default function Popup() {
           the page immediately, which meant it always happened whether or
           not that's what the user actually wanted (e.g. reaching for
           "Take Screenshot" instead). Now this is just a preview; "Save to
-          SaveForLatter" below is the only thing that writes anything. */}
+          Savedly" below is the only thing that writes anything. */}
       {state === "ready" && (
         <div style={styles.savedForm}>
           {/* Quick capture-mode buttons — "Page" saves the tab as-is;
@@ -418,7 +418,7 @@ export default function Popup() {
             }
           >
             {captureMode === "page"
-              ? "Save to SaveForLatter"
+              ? "Save to Savedly"
               : captureMode === "screenshot"
                 ? "Select Area & Save"
                 : "Capture Visible Screenshot"}
@@ -498,7 +498,7 @@ export default function Popup() {
         <div style={styles.savedForm}>
           <div style={styles.statusHeader}>
             <Check size={16} color="#1447E6" />
-            <span style={styles.statusText}>Saved to SaveForLatter</span>
+            <span style={styles.statusText}>Saved to Savedly</span>
           </div>
 
           {/* Non-blocking duplicate notice (docs/URL_CAPTURE_AND_PREVIEW.md —
@@ -510,7 +510,7 @@ export default function Popup() {
                 You already saved a similar link ("{savedMemory.duplicateOf.title}").{" "}
                 <button
                   style={styles.inlineLinkButton}
-                  onClick={() => handleOpenSaveForLatter(`/app/memories/${savedMemory.duplicateOf!.id}`)}
+                  onClick={() => handleOpenSavedly(`/app/memories/${savedMemory.duplicateOf!.id}`)}
                 >
                   View it
                 </button>
@@ -527,8 +527,8 @@ export default function Popup() {
             Done
           </button>
 
-          <button style={styles.openDashboardLink} onClick={() => handleOpenSaveForLatter()}>
-            <span>Open SaveForLatter</span>
+          <button style={styles.openDashboardLink} onClick={() => handleOpenSavedly()}>
+            <span>Open Savedly</span>
             <ExternalLink size={12} style={{ marginLeft: 4 }} />
           </button>
         </div>

@@ -39,13 +39,13 @@ export default function SignupPage() {
             Save everything you discover, search by what you remember.
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Links, notes, screenshots, PDFs and voice memos in one place, organized for you and searchable by meaning.
+            Links, notes, screenshots and PDFs in one place, organized for you and searchable by meaning.
           </p>
         </div>
 
         {/* Card Footer copy */}
         <p className="text-[11px] text-muted-foreground relative z-10">
-          &copy; 2026 SaveForLatter. All rights reserved.
+          &copy; 2026 Savedly. All rights reserved.
         </p>
 
       </div>

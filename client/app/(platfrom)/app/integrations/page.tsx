@@ -143,7 +143,7 @@ const PLANNED: PlannedIntegration[] = [
     title: "Telegram",
     category: "Messaging",
     how: "Send to bot",
-    description: "Forward a message, link or photo to a SaveForLatter bot and it lands in your library.",
+    description: "Forward a message, link or photo to a Savedly bot and it lands in your library.",
     brings: ["Links and text", "Photos and files", "Forwarded messages"],
     icon: TelegramIcon,
     iconClassName: "bg-sky-500 text-white",
@@ -153,7 +153,7 @@ const PLANNED: PlannedIntegration[] = [
     title: "WhatsApp",
     category: "Messaging",
     how: "Send to bot",
-    description: "Message a link or a note to a SaveForLatter number to save it without opening the app.",
+    description: "Message a link or a note to a Savedly number to save it without opening the app.",
     brings: ["Links and text", "Photos", "Voice notes"],
     icon: WhatsappIcon,
     iconClassName: "bg-emerald-500 text-white",
@@ -422,7 +422,7 @@ export default function IntegrationsPage() {
               how={googlePending ? "In review" : undefined}
               description={
                 googlePending
-                  ? "Send events from your saved items to Google Calendar. We're going through Google's verification for calendar access, so this opens once it's approved. Until then, events you accept go to your SaveForLatter calendar."
+                  ? "Send events from your saved items to Google Calendar. We're going through Google's verification for calendar access, so this opens once it's approved. Until then, events you accept go to your Savedly calendar."
                   : cardMeta[0].description
               }
               action={

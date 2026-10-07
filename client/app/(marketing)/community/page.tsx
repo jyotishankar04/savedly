@@ -7,9 +7,10 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { UsersIcon as Users, MessageSquareIcon as MessageSquare, CodeIcon as Code, HelpCircleIcon as HelpCircle, ArrowUpRight01Icon as ArrowUpRight } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 
-const communityLinks = [
-  { title: "Join Discord Server", desc: "Hang out with other users, ask questions, share RAG workflows, and suggest new integration ideas.", icon: MessageSquare, cta: "Discord Server" },
-  { title: "GitHub Discussions", desc: "Ask technical setup questions, discuss API structures, and help build core web scrapers.", icon: Code, cta: "Open GitHub" },
+// A card without an href isn't open yet, and shows as "coming soon".
+const communityLinks: { title: string; desc: string; icon: typeof Users; cta: string; href?: string }[] = [
+  { title: "Join the Discord server", desc: "Ask questions, get help with the hosted app or your own install, and suggest ideas.", icon: MessageSquare, cta: "Open Discord", href: "https://discord.gg/PzGFcMNyRK" },
+  { title: "GitHub", desc: "Read the code, report a bug, or pick up an issue. Savedly is open source under AGPL-3.0.", icon: Code, cta: "Open GitHub", href: "https://github.com/jyotishankar04/saveforlatter" },
   { title: "Twitter / X Community", desc: "Follow product update logs, feature announcements, user stories, and productivity advice.", icon: Users, cta: "Follow updates" },
   { title: "Community Showcase", desc: "Share your own personal curation workflows, browser extensions setup, and capture collections.", icon: HelpCircle, cta: "See showcase" },
 ];
@@ -58,15 +59,26 @@ export default function CommunityPage() {
                     </p>
                   </div>
 
-                  <Button
-                    disabled
-                    title="Coming soon"
-                    aria-label={`${item.cta} — coming soon`}
-                    className="mt-6 w-full h-10 rounded-full font-semibold flex items-center justify-center gap-1 opacity-60 cursor-not-allowed"
-                    variant="outline"
-                  >
-                    {item.cta} <HugeiconsIcon icon={ArrowUpRight} strokeWidth={2.25} className="h-4 w-4" />
-                  </Button>
+                  {item.href ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-6 flex h-10 w-full items-center justify-center gap-1 rounded-full border border-border bg-background text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                    >
+                      {item.cta} <HugeiconsIcon icon={ArrowUpRight} strokeWidth={2.25} className="h-4 w-4" />
+                    </a>
+                  ) : (
+                    <Button
+                      disabled
+                      title="Coming soon"
+                      aria-label={`${item.cta} — coming soon`}
+                      className="mt-6 w-full h-10 rounded-full font-semibold flex items-center justify-center gap-1 opacity-60 cursor-not-allowed"
+                      variant="outline"
+                    >
+                      {item.cta} <HugeiconsIcon icon={ArrowUpRight} strokeWidth={2.25} className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             );

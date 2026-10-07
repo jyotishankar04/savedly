@@ -39,7 +39,7 @@ export const productTourSteps: Tour[] = [
     tour: PRODUCT_TOUR_NAME,
     steps: [
       {
-        title: "Welcome to SaveForLatter",
+        title: "Welcome to Savedly",
         content: "This is your home base — quick capture, smart search, and everything you've saved, all in one place. Let's take a quick look around.",
         selector: '[data-tour="greeting"]',
         side: "bottom",
@@ -57,7 +57,7 @@ export const productTourSteps: Tour[] = [
       },
       {
         title: "Search by meaning, not keywords",
-        content: "Describe what you remember — \"that recipe I saved last week\" — and SaveForLatter finds it, even without the exact words.",
+        content: "Describe what you remember — \"that recipe I saved last week\" — and Savedly finds it, even without the exact words.",
         selector: '[data-tour="home-search"]',
         side: "bottom",
       },
@@ -90,7 +90,7 @@ export const productTourSteps: Tour[] = [
       },
       {
         title: "Ask your memory a question",
-        content: "SaveForLatter connects the dots across everything you've saved and answers grounded in your own memories.",
+        content: "Savedly connects the dots across everything you've saved and answers grounded in your own memories.",
         selector: '[data-tour="ask-header"]',
         side: "bottom",
         selectorRetryAttempts: 5,
@@ -116,7 +116,7 @@ export function TourAutoStart({ userId }: { userId: string }) {
     // there it would dim the screen and block taps on things that aren't
     // visible. Not marked as seen, so it still runs on a wider screen later.
     if (!window.matchMedia("(min-width: 768px)").matches) return;
-    const key = `saveforlatter:tour-seen:${userId}`;
+    const key = `savedly:tour-seen:${userId}`;
     if (window.localStorage.getItem(key)) return;
     window.localStorage.setItem(key, "1");
     startNextStep(PRODUCT_TOUR_NAME);

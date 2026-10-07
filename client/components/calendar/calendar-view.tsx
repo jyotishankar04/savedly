@@ -75,7 +75,7 @@ export default function CalendarView() {
   const [view, setView] = React.useState<CalendarViewKey>(initialView);
   const [firstDay] = React.useState(localeFirstDay);
   const [range, setRange] = React.useState<VisibleRange | null>(null);
-  const [hidden, setHidden] = React.useState<Record<EventSource, boolean>>({ saveforlatter: false, google: false });
+  const [hidden, setHidden] = React.useState<Record<EventSource, boolean>>({ savedly: false, google: false });
   const [popover, setPopover] = React.useState<EventPopoverState | null>(null);
   const [editing, setEditing] = React.useState<CalendarEvent | null>(null);
   const [draft, setDraft] = React.useState<NewEventDraft | null>(null);
@@ -218,7 +218,7 @@ export default function CalendarView() {
 
   const title = range ? formatRangeTitle(view, range.currentStart, range.currentEnd) : "";
   const connected = (provider: CalendarProviderKey) => connections.find((c) => c.provider === provider);
-  const hiddenCount = (["saveforlatter", "google"] as const).filter((s) => hidden[s] && (s === "saveforlatter" || connected(s))).length;
+  const hiddenCount = (["savedly", "google"] as const).filter((s) => hidden[s] && (s === "savedly" || connected(s))).length;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -287,10 +287,10 @@ export default function CalendarView() {
               <p className="px-2 pt-1 pb-1.5 text-[13px] font-medium text-foreground">Show events from</p>
               <SourceRow
                 label="Your notes"
-                detail="Events saved in SaveForLatter"
+                detail="Events saved in Savedly"
                 swatch="bg-primary"
-                checked={!hidden.saveforlatter}
-                onChange={(on) => setHidden((h) => ({ ...h, saveforlatter: !on }))}
+                checked={!hidden.savedly}
+                onChange={(on) => setHidden((h) => ({ ...h, savedly: !on }))}
               />
               {(["google"] as const).map((provider) => {
                 const connection = connected(provider);
@@ -472,7 +472,7 @@ function DayCell({ arg }: { arg: DayCellContentArg }) {
 
 function EventChip({ arg }: { arg: EventContentArg }) {
   const event = arg.event.extendedProps.event as CalendarEvent | undefined;
-  const isNote = event?.source === "saveforlatter";
+  const isNote = event?.source === "savedly";
   const type = arg.view.type;
 
   if (type === "listWeek") {

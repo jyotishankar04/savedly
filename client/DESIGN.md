@@ -1,5 +1,5 @@
 ---
-name: SaveForLatter
+name: Savedly
 description: A personal memory for the internet, shown working inside a real app window.
 colors:
   primary: "oklch(0.4878 0.2432 264.4045)"
@@ -159,13 +159,13 @@ components:
     height: "32px"
 ---
 
-# Design System: SaveForLatter
+# Design System: Savedly
 
 ## Overview
 
 **Creative North Star: "The Working Window"**
 
-SaveForLatter's marketing surface doesn't describe the product. It shows the product running. The first viewport already holds a real app window, and the sections below it use small coded pieces of the real screens (an Ask answer with its sources, a search result with its match badges, a vault that really locks when you switch tabs, a hand-laid library graph). The page is flat and quiet. It's built from a white or near-black background, hairline rings, large soft-cornered panels and one blue. Headlines are Geist set tight and heavy, and they carry the hierarchy without eyebrows or kickers. Copy is short and declarative, and every claim has something next to it you can look at.
+Savedly's marketing surface doesn't describe the product. It shows the product running. The first viewport already holds a real app window, and the sections below it use small coded pieces of the real screens (an Ask answer with its sources, a search result with its match badges, a vault that really locks when you switch tabs, a hand-laid library graph). The page is flat and quiet. It's built from a white or near-black background, hairline rings, large soft-cornered panels and one blue. Headlines are Geist set tight and heavy, and they carry the hierarchy without eyebrows or kickers. Copy is short and declarative, and every claim has something next to it you can look at.
 
 The density is low, and the pacing is editorial. Each section is one idea: a heading-and-lede pair on a two-column split, then one demo on one tinted panel. Sections change their composition as the page goes: a pipeline strip, a side-by-side pair, a wide graph band, a two-up, a spec list. They don't repeat alternating rows or fall back to a card grid. Blue is rationed. It marks the primary action, the "your library" hub, selected states, meaning-links in the graph, and one fully blue closing block.
 

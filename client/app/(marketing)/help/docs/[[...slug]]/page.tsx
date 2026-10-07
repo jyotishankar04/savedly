@@ -33,7 +33,7 @@ export async function generateMetadata(props: { params: Promise<{ slug?: string[
   if (!page) notFound();
 
   return {
-    title: `${page.data.title} · Help · SaveForLatter`,
+    title: `${page.data.title} · Help · Savedly`,
     description: page.data.description,
   };
 }

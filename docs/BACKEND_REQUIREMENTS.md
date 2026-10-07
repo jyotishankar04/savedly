@@ -1,9 +1,11 @@
-# SaveForLatter Backend Requirements
+# Savedly Backend Requirements
+
+> **Historical design notes.** This was written before the server existed and describes the plan at that time. The code has moved on: `server/src/db/schema.ts` and the modules under `server/src/modules/` are the source of truth. Don't implement from this document without checking the code first.
 
 ## 1. Document Overview
 
 ### Purpose
-This document outlines the backend architectural design, database domain models, API specifications, and route requirements for **SaveForLatter**, a personal memory and knowledge capture platform. It serves as a comprehensive implementation guide for backend developers to build an API service that aligns exactly with the existing Chrome Extension, Mobile (Expo) App, and Web Client frontend architectures.
+This document outlines the backend architectural design, database domain models, API specifications, and route requirements for **Savedly**, a personal memory and knowledge capture platform. It serves as a comprehensive implementation guide for backend developers to build an API service that aligns exactly with the existing Chrome Extension, Mobile (Expo) App, and Web Client frontend architectures.
 
 ### Scope
 The scope covers:
@@ -24,9 +26,9 @@ Frontend code bases and configuration files in the workspace:
 **Status:** Approved for Backend Implementation
 
 ### Assumptions and Limitations
-- The backend runs on `http://localhost:4000` in local development (the actual default `PORT` in `server/src/config/env.ts`), reachable at `http://localhost:4000/api/v1`. **Note:** the Chrome Extension's popup and background worker currently disagree with each other on this — `Popup.tsx` targets `https://api.saveforlatter.tech/api/memories` while `service-worker.ts` targets `http://localhost:3000/api/memories`, and neither includes the `/v1` prefix. Both should be updated to point at `http://localhost:4000/api/v1/memories` for local development.
+- The backend runs on `http://localhost:4000` in local development (the actual default `PORT` in `server/src/config/env.ts`), reachable at `http://localhost:4000/api/v1`. **Note:** the Chrome Extension's popup and background worker currently disagree with each other on this — `Popup.tsx` targets `https://api.savedly.app/api/memories` while `service-worker.ts` targets `http://localhost:3000/api/memories`, and neither includes the `/v1` prefix. Both should be updated to point at `http://localhost:4000/api/v1/memories` for local development.
 - AI operations (summarization, speech-to-text, embeddings) are assumed to run asynchronously or via direct API calls during capture, without blocking frontend UI interactions.
-- The web client uses `localStorage` (key: `saveforlatter_token` or `token`) which is accessed by the extension content script when visiting authorized domains.
+- The web client uses `localStorage` (key: `savedly_token` or `token`) which is accessed by the extension content script when visiting authorized domains.
 - **Authentication is a custom, hand-rolled implementation** — JWT access/refresh tokens signed and verified in-house, with `bcrypt` for password hashing. See Section 6 for details. This requires adding `jsonwebtoken` and `bcrypt` (not currently installed) to `server/package.json`, and adding a `password_hash` column back to the `users` table (Section 5, table 1) — neither exists yet in `server/src/db/schema.ts`. The `BETTER_AUTH_SECRET` env var in `server/src/config/env.ts` is a leftover from an earlier direction and should be renamed to `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` (or similar) once custom auth is implemented.
 - Mobile's voice capture (`mobile/app/voice-capture.tsx`) is currently fully simulated — it has no microphone/recording dependency and never produces a real audio file. `POST /ai/process-voice` (which expects an `audio_url` from a prior upload) therefore has no real client producer yet; treat it as a documented target, not something with an active caller today.
 
@@ -34,14 +36,14 @@ Frontend code bases and configuration files in the workspace:
 
 ## 2. Product Overview
 
-SaveForLatter is a "second brain" platform designed to collect, process, search, and rediscover information. It captures digital content across platforms and devices, instantly consolidating knowledge.
+Savedly is a "second brain" platform designed to collect, process, search, and rediscover information. It captures digital content across platforms and devices, instantly consolidating knowledge.
 
 ### Major Use Cases
 - **Capture:** Instantly ingest URLs, page metadata, selections, images, documents, manually typed thoughts, or voice recordings.
 - **Organize:** Group captures into folders (Collections) and assign badges (Tags). The backend automatically extracts metadata, transcripts, and tags using AI.
 - **Search:** Retrieve items via text keyword search or filter by memory capture types (links, notes, videos, images, files).
 - **Discover:** Re-surface older, forgotten captures ("Forgotten Gems") that correlate with current topics.
-- **AI Memory:** Interact with a RAG chat interface ("Ask SaveForLatter") that answers queries based on the user's historical notes and links.
+- **AI Memory:** Interact with a RAG chat interface ("Ask Savedly") that answers queries based on the user's historical notes and links.
 - **Cross-device Access:** Keep data synchronized across the Chrome extension, mobile app, and Next.js web application.
 
 ---
@@ -51,7 +53,7 @@ SaveForLatter is a "second brain" platform designed to collect, process, search,
 ### Chrome Extension Architecture
 - **Popup (`Popup.tsx`):** Reads the current active browser tab (URL, Title, Favicon). Simulates a duplication check. If valid, performs an automatic save. Allows subsequent updates to tags, collection folders, and custom notes.
 - **Background Worker (`service-worker.ts`):** Context menu options ("Save page", "Save selected text", "Save image") and keyboard shortcuts (`quick-save-page`) invoke background `fetch` calls carrying user JWT tokens. Displays browser notifications upon success.
-- **Content Script (`content-script.ts`):** Automatically reads active token storage from `localhost`/`saveforlatter.tech` pages, synchronizing authentication state into `chrome.storage.local`. Injects scraping listeners for metadata fields (`description`, `og:image`, `keywords`).
+- **Content Script (`content-script.ts`):** Automatically reads active token storage from `localhost`/`savedly.app` pages, synchronizing authentication state into `chrome.storage.local`. Injects scraping listeners for metadata fields (`description`, `og:image`, `keywords`).
 
 ### Mobile Architecture (React Native / Expo)
 - **State Management (`MemoryContext.tsx`):** Exposes state contexts (`memories`), and actions (`addMemory`, `deleteMemory`, `toggleFavorite`).
@@ -84,7 +86,7 @@ SaveForLatter is a "second brain" platform designed to collect, process, search,
 - **Speech-to-Text Transcriber:** Accept binary audio uploads (from voice captures) and transcribe them to text.
 - **Concept Summarization & Tag Extraction:** Analyze notes and link descriptions to generate summaries and automatically suggest tags.
 - **Semantic Vector Indexing:** Map captures to database vector embeddings (e.g. using `pgvector` or similar) to power AI queries and relational matching.
-- **Semantic Search & Chat Engine (RAG):** Power the "Ask SaveForLatter" chat page by retrieving memory context and feeding it into an LLM context window to answer questions.
+- **Semantic Search & Chat Engine (RAG):** Power the "Ask Savedly" chat page by retrieving memory context and feeding it into an LLM context window to answer questions.
 - **Relational Similarity Mapping:** Calculate cosine distances between embeddings to supply "Related Memories".
 
 ---
@@ -328,7 +330,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
 | `ai_summaries` | BOOLEAN | Yes | `true` | | Generate AI summaries for captures |
 | `ai_related_memories` | BOOLEAN | Yes | `true` | | Show related-memory similarity mapping |
 | `ai_semantic_search` | BOOLEAN | Yes | `true` | | Enable semantic (not just keyword) search |
-| `ai_ask_memora` | BOOLEAN | Yes | `true` | | Enable the "Ask SaveForLatter" RAG chatbot |
+| `ai_ask_memora` | BOOLEAN | Yes | `true` | | Enable the "Ask Savedly" RAG chatbot |
 | `capture_extract_content` | BOOLEAN | Yes | `true` | | Auto-fetch full page body text on URL capture |
 | `capture_generate_title` | BOOLEAN | Yes | `true` | | Use AI to clean/generate page titles |
 | `capture_generate_summary` | BOOLEAN | Yes | `true` | | Auto-generate a capture summary |
@@ -453,7 +455,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
         "id": "c0017c60-8bb0-47b8-b4b1-8b27f1c1a2f6",
         "email": "user@example.com",
         "name": "Subham Jyoti",
-        "avatar_url": "https://api.saveforlatter.tech/uploads/avatars/sj.png",
+        "avatar_url": "https://api.savedly.app/uploads/avatars/sj.png",
         "status": "active"
       },
       "tokens": {
@@ -526,7 +528,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
         "id": "c0017c60-8bb0-47b8-b4b1-8b27f1c1a2f6",
         "email": "user@example.com",
         "name": "Subham Jyoti",
-        "avatar_url": "https://api.saveforlatter.tech/uploads/avatars/sj.png",
+        "avatar_url": "https://api.savedly.app/uploads/avatars/sj.png",
         "status": "active",
         "roles": ["free_user"]
       }
@@ -955,7 +957,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
   {
     "success": true,
     "data": {
-      "file_url": "https://api.saveforlatter.tech/uploads/files/vector_db_sheet_2026.pdf",
+      "file_url": "https://api.savedly.app/uploads/files/vector_db_sheet_2026.pdf",
       "mime_type": "application/pdf",
       "file_size": 1048576
     },
@@ -977,7 +979,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
   {
     "query": "What optimization guide did I save on Postgres indexing?",
     "history": [
-      { "role": "user", "content": "Hello SaveForLatter." },
+      { "role": "user", "content": "Hello Savedly." },
       { "role": "assistant", "content": "Hello! I can answer questions about your saved memories." }
     ]
   }
@@ -1010,7 +1012,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
 - **Request Body:**
   ```json
   {
-    "audio_url": "https://api.saveforlatter.tech/uploads/files/voicerecord_8736.wav"
+    "audio_url": "https://api.savedly.app/uploads/files/voicerecord_8736.wav"
   }
   ```
 - **Success Response (200 OK):**
@@ -1103,7 +1105,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
         "summaries": true,
         "related_memories": true,
         "semantic_search": true,
-        "ask_saveforlatter": true
+        "ask_savedly": true
       },
       "capture": {
         "extract_content": true,
@@ -1152,7 +1154,7 @@ User-specific preferences. Expanded from the original flat 3-toggle design to ma
         "summaries": false,
         "related_memories": true,
         "semantic_search": true,
-        "ask_saveforlatter": true
+        "ask_savedly": true
       },
       "capture": {
         "extract_content": true,

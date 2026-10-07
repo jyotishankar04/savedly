@@ -49,7 +49,7 @@ const TILES: Tile[] = [
   { icon: Globe, title: "Wherever you already are", description: "The dashboard today — the browser extension is on the way.", href: "#everywhere" },
   { icon: Calendar, title: "Plays well with your calendar", description: "Push a detected event straight to Google Calendar.", href: "#integrations" },
   { icon: Route, title: "One pipeline, every save", description: "Read, summarized, tagged, and embedded — the same four steps, every time.", href: "#how-it-works" },
-  { icon: Layers, title: "Whatever it is, it goes in", description: "Links, videos, notes, images, documents, voice — all one box.", href: "#formats" },
+  { icon: Layers, title: "Whatever it is, it goes in", description: "Links, videos, notes, images, documents — all one box.", href: "#formats" },
   { icon: Zap, title: "Always shipping", description: "New capability most months — see what actually changed.", href: "/changelog" },
 ];
 

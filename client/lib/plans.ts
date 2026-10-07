@@ -135,7 +135,7 @@ export const LIMIT_ORDER: PlanLimitType[] = [
 
 /**
  * Turns a plan's real, admin-editable limits into pricing-page bullet copy
- * ("Unlimited memories", "20 Ask SaveForLatter queries / month", ...) —
+ * ("Unlimited memories", "20 Ask Savedly queries / month", ...) —
  * used instead of a hand-written per-plan feature list so the marketing
  * pricing table can never drift out of sync with what's actually enforced.
  */

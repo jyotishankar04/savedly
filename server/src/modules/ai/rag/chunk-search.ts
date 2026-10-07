@@ -83,7 +83,7 @@ async function chunkSemanticSearch(userId: string, queryText: string, limit: num
 }
 
 /**
- * Chunk-level hybrid retrieval for the "Ask SaveForLatter" RAG agent's
+ * Chunk-level hybrid retrieval for the "Ask Savedly" RAG agent's
  * searchMemories tool. Unlike search/hybrid-search.ts (memory-level, built
  * for the Search page), this retrieves passages, then rolls the winners up
  * to their parent memories — each memory appears once, represented by its
