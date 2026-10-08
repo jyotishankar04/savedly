@@ -11,6 +11,8 @@ export interface ServerConfig {
    * calendar access); existing connections keep working either way.
    */
   googleCalendar: boolean;
+  /** False on a self-hosted install whose admin hasn't connected AI yet. */
+  aiReady: boolean;
 }
 
 export function getServerConfig(): Promise<ServerConfig> {

@@ -141,7 +141,8 @@ async function resolveCredential(
 // OpenAI's small embeddings model: 1536 dimensions, matching EMBEDDING_DIMENSIONS.
 const FALLBACK_EMBEDDINGS_MODEL = "text-embedding-3-small";
 
-async function platformEmbeddingsCredential(): Promise<ProviderCredentialInput | null> {
+/** The install's own embeddings key, or null when search by meaning can't work yet. */
+export async function platformEmbeddingsCredential(): Promise<ProviderCredentialInput | null> {
   // EMBEDDINGS_* in env, or Admin -> Infrastructure -> Embeddings.
   const settings = await getSection("embeddings");
   if (settings.apiKey) {
