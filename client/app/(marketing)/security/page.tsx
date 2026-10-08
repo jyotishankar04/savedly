@@ -6,6 +6,8 @@ import MainFooter from "@/components/marketing/landing/main-footer";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Shield01Icon as Shield, LockKeyIcon as Lock, BrainIcon as Brain, GitBranchIcon as Git } from "@hugeicons/core-free-icons";
+import { SELF_HOSTED } from "@/lib/instance";
+import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
 
 export default function SecurityPage() {
   return (
@@ -13,6 +15,8 @@ export default function SecurityPage() {
       <Navbar />
 
       <main className="flex-1 pt-32 pb-20 max-w-4xl mx-auto px-6">
+
+        {SELF_HOSTED && <HostedPolicyNotice />}
 
         {/* Header */}
         <div className="text-center space-y-4 mb-16">

@@ -4,6 +4,8 @@ import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
 import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
+import { SELF_HOSTED } from "@/lib/instance";
+import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
 
 export default function TermsPage() {
   return (
@@ -11,6 +13,8 @@ export default function TermsPage() {
       <Navbar />
 
       <main className="flex-1 pt-32 pb-20 max-w-4xl mx-auto px-6">
+
+        {SELF_HOSTED && <HostedPolicyNotice />}
 
         {/* Header */}
         <div className="text-center space-y-4 mb-16">

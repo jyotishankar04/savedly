@@ -7,6 +7,7 @@ import { ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
 import { LogoMark } from "@/components/logo";
 import { AuthForm } from "@/components/auth/auth-form";
 import { Logo } from "@/components/logo";
+import { SELF_HOSTED } from "@/lib/instance";
 
 export default function LoginPage() {
   return (
@@ -25,7 +26,7 @@ export default function LoginPage() {
         />
 
         {/* Brand Logo Header */}
-        <Link href="/" className="flex items-center gap-2 text-foreground relative z-10 hover:opacity-90 transition-opacity w-fit">
+        <Link href={SELF_HOSTED ? "/auth/login" : "/"} className="flex items-center gap-2 text-foreground relative z-10 hover:opacity-90 transition-opacity w-fit">
           <Logo className="text-[17px] text-foreground" />
         </Link>
 
@@ -54,9 +55,11 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-between py-8 px-4 lg:px-12 bg-background">
         
         {/* Back Link */}
-        <Link href="/" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit">
+        {!SELF_HOSTED && (
+          <Link href="/" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit">
           <HugeiconsIcon icon={ArrowLeft} strokeWidth={2.25} className="h-3.5 w-3.5" /> Back to home
         </Link>
+        )}
 
         {/* Form Container */}
         <div className="w-full max-w-sm mx-auto my-auto">
@@ -65,7 +68,7 @@ export default function LoginPage() {
 
         {/* Footer Right Links */}
         <div className="flex justify-center gap-6 text-[10px] text-muted-foreground mt-auto">
-          <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+          {!SELF_HOSTED && <Link href="/" className="hover:text-foreground transition-colors">Home</Link>}
           <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
           <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
         </div>
