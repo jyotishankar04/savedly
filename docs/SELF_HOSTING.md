@@ -49,17 +49,25 @@ None of this needs any configuration.
 
 ## Create your admin account
 
-1. Open <http://localhost:3000>. The sign-in page shows **Create your admin account**.
+1. Open <http://localhost:3000>. A self-hosted install has no landing page: it opens on sign-in, which shows **Create your admin account**.
 2. Enter your name, email and a password of at least 8 characters, then click **Create admin account**.
 
 The first account on a new install becomes the admin. Accounts created after it are regular users. To stop anyone else from signing up, go to **Admin** > **Configuration** and turn off **New signups**.
 
-## Add your AI key
+## Finish setting up
 
-1. Go to **Settings** > **AI**.
-2. Add a key for your provider and choose a model for each role.
+After you sign in, the dashboard shows a **Finish setting up Savedly** panel. It stays until you have dealt with each of its four steps:
 
-Each person on the install adds their own key. To make search by meaning work for everyone before they add a key, set an instance-wide embeddings key; see [Connect services](#connect-services).
+| Step | What to do |
+|---|---|
+| AI | Required. Click **Set up** and add one AI key for the whole install. An OpenAI key also covers search by meaning; with another provider, fill in **Embeddings** too. |
+| File storage | Connect S3-compatible storage, or click **Keep on this server**. |
+| Email | Connect an SMTP server, or click **Skip email**. |
+| Google or GitHub sign-in | Add an OAuth app, or click **Passwords only**. |
+
+**Set up** opens that step's settings with a **Test connection** button, so you can check your values before you save them. You can change any of it later under **Admin** > **Infrastructure**. Only the admin sees the panel.
+
+People can also add an AI key of their own under **Settings** > **AI**; theirs is used in place of the install's.
 
 ## Connect services
 
@@ -207,6 +215,8 @@ docker compose up -d --build
 ```
 
 Database changes apply automatically when the new version starts. Back up first; see [Back up your data](#back-up-your-data).
+
+The **Admin** overview tells you when a newer release exists. To do that, the install asks GitHub for the latest release about twice a day. It sends nothing about your install. To turn the check off, add `UPDATE_CHECK=false` to the `.env` file and restart.
 
 ## Run the hosted API
 

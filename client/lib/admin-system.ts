@@ -52,3 +52,15 @@ export function setSetupSkipped(item: SetupItemId, skipped: boolean): Promise<Se
 export function backupUrl(includeKey: boolean): string {
   return `${API_URL}/admin/system/backup${includeKey ? "?key=1" : ""}`;
 }
+
+export interface UpdateStatus {
+  current: string | null;
+  /** The newest release, or null when the check is off, failed, or nothing has been released yet. */
+  latest: string | null;
+  updateAvailable: boolean;
+  url: string | null;
+}
+
+export function getUpdateStatus(): Promise<UpdateStatus> {
+  return apiFetch<UpdateStatus>("/admin/system/update");
+}

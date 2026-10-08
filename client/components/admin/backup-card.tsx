@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { backupUrl } from "@/lib/admin-system";
+import { useQuery } from "@tanstack/react-query";
+import { backupUrl, getUpdateStatus } from "@/lib/admin-system";
 
 /**
  * Admin overview, self-hosted: download a backup of the whole install. The
@@ -10,6 +11,8 @@ import { backupUrl } from "@/lib/admin-system";
  */
 export function BackupCard({ filesInBucket, version }: { filesInBucket: boolean; version: string | null }) {
   const [includeKey, setIncludeKey] = useState(false);
+  // Says nothing when the check is off or GitHub can't be reached.
+  const { data: update } = useQuery({ queryKey: ["admin", "system", "update"], queryFn: getUpdateStatus, staleTime: 60 * 60 * 1000 });
 
   return (
     <section className="space-y-3 rounded-xl border border-border p-4">
@@ -52,7 +55,31 @@ export function BackupCard({ filesInBucket, version }: { filesInBucket: boolean;
         </Link>
       </div>
 
-      {version && <p className="font-mono text-[11px] text-muted-foreground">Version {version}</p>}
+      {update?.updateAvailable ? (
+        <div role="status" className="space-y-1.5 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">
+          <p className="text-xs font-semibold text-foreground">
+            Version {update.latest} is available. You have {update.current}.
+          </p>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Download a backup first, then run this in the install&apos;s folder:
+          </p>
+          <code className="block overflow-x-auto whitespace-nowrap rounded bg-muted px-2 py-1 font-mono text-[11px] text-foreground">
+            git pull &amp;&amp; docker compose up -d --build
+          </code>
+          {update.url && (
+            <a href={update.url} target="_blank" rel="noreferrer" className="inline-block text-[11px] text-primary hover:underline">
+              What changed
+            </a>
+          )}
+        </div>
+      ) : (
+        version && (
+          <p className="font-mono text-[11px] text-muted-foreground">
+            Version {version}
+            {update?.latest && " · up to date"}
+          </p>
+        )
+      )}
     </section>
   );
 }

@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { count, sql } from "drizzle-orm";
@@ -9,14 +8,7 @@ import { env } from "../../../config/env";
 import { getSection } from "../../instance-settings/instance-settings.service";
 import { getOAuthCredentials } from "../../auth/oauth-config";
 import { platformCredential } from "../../ai/ai.providers";
-
-function appVersion(): string | null {
-  try {
-    return JSON.parse(readFileSync(resolve("package.json"), "utf8")).version ?? null;
-  } catch {
-    return null;
-  }
-}
+import { appVersion } from "./update.service";
 
 /** Total bytes under a directory (the local-disk file store). Missing dir = 0. */
 async function directoryBytes(dir: string): Promise<number> {

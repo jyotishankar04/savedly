@@ -7,6 +7,7 @@ import { AppError } from "../../../shared/errors/app-error";
 import { env } from "../../../config/env";
 import { getSystemStatus } from "./system.service";
 import { createBackup } from "./backup.service";
+import { getUpdateStatus } from "./update.service";
 import { logAdminAction } from "../../../shared/utils/audit-log";
 import { SETUP_ITEMS, getSetupStatus, setSetupSkipped, type SetupItemId } from "./setup.service";
 
@@ -17,6 +18,13 @@ const router = Router();
 router.get("/", authenticate, requireAdmin, async (_req: Request, res: Response) => {
   if (!env.SELF_HOSTED) throw new AppError("Not found", 404, "NOT_FOUND");
   res.status(200).json(ApiResponse.success(await getSystemStatus()));
+});
+
+// Whether a newer release exists. Never fails the page: an unreachable
+// GitHub just means no update is mentioned.
+router.get("/update", authenticate, requireAdmin, async (_req: Request, res: Response) => {
+  if (!env.SELF_HOSTED) throw new AppError("Not found", 404, "NOT_FOUND");
+  res.status(200).json(ApiResponse.success(await getUpdateStatus()));
 });
 
 // Downloads a backup of the whole install. A GET, so the browser saves it
