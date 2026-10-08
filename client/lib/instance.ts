@@ -8,3 +8,11 @@
  * first paint instead of switching after the server's config loads.
  */
 export const SELF_HOSTED = process.env.NEXT_PUBLIC_SELF_HOSTED === "true";
+
+/**
+ * A link to a page a self-hosted install doesn't have (contact, pricing): on
+ * such an install it goes to the hosted site, where that page lives.
+ */
+export function hostedHref(path: string): string {
+  return SELF_HOSTED ? `https://savedly.app${path}` : path;
+}

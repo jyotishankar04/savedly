@@ -6,7 +6,7 @@ import MainFooter from "@/components/marketing/landing/main-footer";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Shield01Icon as Shield, LockKeyIcon as Lock, BrainIcon as Brain, GitBranchIcon as Git } from "@hugeicons/core-free-icons";
-import { SELF_HOSTED } from "@/lib/instance";
+import { SELF_HOSTED, hostedHref } from "@/lib/instance";
 import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
 
 export default function SecurityPage() {
@@ -103,7 +103,7 @@ export default function SecurityPage() {
             <p>
               If you find a vulnerability, please report it privately through{" "}
               <a href="https://github.com/jyotishankar04/saveforlatter/security/advisories/new" target="_blank" rel="noreferrer" className="text-primary hover:underline">GitHub&apos;s private vulnerability reporting</a>{" "}
-              or the <Link href="/contact" className="text-primary hover:underline">contact page</Link>, not in a public issue. Give us a reasonable time to fix it before you disclose it.
+              or the <Link href={hostedHref("/contact")} className="text-primary hover:underline">contact page</Link>, not in a public issue. Give us a reasonable time to fix it before you disclose it.
             </p>
           </section>
 

@@ -4,7 +4,7 @@ import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
 import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
-import { SELF_HOSTED } from "@/lib/instance";
+import { SELF_HOSTED, hostedHref } from "@/lib/instance";
 import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
 
 export default function TermsPage() {
@@ -49,7 +49,7 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">3. Open source, free plan and paid plans</h2>
             <p>
-              Savedly is open source{LICENSE ? ` (${LICENSE} licensed)` : ""}. You can run your own copy for free, with every feature and no limits. On the hosted service at this website, plans differ in storage and usage limits, in how much AI we supply each month, and in which features they include. The Free plan costs nothing. Current plans and limits are listed on the <a href="/pricing" className="text-primary hover:underline">pricing page</a>.
+              Savedly is open source{LICENSE ? ` (${LICENSE} licensed)` : ""}. You can run your own copy for free, with every feature and no limits. On the hosted service at this website, plans differ in storage and usage limits, in how much AI we supply each month, and in which features they include. The Free plan costs nothing. Current plans and limits are listed on the <a href={hostedHref("/pricing")} className="text-primary hover:underline">pricing page</a>.
               {GITHUB_CONFIGURED ? (
                 <>
                   {" "}The source code is public at <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{GITHUB_URL}</a>, and you&apos;re welcome to read it, self-host it, or contribute to it under that license.
@@ -122,7 +122,7 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">10. Contact</h2>
             <p>
-              Questions about these terms can be sent through the <a href="/contact" className="text-primary hover:underline">contact page</a>.
+              Questions about these terms can be sent through the <a href={hostedHref("/contact")} className="text-primary hover:underline">contact page</a>.
             </p>
           </section>
 
