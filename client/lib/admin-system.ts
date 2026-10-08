@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/auth";
+import { API_URL, apiFetch } from "@/lib/auth";
 
 /** Self-hosted installs only — see server admin/system. */
 export interface SystemStatus {
@@ -46,4 +46,9 @@ export function getSetupStatus(): Promise<SetupStatus> {
 /** Keep an optional step's default (`skipped: true`), or bring the step back. */
 export function setSetupSkipped(item: SetupItemId, skipped: boolean): Promise<SetupStatus> {
   return apiFetch<SetupStatus>(`/admin/system/setup/${item}/skip`, { method: skipped ? "POST" : "DELETE" });
+}
+
+/** Where the browser downloads a backup of the install from. `includeKey` adds the secrets file. */
+export function backupUrl(includeKey: boolean): string {
+  return `${API_URL}/admin/system/backup${includeKey ? "?key=1" : ""}`;
 }

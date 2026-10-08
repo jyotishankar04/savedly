@@ -153,28 +153,49 @@ If you use Google or GitHub sign-in, register the new callback URLs shown on the
 
 ## Back up your data
 
-Your library lives in two places: the database and the uploaded files. To back up both, run the following commands from the `savedly` directory:
+Your library lives in three places: the database, the uploaded files, and the secrets volume, which holds the key that encrypts saved API keys.
+
+### Download a backup from the admin page
+
+1. Open **Admin**. The **Keep it safe** card is on the overview.
+2. To be able to restore saved API keys and calendar connections, select **Include the encryption key**. The archive then contains that key, so store it somewhere private.
+3. Click **Download backup**.
+
+The archive, `savedly-backup-<date>.tar.gz`, contains `database.sql`, a `files` folder, a `README.txt`, and `secrets.json` if you included the key. If your files are in S3-compatible storage, they are not in the archive; back them up in the bucket.
+
+### Back up from the command line
+
+Run the following commands from the `savedly` directory:
 
 ```sh
-docker compose exec -T db pg_dump -U saveforlatter saveforlatter > savedly-db.sql
-docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine tar czf /backup/savedly-files.tar.gz -C /files .
+docker compose exec -T db pg_dump -U saveforlatter saveforlatter > database.sql
+docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine tar czf /backup/files.tar.gz -C /files .
 ```
 
-Also keep a copy of the `saveforlatter_secrets` volume. It holds the key that encrypts saved API keys; without it, saved keys can't be read after a restore.
+Also keep a copy of the `saveforlatter_secrets` volume.
 
 ### Restore from a backup
 
-To restore, start from a fresh install on the new machine, then run the following commands from the `savedly` directory. They replace whatever that install holds:
+Start from a fresh install on the new machine. Extract the downloaded archive in the `savedly` directory, then run the following commands. They replace whatever that install holds:
 
 ```sh
+tar xzf savedly-backup-<date>.tar.gz
 docker compose stop server
 docker compose exec -T db psql -U saveforlatter -d saveforlatter -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
-docker compose exec -T db psql -U saveforlatter -d saveforlatter < savedly-db.sql
-docker run --rm -v saveforlatter_files:/files -v "$PWD":/backup alpine sh -c 'rm -rf /files/* && tar xzf /backup/savedly-files.tar.gz -C /files'
+docker compose exec -T db psql -U saveforlatter -d saveforlatter < database.sql
+docker run --rm -v saveforlatter_files:/files -v "$PWD/files":/backup alpine sh -c 'rm -rf /files/* && cp -a /backup/. /files/'
+```
+
+If the archive has a `secrets.json`, put it back before you start the server, so saved API keys can be read:
+
+```sh
+docker run --rm -v saveforlatter_secrets:/secrets -v "$PWD":/backup alpine sh -c 'cp /backup/secrets.json /secrets/secrets.json && chown 1001:1001 /secrets/secrets.json && chmod 600 /secrets/secrets.json'
 docker compose start server
 ```
 
-Restore your copy of the `saveforlatter_secrets` volume as well, before you start the server. Without the original key, saved API keys must be entered again.
+Without the original key, the install still works, but saved API keys and calendar connections must be entered again.
+
+If you backed up from the command line, restore `files.tar.gz` with `tar xzf` into the `saveforlatter_files` volume in place of the `cp` step.
 
 ## Upgrade
 
