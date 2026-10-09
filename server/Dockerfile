@@ -3,7 +3,7 @@
 # (node_modules stay external). Bundling sidesteps Node ESM's requirement for
 # explicit ".js" import extensions, which tsc's output doesn't add.
 # ============================================================================
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ RUN pnpm build
 # ============================================================================
 # Runtime stage: minimal image with prod deps only
 # ============================================================================
-FROM node:22-alpine
+FROM node:25-alpine
 
 WORKDIR /app
 
