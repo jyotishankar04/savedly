@@ -144,3 +144,18 @@ export function verifyCalendarStateToken(token: string): CalendarStateTokenPaylo
     return null;
   }
 }
+
+/** Carried through GitHub's consent screen as `state`, so the callback knows which signed-in user asked to connect. */
+export function signGithubStateToken(userId: string): string {
+  return jwt.sign({ typ: "github_connect", userId }, env.CALENDAR_STATE_SECRET, { expiresIn: CALENDAR_STATE_TTL });
+}
+
+/** The user id from a valid state token, or null for anything expired, tampered with or meant for another flow. */
+export function verifyGithubStateToken(token: string): string | null {
+  try {
+    const payload = jwt.verify(token, env.CALENDAR_STATE_SECRET) as jwt.JwtPayload;
+    return payload.typ === "github_connect" && typeof payload.userId === "string" ? payload.userId : null;
+  } catch {
+    return null;
+  }
+}

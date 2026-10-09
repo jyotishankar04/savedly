@@ -219,6 +219,12 @@ export async function assertWithinLimit(userId: string, limitType: PlanLimitType
   });
 }
 
+/** How many more of `limitType` the user's plan allows. Null = unlimited. For callers that add as many as fit. */
+export async function remainingWithinLimit(userId: string, limitType: PlanLimitType, dbClient: DbOrTx = db): Promise<number | null> {
+  const result = await checkLimit(userId, limitType, 0, dbClient);
+  return result.limitValue === null ? null : Math.max(0, result.limitValue - result.current);
+}
+
 /** Non-throwing counterpart, for callers that degrade instead of failing (e.g. included-AI quotas). */
 export async function isWithinLimit(userId: string, limitType: PlanLimitType, delta = 1, dbClient: DbOrTx = db): Promise<boolean> {
   return (await checkLimit(userId, limitType, delta, dbClient)).ok;
