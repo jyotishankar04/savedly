@@ -37,6 +37,16 @@ export interface CreateMemoryInput {
   tags?: string[];
   attachments?: AttachmentInput[];
   captureMethod?: "server" | "extension" | "manual";
+  /** "ask": if it's already in the library, don't save; the server answers 409 so the app can ask. "allow": save it anyway. */
+  onDuplicate?: "ask" | "allow";
+}
+
+/** The memory a save would duplicate, from the server's DUPLICATE_MEMORY error. */
+export interface DuplicateOf {
+  id: string;
+  title: string;
+  type: string;
+  createdAt: string;
 }
 
 export interface CreateMemoryResult extends MemoryDetail {
@@ -92,4 +102,9 @@ export async function updateMemory(id: string, patch: UpdateMemoryInput): Promis
 
 export async function deleteMemory(id: string): Promise<void> {
   await apiFetch<void>(`/memories/${id}`, { method: "DELETE" });
+}
+
+/** The answer to a "duplicate detected" notification: "skip" moves the new copy to Trash, "keep" leaves both. */
+export async function resolveDuplicate(id: string, action: "skip" | "keep"): Promise<void> {
+  await apiFetch(`/memories/${id}/duplicate`, { method: "POST", body: { action } });
 }

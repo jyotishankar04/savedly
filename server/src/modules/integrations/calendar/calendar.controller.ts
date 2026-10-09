@@ -56,7 +56,7 @@ async function initiateConnect(req: Request, res: Response, provider: CalendarPr
 
 async function handleCallback(req: Request, res: Response, provider: CalendarProviderKey) {
   const { code, state } = req.query as { code?: string; state?: string };
-  const failureUrl = `${env.FRONTEND_URL}/app/settings?calendar=error`;
+  const failureUrl = `${env.FRONTEND_URL}/app/integrations?calendar=error`;
 
   if (!code || !state) return res.redirect(failureUrl);
 
@@ -71,7 +71,7 @@ async function handleCallback(req: Request, res: Response, provider: CalendarPro
     return res.redirect(failureUrl);
   }
 
-  res.redirect(`${env.FRONTEND_URL}/app/settings?calendar=connected`);
+  res.redirect(`${env.FRONTEND_URL}/app/integrations?calendar=connected`);
 }
 
 export class CalendarController {

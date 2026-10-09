@@ -22,6 +22,7 @@ import { getCalendarConnectUrl, type CalendarProviderKey } from "@/lib/calendar-
 import { getServerConfig } from "@/lib/server-config";
 import { useCalendarConnectionsQuery, usePushToCalendarMutation } from "@/hooks/use-calendar";
 import type { Memory } from "@/types/memory";
+import { ConnectLink } from "@/components/integrations/connect-link";
 
 interface AddToCalendarDialogProps {
   memory: Pick<Memory, "id" | "title" | "description" | "url" | "eventAt">;
@@ -177,12 +178,11 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
                       link or the file below.
                     </p>
                   ) : (
-                    <Button
+                    <ConnectLink
                       key={provider}
+                      href={getCalendarConnectUrl(provider)}
                       variant="outline"
-                      nativeButton={false}
                       className="h-11 w-full justify-between rounded-xl px-4 text-sm font-medium"
-                      render={<a href={getCalendarConnectUrl(provider)} />}
                     >
                       <span className="flex items-center gap-2.5">
                         <HugeiconsIcon icon={CalendarIcon} strokeWidth={2} className="h-[18px] w-[18px] text-muted-foreground" />
@@ -192,7 +192,7 @@ export function AddToCalendarDialog({ memory, open, onOpenChange }: AddToCalenda
                         Sync automatically
                         <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-3.5 w-3.5" />
                       </span>
-                    </Button>
+                    </ConnectLink>
                   );
                 })}
               </div>

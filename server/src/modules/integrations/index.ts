@@ -1,5 +1,6 @@
 import { Router } from "express";
 import calendarRoutes from "./calendar/calendar.routes";
+import githubRoutes from "./github/github.routes";
 
 // Aggregates every third-party integration onto one router, mounted at
 // /api/v1/integrations by ../../routes/index.ts. Each integration owns its
@@ -11,5 +12,6 @@ import calendarRoutes from "./calendar/calendar.routes";
 const router = Router();
 
 router.use("/calendar", calendarRoutes);
+router.use("/github", githubRoutes);
 
 export default router;

@@ -216,6 +216,8 @@ docker compose up -d --build
 
 Database changes apply automatically when the new version starts. Back up first; see [Back up your data](#back-up-your-data).
 
+Saved items are processed four at a time. If your AI provider reports rate limits, which is likely on a free-tier key, add `INGESTION_CONCURRENCY=1` (or `2`) to the `.env` file and restart.
+
 The **Admin** overview tells you when a newer release exists. To do that, the install asks GitHub for the latest release about twice a day. It sends nothing about your install. To turn the check off, add `UPDATE_CHECK=false` to the `.env` file and restart.
 
 ## Run the hosted API
