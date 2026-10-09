@@ -17,6 +17,7 @@ import type {
   UpdateMemoryInput,
 } from "./memory.schema";
 import { assertFeature, assertWithinLimit } from "../plans/plans.service";
+import { DuplicateStatus, findDuplicate } from "./duplicates";
 
 export interface MemoryListItem {
   id: string;
@@ -645,23 +646,16 @@ export async function createMemory(
 ): Promise<MemoryDetail & { duplicateOf: { id: string; title: string } | null }> {
   await assertWithinLimit(userId, PlanLimitType.MEMORY_COUNT, 1);
 
-  // Non-blocking duplicate detection (docs/URL_CAPTURE_AND_PREVIEW.md) — never
-  // a reason to refuse the save, only a hint the client can surface.
   const normalizedUrl = normalizeUrl(input.url);
-  const duplicateOf = normalizedUrl
-    ? await db
-        .select({ id: memories.id, title: memories.title })
-        .from(memories)
-        .where(
-          and(
-            eq(memories.userId, userId),
-            eq(memories.normalizedUrl, normalizedUrl),
-            eq(memories.inTrash, false),
-          ),
-        )
-        .limit(1)
-        .then((rows) => rows[0] ?? null)
-    : null;
+  const existing = await findDuplicate(userId, { type: input.type, normalizedUrl, content: input.content });
+  // Saved from the app: ask before saving a second copy.
+  if (existing && input.onDuplicate === "ask") {
+    throw new AppError("This is already in your library.", 409, "DUPLICATE_MEMORY", { existing });
+  }
+  // What the pipeline's duplicate check should make of this memory. Decided
+  // here whenever the answer is already known, so it never asks twice.
+  const duplicateStatus = input.onDuplicate ? (existing ? DuplicateStatus.KEPT : DuplicateStatus.NONE) : null;
+  const duplicateOf = existing ? { id: existing.id, title: existing.title } : null;
 
   const memoryId = await db.transaction(async (tx) => {
     // An image memory with an uploaded attachment but no explicit preview gets
@@ -683,6 +677,8 @@ export async function createMemory(
       previewImageUrl,
       keywords: input.keywords,
       captureMethod: input.captureMethod ?? "manual",
+      duplicateStatus,
+      duplicateOfId: input.onDuplicate && existing ? existing.id : null,
     };
     const [row] = await tx.insert(memories).values(values).returning({ id: memories.id });
 

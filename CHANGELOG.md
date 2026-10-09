@@ -5,6 +5,7 @@ Notable changes to Savedly. The format follows [Keep a Changelog](https://keepac
 ## Unreleased
 
 ### Added
+- Duplicate detection: saving a link or note that is already in your library asks first (skip, or add anyway). Saves made outside the app are flagged by a new pipeline step, with a notification to skip the new copy or keep both.
 - GitHub stars: connect a GitHub account and the public repositories you star are added to your library, checked twice a day.
 - Installable web app (PWA) with a share target, so links, text, photos and PDFs can be shared to Savedly from a phone.
 - "What's new" popup, managed from the admin area.

@@ -11,6 +11,7 @@ import { correctCaption } from "./nodes/correct-caption";
 import { detectContentType } from "./nodes/detect-content-type";
 import { classifyIntent } from "./nodes/classify-intent";
 import { detectEvent } from "./nodes/detect-event";
+import { detectDuplicate } from "./nodes/detect-duplicate";
 import { generateAiInsights } from "./nodes/generate-ai-insights";
 import { organizeCollection } from "./nodes/organize-collection";
 import { semanticChunker } from "./nodes/semantic-chunker";
@@ -97,6 +98,8 @@ const builder = new StateGraph(IngestionState)
   .addNode("detectContentType", optional("detectContentType", detectContentType))
   .addNode("classifyIntent", optional("classifyIntent", classifyIntent))
   .addNode("detectEvent", optional("detectEvent", detectEvent))
+  // Not a model call: a lookup for the same link or note already in the library.
+  .addNode("detectDuplicate", optional("detectDuplicate", detectDuplicate))
   .addNode("generateAiInsights", optional("generateAiInsights", generateAiInsights))
   .addNode("organizeCollection", optional("organizeCollection", organizeCollection))
   .addNode("semanticChunker", semanticChunker)
@@ -119,11 +122,13 @@ const builder = new StateGraph(IngestionState)
 //   parser ─┬─ correctCaption ── classifyIntent ─┬─ generateAiInsights ─┬─ organizeCollection ─┐
 //           ├─ detectContentType ────────────────┤                      │                      ├─ upsertVectors
 //           │                                    └─ detectEvent ────────┼──────────────────────┤
-//           └─ semanticChunker ─────────────────────────────────────────┴─ generateEmbeddings ─┘
+//           ├─ semanticChunker ─────────────────────────────────────────┴─ generateEmbeddings ─┤
+//           └─ detectDuplicate ────────────────────────────────────────────────────────────────┘
 for (const parserNode of PARSER_NODES) {
   builder.addEdge(parserNode, "correctCaption");
   builder.addEdge(parserNode, "detectContentType");
   builder.addEdge(parserNode, "semanticChunker");
+  builder.addEdge(parserNode, "detectDuplicate");
 }
 
 builder
@@ -132,7 +137,7 @@ builder
   .addEdge(["detectContentType", "classifyIntent"], "detectEvent")
   .addEdge("generateAiInsights", "organizeCollection")
   .addEdge(["generateAiInsights", "semanticChunker"], "generateEmbeddings")
-  .addEdge(["organizeCollection", "generateEmbeddings", "detectEvent"], "upsertVectors")
+  .addEdge(["organizeCollection", "generateEmbeddings", "detectEvent", "detectDuplicate"], "upsertVectors")
   .addEdge("upsertVectors", END);
 
 export const ingestionGraph = builder.compile();

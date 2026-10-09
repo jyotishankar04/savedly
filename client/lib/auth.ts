@@ -22,7 +22,13 @@ export interface AuthUser {
  * transient network hiccup instead of treating both the same way.
  */
 export class ApiError extends Error {
-  constructor(message: string, public readonly status: number, public readonly code?: string) {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code?: string,
+    /** Whatever the server attached to the error, e.g. the memory a save would duplicate. */
+    public readonly details?: unknown,
+  ) {
     super(message);
     this.name = "ApiError";
   }
@@ -32,7 +38,7 @@ interface ApiEnvelope<T> {
   success: boolean;
   data: T;
   meta?: Record<string, unknown>;
-  error?: { message: string; code?: string };
+  error?: { message: string; code?: string; details?: unknown };
 }
 
 interface RetryableConfig extends InternalAxiosRequestConfig {
@@ -97,6 +103,7 @@ api.interceptors.response.use(undefined, async (error: AxiosError<Partial<ApiEnv
     error.response.data?.error?.message ?? "Something went wrong. Please try again.",
     error.response.status,
     error.response.data?.error?.code,
+    error.response.data?.error?.details,
   );
 });
 

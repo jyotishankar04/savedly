@@ -198,6 +198,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   NotificationType.SHARE_ACCESS_DENIED,
   NotificationType.SHARE_REVOKED,
   NotificationType.EVENT_DETECTED,
+  NotificationType.DUPLICATE_DETECTED,
 ]);
 
 export const planAssignmentStatusEnum = pgEnum("plan_assignment_status", [
@@ -719,6 +720,13 @@ export const memories = pgTable(
     // the plan ("Preview unavailable", not "Cloudflare blocked our crawler").
     fetchStatus: text("fetch_status"),
     captureMethod: text("capture_method"),
+    // Duplicate detection (modules/memory/duplicates.ts). Null until checked;
+    // then "none", "pending" (a duplicate was found and the user hasn't
+    // answered) or "kept" (they chose to have both). duplicateOfId is the
+    // older memory this one repeats, with no foreign key: it's a hint that
+    // may outlive the original.
+    duplicateStatus: varchar("duplicate_status", { length: 16 }),
+    duplicateOfId: uuid("duplicate_of_id"),
     // Raw browser-observed metadata from the Chrome extension's
     // POST /:id/browser-capture, consumed by the ingestion pipeline's merge
     // step and kept for re-merging on a later /refresh-preview.

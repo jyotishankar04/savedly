@@ -8,8 +8,7 @@ import {
   validateBrowserCapture,
   validateCreateMemory,
   validateListMemories,
-  validateUpdateMemory,
-} from "./memory.validator";
+  validateUpdateMemory, validateResolveDuplicate } from "./memory.validator";
 
 const router = Router();
 
@@ -25,6 +24,7 @@ router.delete("/:id", authenticate, MemoryController.remove);
 
 router.post("/:id/browser-capture", authenticate, validateBrowserCapture, MemoryController.browserCapture);
 router.post("/:id/refresh-preview", authenticate, MemoryController.refreshPreview);
+router.post("/:id/duplicate", authenticate, validateResolveDuplicate, MemoryController.resolveDuplicate);
 router.get("/:id/processing-status", authenticate, MemoryController.processingStatus);
 router.post("/:id/calendar-events", authenticate, requireFeature("calendarSync"), validatePushEvent, CalendarController.pushEvent);
 router.patch("/:id/calendar-event", authenticate, validateUpdateEvent, CalendarController.updateMemoryEvent);

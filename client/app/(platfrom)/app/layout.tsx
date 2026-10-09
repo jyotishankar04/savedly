@@ -23,6 +23,8 @@ import { useRecentEventNotificationsQuery, useUnreadCountQuery } from "@/hooks/u
 import type { AppNotification } from "@/lib/notifications";
 import type { Collection } from "@/types/memory";
 import { LiveEventDetectedPopup } from "@/components/memory/event-detected-popup";
+import { DuplicateAskHost, LiveDuplicatePopup, wasDuplicatePopupDismissed } from "@/components/memory/duplicate-dialog";
+import { DuplicateSkippedError } from "@/context/MemoryContext";
 import { useLockVaultMutation } from "@/hooks/use-vault";
 import { PlanLimitNotice, ProBadge, LimitDot } from "@/components/plan-limit-notice";
 import { detectMemoryType, deriveTitle, splitLinkAndCaption } from "@/lib/detect-memory-type";
@@ -41,7 +43,6 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { toast } from "@/components/ui/toast";
 import {
   InputGroup,
   InputGroupAddon,
@@ -387,6 +388,20 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const { data: recentNotifications } = useRecentEventNotificationsQuery();
   const seenEventPopupIds = useRef<Set<string>>(new Set());
   const [eventPopupNotification, setEventPopupNotification] = useState<AppNotification | null>(null);
+  // The same, for a duplicate found in something saved elsewhere (the
+  // extension, a share from a phone) while this tab is open.
+  const [duplicatePopup, setDuplicatePopup] = useState<AppNotification | null>(null);
+  useEffect(() => {
+    if (duplicatePopup || eventPopupNotification) return;
+    const next = recentNotifications?.find(
+      (n) => n.type === "duplicate_detected" && !seenEventPopupIds.current.has(n.id) && !wasDuplicatePopupDismissed(n.id),
+    );
+    if (next) {
+      seenEventPopupIds.current.add(next.id);
+      setDuplicatePopup(next);
+    }
+  }, [recentNotifications, duplicatePopup, eventPopupNotification]);
+
   useEffect(() => {
     if (eventPopupNotification) return;
     const next = recentNotifications?.find(
@@ -636,17 +651,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
       setSavedTitle(memory.title);
       setSavedCollections(memory.collections);
       setSaveStep("done");
-      // Non-blocking duplicate hint (docs/URL_CAPTURE_AND_PREVIEW.md) — the
-      // memory above was saved either way, this is just a heads-up.
-      if (memory.duplicateOf) {
-        toast.add({
-          title: "You already saved a similar link",
-          description: memory.duplicateOf.title,
-          type: "info",
-        });
-      }
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Couldn't save that memory.");
+      // Told it's a duplicate and chose to skip: nothing went wrong.
+      if (!(err instanceof DuplicateSkippedError)) setSaveError(err instanceof Error ? err.message : "Couldn't save that memory.");
     } finally {
       setIsSaving(false);
     }
@@ -1653,6 +1660,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
           onClose={() => setEventPopupNotification(null)}
         />
       )}
+
+      {duplicatePopup && <LiveDuplicatePopup notification={duplicatePopup} onClose={() => setDuplicatePopup(null)} />}
+      <DuplicateAskHost />
 
       <AskWidget />
 
