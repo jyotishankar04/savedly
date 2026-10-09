@@ -36,3 +36,15 @@ The notification is answered with `POST /memories/:id/duplicate` and `{ "action"
 
 `duplicate_status` is null until a memory has been checked, and a memory is only ever checked once, so re-processing it never raises the question again.
 
+## Processing several items at once
+
+Code: `server/src/modules/ai/ingestion/queue.ts` and `worker.ts`.
+
+The ingestion worker processes `INGESTION_CONCURRENCY` saved items at the same time (default 4, from 1 to 16). A job is mostly waiting on a page fetch and model calls, so the ceiling is the AI provider's rate limit, not the server.
+
+Imports and the GitHub stars sync add their items with `enqueueIngestionBulk`, which gives them a lower priority than a single save. A link saved in the middle of a large import is processed as soon as a slot frees, not after the import.
+
+Finished jobs are removed from Redis after an hour, and failed ones after a week.
+
+When the AI provider refuses a request, the step is skipped and the item is saved without that enrichment. The server log says which of two reasons applied: the account has no credits left, or it was rate-limited (lower `INGESTION_CONCURRENCY`).
+

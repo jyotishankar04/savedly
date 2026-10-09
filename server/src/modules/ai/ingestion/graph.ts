@@ -68,12 +68,33 @@ export function sanitize(name: string, memoryId: string, update: IngestionUpdate
  * and the memory is saved with whatever succeeded (e.g. a screenshot's OCR
  * text) instead of being marked failed.
  */
+/**
+ * Why a provider refused a request, when it's one of the two reasons an
+ * operator can act on. Both arrive as HTTP 429, so they are told apart by
+ * the error's code and wording.
+ */
+function providerRefusal(err: unknown): "no-credits" | "rate-limit" | null {
+  const e = err as { status?: number; code?: string; message?: string; lc_error_code?: string } | null;
+  const text = `${e?.code ?? ""} ${e?.lc_error_code ?? ""} ${e?.message ?? ""}`;
+  if (/credit_balance|insufficient_quota|no credits|exceeded your current quota|billing/i.test(text)) return "no-credits";
+  if (e?.status === 429 || /rate.?limit|too many requests|\b429\b/i.test(text)) return "rate-limit";
+  return null;
+}
+
 function optional(name: string, node: (state: IngestionStateType) => Promise<IngestionUpdate>) {
   return async (state: IngestionStateType): Promise<IngestionUpdate> => {
     try {
       return sanitize(name, state.memoryId, await node(state));
     } catch (err) {
-      logger.warn({ err, memoryId: state.memoryId, node: name }, "[ingestion] enrichment step failed, continuing without it");
+      // Named separately, because each has a different fix and neither is a bug.
+      const refusal = providerRefusal(err);
+      if (refusal === "no-credits") {
+        logger.error({ memoryId: state.memoryId, node: name }, "[ingestion] the AI provider account has no credits left, so this step was skipped. Saves will have no summary or tags until credits are added");
+      } else if (refusal === "rate-limit") {
+        logger.warn({ memoryId: state.memoryId, node: name }, "[ingestion] the AI provider rate-limited this step; it was skipped. Lower INGESTION_CONCURRENCY if this keeps happening");
+      } else {
+        logger.warn({ err, memoryId: state.memoryId, node: name }, "[ingestion] enrichment step failed, continuing without it");
+      }
       return {};
     }
   };

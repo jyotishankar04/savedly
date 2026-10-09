@@ -6,7 +6,7 @@ import { AppError } from "../../../shared/errors/app-error";
 import { decryptToken, encryptToken } from "../../../shared/crypto/token-cipher";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 import { logger } from "../../../shared/utils/logger";
-import { ingestionQueue } from "../../ai/ingestion/queue";
+import { enqueueIngestionBulk } from "../../ai/ingestion/queue";
 import { normalizeUrl } from "../../memory/normalize-url";
 import { remainingWithinLimit } from "../../plans/plans.service";
 import { GithubAuthError, STARS_PAGE_SIZE, getGithubViewer, listStarredRepos, revokeGithubToken, type StarredRepo } from "./github-client";
@@ -193,7 +193,7 @@ export async function syncGithubStars(userId: string): Promise<GithubSyncResult>
     })
     .where(eq(githubConnections.userId, userId));
 
-  await Promise.all(created.map((memory) => ingestionQueue.add("ingest", { memoryId: memory.id })));
+  await enqueueIngestionBulk(created.map((memory) => memory.id));
   await bumpUserCache(userId);
   return { added: created.length, alreadySaved, leftOver };
 }

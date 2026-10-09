@@ -15,6 +15,7 @@ Notable changes to Savedly. The format follows [Keep a Changelog](https://keepac
 - Planned-integration cards on the Integrations page.
 
 ### Changed
+- Saved items are processed four at a time instead of one (`INGESTION_CONCURRENCY`), and a single save goes ahead of a large import.
 - The product is now named **Savedly**, at savedly.app. It was SaveForLatter before, and Memora before that. Session cookies were renamed, so everyone is signed out once.
 - Mobile layout: scrolling, the menu, safe areas and the bottom navigation.
 
