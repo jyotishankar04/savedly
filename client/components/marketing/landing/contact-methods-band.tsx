@@ -7,11 +7,12 @@ import { Mail01Icon as Mail, MessageSquareIcon as MessageSquare, MapPinIcon as M
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { BOOKING_URL } from "@/lib/booking";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
 
 // Adapted from a pasted "Contact5" reference. react-icons' IconType swapped
 // for this repo's HugeiconsIcon convention; @/components/base-ui/badge
 // doesn't exist here (real path is @/components/ui/badge). Content is real
-// facts the previous /contact page already had — support@savedly.app,
+// facts the previous /contact page already had — the support address,
 // Slack for Pro subscribers, Bengaluru — plus a real Cal.com link, not the
 // phone-number fourth card the reference assumed (no phone number exists
 // anywhere in this codebase).
@@ -28,7 +29,8 @@ const CONTACT_METHODS: ContactMethod[] = [
     icon: Mail,
     title: "Email us",
     description: "For anything — billing, bugs, feature requests.",
-    details: "support@savedly.app",
+    details: SUPPORT_EMAIL,
+    href: SUPPORT_MAILTO,
   },
   {
     icon: Calendar,

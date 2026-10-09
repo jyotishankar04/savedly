@@ -10,6 +10,7 @@ import { listUsers } from "@/lib/admin-users";
 import { getServerConfig } from "@/lib/server-config";
 import { formatBytes, getSystemStatus, type SystemStatus } from "@/lib/admin-system";
 import { PlanGrantsPanel } from "@/components/admin/plan-grants-panel";
+import { BackupCard } from "@/components/admin/backup-card";
 
 function StatTile({ label, value, href }: { label: string; value: string; href: string }) {
   return (
@@ -83,22 +84,7 @@ function SelfHostedSystem({ system }: { system: SystemStatus }) {
           </ul>
         </section>
 
-        <section className="rounded-xl border border-border p-4 space-y-3">
-          <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Keep it safe</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Everything lives in the database, the uploaded files and the secrets volume. Back up all three regularly, and
-            before you upgrade.
-          </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            <Link href="/help/self-host#backup" className="text-primary hover:underline">
-              How to back up
-            </Link>
-            <Link href="/help/self-host#upgrade" className="text-primary hover:underline">
-              How to upgrade
-            </Link>
-          </div>
-          {system.version && <p className="text-[11px] text-muted-foreground font-mono">Version {system.version}</p>}
-        </section>
+        <BackupCard filesInBucket={system.filesBytes === null} version={system.version} />
       </div>
     </div>
   );

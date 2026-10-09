@@ -1,5 +1,7 @@
 "use client";
 
+import { SELF_HOSTED } from "@/lib/instance";
+import { PlainFooter } from "@/components/self-hosted/plain-chrome";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -125,6 +127,10 @@ const linkClass =
  * decorative (no newsletter or social icons, since neither exists).
  */
 export function MainFooter() {
+  return SELF_HOSTED ? <PlainFooter /> : <MarketingFooter />;
+}
+
+function MarketingFooter() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   // Must start false on both server and first client render (mount flag
