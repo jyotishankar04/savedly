@@ -3,6 +3,9 @@
 import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
+import { SELF_HOSTED } from "@/lib/instance";
+import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
 
 export default function PrivacyPage() {
   return (
@@ -10,6 +13,8 @@ export default function PrivacyPage() {
       <Navbar />
 
       <main className="flex-1 pt-32 pb-20 max-w-4xl mx-auto px-6">
+
+        {SELF_HOSTED && <HostedPolicyNotice />}
 
         {/* Header */}
         <div className="text-center space-y-4 mb-16">
@@ -162,7 +167,7 @@ export default function PrivacyPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">9. Contact</h2>
             <p>
-              Questions about this policy or your data can be sent through the <a href="/contact" className="text-primary hover:underline">contact page</a>.
+              Questions about this policy or your data can be sent to <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
             </p>
           </section>
 

@@ -582,7 +582,7 @@ function OnboardingFlow() {
                 Turn on the smart features
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Summaries, auto-tags, and Ask use your own AI key. Saving and keyword search work without one.
+                Summaries, auto-tags, and Ask need an AI key. Saving and keyword search work without one. If you run this install, the dashboard walks you through connecting it.
               </p>
               <div className="flex gap-3 text-[11px] font-medium">
                 <Link href="/app/settings/ai" className="text-primary hover:underline">Connect a key</Link>

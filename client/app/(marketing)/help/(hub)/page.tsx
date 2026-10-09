@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon as ArrowRight, Bug01Icon as Bug, Mail01Icon as Mail, Search01Icon as Search } from "@hugeicons/core-free-icons";
 import { CATEGORIES, docsCategoryHref } from "@/lib/help-content";
+import { hostedHref } from "@/lib/instance";
 
 export const metadata: Metadata = {
   title: "Help Center · Savedly",
@@ -84,7 +85,7 @@ export default function HelpHubPage() {
         </div>
         <ul className="flex flex-col sm:flex-row gap-x-10 gap-y-3 text-[15px]">
           <li>
-            <Link href="/contact" className="inline-flex items-center gap-2 font-medium text-foreground hover:text-primary transition-colors">
+            <Link href={hostedHref("/contact")} className="inline-flex items-center gap-2 font-medium text-foreground hover:text-primary transition-colors">
               <HugeiconsIcon icon={Mail} strokeWidth={2} className="h-4 w-4" />
               Ask us a question
             </Link>
