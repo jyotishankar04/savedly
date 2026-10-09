@@ -118,6 +118,7 @@ docs/       Contributor documentation — start at docs/README.md
 - **Have a question, or want to talk it through?** Join the [Discord server](https://discord.gg/PzGFcMNyRK).
 - **Found a bug or want a feature?** [Open an issue](https://github.com/jyotishankar04/saveforlatter/issues) or use the in-app report form (`/report`).
 - **Want to contribute code?** See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for setup and PR conventions, and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) for the ground rules.
+- **Anything else?** Email support@savedly.app.
 - **Found a security issue?** Please don't open a public issue — see [`SECURITY.md`](./SECURITY.md).
 
 This project is licensed under the [GNU Affero General Public License v3.0](./LICENSE) (AGPL-3.0). You can use, modify and self-host it freely; if you run a modified version as a network service, you must make your source code available to its users under the same license.

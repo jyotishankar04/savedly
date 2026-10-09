@@ -6,6 +6,7 @@ import MainFooter from "@/components/marketing/landing/main-footer";
 import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
 import { SELF_HOSTED, hostedHref } from "@/lib/instance";
 import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
 
 export default function TermsPage() {
   return (
@@ -122,7 +123,7 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">10. Contact</h2>
             <p>
-              Questions about these terms can be sent through the <a href={hostedHref("/contact")} className="text-primary hover:underline">contact page</a>.
+              Questions about these terms can be sent to <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
             </p>
           </section>
 

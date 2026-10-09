@@ -4,8 +4,9 @@ import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
 import Link from "next/link";
-import { SELF_HOSTED, hostedHref } from "@/lib/instance";
+import { SELF_HOSTED } from "@/lib/instance";
 import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
 
 export default function CookiesPage() {
   return (
@@ -86,7 +87,7 @@ export default function CookiesPage() {
           <section className="space-y-4 pt-8 border-t border-border">
             <h2 className="text-xl font-bold text-foreground">5. Contact us</h2>
             <p>
-              If you have any questions about our use of cookies, please <Link href={hostedHref("/contact")} className="text-primary hover:underline">contact us</Link>.
+              If you have any questions about our use of cookies, write to <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
               For broader information regarding how we handle your personal data, please review our <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
             </p>
           </section>

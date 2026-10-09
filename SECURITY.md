@@ -7,7 +7,7 @@ If you find a security vulnerability in Savedly, please **don't open a public Gi
 Instead, report it privately:
 
 - Preferred: use GitHub's [private vulnerability reporting](https://github.com/jyotishankar04/saveforlatter/security/advisories/new) for this repository (Security tab → "Report a vulnerability").
-- Alternatively, contact a maintainer directly. *(Maintainers: add a dedicated security contact email here once one exists.)*
+- Alternatively, email **support@savedly.app** with "Security" in the subject line.
 
 Please include:
 

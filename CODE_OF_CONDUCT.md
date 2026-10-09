@@ -54,9 +54,8 @@ an individual is officially representing the community in public spaces.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the project maintainers by opening a
 [GitHub issue](https://github.com/jyotishankar04/saveforlatter/issues) for
-non-sensitive matters, or by contacting a maintainer directly for anything
-that shouldn't be public. *(Maintainers: add a dedicated contact
-email/channel here once one exists.)*
+non-sensitive matters, or by emailing **support@savedly.app** for anything
+that shouldn't be public.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
