@@ -20,9 +20,12 @@ import {
   listMemories,
   updateMemory,
   type CreateMemoryInput,
+  type DuplicateOf,
   type ListMemoriesParams,
   type UpdateMemoryInput,
 } from "@/lib/memories";
+import { ApiError } from "@/lib/auth";
+import { askAboutDuplicate } from "@/lib/duplicate-prompt";
 
 export const memoriesQueryKey = (params: ListMemoriesParams = {}) => ["memories", params] as const;
 // No-arg form is deliberately just ["collections"] (not, say,
@@ -179,10 +182,31 @@ export function useDeleteMemoryMutation() {
   });
 }
 
+/** The user was told this is already in their library and chose not to add it again. Not a failure. */
+export class DuplicateSkippedError extends Error {
+  constructor() {
+    super("Not saved. It's already in your library.");
+    this.name = "DuplicateSkippedError";
+  }
+}
+
 export function useCreateMemoryMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateMemoryInput) => createMemory(input),
+    // Saved from the app, so a duplicate is asked about before anything is
+    // saved. "Add anyway" saves it; "Skip" ends the save with
+    // DuplicateSkippedError, which callers treat as "nothing to do".
+    mutationFn: async (input: CreateMemoryInput) => {
+      try {
+        return await createMemory({ ...input, onDuplicate: "ask" });
+      } catch (err) {
+        const existing = err instanceof ApiError && err.code === "DUPLICATE_MEMORY" ? (err.details as { existing?: DuplicateOf })?.existing : undefined;
+        if (!existing) throw err;
+        const answer = await askAboutDuplicate(existing, input.url ? "link" : "note");
+        if (answer === "skip") throw new DuplicateSkippedError();
+        return createMemory({ ...input, onDuplicate: "allow" });
+      }
+    },
     onSuccess: () => {
       // Processing may find an event; surface its popup within seconds.
       expectNotificationsSoon();

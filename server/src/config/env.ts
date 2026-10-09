@@ -26,6 +26,10 @@ const envSchema = z
     // request. UPDATE_CHECK_URL points it at another release list (a fork).
     UPDATE_CHECK: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
     UPDATE_CHECK_URL: z.string().url().optional(),
+    // How many saved items are processed at once. Each makes several AI calls,
+    // so lower it if the AI provider reports rate limits (a free-tier key);
+    // 1 processes them strictly one after another.
+    INGESTION_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(4),
     // Where a self-hosted install keeps its generated secrets and, with the
     // local storage driver, uploaded files. Both are Docker volumes in
     // docker-compose.yml.

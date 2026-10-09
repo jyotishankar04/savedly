@@ -6,7 +6,8 @@ export type NotificationType =
   | "share_access_approved"
   | "share_access_denied"
   | "share_revoked"
-  | "event_detected";
+  | "event_detected"
+  | "duplicate_detected";
 
 export interface AppNotification {
   id: string;
@@ -51,4 +52,12 @@ export function eventDetectedRefs(n: AppNotification): { memoryId: string; sugge
   const suggestedEventAt = n.metadata?.suggestedEventAt;
   if (typeof memoryId !== "string" || typeof suggestedEventAt !== "string") return null;
   return { memoryId, suggestedEventAt };
+}
+
+/** For duplicate_detected: the copy just saved, and the one it repeats. */
+export function duplicateDetectedRefs(n: AppNotification): { memoryId: string; duplicateOfId: string; existingTitle: string } | null {
+  const memoryId = n.metadata?.memoryId;
+  const duplicateOfId = n.metadata?.duplicateOfId;
+  if (n.type !== "duplicate_detected" || typeof memoryId !== "string" || typeof duplicateOfId !== "string") return null;
+  return { memoryId, duplicateOfId, existingTitle: typeof n.metadata?.existingTitle === "string" ? n.metadata.existingTitle : "The one you saved" };
 }

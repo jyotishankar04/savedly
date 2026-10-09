@@ -15,7 +15,9 @@ A personal memory tool that reads, organizes, and helps you find what you save â
 
 </div>
 
-<!-- TODO: add a screenshot or short demo GIF of the dashboard here -->
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="Savedly dashboard: the Home page with a semantic search box, quick actions to save a link, note or file, and a grid of recently saved links and notes; the sidebar lists Home, Search, Ask Savedly, Memories and example collections" width="900" />
+</p>
 
 ## Overview
 

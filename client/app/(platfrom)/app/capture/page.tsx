@@ -22,7 +22,7 @@ import {
   AttachmentActions,
   AttachmentAction,
 } from "@/components/ui/attachment";
-import { useCollectionsQuery, useCreateMemoryMutation } from "@/context/MemoryContext";
+import { DuplicateSkippedError, useCollectionsQuery, useCreateMemoryMutation } from "@/context/MemoryContext";
 import { uploadFile, type UploadedFile } from "@/lib/uploads";
 import { detectMemoryType, deriveTitle, splitLinkAndCaption } from "@/lib/detect-memory-type";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
@@ -254,7 +254,8 @@ function CaptureForm() {
       toast.add({ title: "Saved to Savedly", description: memory.title, type: "success" });
       router.push("/app/memories");
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Couldn't save that memory.");
+      // Told it's a duplicate and chose to skip: nothing went wrong.
+      if (!(err instanceof DuplicateSkippedError)) setSaveError(err instanceof Error ? err.message : "Couldn't save that memory.");
     }
   };
 

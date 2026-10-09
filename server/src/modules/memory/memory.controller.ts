@@ -14,6 +14,7 @@ import {
   updateMemory,
 } from "./memory.service";
 import type { ListMemoriesQuery } from "./memory.schema";
+import { settleDuplicate } from "./duplicates";
 
 export class MemoryController {
   static async list(req: Request, res: Response) {
@@ -35,6 +36,15 @@ export class MemoryController {
   static async create(req: Request, res: Response) {
     const memory = await createMemory(req.user!.id, req.body);
     res.status(201).json(ApiResponse.success(memory));
+  }
+
+  /** The answer to a "duplicate detected" prompt: skip the new copy (to Trash, so it can come back), or keep both. */
+  static async resolveDuplicate(req: Request, res: Response) {
+    const id = req.params.id as string;
+    const action = req.body.action as "skip" | "keep";
+    await settleDuplicate(req.user!.id, id);
+    if (action === "skip") await updateMemory(req.user!.id, id, { inTrash: true });
+    res.status(200).json(ApiResponse.success({ action }));
   }
 
   static async update(req: Request, res: Response) {

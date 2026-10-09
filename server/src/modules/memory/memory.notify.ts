@@ -61,3 +61,27 @@ export function notifyEventDetected(notice: EventDetectedNotice): void {
     });
   });
 }
+
+export interface DuplicateDetectedNotice {
+  userId: string;
+  /** The copy that was just saved. */
+  memoryId: string;
+  memoryTitle: string;
+  /** The one already in the library. */
+  existingId: string;
+  existingTitle: string;
+}
+
+/** In the app only: a duplicate is worth a nudge the next time they look, not an email. */
+export function notifyDuplicateDetected(notice: DuplicateDetectedNotice): void {
+  emit("duplicate detected", () =>
+    createNotification({
+      userId: notice.userId,
+      type: NotificationType.DUPLICATE_DETECTED,
+      title: `"${notice.memoryTitle}" is already in your library`,
+      body: "You saved it again just now. Keep both, or skip the new copy?",
+      actionUrl: `/app/memories/${notice.existingId}`,
+      metadata: { memoryId: notice.memoryId, duplicateOfId: notice.existingId, existingTitle: notice.existingTitle },
+    }),
+  );
+}

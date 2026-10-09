@@ -21,6 +21,7 @@ A reference page per feature, each naming the service file that owns it, the tab
 - [Sharing](./features/sharing.md)
 - [Vault](./features/vault.md)
 - [Calendar integrations](./features/calendar-integrations.md)
+- [GitHub stars](./features/github-stars.md)
 - [Import](./features/import.md)
 - [Notifications](./features/notifications.md)
 - [Admin](./features/admin.md)
