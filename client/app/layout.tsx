@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/common/theme-provider";
@@ -12,17 +12,14 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { ServiceWorker } from "@/components/service-worker";
 import { StandaloneRedirect } from "@/components/standalone-redirect";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+// The fonts are files in this repository (app/fonts, all under the SIL Open
+// Font License), not fetched from Google at build time: a build then needs no
+// network, which matters for people building the self-hosted Docker image.
+const inter = localFont({ src: "./fonts/inter-latin.woff2", weight: "100 900", variable: "--font-sans", display: "swap" });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const geistSans = localFont({ src: "./fonts/geist-latin.woff2", weight: "100 900", variable: "--font-geist-sans", display: "swap" });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geistMono = localFont({ src: "./fonts/geist-mono-latin.woff2", weight: "100 900", variable: "--font-geist-mono", display: "swap" });
 
 const TITLE = "Savedly — Save it now, find it later";
 const DESCRIPTION = "Your personal memory for the internet. Save links, notes, videos, and screenshots, and find them again with a search that understands what you meant.";
