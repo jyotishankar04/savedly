@@ -11,6 +11,7 @@ import {
   Share02Icon as Shared,
   Delete02Icon as Trash,
   Calendar03Icon as CalendarIcon,
+  Copy01Icon as Copy,
   Tick02Icon as Tick,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 } from "@/hooks/use-notifications";
 import { useApproveRequestMutation, useDenyRequestMutation, usePendingRequestsQuery } from "@/hooks/use-shares";
 import { EventDetectedPopup } from "@/components/memory/event-detected-popup";
+import { InlineDuplicateAction } from "@/components/memory/duplicate-dialog";
 
 const ICONS: Record<NotificationType, typeof Bell> = {
   share_invite_received: Shared,
@@ -37,6 +39,7 @@ const ICONS: Record<NotificationType, typeof Bell> = {
   share_access_denied: Declined,
   share_revoked: Declined,
   event_detected: CalendarIcon,
+  duplicate_detected: Copy,
 };
 
 export default function NotificationsPage() {
@@ -123,6 +126,7 @@ const TYPE_LABEL: Record<NotificationType, string> = {
   share_access_denied: "Access declined",
   share_revoked: "Access removed",
   event_detected: "Event detected",
+  duplicate_detected: "Duplicate detected",
 };
 
 function NotificationRow({ notification }: { notification: AppNotification }) {
@@ -130,7 +134,8 @@ function NotificationRow({ notification }: { notification: AppNotification }) {
   const remove = useDeleteNotificationMutation();
   const Icon = ICONS[notification.type] ?? Bell;
   const unread = !notification.readAt;
-  const hasActions = notification.type === "share_access_requested" || notification.type === "event_detected";
+  const hasActions =
+    notification.type === "share_access_requested" || notification.type === "event_detected" || notification.type === "duplicate_detected";
 
   const body = (
     <div className="min-w-0 space-y-1">
@@ -177,6 +182,7 @@ function NotificationRow({ notification }: { notification: AppNotification }) {
           <div className="flex flex-wrap items-center gap-2">
             {notification.type === "share_access_requested" && <InlineDecision notification={notification} />}
             {notification.type === "event_detected" && <InlineCalendarAction notification={notification} />}
+            {notification.type === "duplicate_detected" && <InlineDuplicateAction notification={notification} />}
             {/* On phones "Mark read" joins the actions; beside the title it would squeeze the text. */}
             {unread && (
               <button

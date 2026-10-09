@@ -130,6 +130,7 @@ export enum NotificationType {
   SHARE_ACCESS_DENIED = "share_access_denied",
   SHARE_REVOKED = "share_revoked",
   EVENT_DETECTED = "event_detected",
+  DUPLICATE_DETECTED = "duplicate_detected",
 }
 
 export enum PlanLimitType {

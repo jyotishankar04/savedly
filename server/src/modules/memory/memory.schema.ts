@@ -39,7 +39,14 @@ export const createMemorySchema = z.object({
   // How this memory was originally captured — defaults to "manual" (web
   // dashboard) in the service layer when omitted.
   captureMethod: z.enum(["server", "extension", "manual", "mobile", "import"]).optional(),
+  // What to do when this is already in the library. "ask": don't save, answer
+  // 409 with the existing memory so the app can ask. "allow": the user said
+  // to save it anyway. Left out (the extension, a share, the API): save it,
+  // and the pipeline's duplicate check leaves a notification.
+  onDuplicate: z.enum(["ask", "allow"]).optional(),
 });
+
+export const resolveDuplicateSchema = z.object({ action: z.enum(["skip", "keep"]) });
 
 export const updateMemorySchema = z.object({
   title: z.string().min(1).max(500).optional(),

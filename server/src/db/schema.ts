@@ -198,6 +198,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   NotificationType.SHARE_ACCESS_DENIED,
   NotificationType.SHARE_REVOKED,
   NotificationType.EVENT_DETECTED,
+  NotificationType.DUPLICATE_DETECTED,
 ]);
 
 export const planAssignmentStatusEnum = pgEnum("plan_assignment_status", [
@@ -361,6 +362,39 @@ export const calendarConnections = pgTable(
     uniqueIndex("uq_calendar_connections_user_provider").on(table.userId, table.provider),
     index("idx_calendar_connections_user_id").on(table.userId),
   ]
+);
+
+// One per user: the GitHub account whose starred repositories are added to
+// their library (modules/integrations/github). The token only identifies the
+// account and reads the stars it has made public.
+export const githubConnections = pgTable(
+  "github_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    githubUserId: varchar("github_user_id", { length: 64 }).notNull(),
+    // For "Connected as @octocat" without decrypting anything.
+    login: varchar("login", { length: 100 }).notNull(),
+    encryptedAccessToken: text("encrypted_access_token").notNull(),
+    scope: text("scope").notNull().default(""),
+    // The newest star already dealt with: a sync only looks at stars after it.
+    lastStarredAt: timestamp("last_starred_at", { withTimezone: true }),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    // Repositories this connection has added to the library, in total.
+    importedCount: integer("imported_count").notNull().default(0),
+    // Why the last sync stopped short, in words the user can act on. Null when it went fine.
+    lastError: text("last_error"),
+    // GitHub refused the token (access revoked): syncing stops until they connect again.
+    needsReconnect: boolean("needs_reconnect").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [uniqueIndex("uq_github_connections_user").on(table.userId)],
 );
 
 // One row per memory×provider event actually created via the API — keeps a
@@ -686,6 +720,13 @@ export const memories = pgTable(
     // the plan ("Preview unavailable", not "Cloudflare blocked our crawler").
     fetchStatus: text("fetch_status"),
     captureMethod: text("capture_method"),
+    // Duplicate detection (modules/memory/duplicates.ts). Null until checked;
+    // then "none", "pending" (a duplicate was found and the user hasn't
+    // answered) or "kept" (they chose to have both). duplicateOfId is the
+    // older memory this one repeats, with no foreign key: it's a hint that
+    // may outlive the original.
+    duplicateStatus: varchar("duplicate_status", { length: 16 }),
+    duplicateOfId: uuid("duplicate_of_id"),
     // Raw browser-observed metadata from the Chrome extension's
     // POST /:id/browser-capture, consumed by the ingestion pipeline's merge
     // step and kept for re-merging on a later /refresh-preview.

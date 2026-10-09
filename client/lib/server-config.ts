@@ -13,6 +13,8 @@ export interface ServerConfig {
   googleCalendar: boolean;
   /** False on a self-hosted install whose admin hasn't connected AI yet. */
   aiReady: boolean;
+  /** GitHub stars can be connected: GitHub sign-in is set up on the server and the integration isn't switched off. */
+  githubStars: boolean;
 }
 
 export function getServerConfig(): Promise<ServerConfig> {

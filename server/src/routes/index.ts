@@ -28,6 +28,8 @@ import plansRoutes from "../modules/plans";
 import accountRoutes from "../modules/account";
 import importRoutes from "../modules/import";
 import integrationsRoutes from "../modules/integrations";
+import { githubStarsCallbackRouter } from "../modules/integrations/github/github.routes";
+import { GITHUB_STARS_CALLBACK_PATH } from "../modules/integrations/github/github-client";
 import batchRoutes from "../modules/batch";
 import searchRoutes from "../modules/search";
 import reportRoutes from "../modules/report";
@@ -47,6 +49,9 @@ router.use(responseCache);
 
 router.use("/health", healthRoutes);
 router.use("/config", configRoutes);
+// Before /auth: GitHub only redirects to paths under the sign-in callback, so
+// the stars integration's callback lives there.
+router.use(GITHUB_STARS_CALLBACK_PATH, githubStarsCallbackRouter);
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/settings", settingsRoutes);

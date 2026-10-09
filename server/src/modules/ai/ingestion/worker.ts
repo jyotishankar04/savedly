@@ -9,12 +9,18 @@ import { getLangfuseHandler } from "../langfuse";
 import type { BrowserCapturePayload } from "../url-processor";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 import { ingestionGraph } from "./graph";
-import type { IngestionJobData } from "./queue";
+import { INGESTION_QUEUE, ingestionQueue, ingestionWorkerOptions, type IngestionJobData } from "./queue";
 
 /** Runs in the same process as the API for now (fine for dev — see the AI ingestion plan for the production split). */
 export function startIngestionWorker(): Worker<IngestionJobData> {
+  // Jobs finished before the queue removed them by itself are still in Redis:
+  // clear those that are more than an hour old. Harmless when there are none.
+  void ingestionQueue
+    .clean(60 * 60 * 1000, 5000, "completed")
+    .catch((err) => logger.warn({ err }, "[ingestion] couldn't clear old finished jobs"));
+
   const worker = new Worker<IngestionJobData>(
-    "ingestion",
+    INGESTION_QUEUE,
     async (job) => {
       logger.info({ memoryId: job.data.memoryId }, "[ingestion] job started");
 
@@ -59,7 +65,7 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
 
       logger.info({ memoryId: job.data.memoryId }, "[ingestion] job completed");
     },
-    { connection: redis },
+    { connection: redis, ...ingestionWorkerOptions() },
   );
 
   worker.on("failed", (job, err) => {

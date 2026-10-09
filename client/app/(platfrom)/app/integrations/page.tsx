@@ -29,6 +29,9 @@ import { useCalendarConnectionsQuery, useDisconnectCalendarMutation } from "@/ho
 import { cn } from "@/lib/utils";
 import { usePlanFeature } from "@/hooks/use-plan-limit";
 import { ProBadge } from "@/components/plan-limit-notice";
+import { ConnectLink } from "@/components/integrations/connect-link";
+import { CalendarConnectResult } from "@/components/integrations/calendar-connect-result";
+import { GithubStarsActions, githubStarsDescription, useGithubConnection } from "@/components/integrations/github-stars-card";
 
 /** Official Google "G" mark — small enough that a colored circle badge alone wouldn't read as Google. */
 function GoogleLogo({ className }: { className?: string }) {
@@ -336,13 +339,20 @@ export default function IntegrationsPage() {
   const googleCalendarOpen = serverConfig?.googleCalendar ?? true;
   const googlePending = !googleCalendarOpen && !isCalendarConnected("google");
   const disconnectMutation = useDisconnectCalendarMutation();
+  // GitHub stars is a real connection where the server has GitHub sign-in set
+  // up; anywhere else its card stays in the planned list.
+  const githubLive = serverConfig?.githubStars === true;
+  const { data: github } = useGithubConnection(githubLive);
+  const githubPlan = PLANNED.find((p) => p.key === "github")!;
+  const planned = PLANNED.filter((p) => !(githubLive && p.key === "github"));
   function isCalendarConnected(provider: CalendarProviderKey): boolean {
     return calendarConnections?.some((c) => c.provider === provider) ?? false;
   }
 
   const cardMeta: CardMeta[] = [
     { key: "google-calendar", title: "Google Calendar", description: "Sync detected and manually added events straight to your Google Calendar.", category: "Calendar", connected: isCalendarConnected("google") },
-    ...PLANNED.map((p) => ({ key: p.key, title: p.title, description: `${p.description} ${p.brings.join(" ")}`, category: p.category, connected: false })),
+    ...(githubLive ? [{ key: "github", title: githubPlan.title, description: `${githubPlan.description} ${githubPlan.brings.join(" ")}`, category: githubPlan.category, connected: !!github?.connected }] : []),
+    ...planned.map((p) => ({ key: p.key, title: p.title, description: `${p.description} ${p.brings.join(" ")}`, category: p.category, connected: false })),
   ];
 
   const q = query.trim().toLowerCase();
@@ -356,6 +366,9 @@ export default function IntegrationsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 animate-fade-in">
+      <React.Suspense fallback={null}>
+        <CalendarConnectResult />
+      </React.Suspense>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Integrations</h1>
@@ -364,7 +377,7 @@ export default function IntegrationsPage() {
               ? `${visibleCount} of ${cardMeta.length} matching`
               : googlePending
                 ? `${cardMeta.length} connectors on the way. None can be connected yet.`
-                : `${cardMeta.length - PLANNED.length} available now, ${PLANNED.length} planned. Planned connectors can't be connected yet.`}
+                : `${cardMeta.length - planned.length} available now, ${planned.length} planned. Planned connectors can't be connected yet.`}
           </p>
         </div>
 
@@ -444,9 +457,14 @@ export default function IntegrationsPage() {
                   </div>
                 ) : (
                   googleSync.allowed ? (
-                    <ConnectPill state="available" render={<a href={getCalendarConnectUrl("google")} />} nativeButton={false}>
+                    <ConnectLink
+                      href={getCalendarConnectUrl("google")}
+                      size="sm"
+                      variant="outline"
+                      className="h-7 rounded-full px-3 text-[10px] font-bold hover:border-primary/40 hover:text-primary"
+                    >
                       Connect
-                    </ConnectPill>
+                    </ConnectLink>
                   ) : (
                     <UpgradePill plan={googleSync.requiredPlan} />
                   )
@@ -455,7 +473,25 @@ export default function IntegrationsPage() {
             />
           )}
 
-          {PLANNED.filter((p) => visible.has(p.key)).map((p) => (
+          {githubLive && visible.has("github") && (
+            <IntegrationCard
+              iconBg={githubPlan.iconClassName}
+              icon={<HugeiconsIcon icon={githubPlan.icon} strokeWidth={2} className="h-[18px] w-[18px]" />}
+              title={githubPlan.title}
+              category={githubPlan.category}
+              how="Sync"
+              connected={!!github?.connected}
+              description={githubStarsDescription(github)}
+              brings={github?.connected ? undefined : ["Public repositories you starred", "Their description and topics", "New stars, checked twice a day"]}
+              action={
+                <React.Suspense fallback={null}>
+                  <GithubStarsActions connection={github} />
+                </React.Suspense>
+              }
+            />
+          )}
+
+          {planned.filter((p) => visible.has(p.key)).map((p) => (
             <IntegrationCard
               key={p.key}
               iconBg={p.iconClassName}

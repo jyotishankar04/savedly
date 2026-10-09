@@ -33,6 +33,11 @@ const FEATURE_CATEGORIES = {
     description: "OAuth sync with Google Calendar",
     flags: ["features.calendar.sync.enabled", "features.calendar.google.enabled"],
   },
+  github: {
+    title: "GitHub stars",
+    description: "Adds people's starred repositories to their library",
+    flags: ["features.integrations.github_stars.enabled"],
+  },
   email: {
     title: "Email Campaigns",
     description: "Bulk emails and notifications",
@@ -105,6 +110,11 @@ const FLAG_LABELS: Record<string, { label: string; type: "boolean" | "number"; h
     label: "Google Calendar",
     type: "boolean",
     help: "Let people connect Google Calendar. While off, it shows as coming soon (use this during Google's verification); existing connections keep working.",
+  },
+  "features.integrations.github_stars.enabled": {
+    label: "GitHub stars",
+    type: "boolean",
+    help: "Let people connect GitHub. Needs GitHub sign-in to be set up. While off, the card shows as coming soon and nothing syncs; what was already added stays.",
   },
   "features.email.campaigns.enabled": {
     label: "Campaigns enabled",

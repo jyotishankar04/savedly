@@ -3,7 +3,7 @@ import { db } from "../../db";
 import { importBatches, importItems, memories } from "../../db/schema";
 import { ImportItemStatus, ImportSourceType, MemoryStatus, MemoryType, PlanLimitType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
-import { ingestionQueue } from "../ai/ingestion/queue";
+import { enqueueIngestionBulk } from "../ai/ingestion/queue";
 import { normalizeUrl } from "../memory/normalize-url";
 import { parseBookmarksHtml } from "./bookmark-parser";
 import { parseUrlList } from "./url-list-parser";
@@ -98,7 +98,7 @@ export async function runImport(userId: string, input: ImportInput) {
 
   // Fired after commit — mirrors sendBulkEmail's shape, batched directly
   // against the queue rather than calling enqueueIngestion per row.
-  await Promise.all(created.map((m) => ingestionQueue.add("ingest", { memoryId: m.id })));
+  await enqueueIngestionBulk(created.map((m) => m.id));
 
   return { batchId, totalCount: inBatchUnique.length, createdCount: created.length, skippedCount: duplicates.length };
 }

@@ -11,6 +11,7 @@ import { correctCaption } from "./nodes/correct-caption";
 import { detectContentType } from "./nodes/detect-content-type";
 import { classifyIntent } from "./nodes/classify-intent";
 import { detectEvent } from "./nodes/detect-event";
+import { detectDuplicate } from "./nodes/detect-duplicate";
 import { generateAiInsights } from "./nodes/generate-ai-insights";
 import { organizeCollection } from "./nodes/organize-collection";
 import { semanticChunker } from "./nodes/semantic-chunker";
@@ -67,12 +68,33 @@ export function sanitize(name: string, memoryId: string, update: IngestionUpdate
  * and the memory is saved with whatever succeeded (e.g. a screenshot's OCR
  * text) instead of being marked failed.
  */
+/**
+ * Why a provider refused a request, when it's one of the two reasons an
+ * operator can act on. Both arrive as HTTP 429, so they are told apart by
+ * the error's code and wording.
+ */
+function providerRefusal(err: unknown): "no-credits" | "rate-limit" | null {
+  const e = err as { status?: number; code?: string; message?: string; lc_error_code?: string } | null;
+  const text = `${e?.code ?? ""} ${e?.lc_error_code ?? ""} ${e?.message ?? ""}`;
+  if (/credit_balance|insufficient_quota|no credits|exceeded your current quota|billing/i.test(text)) return "no-credits";
+  if (e?.status === 429 || /rate.?limit|too many requests|\b429\b/i.test(text)) return "rate-limit";
+  return null;
+}
+
 function optional(name: string, node: (state: IngestionStateType) => Promise<IngestionUpdate>) {
   return async (state: IngestionStateType): Promise<IngestionUpdate> => {
     try {
       return sanitize(name, state.memoryId, await node(state));
     } catch (err) {
-      logger.warn({ err, memoryId: state.memoryId, node: name }, "[ingestion] enrichment step failed, continuing without it");
+      // Named separately, because each has a different fix and neither is a bug.
+      const refusal = providerRefusal(err);
+      if (refusal === "no-credits") {
+        logger.error({ memoryId: state.memoryId, node: name }, "[ingestion] the AI provider account has no credits left, so this step was skipped. Saves will have no summary or tags until credits are added");
+      } else if (refusal === "rate-limit") {
+        logger.warn({ memoryId: state.memoryId, node: name }, "[ingestion] the AI provider rate-limited this step; it was skipped. Lower INGESTION_CONCURRENCY if this keeps happening");
+      } else {
+        logger.warn({ err, memoryId: state.memoryId, node: name }, "[ingestion] enrichment step failed, continuing without it");
+      }
       return {};
     }
   };
@@ -97,6 +119,8 @@ const builder = new StateGraph(IngestionState)
   .addNode("detectContentType", optional("detectContentType", detectContentType))
   .addNode("classifyIntent", optional("classifyIntent", classifyIntent))
   .addNode("detectEvent", optional("detectEvent", detectEvent))
+  // Not a model call: a lookup for the same link or note already in the library.
+  .addNode("detectDuplicate", optional("detectDuplicate", detectDuplicate))
   .addNode("generateAiInsights", optional("generateAiInsights", generateAiInsights))
   .addNode("organizeCollection", optional("organizeCollection", organizeCollection))
   .addNode("semanticChunker", semanticChunker)
@@ -119,11 +143,13 @@ const builder = new StateGraph(IngestionState)
 //   parser ─┬─ correctCaption ── classifyIntent ─┬─ generateAiInsights ─┬─ organizeCollection ─┐
 //           ├─ detectContentType ────────────────┤                      │                      ├─ upsertVectors
 //           │                                    └─ detectEvent ────────┼──────────────────────┤
-//           └─ semanticChunker ─────────────────────────────────────────┴─ generateEmbeddings ─┘
+//           ├─ semanticChunker ─────────────────────────────────────────┴─ generateEmbeddings ─┤
+//           └─ detectDuplicate ────────────────────────────────────────────────────────────────┘
 for (const parserNode of PARSER_NODES) {
   builder.addEdge(parserNode, "correctCaption");
   builder.addEdge(parserNode, "detectContentType");
   builder.addEdge(parserNode, "semanticChunker");
+  builder.addEdge(parserNode, "detectDuplicate");
 }
 
 builder
@@ -132,7 +158,7 @@ builder
   .addEdge(["detectContentType", "classifyIntent"], "detectEvent")
   .addEdge("generateAiInsights", "organizeCollection")
   .addEdge(["generateAiInsights", "semanticChunker"], "generateEmbeddings")
-  .addEdge(["organizeCollection", "generateEmbeddings", "detectEvent"], "upsertVectors")
+  .addEdge(["organizeCollection", "generateEmbeddings", "detectEvent", "detectDuplicate"], "upsertVectors")
   .addEdge("upsertVectors", END);
 
 export const ingestionGraph = builder.compile();

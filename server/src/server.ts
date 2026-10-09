@@ -7,6 +7,7 @@ import { startIngestionWorker } from "./modules/ai";
 import { startTrashPurgeWorker } from "./modules/memory/trash-purge.job";
 import { startEmailWorker } from "./modules/email";
 import { startAccountDeletionWorker } from "./modules/account";
+import { startGithubStarsWorker } from "./modules/integrations/github/github.job";
 import { db } from "./db";
 import { cacheRedis, redis } from "./config/redis";
 import type { Worker } from "bullmq";
@@ -64,6 +65,15 @@ try {
 } catch (err) {
   logger.error({ err }, "Failed to start account deletion worker — scheduled account wipes will not run");
 }
+
+startGithubStarsWorker()
+  .then((githubWorker) => {
+    workers.push(githubWorker);
+    logger.info("GitHub stars worker started");
+  })
+  .catch((err) => {
+    logger.error({ err }, "Failed to start GitHub stars worker — new stars will only sync when someone presses Sync now");
+  });
 
 async function gracefulShutdown(signal: string) {
   logger.info({ signal }, "Received termination signal, starting graceful shutdown");
