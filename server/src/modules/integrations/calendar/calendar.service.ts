@@ -16,6 +16,7 @@ import {
   updateGoogleCalendarEvent,
 } from "./google-calendar-client";
 import type { CalendarEventPayload, CalendarTokenExchange } from "./calendar.types";
+import { bumpUserCache } from "../../../shared/cache/response-cache";
 
 // One provider today. The key stays a type (and the functions below stay
 // keyed by it) so a second calendar can be added without reshaping callers.
@@ -114,6 +115,12 @@ export async function connectCalendar(
         providerAccountEmail: values.providerAccountEmail,
       },
     });
+
+  // The connection list is cached per user. This runs from the provider's
+  // redirect, which carries no session, so the cache layer doesn't see it as
+  // that user's write: without this, the page they land on would still say
+  // "not connected" for up to a minute.
+  await bumpUserCache(userId);
 }
 
 export async function disconnectCalendar(userId: string, provider: CalendarProviderKey): Promise<void> {

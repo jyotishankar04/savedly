@@ -29,6 +29,8 @@ import { useCalendarConnectionsQuery, useDisconnectCalendarMutation } from "@/ho
 import { cn } from "@/lib/utils";
 import { usePlanFeature } from "@/hooks/use-plan-limit";
 import { ProBadge } from "@/components/plan-limit-notice";
+import { ConnectLink } from "@/components/integrations/connect-link";
+import { CalendarConnectResult } from "@/components/integrations/calendar-connect-result";
 import { GithubStarsActions, githubStarsDescription, useGithubConnection } from "@/components/integrations/github-stars-card";
 
 /** Official Google "G" mark — small enough that a colored circle badge alone wouldn't read as Google. */
@@ -364,6 +366,9 @@ export default function IntegrationsPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-10 animate-fade-in">
+      <React.Suspense fallback={null}>
+        <CalendarConnectResult />
+      </React.Suspense>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Integrations</h1>
@@ -452,9 +457,14 @@ export default function IntegrationsPage() {
                   </div>
                 ) : (
                   googleSync.allowed ? (
-                    <ConnectPill state="available" render={<a href={getCalendarConnectUrl("google")} />} nativeButton={false}>
+                    <ConnectLink
+                      href={getCalendarConnectUrl("google")}
+                      size="sm"
+                      variant="outline"
+                      className="h-7 rounded-full px-3 text-[10px] font-bold hover:border-primary/40 hover:text-primary"
+                    >
                       Connect
-                    </ConnectPill>
+                    </ConnectLink>
                   ) : (
                     <UpgradePill plan={googleSync.requiredPlan} />
                   )

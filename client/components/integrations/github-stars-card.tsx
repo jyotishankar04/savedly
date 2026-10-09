@@ -14,6 +14,7 @@ import {
   type GithubConnection,
 } from "@/lib/github-integration";
 import { timeAgo } from "@/lib/time";
+import { ConnectLink } from "@/components/integrations/connect-link";
 
 const PILL = "h-7 rounded-full px-3 text-[10px] font-bold";
 
@@ -55,9 +56,9 @@ export function GithubStarsActions({ connection }: { connection: GithubConnectio
 
   if (!connection?.connected) {
     return (
-      <Button size="sm" variant="outline" className={`${PILL} hover:border-primary/40 hover:text-primary`} render={<a href={getGithubConnectUrl()} />} nativeButton={false}>
+      <ConnectLink href={getGithubConnectUrl()} size="sm" variant="outline" className={`${PILL} hover:border-primary/40 hover:text-primary`}>
         Connect
-      </Button>
+      </ConnectLink>
     );
   }
 
@@ -101,9 +102,9 @@ export function GithubStarsActions({ connection }: { connection: GithubConnectio
       )}
       <div className="flex items-center gap-2">
         {connection.needsReconnect ? (
-          <Button size="sm" className={PILL} render={<a href={getGithubConnectUrl()} />} nativeButton={false}>
+          <ConnectLink href={getGithubConnectUrl()} size="sm" className={PILL}>
             Connect again
-          </Button>
+          </ConnectLink>
         ) : (
           <Button size="sm" variant="outline" className={`${PILL} hover:border-primary/40 hover:text-primary`} onClick={sync} disabled={busy !== null || !connection.lastSyncedAt}>
             {busy === "sync" || !connection.lastSyncedAt ? "Syncing…" : "Sync now"}
