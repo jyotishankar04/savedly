@@ -112,7 +112,7 @@ jobs:
       - name: Check the live API
         run: |
           for i in $(seq 1 10); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' https://api.saveforlatter.tech/api/v1/health || true)
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://api.savedly.app/api/v1/health || true)
             if [ "$code" = "200" ]; then echo "API is healthy"; exit 0; fi
             echo "health returned $code, retrying"; sleep 6
           done

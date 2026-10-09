@@ -42,6 +42,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { useCurrentUserQuery } from "@/context/UserContext";
+import { SELF_HOSTED } from "@/lib/instance";
+import { PlainNavbar } from "@/components/self-hosted/plain-chrome";
 import { AnnouncementBanner } from "@/components/marketing/announcement-banner";
 import { MaintenanceModal } from "@/components/marketing/maintenance-modal";
 import { ctaHref } from "@/lib/showcase";
@@ -184,7 +186,12 @@ function MenuRow({ entry }: { entry: MenuEntry }) {
   );
 }
 
+/** The site header. A self-hosted install gets the plain one: it has no product pages to link to. */
 export function Navbar() {
+  return SELF_HOSTED ? <PlainNavbar /> : <MarketingNavbar />;
+}
+
+function MarketingNavbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);

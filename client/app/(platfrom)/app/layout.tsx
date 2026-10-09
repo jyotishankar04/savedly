@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/auth";
 import { UserAvatar, UserProvider, useUser, useCurrentUserQuery, useSetCurrentUser } from "@/context/UserContext";
+import { SetupPanel } from "@/components/setup/setup-panel";
 import { useMemories } from "@/context/MemoryContext";
 import { SidebarStateProvider } from "@/context/SidebarContext";
 import { uploadFile, type UploadedFile } from "@/lib/uploads";
@@ -1120,6 +1121,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 min-h-0">
           <ScrollArea className="h-full" viewportClassName="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
             <SidebarStateProvider value={{ collapsed: sidebarCollapsed, fullyCollapsed: sidebarFullyCollapsed }}>
+              <SetupPanel />
               {children}
             </SidebarStateProvider>
           </ScrollArea>

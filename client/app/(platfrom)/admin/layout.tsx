@@ -96,6 +96,8 @@ function useAdminNav() {
   const hidden = new Set<string>();
   if (selfHosted) {
     hidden.add("/admin/plans-limits");
+    // Its cards only appear on the landing page, which a self-hosted install doesn't have.
+    hidden.add("/admin/whats-new");
     if (!system?.services.email) hidden.add("/admin/emails");
   }
   const keep = (leaf: NavLeaf) => !hidden.has(leaf.href);

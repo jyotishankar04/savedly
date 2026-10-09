@@ -14,6 +14,7 @@ import {
 import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
 import { useAuthCta } from "@/hooks/use-auth-cta";
 import { DonatePanel } from "@/components/marketing/landing/donate-panel";
+import { hostedHref } from "@/lib/instance";
 
 const FREE_HIGHLIGHTS = [
   {
@@ -74,7 +75,7 @@ export function ContributeSection({ showDonate = false }: { showDonate?: boolean
                   <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               )}
-              <Link href="/pricing" className="text-[15px] font-medium text-foreground underline-offset-4 hover:underline">
+              <Link href={hostedHref("/pricing")} className="text-[15px] font-medium text-foreground underline-offset-4 hover:underline">
                 See pricing
               </Link>
             </div>

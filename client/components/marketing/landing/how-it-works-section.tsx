@@ -1,6 +1,6 @@
 "use client";
 
-import { Fraunces } from "next/font/google";
+import localFont from "next/font/local";
 import { motion, type Variants } from "motion/react";
 import { cn } from "@/lib/utils";
 
@@ -8,11 +8,12 @@ import { cn } from "@/lib/utils";
 // than promoted to the app's --font-serif token, which stays the system
 // stack for prose elsewhere (blockquotes, etc.) unless a real design
 // decision says otherwise.
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["400"],
-  style: ["italic"],
+const fraunces = localFont({
+  src: "../../../app/fonts/fraunces-italic-400-latin.woff2",
+  weight: "400",
+  style: "italic",
   variable: "--font-numeral",
+  display: "swap",
 });
 
 interface Step {

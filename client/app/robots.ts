@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
+import { SELF_HOSTED } from "@/lib/instance";
 
 export default function robots(): MetadataRoute.Robots {
+  // Someone's own install is private: keep it out of search engines entirely.
+  if (SELF_HOSTED) return { rules: { userAgent: "*", disallow: "/" } };
+
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
   return {

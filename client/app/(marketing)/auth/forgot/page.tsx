@@ -7,6 +7,7 @@ import { SparklesIcon as Sparkles, ArrowLeft01Icon as ArrowLeft } from "@hugeico
 import { LogoMark } from "@/components/logo";
 import { getProviderLoginUrl } from "@/lib/auth";
 import { Logo } from "@/components/logo";
+import { SELF_HOSTED } from "@/lib/instance";
 
 const GoogleIcon = () => (
   <svg className="h-4 w-4 mr-2 shrink-0" viewBox="0 0 24 24" fill="none">
@@ -40,7 +41,7 @@ export default function ForgotPasswordPage() {
         />
 
         {/* Brand Logo Header */}
-        <Link href="/" className="flex items-center gap-2 text-foreground relative z-10 hover:opacity-90 transition-opacity w-fit">
+        <Link href={SELF_HOSTED ? "/auth/login" : "/"} className="flex items-center gap-2 text-foreground relative z-10 hover:opacity-90 transition-opacity w-fit">
           <Logo className="text-[17px] text-foreground" />
         </Link>
 
@@ -133,7 +134,7 @@ export default function ForgotPasswordPage() {
 
         {/* Footer Right Links */}
         <div className="flex justify-center gap-6 text-[10px] text-muted-foreground mt-auto">
-          <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+          {!SELF_HOSTED && <Link href="/" className="hover:text-foreground transition-colors">Home</Link>}
           <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
           <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
         </div>

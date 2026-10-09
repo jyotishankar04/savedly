@@ -22,7 +22,11 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+# postgresql18-client: pg_dump for Admin's "Download backup". It must be at
+# least as new as the database (pgvector/pgvector:pg18 in docker-compose.yml);
+# raise the two together.
 RUN npm install --global pnpm@11.24.0 && \
+    apk add --no-cache postgresql18-client && \
     addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 

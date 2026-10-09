@@ -16,7 +16,10 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 ARG NEXT_PUBLIC_API_URL=/api/v1
+# NEXT_PUBLIC_SELF_HOSTED: this image is the self-hosted one, so it is built
+# without the marketing site (see lib/instance.ts and proxy.ts).
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_SELF_HOSTED=true \
     NEXT_OUTPUT=standalone \
     NEXT_TELEMETRY_DISABLED=1
 

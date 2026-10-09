@@ -21,6 +21,11 @@ const envSchema = z
     // is lifted. Hosted production leaves this false and is configured only
     // through env.
     SELF_HOSTED: envFlag,
+    // A self-hosted install asks GitHub, about twice a day, whether a newer
+    // release exists, and tells the admin. Set to false to never make that
+    // request. UPDATE_CHECK_URL points it at another release list (a fork).
+    UPDATE_CHECK: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
+    UPDATE_CHECK_URL: z.string().url().optional(),
     // Where a self-hosted install keeps its generated secrets and, with the
     // local storage driver, uploaded files. Both are Docker volumes in
     // docker-compose.yml.

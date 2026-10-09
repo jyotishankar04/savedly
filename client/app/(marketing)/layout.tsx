@@ -1,5 +1,6 @@
 import Script from "next/script";
 import type { Metadata } from "next";
+import { SELF_HOSTED } from "@/lib/instance";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -16,20 +17,22 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <>
       {children}
-      <Script
-        id="bmc-widget"
-        strategy="lazyOnload"
-        src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js"
-        data-name="BMC-Widget"
-        data-cfasync="false"
-        data-id="devsuvam1"
-        data-description="Support me on Buy me a coffee!"
-        data-message=""
-        data-color="#FF813F"
-        data-position="Right"
-        data-x_margin="18"
-        data-y_margin="18"
-      />
+      {!SELF_HOSTED && (
+        <Script
+          id="bmc-widget"
+          strategy="lazyOnload"
+          src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js"
+          data-name="BMC-Widget"
+          data-cfasync="false"
+          data-id="devsuvam1"
+          data-description="Support me on Buy me a coffee!"
+          data-message=""
+          data-color="#FF813F"
+          data-position="Right"
+          data-x_margin="18"
+          data-y_margin="18"
+        />
+      )}
     </>
   );
 }
