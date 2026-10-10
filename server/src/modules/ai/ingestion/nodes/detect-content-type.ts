@@ -5,6 +5,7 @@ import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { extractUrl } from "../extract-url";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 
 interface ContentTypeExtraction {
   contentType: string;
@@ -17,7 +18,9 @@ interface ContentTypeExtraction {
 // comment attached, ...) gets identified and picked apart into structured
 // fields before anything downstream tries to summarize or classify it.
 const prompt = ChatPromptTemplate.fromTemplate(
-  `A user just saved this text to their personal knowledge base. Identify what
+  `${UNTRUSTED_RULE}
+
+A user just saved this text to their personal knowledge base. Identify what
 KIND of content it is — pick a short, specific, snake_case label of your own
 choosing (e.g. "recipe", "code_snippet", "task", "quote", "contact_info",
 "shopping_list", "meeting_notes", "idea", "article_excerpt", "link_with_comment",
@@ -60,7 +63,7 @@ export async function detectContentType(state: IngestionStateType): Promise<Inge
 
   const chain = prompt.pipe(model).pipe(new JsonOutputParser<ContentTypeExtraction>());
   const result = await chain.invoke(
-    { content: state.rawContent.slice(0, 4000) },
+    { content: wrapUntrusted(state.rawContent.slice(0, 4000), "saved content") },
     { callbacks: [createUsageCallback({ userId: state.userId, requestType: "ingestion:detect_content_type", memoryId: state.memoryId })] },
   );
 

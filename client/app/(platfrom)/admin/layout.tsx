@@ -26,6 +26,7 @@ import type { IconSvgElement } from "@hugeicons/react";
 import { cn } from "@/lib/utils";
 import { getServerConfig } from "@/lib/server-config";
 import { getSystemStatus } from "@/lib/admin-system";
+import { AiHealthBanner } from "@/components/admin/ai-health-banner";
 import { LogoMark } from "@/components/logo";
 import { logout } from "@/lib/auth";
 import { usePlanLabel } from "@/hooks/use-plan-limit";
@@ -301,7 +302,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-6 py-8 animate-fade-in">{children}</div>
+          <div className="max-w-6xl mx-auto px-6 py-8 animate-fade-in">
+            <AiHealthBanner />
+            {children}
+          </div>
         </main>
       </div>
 

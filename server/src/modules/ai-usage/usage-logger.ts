@@ -4,6 +4,7 @@ import type { ChatGeneration, LLMResult } from "@langchain/core/outputs";
 import { db } from "../../db";
 import { aiUsageLogs } from "../../db/schema";
 import { logger } from "../../shared/utils/logger";
+import { providerRefusal, recordAiWorking, recordNoCredits } from "../ai/provider-health";
 
 // Kept here (not imported from ai.providers.ts) so this module stays free of
 // the providers' import graph; ai.providers.ts re-exports the same value.
@@ -81,7 +82,14 @@ export function createUsageCallback(params: UsageCallbackParams): BaseCallbackHa
       className = llm.id?.at(-1) ?? "unknown";
       platform = !!tags?.includes(PLATFORM_AI_TAG);
     },
+    // The instance's own AI account running dry is the one failure nobody
+    // sees: every step is skipped quietly. Kept for the admin area
+    // (ai/provider-health.ts). A user's own key is theirs to look after.
+    handleLLMError(err: unknown) {
+      if (platform && providerRefusal(err) === "no-credits") recordNoCredits(providerFromClassName(className));
+    },
     handleLLMEnd(output: LLMResult) {
+      if (platform) recordAiWorking();
       const generation = output.generations[0]?.[0] as (ChatGeneration & { message?: unknown }) | undefined;
       const message = generation && "message" in generation ? (generation.message as { usage_metadata?: { input_tokens: number; output_tokens: number; total_tokens: number }; response_metadata?: Record<string, unknown> }) : undefined;
 
