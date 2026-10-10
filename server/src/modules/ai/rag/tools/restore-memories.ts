@@ -2,7 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { updateMemory } from "../../../memory/memory.service";
 import { requireUserId, type RagRuntime } from "./shared";
-import { confirmFirst } from "./confirm";
+import { confirmFirst, ASKS_FIRST_NOTE } from "./confirm";
 
 const inputSchema = z.object({
   memoryIds: z.array(z.string().uuid()).min(1).max(20).describe("Ids of trashed memories to restore — find them with find_memories and inTrash: true."),
@@ -32,7 +32,7 @@ export const restoreMemoriesTool = tool(
   {
     name: "restore_memories",
     description:
-      "Take memories out of the trash, back into the library — \"restore the note I deleted\", \"undo deleting that link\". Find them first with find_memories (inTrash: true). Items stay in the trash for 15 days before they're gone for good.",
+      "Take memories out of the trash, back into the library — \"restore the note I deleted\", \"undo deleting that link\". Find them first with find_memories (inTrash: true). Items stay in the trash for 15 days before they're gone for good." + ASKS_FIRST_NOTE,
     schema: inputSchema,
   },
 );

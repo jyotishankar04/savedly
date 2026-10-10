@@ -4,7 +4,7 @@ import { deleteEventForMemory, deleteExternalCalendarEvent } from "../../../inte
 import { assertTarget, eventTargetSchema } from "./event-target";
 import { requireUserId, type RagRuntime } from "./shared";
 import { getMemoryById } from "../../../memory/memory.service";
-import { confirmFirst, shortTitle } from "./confirm";
+import { confirmFirst, shortTitle, ASKS_FIRST_NOTE } from "./confirm";
 
 const inputSchema = z.object(eventTargetSchema);
 
@@ -32,7 +32,7 @@ export const removeEventTool = tool(
   {
     name: "remove_event",
     description:
-      "Take an event off the user's calendar — only when they clearly asked to remove or cancel a specific event. Find it first with list_upcoming_events. For a Savedly event, the saved memory itself is kept; only its date and any Google Calendar copy go.",
+      "Take an event off the user's calendar — only when they clearly asked to remove or cancel a specific event. Find it first with list_upcoming_events. For a Savedly event, the saved memory itself is kept; only its date and any Google Calendar copy go." + ASKS_FIRST_NOTE,
     schema: inputSchema,
   },
 );

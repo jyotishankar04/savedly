@@ -4,7 +4,7 @@ import { eventLinksForMemory, updateEventForMemory, updateExternalCalendarEvent 
 import { getMemoryById } from "../../../memory/memory.service";
 import { assertTarget, eventTargetSchema } from "./event-target";
 import { requireUserId, type RagRuntime } from "./shared";
-import { confirmFirst, shortTitle, whenText } from "./confirm";
+import { confirmFirst, shortTitle, whenText, ASKS_FIRST_NOTE } from "./confirm";
 
 const inputSchema = z.object({
   ...eventTargetSchema,
@@ -57,7 +57,7 @@ export const updateEventTool = tool(
   {
     name: "update_event",
     description:
-      "Reschedule or rename an event — \"move team sync to 4 pm\", \"push the dentist to next Tuesday\", \"rename it to Planning\". Find it first with list_upcoming_events. Changes to a Savedly event also update its Google Calendar copy. For a calendar-only event, pass its full new start and title.",
+      "Reschedule or rename an event — \"move team sync to 4 pm\", \"push the dentist to next Tuesday\", \"rename it to Planning\". Find it first with list_upcoming_events. Changes to a Savedly event also update its Google Calendar copy. For a calendar-only event, pass its full new start and title." + ASKS_FIRST_NOTE,
     schema: inputSchema,
   },
 );

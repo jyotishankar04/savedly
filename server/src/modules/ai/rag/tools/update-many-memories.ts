@@ -3,7 +3,7 @@ import { z } from "zod";
 import { batchMoveToCollection, batchTagMemories } from "../../../batch/batch.service";
 import { assertFeature } from "../../../plans/plans.service";
 import { requireUserId, resolveCollectionId, type RagRuntime } from "./shared";
-import { confirmFirst } from "./confirm";
+import { confirmFirst, ASKS_FIRST_NOTE } from "./confirm";
 
 const inputSchema = z
   .object({
@@ -64,7 +64,7 @@ export const updateManyMemoriesTool = tool(
   {
     name: "update_many_memories",
     description:
-      "Change several memories at once: add or remove tags, or file them all into a collection — \"tag all my github links as dev\", \"put these three notes in my Recipes collection\". Tell the user how many will change and get a clear yes before calling this for more than a handful. For one memory, use update_memory.",
+      "Change several memories at once: add or remove tags, or file them all into a collection — \"tag all my github links as dev\", \"put these three notes in my Recipes collection\". Tell the user how many will change and get a clear yes before calling this for more than a handful. For one memory, use update_memory." + ASKS_FIRST_NOTE,
     schema: inputSchema,
   },
 );

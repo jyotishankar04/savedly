@@ -45,6 +45,14 @@ const MAX_PENDING_PER_TURN = 10;
 const pendingKey = (threadId: string) => `ask:pending:${threadId}`;
 const actionKey = (tool: string, input: unknown) => createHash("sha256").update(`${tool}:${JSON.stringify(input)}`).digest("hex");
 
+/**
+ * Ends the description of every tool that asks first. Without it a model
+ * tends to ask "shall I?" itself and only then call the tool, which asks
+ * again: the user confirms twice.
+ */
+export const ASKS_FIRST_NOTE =
+  " SAFE TO CALL RIGHT AWAY: this tool never acts on the first call. It shows the user a confirmation card and waits for their yes. So do NOT ask the user for permission yourself before calling it; call it as soon as you know the target, and let the card do the asking.";
+
 const INSTRUCTION =
   "Nothing has been changed yet. Tell the user in one short sentence exactly what you are about to do, and ask them to confirm. Do not call this tool again in this reply.";
 

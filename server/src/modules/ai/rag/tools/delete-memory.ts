@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { getMemoryById, updateMemory } from "../../../memory/memory.service";
-import { confirmFirst, shortTitle } from "./confirm";
+import { confirmFirst, shortTitle, ASKS_FIRST_NOTE } from "./confirm";
 import type { RagRuntime } from "./shared";
 
 const inputSchema = z.object({
@@ -36,7 +36,7 @@ export const deleteMemoryTool = tool(
   {
     name: "delete_memory",
     description:
-      "Delete a memory the user asked you to remove — e.g. \"delete that note\", \"remove the LangChain link\". Moves it to Trash, where it's recoverable for 15 days before being permanently removed — never an unrecoverable delete. Always find the memory with search_memories first to confirm you have the right one before calling this, especially if the request is at all ambiguous.",
+      "Delete a memory the user asked you to remove — e.g. \"delete that note\", \"remove the LangChain link\". Moves it to Trash, where it's recoverable for 15 days before being permanently removed — never an unrecoverable delete. Always find the memory with search_memories first to confirm you have the right one before calling this, especially if the request is at all ambiguous." + ASKS_FIRST_NOTE,
     schema: inputSchema,
   },
 );
