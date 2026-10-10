@@ -5,6 +5,7 @@ import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
+import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 
 // Verbatim from docs/AI_REQUIREMENTS.md's ClassifyIntent node.
 const TAXONOMY_BY_TYPE: Record<string, string[]> = {
@@ -23,7 +24,9 @@ interface IntentClassification {
 }
 
 const prompt = ChatPromptTemplate.fromTemplate(
-  `Classify the following captured content. Choose the single best category from: {categories}.
+  `${UNTRUSTED_RULE}
+
+Classify the following captured content. Choose the single best category from: {categories}.
 Then explain in one sentence why the user most likely saved this — infer from the context (title/domain/URL/caption) if the content is empty or minimal. Never describe the absence of content itself (do not write things like "no content is available" or "this appears to be a placeholder").
 Content:
 {content}
@@ -56,8 +59,8 @@ export async function classifyIntent(state: IngestionStateType): Promise<Ingesti
   const result = await chain.invoke(
     {
       categories: (TAXONOMY_BY_TYPE[state.mediaType] ?? ["other"]).join(", "),
-      content: (state.rawContent || "(none captured)").slice(0, 4000),
-      context,
+      content: wrapUntrusted((state.rawContent || "(none captured)").slice(0, 4000), "saved content"),
+      context: wrapUntrusted(context, "title and address"),
     },
     { callbacks: [createUsageCallback({ userId: state.userId, requestType: "ingestion:classify_intent", memoryId: state.memoryId })] },
   );

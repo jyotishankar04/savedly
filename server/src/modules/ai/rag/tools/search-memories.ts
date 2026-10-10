@@ -7,7 +7,9 @@ import { chunkHybridSearch } from "../chunk-search";
 // type-check (runtime.context.userId came back as a property of `{}`).
 // turnId: one per question (streamAsk), so a tool can tell calls in the
 // same answer apart from later ones.
-export const ragToolContextSchema = z.object({ userId: z.string(), turnId: z.string().optional() });
+// threadId: the conversation, so a tool can leave a question for the user
+// to answer in it (confirm.ts).
+export const ragToolContextSchema = z.object({ userId: z.string(), turnId: z.string().optional(), threadId: z.string().optional() });
 export type RAGToolContext = z.infer<typeof ragToolContextSchema>;
 
 // Doubles as the documented shape a future client-side generative-UI

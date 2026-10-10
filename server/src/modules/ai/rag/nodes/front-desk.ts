@@ -6,6 +6,7 @@ import { withUsage } from "../../../ai-usage/usage-logger";
 import { FRONT_DESK_CLASSIFY_PROMPT, FRONT_DESK_DECLINE_PROMPT } from "../prompts";
 import { RAGState, type RAGStateType } from "../state";
 import { INTERNAL_EVENT_TAG } from "../internal-tag";
+import { turnIsConfirmation } from "../tools/confirm";
 
 const classifySchema = z.object({ inScope: z.boolean() });
 
@@ -34,10 +35,13 @@ export const frontDeskNode: GraphNode<typeof RAGState> = async (state, config) =
   // be the single place that surfaces the "connect your AI key" message,
   // rather than duplicating that decision here too.
   if (!userId) return { inScope: true };
+  // "Yes" to a question Ask itself asked (confirm.ts) is part of that
+  // request, not a new off-topic message.
+  if (turnIsConfirmation((config.context as { turnId?: string } | undefined)?.turnId)) return { inScope: true };
   const classifyModel = (await getChatModel(userId, "fast", { kind: "ask", threadId }))?.withStructuredOutput(classifySchema);
   if (!classifyModel) return { inScope: true };
 
-  const prompt = FRONT_DESK_CLASSIFY_PROMPT.replace("{query}", query);
+  const prompt = FRONT_DESK_CLASSIFY_PROMPT.replace("{query}", () => query);
   // Tagged internal — this classifier call must never leak into the client
   // stream (same reasoning as checkGrounding's tagged call).
   const { inScope } = await classifyModel.invoke(

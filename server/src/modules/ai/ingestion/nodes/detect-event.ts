@@ -8,6 +8,7 @@ import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
 import { planHasFeature } from "../../../plans/plans.service";
 import { localNow, userTimeZone, utcOffset } from "../../../../shared/utils/time-zone";
+import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 
 interface EventDetection {
   hasEvent: boolean;
@@ -16,7 +17,9 @@ interface EventDetection {
 }
 
 const prompt = ChatPromptTemplate.fromTemplate(
-  `Given the following captured content and what's already known about it, decide whether it describes a specific event, appointment, deadline, or other date-bound occasion (e.g. "team standup Friday at 10am", a saved Eventbrite/ticketing page, "submit the report by June 5", a wedding invite). Right now it's {today} for the user, whose time zone is {timeZone}.
+  `${UNTRUSTED_RULE}
+
+Given the following captured content and what's already known about it, decide whether it describes a specific event, appointment, deadline, or other date-bound occasion (e.g. "team standup Friday at 10am", a saved Eventbrite/ticketing page, "submit the report by June 5", a wedding invite). Right now it's {today} for the user, whose time zone is {timeZone}.
 
 If yes, resolve the date/time to an absolute ISO 8601 datetime and rate your confidence from 0.0 to 1.0. A time with no time zone stated ("3 pm", "Friday 10am") is in the user's time zone: write it with that zone's UTC offset, e.g. "2026-10-02T15:00:00{offsetExample}". Relative dates ("next Friday", "tomorrow") count from the user's today. If there's no clear date-bound event, or the date is too vague to resolve to a specific timestamp (e.g. "sometime next month"), return hasEvent: false.
 
@@ -69,8 +72,8 @@ export async function detectEvent(state: IngestionStateType): Promise<IngestionU
         offsetExample: utcOffset(timeZone),
         contentType: state.contentType ?? "(unknown)",
         inferredIntent: state.inferredIntent ?? "(unknown)",
-        content: (state.rawContent || state.correctedCaption || state.caption || "(none captured)").slice(0, 4000),
-        context,
+        content: wrapUntrusted((state.rawContent || state.correctedCaption || state.caption || "(none captured)").slice(0, 4000), "saved content"),
+        context: wrapUntrusted(context, "title and address"),
       },
       { callbacks: [createUsageCallback({ userId: state.userId, requestType: "ingestion:detect_event", memoryId: state.memoryId })] },
     );
