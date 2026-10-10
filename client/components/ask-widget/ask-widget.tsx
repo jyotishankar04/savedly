@@ -28,6 +28,7 @@ import { HelpActions } from "@/components/ask/help-actions";
 import { AskEmptyState } from "@/components/ask/ask-empty-state";
 import { toolActivityLabel } from "@/lib/ask-tools";
 import { EventResultCard, isEventToolName, parseEventToolOutput } from "@/components/ask/event-result-card";
+import { ConfirmActionCard, pendingConfirmations } from "@/components/ask/confirm-action-card";
 import {
   MessageScroller,
   MessageScrollerContent,
@@ -452,6 +453,12 @@ export function AskWidget() {
                     </div>
                   ) : null;
                 })}
+              {/* Ask is waiting for a yes before it changes anything. */}
+              {!isUser && isLastMessage && !isBusy && (
+                <div className="max-w-[92%]">
+                  <ConfirmActionCard actions={pendingConfirmations(message.parts)} onAnswer={send} compact />
+                </div>
+              )}
               {!isUser && hasText && !(isBusy && isLastMessage) && (
                 <div className="max-w-[92%]">
                   <HelpActions parts={message.parts} compact onNavigate={() => setIsOpen(false)} />

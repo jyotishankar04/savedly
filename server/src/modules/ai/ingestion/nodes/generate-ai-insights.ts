@@ -5,6 +5,7 @@ import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
+import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 
 interface Insights {
   title: string;
@@ -27,7 +28,9 @@ interface Insights {
 // relevant results. The instruction below is the actual fix; `context` just
 // gives the model something better to reach for.
 const prompt = ChatPromptTemplate.fromTemplate(
-  `Analyze the following captured memory and generate a structured JSON object.
+  `${UNTRUSTED_RULE}
+
+Analyze the following captured memory and generate a structured JSON object.
 
 Content:
 {content}
@@ -68,8 +71,8 @@ export async function generateAiInsights(state: IngestionStateType): Promise<Ing
   const chain = prompt.pipe(model).pipe(new JsonOutputParser<Insights>());
   const insights = await chain.invoke(
     {
-      content: (state.rawContent || "(none captured)").slice(0, 4000),
-      context,
+      content: wrapUntrusted((state.rawContent || "(none captured)").slice(0, 4000), "saved content"),
+      context: wrapUntrusted(context, "title and address"),
       inferredIntent: state.inferredIntent ?? "",
       resourceCategory: state.resourceCategory ?? "",
       contentType: state.contentType ?? "",

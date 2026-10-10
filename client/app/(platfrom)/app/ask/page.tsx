@@ -49,6 +49,7 @@ import type { MemoryType } from "@/types/memory";
 import { Attachment, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentTitle, AttachmentTrigger } from "@/components/ui/attachment";
 import { toolActivityLabel } from "@/lib/ask-tools";
 import { EventResultCard, isEventToolName, parseEventToolOutput } from "@/components/ask/event-result-card";
+import { ConfirmActionCard, pendingConfirmations } from "@/components/ask/confirm-action-card";
 
 /** search_memories (topic/keyword) and search_memories_by_date (a day or
  * date range, see the server's rag/tools/search-memories-by-date.ts) both
@@ -627,6 +628,12 @@ export default function AskPage() {
                                 </div>
                               ) : null;
                             })}
+                          {/* Ask is waiting for a yes before it changes anything: only on the latest reply, where the answer still counts. */}
+                          {message.role === "assistant" && isLastMessage && !isBusy && (
+                            <div className="px-1">
+                              <ConfirmActionCard actions={pendingConfirmations(message.parts)} onAnswer={send} disabled={queryLimit.isAtLimit} />
+                            </div>
+                          )}
                           {message.role === "assistant" && hasText && !(isBusy && isLastMessage) && <HelpActions parts={message.parts} />}
                           {showGenerating && (
                             <span className="shimmer text-xs text-muted-foreground px-2.5">

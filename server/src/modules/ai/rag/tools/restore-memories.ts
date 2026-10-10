@@ -2,13 +2,17 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { updateMemory } from "../../../memory/memory.service";
 import { requireUserId, type RagRuntime } from "./shared";
+import { confirmFirst } from "./confirm";
 
 const inputSchema = z.object({
   memoryIds: z.array(z.string().uuid()).min(1).max(20).describe("Ids of trashed memories to restore — find them with find_memories and inTrash: true."),
 });
 
 export const restoreMemoriesTool = tool(
-  async ({ memoryIds }: z.infer<typeof inputSchema>, runtime: RagRuntime) => {
+  confirmFirst(
+    "restore_memories",
+    ({ memoryIds }: z.infer<typeof inputSchema>) => `Restore ${memoryIds.length} ${memoryIds.length === 1 ? "memory" : "memories"} from Trash`,
+    async ({ memoryIds }: z.infer<typeof inputSchema>, runtime: RagRuntime) => {
     const userId = requireUserId(runtime, "restore_memories");
     const restored: { id: string; title: string }[] = [];
     const failed: { id: string; reason: string }[] = [];
@@ -24,6 +28,7 @@ export const restoreMemoriesTool = tool(
     }
     return { restored, failed };
   },
+  ),
   {
     name: "restore_memories",
     description:

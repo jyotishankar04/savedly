@@ -14,6 +14,7 @@ import { compiledRagGraph } from "./rag/graph";
 import { askUnavailableMessage } from "./rag/nodes/agent";
 import { ensureCheckpointerSetup } from "./rag/checkpointer";
 import { INTERNAL_EVENT_TAG } from "./rag/internal-tag";
+import { settlePending } from "./rag/tools/confirm";
 import type { CreateThreadInput } from "./ai.schema";
 
 // The synthetic "one user question" marker — distinct from the rag:* rows
@@ -190,6 +191,11 @@ export async function streamAsk(userId: string, threadId: string, query: string)
   });
   await ensureCheckpointerSetup();
 
+  // An action Ask asked about last turn runs only if this message, the
+  // user's own, is a yes; anything else discards it (rag/tools/confirm.ts).
+  const turnId = randomUUID();
+  await settlePending(threadId, turnId, query);
+
   const eventStream = compiledRagGraph.streamEvents(
     // retryCount reset explicitly every turn — it's a LastValue channel, so
     // without this it stays capped at 1 forever after the first ungrounded
@@ -199,7 +205,7 @@ export async function streamAsk(userId: string, threadId: string, query: string)
     {
       version: "v2",
       configurable: { thread_id: threadId },
-      context: { userId, turnId: randomUUID() },
+      context: { userId, turnId, threadId },
     },
   );
 

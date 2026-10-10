@@ -4,13 +4,16 @@ import { getChatModel } from "../../ai.providers";
 import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { UNTRUSTED_RULE, stripUntrustedTags, wrapUntrusted } from "../../untrusted";
 
 const prompt = ChatPromptTemplate.fromTemplate(
-  `Fix only the spelling, grammar, and capitalization in the following short caption a user typed alongside something they saved. Preserve their meaning, tone, wording, and intent exactly — do not add information, do not rephrase beyond correcting errors, do not add a trailing period if there wasn't one.
+  `${UNTRUSTED_RULE}
+
+Fix only the spelling, grammar, and capitalization in the following short caption a user typed alongside something they saved. Preserve their meaning, tone, wording, and intent exactly — do not add information, do not rephrase beyond correcting errors, do not add a trailing period if there wasn't one.
 
 Caption: {caption}
 
-Respond with ONLY the corrected caption text, nothing else — no quotes, no explanation.`,
+Respond with ONLY the corrected caption text, nothing else — no quotes, no tags, no explanation.`,
 );
 
 /** Never runs on a "note" — that's the memory's own body, not a caption alongside something else, and shouldn't be silently rewritten. */
@@ -29,13 +32,15 @@ export async function correctCaption(state: IngestionStateType): Promise<Ingesti
   const chain = prompt.pipe(model).pipe(new StringOutputParser());
   const corrected = (
     await chain.invoke(
-      { caption: state.caption },
+      { caption: wrapUntrusted(state.caption, "caption") },
       { callbacks: [createUsageCallback({ userId: state.userId, requestType: "ingestion:correct_caption", memoryId: state.memoryId })] },
     )
   ).trim();
+  // The answer here is the caption itself, so a model that echoes the fence back must not have it saved.
+  const cleaned = stripUntrustedTags(corrected);
 
-  logNode(state.memoryId, "correctCaption", { original: state.caption, corrected });
+  logNode(state.memoryId, "correctCaption", { original: state.caption, corrected: cleaned });
 
   // Don't "correct" it into nothing, and don't bother persisting a no-op change.
-  return { correctedCaption: corrected && corrected !== state.caption.trim() ? corrected : null };
+  return { correctedCaption: cleaned && cleaned !== state.caption.trim() ? cleaned : null };
 }

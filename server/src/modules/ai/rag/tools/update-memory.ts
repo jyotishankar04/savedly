@@ -1,9 +1,10 @@
-import { tool, type ToolRuntime } from "@langchain/core/tools";
+import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { updateMemory } from "../../../memory/memory.service";
-import { ragToolContextSchema } from "./search-memories";
+import { getMemoryById, updateMemory } from "../../../memory/memory.service";
 import { takeOrganizeSlot } from "./shared";
 import { planHasFeature } from "../../../plans/plans.service";
+import type { RagRuntime } from "./shared";
+import { confirmFirst, shortTitle, type ConfirmationRequest } from "./confirm";
 
 const inputSchema = z.object({
   memoryId: z.string().uuid().describe("The id of the memory to update — find it with search_memories first."),
@@ -19,11 +20,9 @@ const inputSchema = z.object({
 const resultSchema = z.object({ id: z.string(), title: z.string() });
 export type UpdateMemoryResult = z.infer<typeof resultSchema>;
 
-export const updateMemoryTool = tool(
-  async (
-    { memoryId, ...patch }: z.infer<typeof inputSchema>,
-    runtime: ToolRuntime<unknown, typeof ragToolContextSchema>,
-  ): Promise<UpdateMemoryResult> => {
+type Input = z.infer<typeof inputSchema>;
+
+async function applyUpdate({ memoryId, ...patch }: Input, runtime: RagRuntime): Promise<UpdateMemoryResult> {
     const userId = runtime.context?.userId;
     if (!userId) throw new Error("update_memory: missing userId in runtime context");
 
@@ -38,7 +37,20 @@ export const updateMemoryTool = tool(
 
     const updated = await updateMemory(userId, memoryId, patch);
     return resultSchema.parse({ id: updated.id, title: updated.title });
-  },
+}
+
+// Replacing a memory's text can't be undone, so that one change waits for a
+// yes. Renames, tags, favorites and filing are small and easy to put back,
+// and stay instant.
+const replaceTextAfterConfirming = confirmFirst(
+  "update_memory",
+  async ({ memoryId }: Input, userId) => `Replace the text of "${shortTitle((await getMemoryById(userId, memoryId)).title)}" (the current text is not kept)`,
+  applyUpdate,
+);
+
+export const updateMemoryTool = tool(
+  async (input: Input, runtime: RagRuntime): Promise<UpdateMemoryResult | ConfirmationRequest> =>
+    input.content !== undefined ? replaceTextAfterConfirming(input, runtime) : applyUpdate(input, runtime),
   {
     name: "update_memory",
     description:

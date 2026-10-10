@@ -7,6 +7,7 @@ import { getChatModel } from "../../ai.providers";
 import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
+import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 
 interface CollectionDecision {
   action: "existing" | "new" | "none";
@@ -40,7 +41,9 @@ export function collectionNameKey(name: string): string {
 }
 
 const prompt = ChatPromptTemplate.fromTemplate(
-  `You are organizing a personal knowledge base into collections (folders).
+  `${UNTRUSTED_RULE}
+
+You are organizing a personal knowledge base into collections (folders).
 A new memory was just saved:
 Title: {title}
 Summary: {summary}
@@ -101,8 +104,8 @@ export async function organizeCollection(state: IngestionStateType): Promise<Ing
   const chain = prompt.pipe(model).pipe(new JsonOutputParser<CollectionDecision>());
   const decision = await chain.invoke(
     {
-      title: state.aiTitle ?? state.existingTitle,
-      summary: state.aiSummary ?? "",
+      title: wrapUntrusted(state.aiTitle ?? state.existingTitle, "title"),
+      summary: wrapUntrusted(state.aiSummary ?? "", "summary"),
       tags: state.suggestedTags.join(", ") || "(none)",
       resourceCategory: state.resourceCategory ?? "",
       existingCollections: existingCollectionsText,

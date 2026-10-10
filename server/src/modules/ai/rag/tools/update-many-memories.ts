@@ -3,6 +3,7 @@ import { z } from "zod";
 import { batchMoveToCollection, batchTagMemories } from "../../../batch/batch.service";
 import { assertFeature } from "../../../plans/plans.service";
 import { requireUserId, resolveCollectionId, type RagRuntime } from "./shared";
+import { confirmFirst } from "./confirm";
 
 const inputSchema = z
   .object({
@@ -15,16 +16,33 @@ const inputSchema = z
     message: "Say what to change: addTags, removeTags or moveToCollection.",
   });
 
+// Bulk actions are a plan feature; the message names the plan to upgrade to.
+async function assertBulkOnPlan(userId: string): Promise<void> {
+  try {
+    await assertFeature(userId, "batchOperations");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Bulk actions aren't on this plan.";
+    throw new Error(`${message} Tell the user this and stop. Don't change the memories one at a time instead.`);
+  }
+}
+
+type Input = z.infer<typeof inputSchema>;
+
 export const updateManyMemoriesTool = tool(
-  async ({ memoryIds, addTags, removeTags, moveToCollection }: z.infer<typeof inputSchema>, runtime: RagRuntime) => {
+  confirmFirst(
+    "update_many_memories",
+    async ({ memoryIds, addTags, removeTags, moveToCollection }: Input, userId) => {
+      // Refused before asking: no point confirming what the plan won't allow.
+      await assertBulkOnPlan(userId);
+      const changes: string[] = [];
+      if (addTags?.length) changes.push(`add the tag${addTags.length === 1 ? "" : "s"} ${addTags.join(", ")}`);
+      if (removeTags?.length) changes.push(`remove the tag${removeTags.length === 1 ? "" : "s"} ${removeTags.join(", ")}`);
+      if (moveToCollection) changes.push(`file into ${(await resolveCollectionId(userId, moveToCollection)).name}`);
+      return `Change ${memoryIds.length} ${memoryIds.length === 1 ? "memory" : "memories"}: ${changes.join("; ")}`;
+    },
+    async ({ memoryIds, addTags, removeTags, moveToCollection }: Input, runtime: RagRuntime) => {
     const userId = requireUserId(runtime, "update_many_memories");
-    // Bulk actions are a plan feature; the message names the plan to upgrade to.
-    try {
-      await assertFeature(userId, "batchOperations");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Bulk actions aren't on this plan.";
-      throw new Error(`${message} Tell the user this and stop. Don't change the memories one at a time instead.`);
-    }
+    await assertBulkOnPlan(userId);
 
     const done: string[] = [];
     if (addTags?.length) {
@@ -41,7 +59,8 @@ export const updateManyMemoriesTool = tool(
       done.push(`filed into ${collection.name}`);
     }
     return { count: memoryIds.length, done };
-  },
+    },
+  ),
   {
     name: "update_many_memories",
     description:

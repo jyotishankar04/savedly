@@ -1,7 +1,8 @@
-import { tool, type ToolRuntime } from "@langchain/core/tools";
+import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { createStandaloneCalendarEvent } from "../../../integrations/calendar/calendar.service";
-import { ragToolContextSchema } from "./search-memories";
+import { confirmFirst, shortTitle, whenText } from "./confirm";
+import type { RagRuntime } from "./shared";
 
 const inputSchema = z.object({
   title: z.string().min(1).max(500).describe("A short, clear title for the event — e.g. \"Meeting with John\", \"Dentist appointment\"."),
@@ -43,9 +44,13 @@ export type CreateCalendarEventResult = z.infer<typeof resultSchema>;
  * real Savedly memory, pushed to any connected calendar).
  */
 export const createCalendarEventTool = tool(
-  async (
+  confirmFirst(
+    "create_calendar_event",
+    async ({ title, startAt, durationMinutes }: z.infer<typeof inputSchema>, userId) =>
+      `Add "${shortTitle(title)}" to your calendar on ${await whenText(userId, startAt)}${durationMinutes ? `, for ${durationMinutes} minutes` : ""}`,
+    async (
     { title, description, startAt, durationMinutes }: z.infer<typeof inputSchema>,
-    runtime: ToolRuntime<unknown, typeof ragToolContextSchema>,
+    runtime: RagRuntime,
   ): Promise<CreateCalendarEventResult> => {
     const userId = runtime.context?.userId;
     if (!userId) throw new Error("create_calendar_event: missing userId in runtime context");
@@ -53,6 +58,7 @@ export const createCalendarEventTool = tool(
     const result = await createStandaloneCalendarEvent(userId, { title, description, startAt, durationMinutes });
     return resultSchema.parse(result);
   },
+  ),
   {
     name: "create_calendar_event",
     description:
