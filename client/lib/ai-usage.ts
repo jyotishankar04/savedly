@@ -68,3 +68,15 @@ export async function getUsageByUser(days = 30, page = 1, limit = 20): Promise<U
 export async function getUsageForUser(userId: string, days = 30): Promise<UsageForUser> {
   return apiFetch<UsageForUser>(`/admin/ai-usage/users/${userId}?days=${days}`);
 }
+
+/** Whether the instance's own AI account is answering (server ai/provider-health.ts). */
+export interface AiHealth {
+  ok: boolean;
+  problem: "no-credits" | null;
+  provider: string | null;
+  since: string | null;
+}
+
+export function getAiHealth(): Promise<AiHealth> {
+  return apiFetch<AiHealth>("/admin/ai-usage/health");
+}

@@ -4,6 +4,7 @@ import { eventLinksForMemory, updateEventForMemory, updateExternalCalendarEvent 
 import { getMemoryById } from "../../../memory/memory.service";
 import { assertTarget, eventTargetSchema } from "./event-target";
 import { requireUserId, type RagRuntime } from "./shared";
+import { confirmFirst, shortTitle, whenText, ASKS_FIRST_NOTE } from "./confirm";
 
 const inputSchema = z.object({
   ...eventTargetSchema,
@@ -13,7 +14,18 @@ const inputSchema = z.object({
 });
 
 export const updateEventTool = tool(
-  async (input: z.infer<typeof inputSchema>, runtime: RagRuntime) => {
+  confirmFirst(
+    "update_event",
+    async (input: z.infer<typeof inputSchema>, userId) => {
+      assertTarget(input);
+      const name = input.memoryId ? shortTitle((await getMemoryById(userId, input.memoryId)).title) : shortTitle(input.title);
+      const changes: string[] = [];
+      if (input.start) changes.push(`move it to ${await whenText(userId, input.start)}`);
+      if (input.durationMinutes) changes.push(`make it ${input.durationMinutes} minutes long`);
+      if (input.title && input.memoryId) changes.push(`rename it to "${shortTitle(input.title)}"`);
+      return `Change the event "${name}": ${changes.join("; ") || "update its details"}`;
+    },
+    async (input: z.infer<typeof inputSchema>, runtime: RagRuntime) => {
     const userId = requireUserId(runtime, "update_event");
     assertTarget(input);
     const startAt = input.start ? new Date(input.start).toISOString() : undefined;
@@ -41,10 +53,11 @@ export const updateEventTool = tool(
     await updateExternalCalendarEvent(userId, input.provider!, input.externalEventId!, { title: input.title, description: null, startAt, endAt });
     return { updated: true, memoryId: null, title: input.title, startAt, endAt, provider: input.provider, links: [] };
   },
+  ),
   {
     name: "update_event",
     description:
-      "Reschedule or rename an event — \"move team sync to 4 pm\", \"push the dentist to next Tuesday\", \"rename it to Planning\". Find it first with list_upcoming_events. Changes to a Savedly event also update its Google Calendar copy. For a calendar-only event, pass its full new start and title.",
+      "Reschedule or rename an event — \"move team sync to 4 pm\", \"push the dentist to next Tuesday\", \"rename it to Planning\". Find it first with list_upcoming_events. Changes to a Savedly event also update its Google Calendar copy. For a calendar-only event, pass its full new start and title." + ASKS_FIRST_NOTE,
     schema: inputSchema,
   },
 );

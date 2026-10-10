@@ -6,6 +6,7 @@ import { withUsage } from "../../../ai-usage/usage-logger";
 import { GROUNDING_CHECK_PROMPT } from "../prompts";
 import { RAGState, type RAGStateType } from "../state";
 import { INTERNAL_EVENT_TAG } from "../internal-tag";
+import { wrapUntrusted } from "../../untrusted";
 
 const groundingSchema = z.object({ grounded: z.boolean() });
 
@@ -41,7 +42,9 @@ export const checkGroundingNode: GraphNode<typeof RAGState> = async (state, conf
   if (!groundingModel) return { grounded: true };
 
   const toolResults = collectToolResultsText(state.messages);
-  const prompt = GROUNDING_CHECK_PROMPT.replace("{toolResults}", toolResults).replace("{answer}", answer);
+  // Function replacers: saved text may contain "$&" and the like, which a
+  // plain string replacement would read as a pattern.
+  const prompt = GROUNDING_CHECK_PROMPT.replace("{toolResults}", () => wrapUntrusted(toolResults, "tool results")).replace("{answer}", () => answer);
   // Tagged so the streaming layer (ai.service.ts) can filter this internal
   // structured-output call out of the client-visible stream — without this,
   // streamEvents() surfaces every chat-model call in the graph, including

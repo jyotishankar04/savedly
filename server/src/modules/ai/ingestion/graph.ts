@@ -19,6 +19,7 @@ import { generateEmbeddings } from "./nodes/generate-embeddings";
 import { upsertVectors } from "./nodes/upsert-vectors";
 import { logger } from "../../../shared/utils/logger";
 import type { IngestionStateType, IngestionUpdate } from "./state";
+import { providerRefusal } from "../provider-health";
 
 const STATE_FIELDS = IngestionState.fields as unknown as Record<string, ZodType>;
 
@@ -68,19 +69,6 @@ export function sanitize(name: string, memoryId: string, update: IngestionUpdate
  * and the memory is saved with whatever succeeded (e.g. a screenshot's OCR
  * text) instead of being marked failed.
  */
-/**
- * Why a provider refused a request, when it's one of the two reasons an
- * operator can act on. Both arrive as HTTP 429, so they are told apart by
- * the error's code and wording.
- */
-function providerRefusal(err: unknown): "no-credits" | "rate-limit" | null {
-  const e = err as { status?: number; code?: string; message?: string; lc_error_code?: string } | null;
-  const text = `${e?.code ?? ""} ${e?.lc_error_code ?? ""} ${e?.message ?? ""}`;
-  if (/credit_balance|insufficient_quota|no credits|exceeded your current quota|billing/i.test(text)) return "no-credits";
-  if (e?.status === 429 || /rate.?limit|too many requests|\b429\b/i.test(text)) return "rate-limit";
-  return null;
-}
-
 function optional(name: string, node: (state: IngestionStateType) => Promise<IngestionUpdate>) {
   return async (state: IngestionStateType): Promise<IngestionUpdate> => {
     try {
