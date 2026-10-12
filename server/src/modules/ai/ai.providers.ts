@@ -260,6 +260,16 @@ export async function getChatModel(
   return buildChatModel(resolved.credential, tier, resolved.platform);
 }
 
+/**
+ * A model on the instance's own key, for work done on nobody's behalf (the
+ * public help box). No account means no plan allowance to check: the caller
+ * must bound the cost itself.
+ */
+export async function getPlatformChatModel(tier: "fast" | "reasoning"): Promise<BaseChatModel | null> {
+  const credential = await platformCredential(tier === "fast" ? AiRole.FAST : AiRole.REASONING);
+  return credential ? buildChatModel(credential, tier, true) : null;
+}
+
 export interface ResolvedEmbeddings {
   client: EmbeddingsInterface;
   provider: AiCredentialProvider;

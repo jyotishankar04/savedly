@@ -66,6 +66,9 @@ export default function PrivacyPage() {
               If you self-host Savedly, your install sends this content to the AI provider you or your admin configure instead, and none of it reaches us.
             </p>
             <p>
+              The question box on our home page works without an account. A question typed there is sent to our AI provider to be answered from our help guides. We don&apos;t store the question or link it to you.
+            </p>
+            <p>
               <strong>We do not use your saved content, your questions, or your AI provider responses to train any model — ours or anyone else&apos;s.</strong>
             </p>
           </section>

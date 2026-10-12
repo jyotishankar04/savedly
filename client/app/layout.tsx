@@ -23,6 +23,8 @@ const inter = localFont({ src: "./fonts/inter-latin.woff2", weight: "100 900", v
 const geistSans = localFont({ src: "./fonts/geist-latin.woff2", weight: "100 900", variable: "--font-geist-sans", display: "swap" });
 
 const geistMono = localFont({ src: "./fonts/geist-mono-latin.woff2", weight: "100 900", variable: "--font-geist-mono", display: "swap" });
+// Section headlines on the marketing pages.
+const newsreader = localFont({ src: "./fonts/newsreader-latin.woff2", weight: "200 800", variable: "--font-newsreader", display: "swap" })
 
 const TITLE = "Savedly — Save it now, find it later";
 // Kept under 125 characters: link previews cut off longer ones, sooner on phones.
@@ -60,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
+      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, newsreader.variable, "font-sans", inter.variable)}
       suppressHydrationWarning
     >
     <body className="min-h-full flex flex-col" suppressHydrationWarning>

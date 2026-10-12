@@ -1,5 +1,6 @@
 import { Router } from "express";
 import healthRoutes from "../modules/health/health.route";
+import helpAssistantRoutes from "../modules/help-assistant/help-assistant.routes";
 import authRoutes from "../modules/auth";
 import userRoutes from "../modules/user";
 import settingsRoutes from "../modules/settings";
@@ -49,6 +50,7 @@ router.use(responseCache);
 
 router.use("/health", healthRoutes);
 router.use("/config", configRoutes);
+router.use("/help", helpAssistantRoutes);
 // Before /auth: GitHub only redirects to paths under the sign-in callback, so
 // the stars integration's callback lives there.
 router.use(GITHUB_STARS_CALLBACK_PATH, githubStarsCallbackRouter);

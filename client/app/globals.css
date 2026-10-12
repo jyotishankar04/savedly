@@ -41,7 +41,7 @@
   --sidebar-border: oklch(0.9219 0 0);
   --sidebar-ring: oklch(0.4878 0.2432 264.4045);
   --font-sans: var(--font-geist-sans), ui-sans-serif, sans-serif, system-ui;
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: JetBrains Mono, ui-monospace, monospace;
   --radius: 1.05rem;
   --shadow-x: 0;
@@ -96,7 +96,7 @@
   --sidebar-border: oklch(0.2752 0 0);
   --sidebar-ring: oklch(0.6187 0.2067 259.2316);
   --font-sans: var(--font-geist-sans), ui-sans-serif, sans-serif, system-ui;
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: JetBrains Mono, ui-monospace, monospace;
   --radius: 1.05rem;
   --shadow-x: 0;
