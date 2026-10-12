@@ -12,6 +12,8 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { ServiceWorker } from "@/components/service-worker";
 import { StandaloneRedirect } from "@/components/standalone-redirect";
 import { SITE_URL } from "@/lib/site-url";
+import { SiteAnalytics } from "@/components/analytics/site-analytics";
+import { SELF_HOSTED } from "@/lib/instance";
 
 // The fonts are files in this repository (app/fonts, all under the SIL Open
 // Font License), not fetched from Google at build time: a build then needs no
@@ -82,6 +84,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Toaster>
           </QueryProvider>
         </ThemeProvider>
+        {/* Only where it can work: the hosted site on Vercel. Never on a self-hosted install. */}
+        {process.env.VERCEL && !SELF_HOSTED && <SiteAnalytics />}
       </body>
     </html>
   );

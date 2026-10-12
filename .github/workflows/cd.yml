@@ -113,6 +113,12 @@ jobs:
           ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
             "cd $APP_DIR && bash -s" <<REMOTE
           set -e
+          # Make room first. Every release leaves its image behind, and a
+          # small disk fills up after a handful of them ("no space left on
+          # device" halfway through a pull). This removes every image no
+          # running container uses; the version now serving traffic stays.
+          docker image prune -af >/dev/null 2>&1 || true
+          echo "Disk after clean-up:"; df -h / | tail -1
           # The new image name first. A package starts out private on GitHub,
           # and an old version only exists under the old name (a rollback), so
           # fall back to the old name rather than fail the deploy.
@@ -124,7 +130,8 @@ jobs:
             name=saveforlatter-server
           fi
           IMAGE_NAME=\$name IMAGE_TAG=$IMAGE_TAG docker compose up -d --wait --wait-timeout 300 server redis caddy
-          docker image prune -f >/dev/null
+          # And again afterwards, now that the previous version is unused.
+          docker image prune -af >/dev/null 2>&1 || true
           REMOTE
 
       # The optional server-health agent (deploy/aws/docker-compose.yml). Started
