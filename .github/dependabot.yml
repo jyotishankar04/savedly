@@ -1,40 +1,63 @@
-# Weekly dependency updates, one group per app so each arrives as a single
-# pull request instead of dozens.
+# Monthly dependency updates, kept quiet on purpose: one pull request per
+# app, small updates only.
+#
+# Major versions are left out. Each one can change how a library behaves,
+# and with no automated tests a green check only means "it still compiles".
+# Take a major upgrade by hand, when there is time to try the app afterwards.
+# Security fixes are separate: GitHub opens those whatever is ignored here.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /server
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       server-dependencies:
-        update-types: [minor, patch]
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /client
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       client-dependencies:
-        update-types: [minor, patch]
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /extension
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       extension-dependencies:
-        update-types: [minor, patch]
+        patterns: ["*"]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
+    open-pull-requests-limit: 1
+    groups:
+      github-actions:
+        patterns: ["*"]
 
+  # The server image's Node version is chosen by hand: it has to match the
+  # build target (node22) and what the dependencies support.
   - package-ecosystem: docker
     directory: /server
     schedule:
-      interval: weekly
+      interval: monthly
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]

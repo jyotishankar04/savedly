@@ -3,12 +3,13 @@ import type { Server } from "http";
 import { createApp } from "./app";
 import { env } from "./config/env";
 import { logger } from "./shared/utils/logger";
+import { flushSentry } from "./config/sentry";
 import { startIngestionWorker } from "./modules/ai";
 import { startTrashPurgeWorker } from "./modules/memory/trash-purge.job";
 import { startEmailWorker } from "./modules/email";
 import { startAccountDeletionWorker } from "./modules/account";
 import { startGithubStarsWorker } from "./modules/integrations/github/github.job";
-import { db } from "./db";
+import { pool } from "./db";
 import { cacheRedis, redis } from "./config/redis";
 import type { Worker } from "bullmq";
 
@@ -95,8 +96,7 @@ async function gracefulShutdown(signal: string) {
   }
 
   try {
-    const pgPool = (db as any)._.client;
-    await pgPool.end();
+    await pool.end();
     logger.info("Database pool closed");
   } catch (err) {
     logger.error({ err }, "Error closing database pool");
@@ -110,6 +110,7 @@ async function gracefulShutdown(signal: string) {
     logger.error({ err }, "Error closing Redis connection");
   }
 
+  await flushSentry();
   logger.info("Graceful shutdown complete");
   process.exit(0);
 }
@@ -138,4 +139,10 @@ process.on("SIGINT", () => {
     logger.error({ err }, "Error during graceful shutdown");
     process.exit(1);
   });
+});
+
+// A rejection nobody handled is a bug: log it (which also reports it) and
+// keep serving, as Node would otherwise only print it.
+process.on("unhandledRejection", (reason) => {
+  logger.error({ err: reason instanceof Error ? reason : new Error(String(reason)) }, "Unhandled promise rejection");
 });

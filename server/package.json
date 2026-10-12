@@ -26,6 +26,7 @@
     "@langchain/langgraph-checkpoint-postgres": "^1.0.5",
     "@langchain/openai": "^1.5.10",
     "@langchain/textsplitters": "^1.0.1",
+    "@sentry/node": "^11.6.0",
     "@upstash/vector": "^1.2.3",
     "ai": "^7.0.86",
     "bullmq": "^6.3.1",

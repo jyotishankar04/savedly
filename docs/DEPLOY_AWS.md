@@ -40,7 +40,7 @@ Replace `KEY_FILE` with the path to the key pair's private key, and `ELASTIC_IP`
 
    ```sh
    ssh -i KEY_FILE ubuntu@ELASTIC_IP
-   curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/deploy/aws/bootstrap.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/jyotishankar04/savedly/main/deploy/aws/bootstrap.sh | bash
    exit
    ```
 
@@ -67,8 +67,10 @@ Merging into `prod-server` deploys. See [Release process](./RELEASE_PROCESS.md) 
 The first deploy needs one extra step, because the image package starts out private and the instance can't pull it:
 
 1. Merge the release PR into `prod-server`. The `build` job pushes the image; the `deploy` job fails at the pull.
-2. On GitHub, open the `saveforlatter-server` package and set its visibility to **Public**.
+2. On GitHub, open the `savedly-server` package and set its visibility to **Public**.
 3. In **Actions** > **Deploy API**, click **Re-run failed jobs**.
+
+The image is pushed under two names: `savedly-server`, and `saveforlatter-server`, its name before the product was renamed. The deploy pulls `savedly-server` and falls back to the old name when it can't, with a warning on the run. Older versions exist only under the old name, so keep that package until you no longer need to roll back to them.
 
 To confirm the deploy, run the following command. It prints `200`:
 
@@ -154,6 +156,56 @@ Restore into a new, empty database first, and check it, before you point the API
 4. Sign in and open a few saved items. If search by meaning misses items, open **Admin** > **Infrastructure** > **Embeddings**. It shows how many items have no search index and has a button to index them.
 
 Practise a restore once before you need one. A backup you have never restored is not yet a backup.
+
+## Monitoring
+
+Three things watch production. Each is optional and off until you set it up.
+
+| What | Tool | Tells you |
+|---|---|---|
+| Errors | Sentry | A request, page or background job failed, and where in the code. |
+| Server health | New Relic agent | CPU, memory and disk on the instance, per container. |
+| Uptime | New Relic synthetic monitor | The API or the site stopped answering. |
+
+### Errors (Sentry)
+
+1. In Sentry, create a Node.js project for the API and a Next.js project for the site.
+2. Add the API project's DSN to `.env.prod` on the instance as `SENTRY_DSN=...`, then redeploy.
+3. Add the site project's DSN to the site's build settings as `NEXT_PUBLIC_SENTRY_DSN=...`, then rebuild. It is read at build time.
+4. In Sentry, create an alert for "A new issue is created" so new errors reach your email.
+
+Reports hold the error, its stack, the route or page path, and the account ID. Request bodies, cookies, headers and query strings are removed. Session replay and tracing are not enabled. See `server/src/config/sentry.ts` and `client/lib/sentry-options.ts`.
+
+### Server health (New Relic)
+
+1. In New Relic, copy an **ingest license key** (API keys → type "INGEST - LICENSE").
+2. On the instance, create `/opt/saveforlatter/.env` with these two lines. This is the file Docker Compose reads for itself; it is not `.env.prod`.
+
+   ```
+   COMPOSE_PROFILES=monitoring
+   NEW_RELIC_LICENSE_KEY=<the license key>
+   ```
+
+3. Start the agent:
+
+   ```sh
+   cd /opt/saveforlatter && docker compose up -d newrelic-infra
+   ```
+
+The instance appears in New Relic under **Infrastructure → Hosts** as `savedly-api` within a few minutes. Later deploys keep the agent running and never wait on it.
+
+The agent reads the host, so it runs with host access. It sends metrics only.
+
+To turn it off, delete the `COMPOSE_PROFILES` line and run `docker compose rm -sf newrelic-infra`.
+
+### Uptime (New Relic synthetic monitors)
+
+Create two **Ping** monitors, every 5 minutes, with an email alert on failure:
+
+- `https://api.savedly.app/api/v1/health/ready` checks the API, its database and Redis.
+- `https://savedly.app` checks the site.
+
+Use `/health/ready` and not `/health`: `/health` answers as long as the process is up, even when the database is unreachable.
 
 ## Measure latency
 

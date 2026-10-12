@@ -53,7 +53,7 @@ an individual is officially representing the community in public spaces.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the project maintainers by opening a
-[GitHub issue](https://github.com/jyotishankar04/saveforlatter/issues) for
+[GitHub issue](https://github.com/jyotishankar04/savedly/issues) for
 non-sensitive matters, or by emailing **support@savedly.app** for anything
 that shouldn't be public.
 

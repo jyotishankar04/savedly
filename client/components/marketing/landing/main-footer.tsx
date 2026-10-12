@@ -20,6 +20,7 @@ import { Logo, LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { BOOKING_URL } from "@/lib/booking";
 import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
+import { ProductHuntBadge } from "@/components/marketing/product-hunt-badge";
 
 // Structure adapted from a pasted "Footer12" reference — kept: the
 // asymmetric two-column grid (a lead block beside 4 link columns), the
@@ -186,6 +187,7 @@ function MarketingFooter() {
                 Support the project
               </Link>
             </div>
+            <ProductHuntBadge variant="review" height={40} className="mt-5" />
           </motion.div>
 
           <motion.nav variants={footerContainer} aria-label="Footer" className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 md:grid-cols-5">

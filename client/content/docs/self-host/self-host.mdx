@@ -21,13 +21,13 @@ You need:
 Run the installer. It clones the repository into a folder named `savedly` and starts it:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jyotishankar04/savedly/main/install.sh | sh
 ```
 
 To install by hand instead, run the following commands:
 
 ```bash
-git clone https://github.com/jyotishankar04/saveforlatter.git
+git clone https://github.com/jyotishankar04/savedly.git
 cd savedly
 docker compose up -d
 ```
@@ -160,4 +160,4 @@ Database changes apply automatically when the new version starts.
 - **Saved links aren't summarized:** check that your AI key is set in **Settings** > **AI**. Saving still works without one; the item just isn't enriched.
 - **See what's happening:** run `docker compose logs -f server`.
 
-Still stuck? [Open an issue on GitHub](https://github.com/jyotishankar04/saveforlatter/issues/new).
+Still stuck? [Open an issue on GitHub](https://github.com/jyotishankar04/savedly/issues/new).

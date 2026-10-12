@@ -11,6 +11,7 @@ import { ComingSoonGate } from "@/components/showcase/coming-soon-gate";
 import { InstallPrompt } from "@/components/install-prompt";
 import { ServiceWorker } from "@/components/service-worker";
 import { StandaloneRedirect } from "@/components/standalone-redirect";
+import { SITE_URL } from "@/lib/site-url";
 
 // The fonts are files in this repository (app/fonts, all under the SIL Open
 // Font License), not fetched from Google at build time: a build then needs no
@@ -22,11 +23,10 @@ const geistSans = localFont({ src: "./fonts/geist-latin.woff2", weight: "100 900
 const geistMono = localFont({ src: "./fonts/geist-mono-latin.woff2", weight: "100 900", variable: "--font-geist-mono", display: "swap" });
 
 const TITLE = "Savedly — Save it now, find it later";
-const DESCRIPTION = "Your personal memory for the internet. Save links, notes, videos, and screenshots, and find them again with a search that understands what you meant.";
+// Kept under 125 characters: link previews cut off longer ones, sooner on phones.
+const DESCRIPTION = "Save links, notes, videos and screenshots. Find them again by describing what you remember. Free and open source.";
 
-// Social previews need absolute image URLs. Netlify sets URL at build time;
-// NEXT_PUBLIC_SITE_URL overrides it (e.g. for a custom domain).
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.URL ?? "http://localhost:3000";
+// Social previews need absolute image URLs: see lib/site-url.ts.
 
 // The icons and share image are file-based: app/icon.svg, favicon.ico,
 // apple-icon.png, opengraph-image.png, twitter-image.png.
