@@ -4,5 +4,5 @@ contact_links:
     url: https://discord.gg/PzGFcMNyRK
     about: Ask in the Discord server how to do something, or get help running your own copy. Issues are for bugs and planned work.
   - name: Security vulnerability
-    url: https://github.com/jyotishankar04/saveforlatter/security/advisories/new
+    url: https://github.com/jyotishankar04/savedly/security/advisories/new
     about: Report it privately. Please don't open a public issue.

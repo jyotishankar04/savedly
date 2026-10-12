@@ -4,6 +4,7 @@ import { EmailCategory, EmailTemplateKey, NotificationType } from "../../db/enum
 import { createNotification } from "../notification/notification.service";
 import { sendEmail } from "../email";
 import { eventDetectedEmailTemplate } from "../../shared/mailer/templates";
+import { userTimeZone } from "../../shared/utils/time-zone";
 
 /**
  * The seam between AI event detection (ingestion/nodes/detect-event.ts,
@@ -33,22 +34,40 @@ export interface EventDetectedNotice {
   suggestedEventAt: string;
 }
 
+/**
+ * A date and time as the user would read it: in their own time zone, not
+ * the server's (which is UTC in production, so "4:30 pm" read as "11:00 am").
+ */
+export function eventWhenText(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(new Date(iso));
+}
+
 export function notifyEventDetected(notice: EventDetectedNotice): void {
-  emit("event detected", () =>
-    createNotification({
+  emit("event detected", async () => {
+    const when = eventWhenText(notice.suggestedEventAt, await userTimeZone(notice.userId));
+    return createNotification({
       userId: notice.userId,
       type: NotificationType.EVENT_DETECTED,
       title: `Looks like "${notice.memoryTitle}" is about an event`,
-      body: `Detected date: ${new Date(notice.suggestedEventAt).toLocaleString()}. Add it to your calendar?`,
+      body: `Detected date: ${when}. Add it to your calendar?`,
       actionUrl: `/app/memories/${notice.memoryId}`,
       metadata: { memoryId: notice.memoryId, suggestedEventAt: notice.suggestedEventAt },
-    })
-  );
+    });
+  });
 
-  emit("event detected email", () => {
+  emit("event detected email", async () => {
     const { subject, html } = eventDetectedEmailTemplate({
       title: notice.memoryTitle,
       eventAt: notice.suggestedEventAt,
+      timeZone: await userTimeZone(notice.userId),
       url: `${env.FRONTEND_URL}/app/memories/${notice.memoryId}`,
     });
     return sendEmail({

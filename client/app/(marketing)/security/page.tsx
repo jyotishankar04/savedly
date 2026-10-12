@@ -102,7 +102,7 @@ export default function SecurityPage() {
             <h2 className="text-xl font-bold text-foreground">Reporting Vulnerabilities</h2>
             <p>
               If you find a vulnerability, please report it privately through{" "}
-              <a href="https://github.com/jyotishankar04/saveforlatter/security/advisories/new" target="_blank" rel="noreferrer" className="text-primary hover:underline">GitHub&apos;s private vulnerability reporting</a>{" "}
+              <a href="https://github.com/jyotishankar04/savedly/security/advisories/new" target="_blank" rel="noreferrer" className="text-primary hover:underline">GitHub&apos;s private vulnerability reporting</a>{" "}
               or by email to <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>, not in a public issue. Give us a reasonable time to fix it before you disclose it.
             </p>
           </section>

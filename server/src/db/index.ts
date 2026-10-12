@@ -5,7 +5,7 @@ import { Pool } from "pg";
 // pg's default drops a connection after 10 idle seconds, and a new one costs a
 // full TCP + TLS + auth handshake (over a second to a remote database), which
 // the next request then pays. Keep them for five minutes instead.
-const pool = new Pool({
+export const pool = new Pool({
   connectionString: process.env.DATABASE_URL!,
   idleTimeoutMillis: 5 * 60 * 1000,
   keepAlive: true,

@@ -24,7 +24,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE: ghcr.io/jyotishankar04/saveforlatter-server
+  IMAGE: ghcr.io/jyotishankar04/savedly-server
+  # The image's name before the product was renamed. Still pushed, and still
+  # what the instance falls back to, until the new package is public and old
+  # versions are no longer needed for a rollback. Then this can go.
+  OLD_IMAGE: ghcr.io/jyotishankar04/saveforlatter-server
   APP_DIR: /opt/saveforlatter
 
 jobs:
@@ -68,6 +72,12 @@ jobs:
           tags: |
             ${{ env.IMAGE }}:${{ github.sha }}
             ${{ env.IMAGE }}:latest
+            ${{ env.OLD_IMAGE }}:${{ github.sha }}
+            ${{ env.OLD_IMAGE }}:latest
+          # Links the package to this repository on GitHub.
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=Savedly API server
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -101,7 +111,29 @@ jobs:
       - name: Pull the image and restart
         run: |
           ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
-            "cd $APP_DIR && IMAGE_TAG=$IMAGE_TAG docker compose pull server && IMAGE_TAG=$IMAGE_TAG docker compose up -d --wait --wait-timeout 300 && docker image prune -f >/dev/null"
+            "cd $APP_DIR && bash -s" <<REMOTE
+          set -e
+          # The new image name first. A package starts out private on GitHub,
+          # and an old version only exists under the old name (a rollback), so
+          # fall back to the old name rather than fail the deploy.
+          if IMAGE_NAME=savedly-server IMAGE_TAG=$IMAGE_TAG docker compose pull server; then
+            name=savedly-server
+          else
+            echo "::warning::Could not pull savedly-server:$IMAGE_TAG (set that package to Public on GitHub). Using saveforlatter-server."
+            IMAGE_NAME=saveforlatter-server IMAGE_TAG=$IMAGE_TAG docker compose pull server
+            name=saveforlatter-server
+          fi
+          IMAGE_NAME=\$name IMAGE_TAG=$IMAGE_TAG docker compose up -d --wait --wait-timeout 300 server redis caddy
+          docker image prune -f >/dev/null
+          REMOTE
+
+      # The optional server-health agent (deploy/aws/docker-compose.yml). Started
+      # apart from the app and never waited on, so a monitoring problem (a wrong
+      # key, New Relic unreachable) can't fail a deploy.
+      - name: Start monitoring, if it is switched on
+        run: |
+          ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
+            "cd $APP_DIR && if grep -q '^COMPOSE_PROFILES=.*monitoring' .env 2>/dev/null; then docker compose up -d newrelic-infra || true; fi"
 
       - name: Show the API log if the deploy failed
         if: failure()

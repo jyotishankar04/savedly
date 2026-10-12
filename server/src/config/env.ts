@@ -173,6 +173,9 @@ const envSchema = z
     // Langfuse (self-hosted, see docker-compose.yml's langfuse-* services) —
     // traces every node/LLM call in the ingestion pipeline. Optional: if
     // unset, tracing is just skipped rather than failing the pipeline.
+    // Error tracking (config/sentry.ts). Unset = nothing is reported.
+    SENTRY_DSN: z.string().url().optional(),
+    SENTRY_ENVIRONMENT: z.string().optional(),
     LANGFUSE_PUBLIC_KEY: z.string().optional(),
     LANGFUSE_SECRET_KEY: z.string().optional(),
     LANGFUSE_BASE_URL: z.string().url().default("http://localhost:3001"),

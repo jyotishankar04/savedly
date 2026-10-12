@@ -1,10 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import * as Sentry from "@sentry/nextjs";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { TriangleAlertIcon as TriangleAlert } from "@hugeicons/core-free-icons";
 
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  // A page that crashed while rendering: report it (does nothing unless error tracking is set up).
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
       <div className="relative w-14 h-14 flex items-center justify-center mb-6">

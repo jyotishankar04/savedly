@@ -548,13 +548,16 @@ export function eventDetectedEmailTemplate({
   title,
   eventAt,
   url,
+  timeZone,
 }: {
   title: string;
   eventAt: string;
   url: string;
+  /** The reader's time zone. Without it the time would be the server's (UTC in production). */
+  timeZone?: string;
 }): EmailContent {
   const date = new Date(eventAt);
-  const when = date.toLocaleString(undefined, { dateStyle: "full", timeStyle: "short" });
+  const when = date.toLocaleString("en-US", { dateStyle: "full", timeStyle: "short", timeZone: timeZone ?? "UTC" }) + (timeZone ? "" : " UTC");
   return {
     subject: `We spotted an event in "${title}"`,
     html: layout(

@@ -1,11 +1,12 @@
 import { MetadataRoute } from 'next'
 import { competitors } from '@/lib/data/comparisons'
 import { SELF_HOSTED } from '@/lib/instance'
+import { SITE_URL } from "@/lib/site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   if (SELF_HOSTED) return []
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const baseUrl = SITE_URL;
 
   const staticRoutes = [
     '',

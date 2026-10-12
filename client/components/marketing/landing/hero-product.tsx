@@ -7,6 +7,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon as ArrowRightIcon } from "@hugeicons/core-free-icons";
 import { Navbar } from "@/components/marketing/navbar";
 import { GithubStarButton } from "@/components/marketing/github-star-button";
+import { ProductHuntBadge } from "@/components/marketing/product-hunt-badge";
 import { useAuthCta } from "@/hooks/use-auth-cta";
 import { SHOWCASE_MODE } from "@/lib/showcase";
 import { cn } from "@/lib/utils";
@@ -160,6 +161,10 @@ export function HeroProduct() {
       >
         <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-center pb-14 text-center">
           
+          <motion.div variants={riseVariants} className="mb-8">
+            <ProductHuntBadge variant="featured" height={44} />
+          </motion.div>
+
           <motion.h1
             variants={riseVariants}
             className="max-w-5xl text-[clamp(2.25rem,4.6vw,4.25rem)] leading-[1.12] font-semibold tracking-[-0.03em] text-balance text-foreground"

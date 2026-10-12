@@ -1,13 +1,13 @@
 #!/bin/sh
 # Savedly self-hosted installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/jyotishankar04/savedly/main/install.sh | sh
 #
 # Clones the repository and starts it with Docker Compose. Needs git and
 # Docker (with the compose plugin). Re-running it updates an existing install.
 set -e
 
-REPO="https://github.com/jyotishankar04/saveforlatter.git"
+REPO="https://github.com/jyotishankar04/savedly.git"
 DIR="${SAVEDLY_DIR:-savedly}"
 
 command -v git >/dev/null 2>&1 || { echo "git is required: https://git-scm.com/downloads" >&2; exit 1; }

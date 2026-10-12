@@ -8,9 +8,9 @@ Savedly is licensed under [AGPL-3.0](./LICENSE). By submitting a contribution, y
 
 ## Ways to contribute
 
-- **Report a bug** — [open an issue](https://github.com/jyotishankar04/saveforlatter/issues/new) with steps to reproduce, what you expected, and what actually happened.
+- **Report a bug** — [open an issue](https://github.com/jyotishankar04/savedly/issues/new) with steps to reproduce, what you expected, and what actually happened.
 - **Suggest a feature** — open an issue describing the problem it solves, not just the feature itself.
-- **Fix something** — browse [open issues](https://github.com/jyotishankar04/saveforlatter/issues), especially any marked `good first issue`, or fix something you've personally run into.
+- **Fix something** — browse [open issues](https://github.com/jyotishankar04/savedly/issues), especially any marked `good first issue`, or fix something you've personally run into.
 - **Improve the docs** — the README, [`docs/`](./docs/README.md), `CLAUDE.md`, or the in-app Help Center are all fair game.
 
 ## Before you start

@@ -33,7 +33,7 @@ const TAGLINES: Record<string, string> = {
 };
 
 const ESSENTIALS = "Capture, search by meaning, Ask, collections, tags, sharing and export";
-const INSTALL_COMMAND = "curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh";
+const INSTALL_COMMAND = "curl -fsSL https://raw.githubusercontent.com/jyotishankar04/savedly/main/install.sh | sh";
 
 const FACTS = [
   { value: "AGPL-3.0", label: "Open source" },

@@ -18,7 +18,7 @@ You need:
 Run the installer:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jyotishankar04/savedly/main/install.sh | sh
 ```
 
 The installer clones the repository into `./savedly` and starts it. The first run builds the images and takes a few minutes.
@@ -26,7 +26,7 @@ The installer clones the repository into `./savedly` and starts it. The first ru
 To install by hand instead, run the following commands:
 
 ```sh
-git clone https://github.com/jyotishankar04/saveforlatter.git
+git clone https://github.com/jyotishankar04/savedly.git
 cd savedly
 docker compose up -d
 ```
