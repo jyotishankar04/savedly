@@ -52,6 +52,7 @@ export default function PrivacyPage() {
               <li><strong>Payments:</strong> if you buy a paid plan, Dodo Payments (our merchant of record) collects your payment details — card, UPI or other method — and we never see or store them. We keep only the customer and subscription identifiers Dodo gives us and the status of your plan.</li>
               <li><strong>Usage metadata:</strong> device/browser info, IP address, and basic activity logs (e.g. login timestamps), used for security and to keep the service running reliably.</li>
               <li><strong>Error reports:</strong> when something breaks, a report of the error is sent to Sentry, our error-tracking provider, so we can fix it: the error message, where in our code it happened, the page or API route, and your account ID. We remove request contents, cookies, headers and search text before sending, and we don&apos;t record your screen or what you type.</li>
+              <li><strong>Visits to our public pages:</strong> we count page views on the public website (the home page, pricing, help and similar) with Vercel Web Analytics, which uses no cookies and doesn&apos;t identify you or follow you across sites. Nothing is counted inside the app, and search text in an address is removed.</li>
               <li><strong>Content you share with others:</strong> if you create a share link or invite someone to a memory or collection, the information needed to fulfill that (e.g. the invitee&apos;s email) is stored until you revoke it.</li>
             </ul>
           </section>
@@ -63,6 +64,9 @@ export default function PrivacyPage() {
             </p>
             <p>
               If you self-host Savedly, your install sends this content to the AI provider you or your admin configure instead, and none of it reaches us.
+            </p>
+            <p>
+              The question box on our home page works without an account. A question typed there is sent to our AI provider to be answered from our help guides. We don&apos;t store the question or link it to you.
             </p>
             <p>
               <strong>We do not use your saved content, your questions, or your AI provider responses to train any model — ours or anyone else&apos;s.</strong>

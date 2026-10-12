@@ -30,16 +30,24 @@ interface HelpTool {
   href: string;
 }
 
-const CACHE_MS = 10 * 60 * 1000;
-let cache: { guides: HelpGuide[]; tools: HelpTool[]; at: number } | null = null;
+/** One public page of the website (client/lib/site-pages.ts). */
+export interface SitePage {
+  id: string;
+  title: string;
+  href: string;
+  summary: string;
+}
 
-async function loadHelp(): Promise<{ guides: HelpGuide[]; tools: HelpTool[] }> {
+const CACHE_MS = 10 * 60 * 1000;
+let cache: { guides: HelpGuide[]; tools: HelpTool[]; pages: SitePage[]; at: number } | null = null;
+
+async function loadHelp(): Promise<{ guides: HelpGuide[]; tools: HelpTool[]; pages: SitePage[] }> {
   if (cache && Date.now() - cache.at < CACHE_MS) return cache;
   try {
     const res = await fetch(new URL("/api/help", env.FRONTEND_URL), { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const body = (await res.json()) as { guides?: HelpGuide[]; tools?: HelpTool[] };
-    cache = { guides: body.guides ?? [], tools: body.tools ?? [], at: Date.now() };
+    const body = (await res.json()) as { guides?: HelpGuide[]; tools?: HelpTool[]; pages?: SitePage[] };
+    cache = { guides: body.guides ?? [], tools: body.tools ?? [], pages: body.pages ?? [], at: Date.now() };
     return cache;
   } catch (err) {
     logger.warn({ err: (err as Error).message }, "[platform-help] couldn't load the Help Center");
@@ -88,6 +96,30 @@ function score(guide: HelpGuide, query: Set<string>): number {
   return total;
 }
 
+/** Every public page of the website, with what each is for. Empty if the site can't be reached. */
+export async function loadSitePages(): Promise<SitePage[]> {
+  return (await loadHelp().catch(() => null))?.pages ?? [];
+}
+
+/**
+ * The guides and tools that best answer a question: the best-matching guide,
+ * a second one only when it's nearly as relevant, and any tool the question
+ * names. Shared by the assistant's tool below and the public help box
+ * (modules/help-assistant), which passes a higher `minScore` so one stray
+ * shared word doesn't count as a match.
+ */
+export async function findHelp(question: string, minScore = 1): Promise<{ topics: HelpGuide[]; relatedTools: HelpTool[] }> {
+  const { guides, tools } = await loadHelp();
+  const query = queryTokens(question);
+  const ranked = guides
+    .map((guide) => ({ guide, s: score(guide, query) }))
+    .filter((r) => r.s >= minScore)
+    .sort((a, b) => b.s - a.s);
+  const topics = ranked.filter((r, i) => i === 0 || (i === 1 && r.s >= ranked[0].s * 0.6)).map((r) => r.guide);
+  const relatedTools = tools.filter((t) => [...tokens(`${t.title} ${t.summary}`)].some((w) => query.has(w)));
+  return { topics, relatedTools };
+}
+
 const inputSchema = z.object({
   question: z.string().min(1).describe("The user's question about how to use Savedly, in their own words."),
 });
@@ -98,15 +130,7 @@ const inputSchema = z.object({
 // the tool's artifact and renders them as buttons (client/components/ask/help-actions.tsx).
 export const platformHelpTool = tool(
   async ({ question }: z.infer<typeof inputSchema>) => {
-    const { guides, tools } = await loadHelp();
-    const query = queryTokens(question);
-    const ranked = guides
-      .map((guide) => ({ guide, s: score(guide, query) }))
-      .filter((r) => r.s > 0)
-      .sort((a, b) => b.s - a.s);
-    // A second guide only when it's nearly as relevant as the best one.
-    const top = ranked.filter((r, i) => i === 0 || (i === 1 && r.s >= ranked[0].s * 0.6)).map((r) => r.guide);
-    const relatedTools = tools.filter((t) => [...tokens(`${t.title} ${t.summary}`)].some((w) => query.has(w)));
+    const { topics: top, relatedTools } = await findHelp(question);
 
     const buttons = [...top.flatMap((g) => g.actions.map((a) => a.label)), ...relatedTools.map((t) => t.title), ...top.map((g) => `Guide: ${g.title}`)];
     const forModel = {

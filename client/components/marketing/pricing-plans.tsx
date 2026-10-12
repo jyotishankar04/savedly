@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { CopyCommand } from "@/components/copy-command";
 import { cn } from "@/lib/utils";
-import { GITHUB_URL } from "@/lib/open-source";
+import { GITHUB_URL, INSTALL_COMMAND } from "@/lib/open-source";
 import { useCurrentUserQuery } from "@/context/UserContext";
 import { getServerConfig } from "@/lib/server-config";
 import {
@@ -33,7 +33,6 @@ const TAGLINES: Record<string, string> = {
 };
 
 const ESSENTIALS = "Capture, search by meaning, Ask, collections, tags, sharing and export";
-const INSTALL_COMMAND = "curl -fsSL https://raw.githubusercontent.com/jyotishankar04/savedly/main/install.sh | sh";
 
 const FACTS = [
   { value: "AGPL-3.0", label: "Open source" },

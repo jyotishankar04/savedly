@@ -90,3 +90,21 @@ export const reportRateLimiter = rateLimit({
   handler: rateLimitHandler,
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
+
+// The public help box (modules/help-assistant): nobody is signed in, and
+// each question costs an AI call. A person asks a handful; a script asks
+// thousands.
+export const helpAskMinuteRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});
+export const helpAskDailyRateLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+});

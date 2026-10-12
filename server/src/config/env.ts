@@ -30,6 +30,10 @@ const envSchema = z
     // so lower it if the AI provider reports rate limits (a free-tier key);
     // 1 processes them strictly one after another.
     INGESTION_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(4),
+    // The public help box on the website answers with the instance's own AI
+    // key. This is the most questions it will answer in a day, from everyone
+    // together; past it, the box says it is busy. 0 turns it off.
+    HELP_ASSISTANT_DAILY_LIMIT: z.coerce.number().int().min(0).default(500),
     // Where a self-hosted install keeps its generated secrets and, with the
     // local storage driver, uploaded files. Both are Docker volumes in
     // docker-compose.yml.
