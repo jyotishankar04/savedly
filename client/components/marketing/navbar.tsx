@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { GlidingHighlight } from "@/components/ui/gliding-highlight";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -174,8 +175,8 @@ function MobileMenuRow({ entry, active, onNavigate }: { entry: MenuEntry; active
 
 function MenuRow({ entry }: { entry: MenuEntry }) {
   return (
-    <Link href={entry.href} className="group flex items-center gap-3.5 rounded-xl p-2.5 transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+    <Link href={entry.href} data-nav-row="" className="group relative z-[1] flex items-center gap-3.5 rounded-xl p-2.5 focus-visible:outline-none">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-focus-visible:bg-primary group-focus-visible:text-primary-foreground">
         <HugeiconsIcon icon={entry.icon} strokeWidth={1.75} className="h-5 w-5" />
       </span>
       <span className="min-w-0">
@@ -260,82 +261,88 @@ function MarketingNavbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="mx-auto hidden md:flex">
+        {/* One highlight glides between the items under the pointer (GlidingHighlight),
+            as in the app's sidebars. An open menu's item keeps its own fill. */}
+        <GlidingHighlight as="div" highlightClassName="rounded-full bg-muted" className="mx-auto hidden md:flex">
           <NavigationMenu>
             <NavigationMenuList className="gap-1">
               {/* Product */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
+                  data-nav-row=""
                   className={cn(
-                    "h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-all duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted"
+                    "relative z-[1] h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-colors duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
+                    "text-muted-foreground hover:text-foreground hover:bg-transparent focus:bg-transparent"
                   )}
                 >
                   Product
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <div className="w-[360px] p-1.5">
+                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[360px] p-1.5">
                     {productLinks.map((entry) => (
                       <MenuRow key={entry.title} entry={entry} />
                     ))}
-                  </div>
+                  </GlidingHighlight>
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
               {/* Compare */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
+                  data-nav-row=""
                   className={cn(
-                    "h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-all duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted"
+                    "relative z-[1] h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-colors duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
+                    "text-muted-foreground hover:text-foreground hover:bg-transparent focus:bg-transparent"
                   )}
                 >
                   Compare
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <div className="w-[600px] grid grid-cols-2 p-1.5 gap-x-2 gap-y-1">
+                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[600px] grid grid-cols-2 p-1.5 gap-x-2 gap-y-1">
                     {compareLinks.map((entry) => (
                       <MenuRow key={entry.title} entry={entry} />
                     ))}
-                  </div>
+                  </GlidingHighlight>
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
               {/* Resources */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
+                  data-nav-row=""
                   className={cn(
-                    "h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-all duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted"
+                    "relative z-[1] h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-colors duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
+                    "text-muted-foreground hover:text-foreground hover:bg-transparent focus:bg-transparent"
                   )}
                 >
                   Resources
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <div className="w-[320px] p-1.5">
+                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[320px] p-1.5">
                     {resourceLinks.map((entry) => (
                       <MenuRow key={entry.title} entry={entry} />
                     ))}
-                  </div>
+                  </GlidingHighlight>
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
               {/* Company */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
+                  data-nav-row=""
                   className={cn(
-                    "h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-all duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted focus:bg-muted"
+                    "relative z-[1] h-9 rounded-full bg-transparent px-4 text-sm font-medium transition-colors duration-300 data-[popup-open]:bg-muted data-[popup-open]:text-foreground",
+                    "text-muted-foreground hover:text-foreground hover:bg-transparent focus:bg-transparent"
                   )}
                 >
                   Company
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <div className="w-[320px] p-1.5">
+                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[320px] p-1.5">
                     {companyLinks.map((entry) => (
                       <MenuRow key={entry.title} entry={entry} />
                     ))}
-                  </div>
+                  </GlidingHighlight>
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
@@ -343,9 +350,10 @@ function MarketingNavbar() {
               <NavigationMenuItem>
                 <Link
                   href="/pricing"
+                  data-nav-row=""
                   className={cn(
-                    "inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-all duration-300",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    "relative z-[1] inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-colors duration-300",
+                    "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   Pricing
@@ -353,7 +361,7 @@ function MarketingNavbar() {
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
-        </div>
+        </GlidingHighlight>
 
         {/* Desktop Right Actions */}
         <div className="ml-auto hidden md:flex items-center gap-2">

@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { uploadFile } from "@/lib/uploads";
 import {
   createWhatsNew,
+  loadFeatureTour,
   deleteWhatsNew,
   listWhatsNew,
   reorderWhatsNew,
@@ -88,7 +89,7 @@ function problemWith(draft: Draft): string | null {
   if (label && !url) return "The button needs a link.";
   if (url && !label) return "The button needs a label.";
   if (url && !url.startsWith("/") && !/^https?:\/\//i.test(url)) return "The button link must start with / or https://";
-  if (draft.imageUrl.trim() && !/^https?:\/\//i.test(draft.imageUrl.trim())) return "The image address must start with https://";
+  if (draft.imageUrl.trim() && !/^(https?:\/\/|\/(?!\/))/i.test(draft.imageUrl.trim())) return "The image must be an https:// address, or a path on this site starting with /";
   return null;
 }
 
@@ -201,6 +202,25 @@ export default function AdminWhatsNewPage() {
     }
   };
 
+  // The launch tour: five cards that introduce the product, replacing whatever is here.
+  const [tourAsk, setTourAsk] = useState(false);
+  const [tourBusy, setTourBusy] = useState(false);
+  const confirmTour = async () => {
+    setTourAsk(false);
+    setTourBusy(true);
+    try {
+      await loadFeatureTour();
+      setEditing(null);
+      refresh();
+      queryClient.invalidateQueries({ queryKey: ["whats-new", "active"] });
+      toast.success("The feature tour is loaded", { description: "Visitors see it the next time they open the landing page." });
+    } catch {
+      toast.error("Couldn't load the feature tour");
+    } finally {
+      setTourBusy(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!toDelete) return;
     const item = toDelete;
@@ -228,7 +248,10 @@ export default function AdminWhatsNewPage() {
             a stack, in this order, once. Adding or changing a card shows the popup to everyone again.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" disabled={tourBusy} onClick={() => setTourAsk(true)}>
+            {tourBusy ? "Loading…" : "Load the feature tour"}
+          </Button>
           <Button variant="outline" size="sm" disabled={activeItems.length === 0} onClick={() => setPreviewOpen(true)}>
             <HugeiconsIcon icon={Eye} strokeWidth={2} className="h-4 w-4" />
             Preview popup
@@ -341,6 +364,7 @@ export default function AdminWhatsNewPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="feature">Feature</SelectItem>
                     <SelectItem value="new">New</SelectItem>
                     <SelectItem value="improved">Improved</SelectItem>
                     <SelectItem value="upcoming">Coming soon</SelectItem>
@@ -437,6 +461,22 @@ export default function AdminWhatsNewPage() {
             <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmDelete}>
               Delete card
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={tourAsk} onOpenChange={setTourAsk}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Load the feature tour?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {items.length > 0 ? `This removes the ${items.length} card${items.length === 1 ? "" : "s"} here now and puts` : "This puts"} five cards in their place that
+              introduce what Savedly does. You can edit, reorder or switch them off afterwards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not now</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTour}>{items.length > 0 ? "Replace the cards" : "Load the tour"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

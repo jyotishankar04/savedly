@@ -75,6 +75,10 @@ export const accentColorEnum = pgEnum("accent_color", [
   AccentColor.PURPLE,
   AccentColor.GREEN,
   AccentColor.ORANGE,
+  AccentColor.INDIGO,
+  AccentColor.TEAL,
+  AccentColor.PINK,
+  AccentColor.GRAPHITE,
 ]);
 
 export const organizeModeEnum = pgEnum("organize_mode", [
@@ -109,7 +113,7 @@ export const announcementDisplayModeEnum = pgEnum("announcement_display_mode", [
   AnnouncementDisplayMode.FULL_PAGE,
 ]);
 
-export const whatsNewKindEnum = pgEnum("whats_new_kind", [WhatsNewKind.NEW, WhatsNewKind.IMPROVED, WhatsNewKind.UPCOMING]);
+export const whatsNewKindEnum = pgEnum("whats_new_kind", [WhatsNewKind.FEATURE, WhatsNewKind.NEW, WhatsNewKind.IMPROVED, WhatsNewKind.UPCOMING]);
 
 export const reportTypeEnum = pgEnum("report_type", [ReportType.BUG, ReportType.FEATURE]);
 

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+// Arc UI's tokens as Savedly values. After globals: it builds on them.
+import "@/components/arc/foundation.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/common/theme-provider";
 import { ThemeShortcut } from "@/components/common/theme-shortcut";

@@ -17,10 +17,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
+import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { EmptyState } from "@/components/arc/empty-state/empty-state";
+import { Badge } from "@/components/arc/badge/badge";
 import { deleteBlogPost, formatPostDate, listBlogPosts, type BlogPostSummary } from "@/lib/blog";
 
 type Filter = "all" | "published" | "draft";
+
+const Count = ({ n }: { n: number }) => <span className="tabular-nums text-muted-foreground">{n}</span>;
 
 export default function AdminBlogPage() {
   const queryClient = useQueryClient();
@@ -63,32 +67,31 @@ export default function AdminBlogPage() {
         </Link>
       </div>
 
-      <div role="tablist" aria-label="Show" className="inline-flex rounded-lg bg-muted p-1 text-xs font-medium">
-        {(["all", "published", "draft"] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={filter === value}
-            onClick={() => setFilter(value)}
-            className={cn("rounded-md px-3 py-1.5 capitalize transition-colors", filter === value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-          >
-            {value === "draft" ? "Drafts" : value} <span className="tabular-nums text-muted-foreground">{counts[value]}</span>
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label="Show"
+        value={filter}
+        onValueChange={(value) => setFilter(value as Filter)}
+        options={[
+          { value: "all", label: "All", accessory: <Count n={counts.all} /> },
+          { value: "published", label: "Published", accessory: <Count n={counts.published} /> },
+          { value: "draft", label: "Drafts", accessory: <Count n={counts.draft} /> },
+        ]}
+        className="w-fit"
+      />
 
       <section aria-label="Posts" className="space-y-2">
         {isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
         {isError && <p className="text-xs text-destructive">Couldn&apos;t load the posts.</p>}
         {!isLoading && !isError && posts.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border p-10 text-center">
-            <p className="text-sm font-medium text-foreground">No posts yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">The public blog shows a short note until the first post is published.</p>
-            <Link href="/admin/blog/new" className={cn(buttonVariants({ size: "sm" }), "mt-4")}>
-              Write the first one
-            </Link>
-          </div>
+          <EmptyState
+            title="No posts yet"
+            description="The public blog shows a short note until the first post is published."
+            action={
+              <Link href="/admin/blog/new" className={buttonVariants({ size: "sm" })}>
+                Write the first one
+              </Link>
+            }
+          />
         )}
         {!isLoading && posts.length > 0 && shown.length === 0 && <p className="text-xs text-muted-foreground">Nothing here.</p>}
 
@@ -112,14 +115,9 @@ export default function AdminBlogPage() {
               </p>
             </div>
 
-            <span
-              className={cn(
-                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-                post.status === "published" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground",
-              )}
-            >
+            <Badge tone={post.status === "published" ? "success" : "neutral"} size="sm" className="shrink-0">
               {post.status === "published" ? "Published" : "Draft"}
-            </span>
+            </Badge>
 
             <div className="flex shrink-0 items-center gap-1">
               {post.status === "published" && (

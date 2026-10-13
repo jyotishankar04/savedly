@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -48,6 +48,38 @@ export function WhatsNewDeck({ items, open, onOpenChange }: { items: WhatsNewCar
   const isLast = index === items.length - 1;
   const behind = Math.min(items.length - 1 - index, 2);
 
+  // The height of the card in front, measured as it changes, so the popup can
+  // animate to it. A callback ref: the popup's contents only exist while open.
+  const [cardHeight, setCardHeight] = useState<number | null>(null);
+  const observer = useRef<ResizeObserver | null>(null);
+  // Whether the card runs on below what is showing (a short screen).
+  const scroller = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  const checkMore = useCallback(() => {
+    const el = scroller.current;
+    if (el) setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 8);
+  }, []);
+  const measure = useCallback(
+    (node: HTMLDivElement | null) => {
+      observer.current?.disconnect();
+      observer.current = null;
+      if (!node) return;
+      observer.current = new ResizeObserver(() => {
+        setCardHeight(node.offsetHeight);
+        // After the height has finished moving.
+        setTimeout(checkMore, 360);
+      });
+      observer.current.observe(node);
+    },
+    [checkMore],
+  );
+  const popup = useRef<HTMLDivElement>(null);
+
+  // A new card starts at its top.
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: 0 });
+  }, [position.index]);
+
   const go = (delta: number) => setPosition({ index: Math.max(0, Math.min(items.length - 1, index + delta)), direction: delta });
   const close = () => onOpenChange(false);
 
@@ -62,87 +94,138 @@ export function WhatsNewDeck({ items, open, onOpenChange }: { items: WhatsNewCar
       }}
     >
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-[70] bg-black/55 backdrop-blur-sm duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-[6px] duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
         <DialogPrimitive.Popup
+          ref={popup}
+          // Focus goes to the popup itself, not its close button: opening it
+          // shouldn't draw a focus ring around "Close".
+          initialFocus={popup}
           aria-label="What's new in Savedly"
           onKeyDown={(event) => {
             if (event.key === "ArrowRight") go(1);
             if (event.key === "ArrowLeft") go(-1);
           }}
-          className="fixed top-1/2 left-1/2 z-[70] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 outline-none duration-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+          // On a phone it sits at the bottom of the screen, like the app's sheets.
+          className="fixed top-1/2 left-1/2 z-[70] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 max-md:top-auto max-md:bottom-6 max-md:translate-y-0 outline-none duration-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
         >
           <DialogPrimitive.Title className="sr-only">What&apos;s new in Savedly</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
             {items.length === 1 ? "One update." : `${items.length} updates. Use Next and Back to move through them.`}
           </DialogPrimitive.Description>
 
-          <div className="relative">
+          {/* The card is dark glass in both themes: see-through black over the blurred
+              page. "dark" switches the colours inside it to their dark-theme values. */}
+          <div className="dark relative text-foreground">
             {/* The cards still to come, peeking out below the one in front. */}
             {Array.from({ length: behind }, (_, i) => (
               <div
                 key={i}
                 aria-hidden
-                className="absolute inset-x-0 bottom-0 h-16 rounded-3xl border border-border/70 bg-card shadow-lg transition-all duration-300"
+                className="absolute inset-x-0 bottom-0 h-16 rounded-[28px] bg-black/60 shadow-lg ring-1 ring-white/10 backdrop-blur-xl transition-all duration-300"
                 style={{ transform: `translateY(${(i + 1) * 10}px) scale(${1 - (i + 1) * 0.045})`, opacity: 1 - (i + 1) * 0.3, zIndex: -1 - i }}
               />
             ))}
 
-            <div className="relative flex max-h-[min(86dvh,44rem)] flex-col overflow-hidden rounded-3xl border border-border/70 bg-card text-card-foreground shadow-2xl">
+            <div className="relative flex max-h-[min(92dvh,46rem)] flex-col overflow-hidden rounded-[28px] bg-black/70 text-foreground shadow-[0_30px_80px_-20px_rgb(0_0_0/0.7)] ring-1 ring-white/10 backdrop-blur-2xl">
+              {/* A faint light from the top, fading out: the only gradient. */}
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.08] via-white/[0.02] to-transparent" />
               <DialogPrimitive.Close
                 aria-label="Close"
-                className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-background/85 text-foreground shadow-sm ring-1 ring-foreground/10 backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <HugeiconsIcon icon={X} strokeWidth={2.25} className="h-4 w-4" />
               </DialogPrimitive.Close>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                <AnimatePresence mode="wait" initial={false} custom={position.direction}>
-                  <motion.div
-                    key={item.id}
-                    custom={position.direction}
-                    initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: position.direction * 28 }}
-                    animate={{ opacity: 1, x: 0, transition: { duration: 0.24, ease: [0.22, 1, 0.36, 1] } }}
-                    exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: position.direction * -28, transition: { duration: 0.14 } }}
-                  >
-                    <WhatsNewCard item={item} onAction={close} />
-                  </motion.div>
-                </AnimatePresence>
+              {/* Scrolls only when a card is taller than the screen. Sideways it never scrolls. */}
+              <div
+                ref={scroller}
+                onScroll={checkMore}
+                className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {/* Grows and shrinks to the card in front, so changing cards is one smooth
+                    move. It also clips the card while it slides, which is what used to
+                    flash a scrollbar on every change. */}
+                <motion.div
+                  initial={false}
+                  animate={{ height: cardHeight ?? "auto" }}
+                  transition={reduceMotion ? { duration: 0 } : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div ref={measure}>
+                    <AnimatePresence mode="wait" initial={false} custom={position.direction}>
+                      <motion.div
+                        key={item.id}
+                        custom={position.direction}
+                        initial={reduceMotion ? { opacity: 0 } : { opacity: 0, x: position.direction * 24 }}
+                        animate={{ opacity: 1, x: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } }}
+                        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: position.direction * -24, transition: { duration: 0.14 } }}
+                      >
+                        <WhatsNewCard item={item} onAction={close} />
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
               </div>
 
-              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border/60 px-4 py-3">
-                <button
-                  type="button"
-                  onClick={() => go(-1)}
-                  disabled={index === 0}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-0"
-                >
-                  <HugeiconsIcon icon={ArrowLeft} strokeWidth={2.25} className="h-4 w-4" />
-                  Back
-                </button>
+              {/* On a short screen a card can be taller than the popup. No scrollbar is
+                  drawn; the card fades out at the bottom while there is more to scroll to. */}
+              <div className="relative h-0 shrink-0">
+                <div
+                  aria-hidden
+                  className={cn("pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/85 to-transparent transition-opacity duration-200", more ? "opacity-100" : "opacity-0")}
+                />
+              </div>
 
-                {items.length > 1 && (
-                  <div className="flex items-center gap-1.5" aria-label={`${index + 1} of ${items.length}`}>
-                    {items.map((entry, i) => (
-                      <button
-                        key={entry.id}
-                        type="button"
-                        aria-label={`Go to update ${i + 1}`}
-                        aria-current={i === index ? "step" : undefined}
-                        onClick={() => setPosition({ index: i, direction: i > index ? 1 : -1 })}
-                        className={cn("h-1.5 rounded-full transition-all duration-300", i === index ? "w-5 bg-primary" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60")}
-                      />
-                    ))}
+              <div className="relative flex shrink-0 items-center justify-between gap-4 border-t border-white/10 bg-white/[0.03] px-5 py-3.5">
+                {items.length > 1 ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      {items.map((entry, i) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          aria-label={`Go to update ${i + 1} of ${items.length}`}
+                          aria-current={i === index ? "step" : undefined}
+                          onClick={() => setPosition({ index: i, direction: i > index ? 1 : -1 })}
+                          className="group flex h-6 items-center focus-visible:outline-none"
+                        >
+                          <span
+                            className={cn(
+                              "h-1.5 rounded-full transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-primary/50",
+                              i === index ? "w-6 bg-primary" : "w-1.5 bg-foreground/20 group-hover:bg-foreground/40",
+                            )}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {index + 1} of {items.length}
+                    </span>
                   </div>
+                ) : (
+                  <span />
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => (isLast ? close() : go(1))}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-full bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-foreground/85"
-                >
-                  {isLast ? "Got it" : "Next"}
-                  {!isLast && <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />}
-                </button>
+                <div className="flex items-center gap-2">
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => go(-1)}
+                      className="inline-flex h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    >
+                      <HugeiconsIcon icon={ArrowLeft} strokeWidth={2.25} className="h-4 w-4" />
+                      Back
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => (isLast ? close() : go(1))}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    {isLast ? "Got it" : "Next"}
+                    {!isLast && <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

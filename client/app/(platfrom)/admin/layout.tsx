@@ -177,7 +177,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           <span className="text-sm font-bold tracking-tight">Admin</span>
         </div>
 
-        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
+        <nav aria-label="Admin" className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
           {navEntries.map((entry) =>
             isGroup(entry) ? (
               <div key={entry.label} className="space-y-0.5">
@@ -191,6 +191,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                     <Link
                       key={link.href}
                       href={link.href}
+                      aria-current={active ? "page" : undefined}
                       className={cn(
                         "ml-1 px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center transition-colors",
                         active
@@ -207,6 +208,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={entry.href}
                 href={entry.href}
+                aria-current={isActive(pathname, entry.href) ? "page" : undefined}
                 className={cn(
                   "px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-2.5 transition-colors",
                   isActive(pathname, entry.href)

@@ -193,6 +193,35 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* One scrollbar everywhere: the thin, rounded, border-coloured thumb of
+     shadcn's ScrollArea (components/ui/scroll-area.tsx), on every element
+     that scrolls natively: pages, dialogs, sheets, lists, text boxes, and the
+     Arc components. It is styling of the real scrollbar, not a swap to the
+     ScrollArea component, so sticky headers, scroll positions and infinite
+     lists keep working exactly as they did. It sits in the base layer, so a
+     place that hides its scrollbar on purpose still wins. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-muted-foreground);
+  }
 }
 
 /* Diagonal light sweep for "AI is working on this" states — e.g. a
@@ -215,6 +244,120 @@
   .animate-shine-sweep {
     animation: none;
   }
+}
+
+/* The brand blue, fixed. --primary starts as the same colour but can be
+   changed per person below; the logo uses this one so it never changes. */
+:root {
+  --brand: oklch(0.4878 0.2432 264.4045);
+}
+.dark {
+  --brand: oklch(0.6187 0.2067 259.2316);
+}
+
+/* Accent colours (Settings > Appearance). Blue is the default above; these
+   replace only the accent for someone who picked another colour, and only
+   while they are in the app: components/accent-color.tsx sets data-accent on
+   <html> there and removes it on the public website. Arc's tokens
+   (components/arc/foundation.css) are built from --primary, so Arc components
+   follow too.
+
+   How they were chosen. The site's surfaces are pure greys, so the accent is
+   the only colour identity a screen has, and three hues already mean
+   something: emerald is "done" (success, Published), amber is "careful"
+   (warnings, limits) and red-orange is "destructive". Each accent keeps
+   clear of those: Green is a deeper forest green, not the success emerald;
+   Orange sits at a warmer, browner hue than the delete red; Teal and Pink
+   are far from all three. Indigo and Purple are the brand blue's neighbours,
+   and Graphite has no hue at all, for the editorial look of the landing
+   page. In the light theme every one is dark enough for white text (4.5:1 or
+   better); in the dark theme each is lifted, as blue is. */
+:root[data-accent="indigo"] {
+  --primary: oklch(0.45 0.22 277);
+  --ring: oklch(0.45 0.22 277);
+  --sidebar-primary: oklch(0.45 0.22 277);
+  --sidebar-ring: oklch(0.45 0.22 277);
+}
+.dark[data-accent="indigo"] {
+  --primary: oklch(0.63 0.19 277);
+  --ring: oklch(0.45 0.13 277);
+  --sidebar-primary: oklch(0.63 0.19 277);
+  --sidebar-ring: oklch(0.63 0.19 277);
+}
+:root[data-accent="purple"] {
+  --primary: oklch(0.5 0.25 300);
+  --ring: oklch(0.5 0.25 300);
+  --sidebar-primary: oklch(0.5 0.25 300);
+  --sidebar-ring: oklch(0.5 0.25 300);
+}
+.dark[data-accent="purple"] {
+  --primary: oklch(0.63 0.22 300);
+  --ring: oklch(0.46 0.15 300);
+  --sidebar-primary: oklch(0.63 0.22 300);
+  --sidebar-ring: oklch(0.63 0.22 300);
+}
+:root[data-accent="pink"] {
+  --primary: oklch(0.53 0.21 352);
+  --ring: oklch(0.53 0.21 352);
+  --sidebar-primary: oklch(0.53 0.21 352);
+  --sidebar-ring: oklch(0.53 0.21 352);
+}
+.dark[data-accent="pink"] {
+  --primary: oklch(0.64 0.2 352);
+  --ring: oklch(0.47 0.13 352);
+  --sidebar-primary: oklch(0.64 0.2 352);
+  --sidebar-ring: oklch(0.64 0.2 352);
+}
+:root[data-accent="orange"] {
+  --primary: oklch(0.56 0.16 52);
+  --ring: oklch(0.56 0.16 52);
+  --sidebar-primary: oklch(0.56 0.16 52);
+  --sidebar-ring: oklch(0.56 0.16 52);
+}
+.dark[data-accent="orange"] {
+  --primary: oklch(0.66 0.16 55);
+  --ring: oklch(0.48 0.1 55);
+  --sidebar-primary: oklch(0.66 0.16 55);
+  --sidebar-ring: oklch(0.66 0.16 55);
+}
+:root[data-accent="green"] {
+  --primary: oklch(0.48 0.12 152);
+  --ring: oklch(0.48 0.12 152);
+  --sidebar-primary: oklch(0.48 0.12 152);
+  --sidebar-ring: oklch(0.48 0.12 152);
+}
+.dark[data-accent="green"] {
+  --primary: oklch(0.62 0.15 152);
+  --ring: oklch(0.45 0.09 152);
+  --sidebar-primary: oklch(0.62 0.15 152);
+  --sidebar-ring: oklch(0.62 0.15 152);
+}
+:root[data-accent="teal"] {
+  --primary: oklch(0.5 0.09 200);
+  --ring: oklch(0.5 0.09 200);
+  --sidebar-primary: oklch(0.5 0.09 200);
+  --sidebar-ring: oklch(0.5 0.09 200);
+}
+.dark[data-accent="teal"] {
+  --primary: oklch(0.64 0.1 198);
+  --ring: oklch(0.46 0.07 198);
+  --sidebar-primary: oklch(0.64 0.1 198);
+  --sidebar-ring: oklch(0.64 0.1 198);
+}
+:root[data-accent="graphite"] {
+  --primary: oklch(0.27 0 0);
+  --ring: oklch(0.45 0 0);
+  --sidebar-primary: oklch(0.27 0 0);
+  --sidebar-ring: oklch(0.45 0 0);
+}
+/* Light on dark, so its text has to be dark too. */
+.dark[data-accent="graphite"] {
+  --primary: oklch(0.92 0 0);
+  --primary-foreground: oklch(0.2 0 0);
+  --ring: oklch(0.6 0 0);
+  --sidebar-primary: oklch(0.92 0 0);
+  --sidebar-primary-foreground: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.6 0 0);
 }
 
 /* MessageScrollerViewport already references scrollbar-thin/

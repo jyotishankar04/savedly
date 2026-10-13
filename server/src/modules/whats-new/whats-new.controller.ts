@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
 import { logAdminAction } from "../../shared/utils/audit-log";
 import { createWhatsNew, deleteWhatsNew, listActiveWhatsNew, listWhatsNew, reorderWhatsNew, updateWhatsNew } from "./whats-new.service";
+import { loadFeatureTour } from "./whats-new.feature-tour";
 
 export class WhatsNewController {
   static async active(_req: Request, res: Response) {
@@ -38,6 +39,18 @@ export class WhatsNewController {
       ipAddress: req.ip,
     });
     res.status(200).json(ApiResponse.success(after));
+  }
+
+  static async loadFeatureTour(req: Request, res: Response) {
+    const result = await loadFeatureTour(req.user!.id);
+    await logAdminAction({
+      adminUserId: req.user!.id,
+      action: "whats_new.feature_tour_loaded",
+      targetType: "whats_new_item",
+      afterValue: result,
+      ipAddress: req.ip,
+    });
+    res.status(200).json(ApiResponse.success(await listWhatsNew()));
   }
 
   static async reorder(req: Request, res: Response) {

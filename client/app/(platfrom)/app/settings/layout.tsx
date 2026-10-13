@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { GlidingHighlight } from "@/components/ui/gliding-highlight";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,25 +30,27 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       <div className="flex flex-col md:flex-row gap-8">
         
         {/* Settings Sub-Sidebar */}
-        <aside className="w-full md:w-48 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none font-semibold text-xs text-muted-foreground">
+        <GlidingHighlight as="aside" aria-label="Settings sections" className="w-full md:w-48 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none font-semibold text-xs text-muted-foreground">
           {links.map((link) => {
             const active = pathname === link.href;
             return (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={active ? "page" : undefined}
+                data-nav-row=""
                 className={cn(
-                  "px-3 py-2 rounded-lg transition-all text-nowrap",
-                  active 
-                    ? "bg-primary/10 text-primary font-bold" 
-                    : "hover:bg-muted hover:text-foreground"
+                  "relative z-[1] px-3 py-2 rounded-lg transition-colors text-nowrap",
+                  active
+                    ? "bg-primary/10 text-primary font-bold"
+                    : "hover:text-foreground"
                 )}
               >
                 {link.label}
               </Link>
             );
           })}
-        </aside>
+        </GlidingHighlight>
 
         {/* Nested settings content panel */}
         <div className="flex-1 min-w-0">

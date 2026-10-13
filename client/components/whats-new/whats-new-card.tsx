@@ -5,16 +5,18 @@ import { cn } from "@/lib/utils";
 import { WHATS_NEW_KIND_LABEL, type WhatsNewCardData, type WhatsNewKind } from "@/lib/whats-new";
 
 const KIND_STYLE: Record<WhatsNewKind, string> = {
-  new: "bg-primary/10 text-primary",
-  improved: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  upcoming: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  feature: "text-primary",
+  new: "text-primary",
+  improved: "text-emerald-600 dark:text-emerald-400",
+  upcoming: "text-amber-700 dark:text-amber-400",
 };
 
 /**
  * One "What's new" card: an optional image, what kind of news it is, a
  * title, a paragraph, a few points and one button. Used by the landing
  * page's popup and by the admin page's live preview, so what an admin sees
- * while writing is what visitors get.
+ * while writing is what visitors get. Set in the landing page's type: a
+ * serif title over plain text.
  */
 export function WhatsNewCard({
   item,
@@ -29,31 +31,41 @@ export function WhatsNewCard({
   const hasCta = item.ctaLabel && item.ctaUrl;
   const external = hasCta && /^https?:\/\//i.test(item.ctaUrl!);
   const ctaClass =
-    "mt-5 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25";
+    "mt-5 inline-flex h-11 w-fit items-center gap-2 rounded-full bg-primary pr-4 pl-5 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30";
+  const cta = (
+    <>
+      {item.ctaLabel}
+      <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
+    </>
+  );
 
   return (
     <article className={cn("flex flex-col", className)}>
       {item.imageUrl && (
-        <div className="aspect-[16/9] w-full shrink-0 overflow-hidden bg-muted">
-          {/* eslint-disable-next-line @next/next/no-img-element -- admin-supplied image from any host */}
-          <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+        <div className="px-2 pt-2">
+          <div className="aspect-[2/1] w-full overflow-hidden rounded-[20px] sm:aspect-[16/9] bg-muted ring-1 ring-foreground/10">
+            {/* eslint-disable-next-line @next/next/no-img-element -- admin-supplied image from any host */}
+            <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
+          </div>
         </div>
       )}
 
-      <div className="flex flex-col p-6">
-        <span className={cn("w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide", KIND_STYLE[item.kind])}>
+      <div className={cn("flex flex-col px-5 pb-6 sm:px-7 sm:pb-7", item.imageUrl ? "pt-5 sm:pt-6" : "pt-8")}>
+        <span className={cn("inline-flex w-fit items-center gap-2 text-[13px] font-medium", KIND_STYLE[item.kind])}>
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
           {WHATS_NEW_KIND_LABEL[item.kind]}
         </span>
-        <h3 className="mt-3 text-xl font-semibold leading-snug tracking-tight text-balance text-foreground">{item.title || "Untitled"}</h3>
-        {item.body && <p className="mt-2 text-[15px] leading-relaxed text-pretty text-muted-foreground">{item.body}</p>}
+        {/* Room on the right for the popup's close button when there is no image above. */}
+        <h3 className={cn("mt-2.5 font-serif text-[1.5rem] leading-[1.12] sm:mt-3 sm:text-[1.75rem] font-medium tracking-[-0.02em] text-balance text-foreground", !item.imageUrl && "pr-10")}>
+          {item.title || "Untitled"}
+        </h3>
+        {item.body && <p className="mt-3 text-[15px] leading-relaxed text-pretty text-muted-foreground">{item.body}</p>}
 
         {item.bullets.length > 0 && (
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-4 divide-y divide-foreground/10 border-y border-foreground/10">
             {item.bullets.map((bullet, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-[14px] leading-snug text-foreground">
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <HugeiconsIcon icon={Tick} strokeWidth={3} className="h-2.5 w-2.5" />
-                </span>
+              <li key={i} className="flex items-start gap-3 py-2.5 text-[14.5px] leading-snug text-foreground">
+                <HugeiconsIcon icon={Tick} strokeWidth={2.5} className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 {bullet}
               </li>
             ))}
@@ -62,14 +74,12 @@ export function WhatsNewCard({
 
         {hasCta &&
           (external ? (
-            <a href={item.ctaUrl!} target="_blank" rel="noreferrer" onClick={onAction} className={cn(ctaClass, "w-fit")}>
-              {item.ctaLabel}
-              <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
+            <a href={item.ctaUrl!} target="_blank" rel="noreferrer" onClick={onAction} className={ctaClass}>
+              {cta}
             </a>
           ) : (
-            <Link href={item.ctaUrl!} onClick={onAction} className={cn(ctaClass, "w-fit")}>
-              {item.ctaLabel}
-              <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-4 w-4" />
+            <Link href={item.ctaUrl!} onClick={onAction} className={ctaClass}>
+              {cta}
             </Link>
           ))}
       </div>

@@ -113,7 +113,7 @@ export function EditCollectionDialog({ collection, open, onOpenChange }: EditCol
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-10 flex-1 rounded-full">
               Cancel
             </Button>
-            <Button type="submit" disabled={updateMutation.isPending || !name.trim()} className="h-10 flex-1 rounded-full bg-primary text-white">
+            <Button type="submit" disabled={updateMutation.isPending || !name.trim()} className="h-10 flex-1 rounded-full bg-primary text-primary-foreground">
               {updateMutation.isPending ? "Saving…" : "Save changes"}
             </Button>
           </div>

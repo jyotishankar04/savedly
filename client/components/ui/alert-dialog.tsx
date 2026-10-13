@@ -6,6 +6,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { MOBILE_SHEET } from "@/components/ui/dialog"
 
 function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />
@@ -54,7 +55,11 @@ function AlertDialogContent({
         data-size={size}
         className={cn(
           "group/alert-dialog-content fixed top-1/2 left-1/2 z-50 grid grid-cols-[minmax(0,1fr)] w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 rounded-2xl border border-border/60 bg-popover p-6 text-popover-foreground shadow-2xl shadow-black/10 duration-150 outline-none dark:shadow-black/40 data-[size=default]:max-w-xs data-[size=sm]:max-w-64 data-[size=default]:sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-open:slide-in-from-bottom-1 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
+          className,
+          // On a phone a confirmation is a bottom sheet too (see dialog.tsx). No
+          // grabber: it has to be answered, not swiped away.
+          MOBILE_SHEET,
+          "max-md:!w-full max-md:data-open:!slide-in-from-bottom"
         )}
         {...props}
       />
