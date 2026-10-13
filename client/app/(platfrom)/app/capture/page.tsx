@@ -427,7 +427,7 @@ function CaptureForm() {
             disabled={isSaving || isUploadingAttachment || memoryLimit.isAtLimit || (!captureText.trim() && !captureAttachment)}
             title={memoryLimit.isAtLimit ? memoryLimit.message ?? undefined : undefined}
             className={cn(
-              "h-11 px-7 rounded-full font-bold text-xs bg-primary text-white flex items-center gap-1.5",
+              "h-11 px-7 rounded-full font-bold text-xs bg-primary text-primary-foreground flex items-center gap-1.5",
               memoryLimit.isAtLimit && "opacity-50 cursor-not-allowed",
             )}
           >

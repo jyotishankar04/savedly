@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/auth";
+import type { AccentId } from "@/lib/accent";
 
 export interface Settings {
   /** IANA time zone from the browser ("Asia/Kolkata"); null until first sent. */
@@ -24,7 +25,7 @@ export interface Settings {
   };
   appearance: {
     theme: "system" | "light" | "dark";
-    accentColor: "blue" | "purple" | "green" | "orange";
+    accentColor: AccentId;
   };
   connectedAccounts: {
     google: boolean;

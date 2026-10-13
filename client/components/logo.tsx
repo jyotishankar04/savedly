@@ -44,7 +44,9 @@ export function LogoMark({ className, ticks = true }: { className?: string; tick
  */
 export function Logo({
   className,
-  accentClassName = "text-primary",
+  // The brand blue itself, not the accent: someone who picks another accent
+  // colour in Settings still sees the logo in blue (see app/globals.css).
+  accentClassName = "text-[var(--brand)]",
   mark = true,
 }: {
   className?: string;

@@ -111,6 +111,7 @@ export default function CalendarView() {
       toast.add({
         title: `Adding events is part of ${canAdd.requiredPlan ?? "a paid plan"}`,
         description: "You can still see, move and edit the events you already have.",
+        type: "warning",
         actionProps: { children: "See plans", onClick: () => router.push("/app/settings/billing") },
       });
       return;

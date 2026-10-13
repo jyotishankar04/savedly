@@ -6,6 +6,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { LoaderCircleIcon as Loader2 } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { useSettingsGroup } from "@/hooks/use-settings-group";
+import { ACCENTS } from "@/lib/accent";
 
 export default function AppearanceSettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -60,17 +61,11 @@ export default function AppearanceSettingsPage() {
           <div className="space-y-2 pt-2">
             <span className="text-[9px] uppercase tracking-wider text-muted-foreground block">Accent Color</span>
 
-            <div className="flex gap-3">
-              {(
-                [
-                  { id: "blue", color: "bg-blue-600", label: "Blue" },
-                  { id: "purple", color: "bg-purple-600", label: "Purple" },
-                  { id: "green", color: "bg-emerald-600", label: "Green" },
-                  { id: "orange", color: "bg-orange-600", label: "Orange" },
-                ] as const
-              ).map((acc) => (
+            <div className="flex flex-wrap gap-3">
+              {ACCENTS.map((acc) => (
                 <button
                   key={acc.id}
+                  aria-pressed={appearance.accentColor === acc.id}
                   onClick={() => set("accentColor", acc.id)}
                   className={cn(
                     "h-8 px-3 rounded-full border flex items-center gap-1.5 transition-all text-[10px]",
@@ -79,11 +74,12 @@ export default function AppearanceSettingsPage() {
                       : "border-border/60 hover:bg-muted text-muted-foreground"
                   )}
                 >
-                  <span className={cn("h-3 w-3 rounded-full shrink-0", acc.color)} />
+                  <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: acc.swatch }} />
                   <span>{acc.label}</span>
                 </button>
               ))}
             </div>
+            <p className="text-[10px] font-normal text-muted-foreground">Changes buttons, links and highlights in the app, for your account. The logo, the public website and the admin area stay blue.</p>
           </div>
         )}
 

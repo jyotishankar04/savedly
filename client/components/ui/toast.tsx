@@ -1,235 +1,136 @@
 "use client"
 
 import * as React from "react"
-import { Toast as ToastPrimitive } from "@base-ui/react/toast"
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { HugeiconsIcon } from "@hugeicons/react";
-import { XIcon, CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, LoaderCircleIcon as Loader2Icon } from "@hugeicons/core-free-icons";
+import { ToastStack, ToastStackProvider, useToastStack, type ToastOptions, type ToastStackApi, type ToastType } from "@/components/arc/toast-stack/toast-stack"
 
-const toast = ToastPrimitive.createToastManager()
+// The app's toasts. They are Arc UI's toast stack (components/arc/toast-stack):
+// typed (success, info, warning, error, loading), stacked at the bottom edge,
+// swipeable, with an optional action, and able to change in place, so a
+// "Saving" toast can become "Saved".
+//
+// Arc's stack is used through a hook inside its provider. Most of the app
+// raises toasts from plain functions (event handlers, mutations, helpers), so
+// this file keeps one `toast` object that works from anywhere: <Toaster />
+// hands it the stack's functions once it has mounted.
 
-function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
-  return <ToastPrimitive.Provider {...props} />
+type Action = { label: string; onClick: (id: string) => void }
+
+export interface ToastInput {
+  /** Reuse an id to replace a toast that is still showing instead of adding another. */
+  id?: string
+  title: string
+  description?: string
+  /** Defaults to "info". */
+  type?: ToastType
+  /** A button on the toast, such as "Undo" or "View". */
+  action?: Action
+  /** The older spelling of `action`, still accepted. */
+  actionProps?: { children: string; onClick?: () => void }
+  /** Milliseconds before it leaves. Warnings and errors already stay longer. */
+  duration?: number
+  /** The older spelling of `duration`, still accepted. */
+  timeout?: number
+  /** Ignored. Kept so older calls still compile. */
+  data?: unknown
 }
 
-function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
-  return <ToastPrimitive.Portal data-slot="toast-portal" {...props} />
+let api: ToastStackApi | null = null
+// Raised before the toaster mounted (rare: during the very first render).
+let waiting: ToastOptions[] = []
+
+function toOptions(input: ToastInput): ToastOptions {
+  const action = input.action ?? (input.actionProps ? { label: input.actionProps.children, onClick: () => input.actionProps?.onClick?.() } : undefined)
+  return {
+    id: input.id,
+    type: input.type ?? "info",
+    title: input.title,
+    description: input.description,
+    action,
+    duration: input.duration ?? input.timeout,
+  }
 }
 
-function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
-  return (
-    <ToastPrimitive.Viewport
-      data-slot="toast-viewport"
-      className={cn(
-        "pointer-events-none fixed inset-x-4 bottom-4 z-50 mx-auto w-auto max-w-sm outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full",
-        className
-      )}
-      {...props}
-    />
-  )
+function add(input: ToastInput): string {
+  const options = toOptions(input)
+  if (api) return api.toast(options)
+  const id = options.id ?? `queued-${waiting.length}-${Date.now()}`
+  waiting.push({ ...options, id })
+  return id
 }
 
-function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
-  return (
-    <ToastPrimitive.Root
-      data-slot="toast"
-      className={cn(
-        "group/toast pointer-events-auto absolute right-0 bottom-0 z-[calc(1000-var(--toast-index))] w-full origin-bottom rounded-md border bg-popover text-popover-foreground shadow-lg will-change-transform outline-none select-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-        "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))]",
-        "h-(--height) [transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] [transition:transform_500ms_cubic-bezier(0.22,1,0.36,1),opacity_500ms,height_150ms]",
-        "after:absolute after:top-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
-        "data-expanded:h-(--toast-height) data-expanded:[transform:translateX(var(--toast-swipe-movement-x))_translateY(var(--offset-y))]",
-        "data-limited:opacity-0 data-starting-style:[transform:translateY(150%)]",
-        "[&[data-ending-style]:not([data-limited]):not([data-swipe-direction])]:[transform:translateY(150%)]",
-        "data-ending-style:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
-        "data-ending-style:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
-        "data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
-        "data-ending-style:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))]",
-        "data-expanded:data-ending-style:data-[swipe-direction=down]:[transform:translateY(calc(var(--toast-swipe-movement-y)+150%))]",
-        "data-expanded:data-ending-style:data-[swipe-direction=left]:[transform:translateX(calc(var(--toast-swipe-movement-x)-150%))_translateY(var(--offset-y))]",
-        "data-expanded:data-ending-style:data-[swipe-direction=right]:[transform:translateX(calc(var(--toast-swipe-movement-x)+150%))_translateY(var(--offset-y))]",
-        "data-expanded:data-ending-style:data-[swipe-direction=up]:[transform:translateY(calc(var(--toast-swipe-movement-y)-150%))]",
-        className
-      )}
-      {...props}
-    />
-  )
-}
+const typed = (type: ToastType) => (title: string, rest: Omit<ToastInput, "title" | "type"> = {}) => add({ ...rest, title, type })
 
-function ToastContent({ className, ...props }: ToastPrimitive.Content.Props) {
-  return (
-    <ToastPrimitive.Content
-      data-slot="toast-content"
-      className={cn(
-        "flex h-full items-center gap-3 overflow-hidden p-4 transition-opacity duration-250 ease-[cubic-bezier(0.22,1,0.36,1)] data-behind:opacity-0 data-expanded:opacity-100",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
-  return (
-    <ToastPrimitive.Title
-      data-slot="toast-title"
-      className={cn("text-sm font-medium", className)}
-      {...props}
-    />
-  )
-}
-
-function ToastDescription({
-  className,
-  ...props
-}: ToastPrimitive.Description.Props) {
-  return (
-    <ToastPrimitive.Description
-      data-slot="toast-description"
-      className={cn("text-sm text-muted-foreground", className)}
-      {...props}
-    />
-  )
-}
-
-function ToastAction({
-  className,
-  render = <Button variant="outline" size="sm" />,
-  ...props
-}: ToastPrimitive.Action.Props) {
-  return (
-    <ToastPrimitive.Action
-      data-slot="toast-action"
-      render={render}
-      className={cn("shrink-0", className)}
-      {...props}
-    />
-  )
-}
-
-function ToastClose({
-  className,
-  children,
-  render = <Button variant="ghost" size="icon-sm" />,
-  ...props
-}: ToastPrimitive.Close.Props) {
-  return (
-    <ToastPrimitive.Close
-      data-slot="toast-close"
-      aria-label="Close toast"
-      render={render}
-      className={cn(
-        "relative shrink-0 text-muted-foreground after:absolute after:-inset-2 after:content-[''] hover:text-foreground",
-        className
-      )}
-      {...props}
-    >
-      {children ?? (
-        <HugeiconsIcon icon={XIcon} strokeWidth={2.25} aria-hidden="true" />
-      )}
-    </ToastPrimitive.Close>
-  )
-}
-
-function ToastIcon({ type }: { type: string | undefined }) {
-  let icon: React.ReactNode = null
-
-  if (type === "success") {
-    icon = (
-      <HugeiconsIcon icon={CircleCheckIcon} strokeWidth={2.25} aria-hidden="true" />
+const toast = {
+  /** Shows a toast and returns its id. */
+  add,
+  success: typed("success"),
+  info: typed("info"),
+  warning: typed("warning"),
+  error: typed("error"),
+  /** Stays until it is updated or dismissed. */
+  loading: typed("loading"),
+  /** Changes a showing toast in place (its type, words or action) and restarts its timer. */
+  update(id: string, patch: Partial<Omit<ToastInput, "id">>) {
+    const { actionProps, timeout, data, ...rest } = patch
+    void data
+    api?.update(id, {
+      ...rest,
+      ...(actionProps ? { action: { label: actionProps.children, onClick: () => actionProps.onClick?.() } } : {}),
+      ...(timeout !== undefined ? { duration: timeout } : {}),
+    })
+  },
+  /** Dismisses one toast, or every toast when called with no id. */
+  dismiss(id?: string) {
+    api?.dismiss(id)
+  },
+  /**
+   * A loading toast that becomes a success or an error when the work settles.
+   * Returns the work's own promise, so it can still be awaited.
+   */
+  promise<T>(work: Promise<T>, words: { loading: string; success: string | ((value: T) => string); error: string | ((reason: unknown) => string) }): Promise<T> {
+    const id = add({ type: "loading", title: words.loading })
+    work.then(
+      (value) => toast.update(id, { type: "success", title: typeof words.success === "function" ? words.success(value) : words.success }),
+      (reason) => toast.update(id, { type: "error", title: typeof words.error === "function" ? words.error(reason) : words.error }),
     )
-  }
-
-  if (type === "info") {
-    icon = (
-      <HugeiconsIcon icon={InfoIcon} strokeWidth={2.25} aria-hidden="true" />
-    )
-  }
-
-  if (type === "warning") {
-    icon = (
-      <HugeiconsIcon icon={TriangleAlertIcon} strokeWidth={2.25} aria-hidden="true" />
-    )
-  }
-
-  if (type === "error") {
-    icon = (
-      <HugeiconsIcon icon={OctagonXIcon} strokeWidth={2.25} className="text-destructive" aria-hidden="true" />
-    )
-  }
-
-  if (type === "loading") {
-    icon = (
-      <HugeiconsIcon icon={Loader2Icon} strokeWidth={2.25} className="animate-spin" aria-hidden="true" />
-    )
-  }
-
-  if (!icon) {
-    return null
-  }
-
-  return (
-    <span
-      data-slot="toast-icon"
-      className="shrink-0 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4"
-    >
-      {icon}
-    </span>
-  )
+    return work
+  },
 }
 
-function ToastList() {
-  const { toasts } = ToastPrimitive.useToastManager()
-
-  return toasts.map((toastItem) => (
-    <Toast key={toastItem.id} toast={toastItem}>
-      <ToastContent>
-        <ToastIcon type={toastItem.type} />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <ToastTitle />
-          <ToastDescription />
-        </div>
-        <ToastAction />
-        <ToastClose />
-      </ToastContent>
-    </Toast>
-  ))
+/** Gives the module-level `toast` the stack's functions, and shows anything raised before it mounted. */
+function Bridge() {
+  const stack = useToastStack()
+  const latest = React.useRef(stack)
+  React.useEffect(() => {
+    latest.current = stack
+  })
+  React.useEffect(() => {
+    api = {
+      toast: (options) => latest.current.toast(options),
+      update: (id, patch) => latest.current.update(id, patch),
+      dismiss: (id) => latest.current.dismiss(id),
+    }
+    const queued = waiting
+    waiting = []
+    queued.forEach((options) => latest.current.toast(options))
+    return () => {
+      api = null
+    }
+  }, [])
+  return null
 }
 
-function Toaster({
-  children,
-  toastManager = toast,
-  ...props
-}: ToastPrimitive.Provider.Props) {
+/** Wrap the app once. Toasts show at the bottom right, and at the bottom centre on a phone. */
+function Toaster({ children }: { children?: React.ReactNode }) {
   return (
-    <ToastProvider toastManager={toastManager} {...props}>
+    <ToastStackProvider>
       {children}
-      <ToastPortal>
-        <ToastViewport>
-          <ToastList />
-        </ToastViewport>
-      </ToastPortal>
-    </ToastProvider>
+      <Bridge />
+      <ToastStack />
+    </ToastStackProvider>
   )
 }
 
-const createToastManager = ToastPrimitive.createToastManager
-const useToastManager = ToastPrimitive.useToastManager
-
-export {
-  Toaster,
-  Toast,
-  ToastAction,
-  ToastClose,
-  ToastContent,
-  ToastDescription,
-  ToastPortal,
-  ToastProvider,
-  ToastTitle,
-  ToastViewport,
-  createToastManager,
-  toast,
-  useToastManager,
-}
+export { Toaster, toast }
+export type { ToastType }

@@ -667,7 +667,7 @@ function AiFeatureToggles({ managed = false }: { managed?: boolean }) {
               <div
                 className={cn(
                   "h-5 w-5 rounded border flex items-center justify-center shrink-0 transition-all",
-                  ai[item.key] ? "bg-primary border-primary text-white" : "border-border bg-background"
+                  ai[item.key] ? "bg-primary border-primary text-primary-foreground" : "border-border bg-background"
                 )}
               >
                 {ai[item.key] && <HugeiconsIcon icon={Check} strokeWidth={2.25} className="h-3.5 w-3.5 stroke-[2.5]" />}

@@ -302,7 +302,7 @@ export default function CollectionsPage() {
                 disabled={createMutation.isPending || collectionLimit.isAtLimit}
                 title={collectionLimit.isAtLimit ? collectionLimit.message ?? undefined : undefined}
                 className={cn(
-                  "flex-1 h-10 rounded-full bg-primary text-white",
+                  "flex-1 h-10 rounded-full bg-primary text-primary-foreground",
                   collectionLimit.isAtLimit && "opacity-50 cursor-not-allowed",
                 )}
               >

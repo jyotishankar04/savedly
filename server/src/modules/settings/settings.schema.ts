@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AccentColor } from "../../db/enums";
 
 function isTimeZone(value: string): boolean {
   try {
@@ -38,7 +39,7 @@ export const updateSettingsSchema = z.object({
   appearance: z
     .object({
       theme: z.enum(["system", "light", "dark"]).optional(),
-      accentColor: z.enum(["blue", "purple", "green", "orange"]).optional(),
+      accentColor: z.enum(Object.values(AccentColor) as [AccentColor, ...AccentColor[]]).optional(),
     })
     .optional(),
 });

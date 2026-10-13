@@ -102,7 +102,7 @@ export default function AccountSettingsPage() {
 
         {saveError && <p className="text-[10px] text-destructive">{saveError}</p>}
 
-        <Button type="submit" disabled={updateProfileMutation.isPending} className="h-9 px-4 rounded-full bg-primary text-white font-bold">
+        <Button type="submit" disabled={updateProfileMutation.isPending} className="h-9 px-4 rounded-full bg-primary text-primary-foreground font-bold">
           {updateProfileMutation.isPending ? "Saving..." : "Save changes"}
         </Button>
 

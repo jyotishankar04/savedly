@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { PaletteDialog } from "@/components/ui/palette-dialog";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -43,6 +43,7 @@ import { PlanLimitNotice, ProBadge } from "@/components/plan-limit-notice";
 import { MemoryPreviewCard } from "@/components/memory-preview-card";
 import { AiConfiguredGate } from "@/components/ai-configured-gate";
 import { cn } from "@/lib/utils";
+import { GlidingHighlight } from "@/components/ui/gliding-highlight";
 import { HelpActions } from "@/components/ask/help-actions";
 import { AskEmptyState } from "@/components/ask/ask-empty-state";
 import type { MemoryType } from "@/types/memory";
@@ -500,7 +501,7 @@ export default function AskPage() {
             groupThreadsByDate(threads).map((group) => (
               <div key={group.label} className="pt-4 first:pt-1">
                 <p className="px-3 pb-1.5 text-xs font-medium text-muted-foreground">{group.label}</p>
-                <ul className="space-y-0.5">
+                <GlidingHighlight as="ul" aria-label={group.label} className="space-y-0.5">
                   {group.threads.map((thread) => {
                     const active = thread.id === activeThreadId;
                     return (
@@ -509,10 +510,11 @@ export default function AskPage() {
                           type="button"
                           onClick={() => handleSelectThread(thread.id)}
                           aria-current={active ? "page" : undefined}
+                          data-nav-row=""
                           title={thread.title}
                           className={cn(
-                            "w-full truncate rounded-lg px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                            active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                            "relative z-[1] w-full truncate rounded-lg px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+                            active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
                           )}
                         >
                           {thread.title}
@@ -520,7 +522,7 @@ export default function AskPage() {
                       </li>
                     );
                   })}
-                </ul>
+                </GlidingHighlight>
               </div>
             ))
           )}
@@ -726,27 +728,26 @@ export default function AskPage() {
           once the main sidebar is fully collapsed) — same thread list as
           the on-page sidebar, just reachable when that sidebar has nowhere
           to render. */}
-      <CommandDialog open={historyModalOpen} onOpenChange={setHistoryModalOpen} title="Chat history" description="Jump to a previous conversation">
-        <CommandInput placeholder="Search conversations..." />
-        <CommandList>
-          <CommandEmpty>No conversations yet.</CommandEmpty>
-          <CommandGroup heading="Conversations">
-            {threads.map((thread) => (
-              <CommandItem
-                key={thread.id}
-                value={thread.title}
-                onSelect={() => {
-                  setHistoryModalOpen(false);
-                  handleSelectThread(thread.id);
-                }}
-              >
-                <HugeiconsIcon icon={MessageSquare} strokeWidth={2.25} className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                <span>{thread.title}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </CommandDialog>
+      <PaletteDialog
+        open={historyModalOpen}
+        onOpenChange={setHistoryModalOpen}
+        title="Chat history"
+        description="Jump to a previous conversation, or start a new one."
+        placeholder="Search conversations…"
+        items={[
+          { id: "new", group: "Start", label: "New chat", keywords: ["start", "fresh", "ask"], icon: <HugeiconsIcon icon={MessageSquare} strokeWidth={2} className="h-4 w-4" /> },
+          // Grouped the same way as the list beside the chat: Today, Yesterday, and so on.
+          ...groupThreadsByDate(threads).flatMap((group) =>
+            group.threads.map((thread) => ({
+              id: `thread:${thread.id}`,
+              group: group.label,
+              label: thread.title,
+              icon: <HugeiconsIcon icon={MessageSquare} strokeWidth={2} className="h-4 w-4" />,
+            })),
+          ),
+        ]}
+        onSelect={(item) => (item.id === "new" ? handleNewChat() : handleSelectThread(item.id.slice("thread:".length)))}
+      />
     </div>
     </AiConfiguredGate>
   );

@@ -9,11 +9,12 @@ const linkSchema = z
   .refine((value) => value.startsWith("/") || /^https?:\/\//i.test(value), "Use a path starting with / or a full https:// address");
 
 export const createWhatsNewSchema = z.object({
-  kind: z.enum([WhatsNewKind.NEW, WhatsNewKind.IMPROVED, WhatsNewKind.UPCOMING]).optional(),
+  kind: z.enum([WhatsNewKind.FEATURE, WhatsNewKind.NEW, WhatsNewKind.IMPROVED, WhatsNewKind.UPCOMING]).optional(),
   title: z.string().trim().min(1).max(120),
   body: z.string().trim().max(600).nullable().optional(),
   bullets: z.array(z.string().trim().min(1).max(160)).max(6).optional(),
-  imageUrl: z.string().trim().url().max(1000).nullable().optional(),
+  // A picture on the website itself ("/whats-new/install.webp") or a full https address.
+  imageUrl: linkSchema.nullable().optional(),
   ctaLabel: z.string().trim().min(1).max(60).nullable().optional(),
   ctaUrl: linkSchema.nullable().optional(),
   isActive: z.boolean().optional(),

@@ -1,0 +1,1 @@
+ALTER TYPE "whats_new_kind" ADD VALUE 'feature' BEFORE 'new';

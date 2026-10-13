@@ -23,7 +23,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: "help", title: "Help Center", href: "/help", summary: "The documentation: step-by-step guides for getting started, saving, importing, organizing, search, Ask, sharing, the vault, calendar, notifications, keyboard shortcuts, account settings and self-hosting." },
   { id: "getting-started", title: "Getting started guide", href: "/help/docs/get-started/getting-started", summary: "The first guide to read: create an account and save your first items." },
   { id: "self-host", title: "Self-hosting guide", href: "/help/docs/self-host/self-host", summary: "How to run your own copy of Savedly with Docker, set up AI, back up and update." },
-  { id: "changelog", title: "Changelog", href: "/changelog", summary: "What has been released, version by version." },
+  { id: "changelog", title: "Changelog", href: "/changelog", summary: "What has been released, month by month." },
   { id: "compare", title: "Compare", href: "/vs", summary: "How Savedly compares with mymind, Memorie, Fabric, Raindrop, Readwise Reader, Notion, Evernote and Google Keep, one page each." },
   // One page per comparison (lib/data/comparisons.ts).
   ...competitors.map((c) => ({ id: `compare-${c.slug}`, title: `Savedly vs ${c.name}`, href: `/vs/${c.slug}`, summary: `How Savedly compares with ${c.name}, side by side.` })),

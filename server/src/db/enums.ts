@@ -30,11 +30,17 @@ export enum SettingsTheme {
   DARK = "dark",
 }
 
+// The accent a person can pick for the app (Settings > Appearance). The
+// colours themselves are in client/app/globals.css.
 export enum AccentColor {
   BLUE = "blue",
   PURPLE = "purple",
   GREEN = "green",
   ORANGE = "orange",
+  INDIGO = "indigo",
+  TEAL = "teal",
+  PINK = "pink",
+  GRAPHITE = "graphite",
 }
 
 export enum MemoryType {
@@ -69,6 +75,8 @@ export enum BlogPostStatus {
 
 // What a "What's new" card is telling the visitor about (see whatsNewItems).
 export enum WhatsNewKind {
+  // Something the product does, with no claim that it just arrived: the launch tour.
+  FEATURE = "feature",
   NEW = "new",
   IMPROVED = "improved",
   UPCOMING = "upcoming",
