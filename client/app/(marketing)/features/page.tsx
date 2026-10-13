@@ -1,70 +1,105 @@
-"use client";
-
+import type { Metadata } from "next";
+import Link from "next/link";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
-import { FeatureOverviewBento } from "@/components/marketing/landing/bento/feature-overview-bento";
-import { HowItWorksSection } from "@/components/marketing/landing/how-it-works-section";
-import { FormatGridSection } from "@/components/marketing/landing/bento/format-grid-section";
-import { AskSection } from "@/components/marketing/landing/ask-section";
-import { SearchSection } from "@/components/marketing/landing/search-section";
-import { GraphSection } from "@/components/marketing/landing/graph-section";
-import { EverywhereSection } from "@/components/marketing/landing/everywhere-section";
-import { IntegrationsSection } from "@/components/marketing/landing/integrations-section";
-import { VaultSection } from "@/components/marketing/landing/vault-section";
-import { SectionAnchor as Anchor } from "@/components/marketing/landing/section-anchor";
+import { StepsSection } from "@/components/marketing/landing/steps-section";
+import { FeatureBlocks } from "@/components/marketing/landing/feature-blocks";
+import { MoreSection } from "@/components/marketing/landing/more-section";
+import { ConnectSection } from "@/components/marketing/landing/connect-section";
+import { ImportSection } from "@/components/marketing/landing/import-section";
+import { PrivacySection } from "@/components/marketing/landing/privacy-section";
+import { FinalCtaSection } from "@/components/marketing/landing/final-cta-section";
 
-// Every section below is the exact same component the homepage uses, not a
-// summarized/duplicated version — one source of truth per feature, so a
-// future edit to (say) the Ask demo updates both pages at once. This page's
-// job is depth and structure (an overview grid that jumps to a full
-// section per feature), not new content. The homepage now carries the same
-// FeatureOverviewBento + the same anchor ids (see app/(marketing)/page.tsx)
-// so its tiles work whichever page they're clicked from.
+export const metadata: Metadata = {
+  title: "Features · Savedly",
+  description: "Everything Savedly does: search by meaning, Ask, automatic filing, sharing, a calendar, a vault and integrations.",
+};
+
+// The whole product on one page, built from the same sections as the home
+// page (one source of truth per feature: an edit to the Ask block shows on
+// both). What this page adds is the index at the top, so someone looking for
+// one thing can jump to it, and the absence of everything that isn't a
+// feature (the hero, pricing, the questions).
+//
+// Other pages link to anchors here. The sections carry most of them
+// (#search, #ask, #organize, #everything, #integrations, #import, #privacy);
+// the rest are the empty targets below, kept for links that already exist
+// (the navigation's #how-it-works and #formats, and older #graph, #vault and
+// #everywhere).
+
+const INDEX: { label: string; href: string; about: string }[] = [
+  { label: "How it works", href: "#how-it-works", about: "Capture, understand, find, ask" },
+  { label: "Search", href: "#search", about: "By meaning, or the exact words" },
+  { label: "Ask", href: "#ask", about: "Answers from what you saved" },
+  { label: "Organize", href: "#organize", about: "Filed, tagged and summarized for you" },
+  { label: "Share, plan, look back", href: "#everything", about: "Links, a calendar, the graph, the vault" },
+  { label: "Integrations", href: "#integrations", about: "Google Calendar, GitHub, and what's planned" },
+  { label: "Import", href: "#import", about: "Bring your bookmarks with you" },
+  { label: "Privacy", href: "#privacy", about: "What happens to what you save" },
+];
+
+/** A place for an existing link to land, just above the section it means. */
+function Target({ id }: { id: string }) {
+  return <span id={id} aria-hidden className="block scroll-mt-24" />;
+}
 
 export default function FeaturesPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/[0.03] via-background to-background text-foreground font-sans">
+    <div className="flex min-h-screen flex-col bg-background font-sans text-foreground antialiased">
       <Navbar />
 
-      <main className="flex-1 pt-32 pb-8">
-        <div className="max-w-6xl mx-auto px-6 text-center space-y-4 mb-4">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
-            Product Features
-          </span>
-          <h1 className="text-4xl md:text-6xl font-medium tracking-tight text-foreground leading-[1.15]">
-            Everything you save, <br className="hidden sm:block" /> fully searchable.
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto leading-relaxed">
-            Savedly is built for researchers, creators, and developers. A personal library that grows smarter over time.
-          </p>
-        </div>
+      <main className="flex-1">
+        <header className="px-5 pt-36 sm:px-8 md:pt-44">
+          <div className="mx-auto max-w-6xl">
+            <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-16">
+              <h1 className="font-serif text-[clamp(2.5rem,6vw,4.5rem)] font-medium leading-[1.04] tracking-[-0.03em] text-balance text-foreground">
+                Everything
+                <br className="hidden sm:block" /> Savedly does
+              </h1>
+              <p className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
+                Save anything, and find it again from whatever you remember about it. Each part below is shown working, with the same examples all the way down. For what happens behind it, see{" "}
+                <Link href="/how-it-works" className="font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
+                  how it works
+                </Link>
+                .
+              </p>
+            </div>
 
-        <FeatureOverviewBento />
+            <nav aria-label="On this page" className="mt-12 grid border-t border-foreground/15 sm:grid-cols-2 lg:grid-cols-4">
+              {INDEX.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="group border-b border-foreground/15 py-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 sm:pr-6"
+                >
+                  <span className="flex items-center justify-between gap-3 text-base font-medium text-foreground">
+                    {item.label}
+                    <span aria-hidden className="text-muted-foreground transition-transform group-hover:translate-y-0.5">
+                      ↓
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-sm text-muted-foreground">{item.about}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </header>
 
-        <Anchor id="how-it-works">
-          <HowItWorksSection />
-        </Anchor>
-        <Anchor id="ask">
-          <AskSection />
-        </Anchor>
-        <Anchor id="search">
-          <SearchSection />
-        </Anchor>
-        <Anchor id="formats">
-          <FormatGridSection />
-        </Anchor>
-        <Anchor id="graph">
-          <GraphSection />
-        </Anchor>
-        <Anchor id="everywhere">
-          <EverywhereSection />
-        </Anchor>
-        <Anchor id="integrations">
-          <IntegrationsSection />
-        </Anchor>
-        <Anchor id="vault">
-          <VaultSection />
-        </Anchor>
+        <Target id="how-it-works" />
+        <Target id="formats" />
+        <StepsSection />
+
+        <FeatureBlocks />
+
+        <Target id="graph" />
+        <Target id="vault" />
+        <Target id="everywhere" />
+        <MoreSection />
+
+        <ConnectSection />
+        <ImportSection />
+        <PrivacySection />
+        <FinalCtaSection />
       </main>
 
       <MainFooter />

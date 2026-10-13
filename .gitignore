@@ -20,3 +20,6 @@ claude-seo
 # Local tool state
 skills-lock.json
 .zennotes
+
+# Personal social media marketing drafts (not project source)
+/social/

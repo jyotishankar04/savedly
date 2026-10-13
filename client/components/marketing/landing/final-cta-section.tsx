@@ -69,7 +69,7 @@ function FindPicture() {
     <div
       ref={ref}
       aria-hidden
-      className="relative mx-auto w-full max-w-[400px] select-none lg:mx-0 lg:ml-auto"
+      className="relative mx-auto w-full min-w-0 max-w-[400px] select-none lg:mx-0 lg:ml-auto"
     >
       {/* Two sheets behind, so the card reads as the top of a pile. */}
       <div className="absolute inset-x-6 -bottom-5 h-24 rounded-3xl bg-white/15" />
@@ -89,7 +89,7 @@ function FindPicture() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.3 }}
-              className="truncate text-[15px]"
+              className="min-w-0 flex-1 truncate text-[15px]"
             >
               {find.ask}
             </motion.span>
@@ -170,8 +170,8 @@ export function FinalCtaSection() {
           />
         </div>
 
-        <div className="relative grid items-center gap-14 lg:grid-cols-[1.25fr_1fr] lg:gap-10">
-          <div>
+        <div className="relative grid grid-cols-1 items-center gap-14 lg:grid-cols-[1.25fr_1fr] lg:gap-10">
+          <div className="min-w-0">
             <h2 className="max-w-2xl text-4xl leading-[1.04] font-semibold tracking-[-0.035em] text-balance sm:text-5xl lg:text-[3.6rem]">
               Save the next thing you don&apos;t want to lose.
             </h2>

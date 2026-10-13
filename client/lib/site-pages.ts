@@ -18,6 +18,7 @@ export interface SitePage {
 export const SITE_PAGES: SitePage[] = [
   { id: "home", title: "Home", href: "/", summary: "What Savedly is and how it works, with a box to ask questions." },
   { id: "features", title: "Features", href: "/features", summary: "Every capability explained: saving, automatic summaries and tags, search by meaning, the Ask assistant, collections, the memory graph, the vault, calendar sync and integrations." },
+  { id: "how-it-works", title: "How it works", href: "/how-it-works", summary: "What happens to a save step by step (read, summarized, filed, indexed), what the system is made of, and exactly what data leaves it and why." },
   { id: "pricing", title: "Pricing", href: "/pricing", summary: "The hosted plans (Free, Lite, Pro), what each includes, their prices, and how self-hosting compares." },
   { id: "help", title: "Help Center", href: "/help", summary: "The documentation: step-by-step guides for getting started, saving, importing, organizing, search, Ask, sharing, the vault, calendar, notifications, keyboard shortcuts, account settings and self-hosting." },
   { id: "getting-started", title: "Getting started guide", href: "/help/docs/get-started/getting-started", summary: "The first guide to read: create an account and save your first items." },

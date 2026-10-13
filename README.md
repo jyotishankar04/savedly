@@ -55,7 +55,7 @@ This is a monorepo of independent apps with **no root workspace** linking them �
 Run your own Savedly with one command. You need Docker and Git:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/jyotishankar04/saveforlatter/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/jyotishankar04/savedly/main/install.sh | sh
 ```
 
 Then open <http://localhost:3000> and create your admin account. It works out of the box with local file storage, the built-in vector store and no email; connect R2/S3, Upstash, SMTP or Google/GitHub sign-in later from **Admin** > **Infrastructure**, or with environment variables. Every feature is unlimited on a self-hosted install. See the [self-hosting guide](./docs/SELF_HOSTING.md).
@@ -118,7 +118,7 @@ docs/       Contributor documentation — start at docs/README.md
 ## Getting help
 
 - **Have a question, or want to talk it through?** Join the [Discord server](https://discord.gg/PzGFcMNyRK).
-- **Found a bug or want a feature?** [Open an issue](https://github.com/jyotishankar04/saveforlatter/issues) or use the in-app report form (`/report`).
+- **Found a bug or want a feature?** [Open an issue](https://github.com/jyotishankar04/savedly/issues) or use the in-app report form (`/report`).
 - **Want to contribute code?** See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for setup and PR conventions, and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) for the ground rules.
 - **Anything else?** Email support@savedly.app.
 - **Found a security issue?** Please don't open a public issue — see [`SECURITY.md`](./SECURITY.md).

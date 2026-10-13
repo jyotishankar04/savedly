@@ -86,11 +86,11 @@ function BrandTile({ tile, hidden }: { tile: Tile; hidden?: boolean }) {
       aria-hidden={hidden}
       title={`${tile.name}: ${KIND_LABEL[tile.kind]}`}
       className={cn(
-        "flex h-[76px] w-[84px] shrink-0 items-center justify-center rounded-2xl ring-1 sm:h-[108px] sm:w-[120px] sm:rounded-3xl",
+        "flex h-[60px] w-[64px] shrink-0 items-center justify-center rounded-2xl ring-1 sm:h-[108px] sm:w-[120px] sm:rounded-3xl",
         planned ? "bg-foreground/[0.02] ring-foreground/[0.06]" : "bg-card shadow-sm ring-foreground/10",
       )}
     >
-      <span className={cn("flex h-10 w-10 items-center justify-center overflow-hidden rounded-full sm:h-14 sm:w-14", tile.badge, planned && "opacity-45")}>
+      <span className={cn("flex h-9 w-9 items-center justify-center overflow-hidden rounded-full sm:h-14 sm:w-14", tile.badge, planned && "opacity-45")}>
         {tile.icon === "google" ? <GoogleLogo className="h-6 w-6 sm:h-8 sm:w-8" /> : <HugeiconsIcon icon={tile.icon} strokeWidth={2} className="h-5 w-5 sm:h-7 sm:w-7" />}
       </span>
       {!hidden && (
@@ -105,14 +105,14 @@ function BrandTile({ tile, hidden }: { tile: Tile; hidden?: boolean }) {
 /** Fades a row out toward one or both ends, so tiles arrive and leave softly. */
 const FADE = {
   both: "linear-gradient(to right, transparent 0%, #000 16%, #000 84%, transparent 100%)",
-  // The middle row's halves: soft at the outer end, gone before they reach Savedly.
-  left: "linear-gradient(to right, transparent 0%, #000 34%, #000 62%, transparent 96%)",
-  right: "linear-gradient(to left, transparent 0%, #000 34%, #000 62%, transparent 96%)",
+  // The middle row's halves: soft at the outer end, gone just before Savedly.
+  left: "linear-gradient(to right, transparent 0%, #000 22%, #000 72%, transparent 100%)",
+  right: "linear-gradient(to left, transparent 0%, #000 22%, #000 72%, transparent 100%)",
 } as const;
 
 /** A row of tiles, written out twice end to end so it can loop without a seam. */
 function MarqueeRow({ tiles, seconds, reverse, fade, className }: { tiles: Tile[]; seconds: number; reverse?: boolean; fade: keyof typeof FADE; className?: string }) {
-  const list = "connect-marquee flex shrink-0 gap-3 pr-3 sm:gap-6 sm:pr-6";
+  const list = "connect-marquee flex shrink-0 gap-2.5 pr-2.5 sm:gap-6 sm:pr-6";
   const style = { animationDuration: `${seconds}s`, animationDirection: reverse ? ("reverse" as const) : ("normal" as const) };
   return (
     <div className={cn("overflow-hidden", className)} style={{ maskImage: FADE[fade], WebkitMaskImage: FADE[fade] }}>
@@ -134,7 +134,7 @@ function MarqueeRow({ tiles, seconds, reverse, fade, className }: { tiles: Tile[
 
 function Board() {
   return (
-    <div className="group relative mx-auto h-[250px] w-full max-w-[1080px] select-none sm:h-[380px]" style={{ perspective: "1400px" }}>
+    <div className="group relative mx-auto h-[190px] w-full max-w-[1080px] select-none sm:h-[380px]" style={{ perspective: "1400px" }}>
       {/* Each list slides left by its own width, then starts again: its twin
           has taken its place by then, so the row never jumps. Under the
           pointer the rows stop, so a tile can be read. */}
@@ -146,16 +146,16 @@ function Board() {
       `}</style>
 
       {/* The plane the tiles lie on: tipped back. Under the pointer it stands up to face you. */}
-      <div className="absolute inset-x-0 top-0 flex flex-col gap-4 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] [transform:rotateX(44deg)] group-hover:[transform:rotateX(0deg)] motion-reduce:transition-none sm:gap-6">
+      <div className="absolute inset-x-0 top-0 flex flex-col gap-2.5 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] [transform:rotateX(44deg)] group-hover:[transform:rotateX(0deg)] motion-reduce:transition-none sm:gap-6">
         <MarqueeRow tiles={TOP} seconds={64} fade="both" />
 
         {/* Savedly has its own place in the middle row. The tiles either side
             flow toward it and fade before they arrive, so nothing is ever
             half hidden behind it. */}
-        <div className="flex items-center gap-3 sm:gap-6">
+        <div className="flex items-center gap-2.5 sm:gap-6">
           <MarqueeRow tiles={MIDDLE_LEFT} seconds={38} reverse fade="left" className="min-w-0 flex-1" />
-          <div className="flex h-[76px] w-[84px] shrink-0 items-center justify-center rounded-2xl bg-card shadow-xl shadow-primary/25 ring-1 ring-primary/50 sm:h-[108px] sm:w-[120px] sm:rounded-3xl">
-            <LogoMark ticks={false} className="h-10 w-10 sm:h-14 sm:w-14" />
+          <div className="flex h-[60px] w-[64px] shrink-0 items-center justify-center rounded-2xl bg-card shadow-xl shadow-primary/25 ring-1 ring-primary/50 sm:h-[108px] sm:w-[120px] sm:rounded-3xl">
+            <LogoMark ticks={false} className="h-9 w-9 sm:h-14 sm:w-14" />
             <span className="sr-only">Savedly</span>
           </div>
           <MarqueeRow tiles={MIDDLE_RIGHT} seconds={38} fade="right" className="min-w-0 flex-1" />

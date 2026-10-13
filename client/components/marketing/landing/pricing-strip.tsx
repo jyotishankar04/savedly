@@ -77,7 +77,7 @@ function PlanCard({ card, highlight, signupHref }: { card: Card; highlight: bool
   const mark = TIER_ICON[tier] ?? TIER_ICON.free;
   const free = plan.isDefault;
   return (
-    <div className="flex flex-col rounded-3xl bg-card p-6 ring-1 ring-foreground/[0.08] sm:p-7">
+    <div className="flex w-[84%] shrink-0 snap-center flex-col rounded-3xl bg-card p-6 ring-1 ring-foreground/[0.08] sm:p-7 md:w-auto">
       <div className="flex items-center gap-2">
         <HugeiconsIcon icon={mark.icon} strokeWidth={2} className={cn("h-[18px] w-[18px]", mark.tint)} />
         <h3 className="text-base font-medium text-foreground">{plan.name}</h3>
@@ -128,7 +128,7 @@ function PlanCard({ card, highlight, signupHref }: { card: Card; highlight: bool
 
 function CardSkeleton() {
   return (
-    <div className="rounded-3xl bg-card p-6 ring-1 ring-foreground/[0.08] sm:p-7" aria-hidden>
+    <div className="w-[84%] shrink-0 rounded-3xl bg-card p-6 ring-1 ring-foreground/[0.08] sm:p-7 md:w-auto" aria-hidden>
       <div className="h-5 w-20 rounded bg-foreground/[0.07]" />
       <div className="mt-5 h-9 w-28 rounded bg-foreground/[0.07]" />
       <div className="mt-7 space-y-3.5">
@@ -155,14 +155,20 @@ export function PricingStrip() {
         <p className="mt-4 text-lg leading-relaxed text-muted-foreground">Start free, upgrade when you need more.</p>
 
         {(isLoading || list.length > 0) && (
-          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy={isLoading}>
+          <div
+            // A phone shows one plan at a time and swipes to the next; wider screens lay them side by side.
+            className="-mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:-mx-8 sm:px-8 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-3 [&::-webkit-scrollbar]:hidden"
+            aria-busy={isLoading}
+          >
             {isLoading
               ? Array.from({ length: 3 }, (_, i) => <CardSkeleton key={i} />)
               : list.map((card, i) => <PlanCard key={card.plan.key} card={card} highlight={i === highlighted} signupHref={cta.href} />)}
           </div>
         )}
 
-        <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+        <p className="mt-4 text-center text-xs text-muted-foreground md:hidden">Swipe to compare plans</p>
+
+        <p className="mt-6 max-w-3xl text-sm leading-relaxed text-muted-foreground md:mt-8">
           On every plan we supply the AI, so there are no keys to set up. Prefer to run it yourself? Self-hosting is free, with every feature and no limits.{" "}
           <Link href="/pricing" className="font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
             Compare plans in full

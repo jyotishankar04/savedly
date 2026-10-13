@@ -4,8 +4,25 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Tick02Icon as Tick, GithubIcon as Github } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import {
+  AiMagicIcon,
+  BubbleChatIcon,
+  CommandLineIcon,
+  Database01Icon,
+  Download04Icon,
+  FileUploadIcon,
+  FlashIcon,
+  FolderLibraryIcon,
+  GithubIcon as Github,
+  Layers01Icon,
+  Leaf01Icon,
+  Rocket01Icon,
+  ServerStack01Icon,
+  Settings01Icon,
+  Share08Icon,
+  Tick02Icon as Tick,
+} from "@hugeicons/core-free-icons";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
@@ -16,12 +33,14 @@ import { GITHUB_URL, INSTALL_COMMAND } from "@/lib/open-source";
 import { useCurrentUserQuery } from "@/context/UserContext";
 import { getServerConfig } from "@/lib/server-config";
 import {
+  formatLimitValue,
+  formatMoneyMinor,
   formatPriceMinor,
   getMyPlan,
   listPublicPlans,
   planFeatureBullets,
-  planLimitBullets,
   planTier,
+  type PlanLimitType,
   PLAN_TIER_TAGLINE,
   startCheckout,
   type PublicPlan,
@@ -32,7 +51,34 @@ const TAGLINES: Record<string, string> = {
   ...PLAN_TIER_TAGLINE,
 };
 
-const ESSENTIALS = "Capture, search by meaning, Ask, collections, tags, sharing and export";
+/** What every plan has: the Free card's list. */
+const ESSENTIALS = ["Search by meaning", "Ask your library", "Collections and tags", "Sharing by link", "Import and export"];
+
+/** Every limit a plan has, one row each, in the order they read best. Values come from the server. */
+const ROWS: { type: PlanLimitType; label: string; icon: IconSvgElement; tint: string }[] = [
+  { type: "memory_count", label: "Memories", icon: FolderLibraryIcon, tint: "text-sky-500" },
+  { type: "storage_mb", label: "Storage", icon: Database01Icon, tint: "text-violet-500" },
+  { type: "ai_monthly_saves", label: "Saves read by AI / month", icon: AiMagicIcon, tint: "text-emerald-500" },
+  { type: "ai_monthly_queries", label: "Ask questions / month", icon: BubbleChatIcon, tint: "text-amber-500" },
+  { type: "max_file_mb", label: "Largest file", icon: FileUploadIcon, tint: "text-pink-500" },
+  { type: "collection_count", label: "Collections", icon: Layers01Icon, tint: "text-teal-500" },
+  { type: "public_share_count", label: "Public share links", icon: Share08Icon, tint: "text-indigo-500" },
+  { type: "import_monthly_count", label: "Imports / month", icon: Download04Icon, tint: "text-orange-500" },
+];
+
+const TIER_MARK: Record<string, { icon: IconSvgElement; tint: string }> = {
+  free: { icon: Leaf01Icon, tint: "text-sky-500" },
+  lite: { icon: FlashIcon, tint: "text-orange-500" },
+  ai: { icon: Rocket01Icon, tint: "text-violet-500" },
+};
+
+/** A plan's limit table. null, or a limit the plan doesn't have, is unlimited. */
+function limitRows(plan: PublicPlan): CardRow[] {
+  return ROWS.map((row) => {
+    const value = plan.limits[row.type];
+    return { label: row.label, icon: row.icon, tint: row.tint, value: value == null ? "Unlimited" : formatLimitValue(row.type, value) };
+  });
+}
 
 const FACTS = [
   { value: "AGPL-3.0", label: "Open source" },
@@ -74,15 +120,16 @@ const FAQ = [
 
 type Tab = "cloud" | "self";
 
-function formatPerMonth(plan: PublicPlan): { price: string; note: string | null } {
-  if (plan.priceMinor <= 0) return { price: "Price coming soon", note: null };
+function formatPerMonth(plan: PublicPlan): { price: string; per: string | null; note: string | null } {
+  if (plan.priceMinor <= 0) return { price: "Coming soon", per: null, note: null };
   if (plan.billingInterval === "yearly") {
     return {
-      price: `${formatPriceMinor(Math.round(plan.priceMinor / 12), plan.currency)} per month`,
+      price: formatPriceMinor(Math.round(plan.priceMinor / 12), plan.currency),
+      per: "per month",
       note: `Billed yearly at ${formatPriceMinor(plan.priceMinor, plan.currency)}`,
     };
   }
-  return { price: `${formatPriceMinor(plan.priceMinor, plan.currency)} per month`, note: null };
+  return { price: formatPriceMinor(plan.priceMinor, plan.currency), per: "per month", note: null };
 }
 
 /**
@@ -157,11 +204,6 @@ export function PricingPlans() {
     }
   }
 
-  const showSelfHosted = () => {
-    setTab("self");
-    document.getElementById("plans")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   if (config?.selfHosted) {
     return (
       <section className="px-5 py-20 sm:px-6">
@@ -177,43 +219,20 @@ export function PricingPlans() {
 
   return (
     <div className="px-5 sm:px-6">
-      {/* Hero */}
-      <section className="mx-auto max-w-6xl pt-12 pb-14 md:pt-20">
-        <h1 className="max-w-3xl text-4xl leading-[1.04] font-semibold tracking-[-0.035em] text-balance sm:text-6xl">
-          Pricing for your second brain
-        </h1>
-        <p className="mt-6 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
-          Start free with AI we supply, move up for more room and features, or run it yourself for free with everything unlocked.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <a
-            href="#plans"
-            className="inline-flex h-11 items-center rounded-lg bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            See plans
-          </a>
-          <button
-            type="button"
-            onClick={showSelfHosted}
-            className="inline-flex h-11 items-center rounded-lg px-6 text-[15px] font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-muted"
-          >
-            Self-host Savedly
-          </button>
+      {/* Heading */}
+      <section className="mx-auto max-w-6xl pt-16 pb-12 md:pt-24">
+        <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-16">
+          <h1 className="font-serif text-[clamp(2.5rem,6vw,4.5rem)] font-medium leading-[1.04] tracking-[-0.03em] text-foreground">Pricing</h1>
+          <p className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
+            Start free with AI we supply, move up for more room and features, or run it yourself for free with everything unlocked.
+          </p>
         </div>
 
-        <dl className="mt-16 grid grid-cols-2 overflow-hidden rounded-2xl ring-1 ring-foreground/10 lg:grid-cols-4">
-          {FACTS.map((fact, i) => (
-            <div
-              key={fact.label}
-              className={cn(
-                "px-6 py-7 text-center",
-                i % 2 === 1 && "border-l border-foreground/10",
-                i >= 2 && "border-t border-foreground/10 lg:border-t-0",
-                i === 2 && "lg:border-l",
-              )}
-            >
+        <dl className="mt-12 grid grid-cols-2 border-t border-foreground/15 lg:grid-cols-4">
+          {FACTS.map((fact) => (
+            <div key={fact.label} className="border-b border-foreground/15 py-6 pr-4">
               <dt className="sr-only">{fact.label}</dt>
-              <dd className="text-2xl font-semibold tracking-[-0.02em] text-foreground">{fact.value}</dd>
+              <dd className="font-serif text-2xl font-medium tracking-[-0.02em] text-foreground">{fact.value}</dd>
               <dd className="mt-1 text-sm text-muted-foreground">{fact.label}</dd>
             </div>
           ))}
@@ -221,10 +240,10 @@ export function PricingPlans() {
       </section>
 
       {/* Plans */}
-      <section id="plans" className="mx-auto max-w-6xl scroll-mt-24 pb-16">
+      <section id="plans" className="mx-auto max-w-6xl scroll-mt-24 pb-20">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-            <div className="inline-flex w-fit rounded-xl bg-muted p-1 text-sm font-medium" role="tablist" aria-label="How to run it">
+            <div className="inline-flex w-fit rounded-2xl bg-muted p-1 text-sm font-medium" role="tablist" aria-label="How to run it">
               {(
                 [
                   ["cloud", "Savedly Cloud"],
@@ -238,7 +257,7 @@ export function PricingPlans() {
                   aria-selected={tab === value}
                   onClick={() => setTab(value)}
                   className={cn(
-                    "rounded-lg px-5 py-2 transition-colors",
+                    "rounded-xl px-5 py-2 transition-colors",
                     tab === value ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -277,11 +296,11 @@ export function PricingPlans() {
           </p>
         )}
 
-        <div className={cn("mt-6 grid gap-5", cardCount === 1 ? "max-w-md" : cardCount === 2 ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3")}>
+        <div className={cn("mt-8 grid gap-4", cardCount === 1 ? "max-w-md" : cardCount === 2 ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3")}>
           {tab === "cloud" ? (
             <>
               {isLoading && (
-                <div className="flex min-h-[28rem] items-center justify-center rounded-2xl ring-1 ring-foreground/10 text-muted-foreground md:col-span-2 lg:col-span-3">
+                <div className="flex min-h-[28rem] items-center justify-center rounded-3xl text-muted-foreground ring-1 ring-foreground/[0.08] md:col-span-2 lg:col-span-3">
                   <Spinner />
                 </div>
               )}
@@ -289,11 +308,14 @@ export function PricingPlans() {
               {free && !current && (
                 <PlanCard
                   name={free.name}
+                  mark={TIER_MARK.free}
                   tagline={TAGLINES.free}
-                  price="Free forever"
-                  groups={[{ label: `Included in ${free.name}:`, items: [ESSENTIALS, ...planLimitBullets(free.limits, free.features)] }]}
+                  price={formatMoneyMinor(0, free.currency)}
+                  per="forever"
+                  rows={limitRows(free)}
+                  groups={[{ label: null, items: [...ESSENTIALS, ...planFeatureBullets(free.features)] }]}
                   action={
-                    <Link href={user ? "/app" : "/auth/signup"} className={buttonClass}>
+                    <Link href={user ? "/app" : "/auth/signup"} className={cn(buttonClass, quietButton)}>
                       {user ? "Go to your library" : "Get started"}
                     </Link>
                   }
@@ -301,8 +323,7 @@ export function PricingPlans() {
               )}
 
               {paid.map((plan, i) => {
-                const { price, note } = formatPerMonth(plan);
-                // Each card builds on the one below it: Lite on Free, Pro on Lite.
+                const { price, per, note } = formatPerMonth(plan);
                 const below = i === 0 ? free : paid[i - 1];
                 const isCurrent = plan.key === current?.key;
                 const buyable = !!config?.billing && plan.priceMinor > 0 && !isCurrent;
@@ -310,24 +331,16 @@ export function PricingPlans() {
                   <PlanCard
                     key={plan.key}
                     name={plan.name}
+                    mark={TIER_MARK[planTier(plan.key)]}
                     tagline={TAGLINES[planTier(plan.key)] ?? plan.description ?? ""}
                     price={price}
+                    per={per}
                     priceNote={note}
-                    groups={[
-                      {
-                        label: `Included in ${plan.name}:`,
-                        items: [
-                          `Everything in ${below?.name ?? freeName}`,
-                          // Only the limits that change from the plan below.
-                          ...planLimitBullets(plan.limits, plan.features).filter(
-                            (line) => !below || !planLimitBullets(below.limits, below.features).includes(line),
-                          ),
-                          ...planFeatureBullets(plan.features, below?.features),
-                        ],
-                      },
-                    ]}
+                    rows={limitRows(plan)}
+                    // Each card builds on the one below it: Lite on Free, Pro on Lite.
+                    groups={[{ label: `Everything in ${below?.name ?? freeName} +`, items: planFeatureBullets(plan.features, below?.features) }]}
                     action={
-                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={buttonClass}>
+                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, i === 0 && paid.length > 1 ? strongButton : quietButton)}>
                         {pending === plan.key && <Spinner />}
                         {isCurrent ? "Current plan" : buyable ? "Upgrade" : "Coming soon"}
                       </button>
@@ -340,8 +353,10 @@ export function PricingPlans() {
             <>
               <PlanCard
                 name="Community"
+                mark={{ icon: ServerStack01Icon, tint: "text-sky-500" }}
                 tagline="Your server, AGPL-3.0 license."
-                price="Free forever"
+                price={"$0"}
+                per="forever"
                 groups={[
                   {
                     label: "Included:",
@@ -355,7 +370,7 @@ export function PricingPlans() {
                   },
                 ]}
                 action={
-                  <Link href="/help/self-host" className={buttonClass}>
+                  <Link href="/help/docs/self-host/self-host" className={cn(buttonClass, strongButton)}>
                     Read the self-host guide
                   </Link>
                 }
@@ -363,6 +378,7 @@ export function PricingPlans() {
 
               <PlanCard
                 name="Install"
+                mark={{ icon: CommandLineIcon, tint: "text-orange-500" }}
                 tagline="Any machine with Docker and Git."
                 price="One command"
                 groups={[]}
@@ -376,7 +392,7 @@ export function PricingPlans() {
                   </div>
                 }
                 action={
-                  <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={buttonClass}>
+                  <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={cn(buttonClass, quietButton)}>
                     <HugeiconsIcon icon={Github} strokeWidth={2} className="h-4 w-4" />
                     View on GitHub
                   </a>
@@ -385,6 +401,7 @@ export function PricingPlans() {
 
               <PlanCard
                 name="Configure"
+                mark={{ icon: Settings01Icon, tint: "text-violet-500" }}
                 tagline="From the admin page, or with env vars."
                 price="No .env needed"
                 groups={[
@@ -400,7 +417,7 @@ export function PricingPlans() {
                   },
                 ]}
                 action={
-                  <Link href="/help/self-host#configure" className={buttonClass}>
+                  <Link href="/help/docs/self-host/self-host#configure" className={cn(buttonClass, quietButton)}>
                     See configuration
                   </Link>
                 }
@@ -410,36 +427,10 @@ export function PricingPlans() {
         </div>
       </section>
 
-      {/* Support */}
-      <section className="mx-auto max-w-6xl pb-20">
-        <div className="grid gap-6 rounded-2xl p-8 ring-1 ring-foreground/10 md:grid-cols-[1fr_auto] md:items-center md:p-10">
-          <div>
-            <h2 className="text-xl font-semibold tracking-[-0.02em]">Like Savedly? Help keep it running.</h2>
-            <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-              It&apos;s built in the open. A contribution, a bug report or a star on GitHub helps as much as a paid plan.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/contribute" className="inline-flex h-10 items-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-              Contribute
-            </Link>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-lg px-5 text-sm font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-muted"
-            >
-              <HugeiconsIcon icon={Github} strokeWidth={2} className="h-4 w-4" />
-              Star on GitHub
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* FAQ */}
-      <section className="mx-auto max-w-6xl pb-24">
-        <h2 className="text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">Frequently asked questions</h2>
-        <Accordion className="mt-8 rounded-2xl border-foreground/10">
+      <section className="mx-auto max-w-6xl pb-8 pt-8">
+        <h2 className="font-serif text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.08] tracking-[-0.025em] text-foreground">Questions about pricing</h2>
+        <Accordion className="mt-8 rounded-3xl border-foreground/10">
           {FAQ.map((item) => (
             <AccordionItem key={item.q} value={item.q} className="border-foreground/10 data-open:bg-transparent">
               <AccordionTrigger className="px-5 py-4 text-[15px] font-medium hover:no-underline">{item.q}</AccordionTrigger>
@@ -456,55 +447,93 @@ export function PricingPlans() {
 }
 
 const buttonClass =
-  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60";
+  "inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-60";
+/** The one card the row is built around. */
+const strongButton = "bg-foreground text-background hover:bg-foreground/85";
+const quietButton = "bg-foreground/[0.06] text-foreground hover:bg-foreground/10";
 
+interface CardRow {
+  label: string;
+  value: string;
+  icon: IconSvgElement;
+  tint: string;
+}
+
+/**
+ * One plan, in the same shape as the landing page's cards: its name and
+ * price, a table of its limits, what it adds, and one button.
+ */
 function PlanCard({
   name,
+  mark,
   tagline,
   price,
+  per,
   priceNote,
+  rows,
   groups,
   body,
   action,
 }: {
   name: string;
+  mark?: { icon: IconSvgElement; tint: string };
   tagline: string;
   price: string;
+  per?: string | null;
   priceNote?: string | null;
-  groups: { label: string; items: string[] }[];
+  rows?: CardRow[];
+  groups: { label: string | null; items: string[] }[];
   body?: React.ReactNode;
   action: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10">
-      {/* Header band: name, tagline, price */}
-      <div className="border-b border-foreground/10 bg-foreground/[0.025] px-6 py-6">
-        <h3 className="text-lg font-semibold text-foreground">{name}</h3>
-        <p className="mt-0.5 text-[15px] text-muted-foreground">{tagline}</p>
-        <p className="mt-5 text-3xl font-semibold tracking-[-0.02em] text-foreground">{price}</p>
-        <p className="mt-1 h-5 text-sm text-muted-foreground">{priceNote}</p>
+    <div className="flex flex-col rounded-3xl bg-card p-6 ring-1 ring-foreground/[0.08] sm:p-7">
+      <div className="flex items-center gap-2">
+        {mark && <HugeiconsIcon icon={mark.icon} strokeWidth={2} className={cn("h-[18px] w-[18px]", mark.tint)} />}
+        <h3 className="text-base font-medium text-foreground">{name}</h3>
       </div>
+      <p className="mt-1.5 text-sm text-muted-foreground">{tagline}</p>
 
-      {/* Body: grouped inclusions */}
-      <div className="flex flex-1 flex-col px-6 py-5">
-        <div className="flex-1 space-y-4">
-          {groups.map((group) => (
-            <div key={group.label}>
-              <p className="text-sm text-muted-foreground">{group.label}</p>
-              <ul className="mt-2.5 space-y-2.5">
-                {group.items.map((item) => (
-                  <li key={item} className="flex gap-2.5 text-[15px] leading-snug text-foreground">
-                    <HugeiconsIcon icon={Tick} strokeWidth={2.25} className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+      <p className="mt-5 flex items-baseline gap-1.5">
+        <span className="text-4xl font-semibold tracking-[-0.03em] text-foreground">{price}</span>
+        {per && <span className="text-sm text-muted-foreground">{per}</span>}
+      </p>
+      {/* Always a line tall, so cards with and without a note keep their rows level. */}
+      <p className="mt-1 h-5 text-sm text-muted-foreground">{priceNote}</p>
+
+      {rows && (
+        <dl className="mt-5 space-y-3">
+          {rows.map((row) => (
+            <div key={row.label} className="flex items-center justify-between gap-4 text-sm">
+              <dt className="flex min-w-0 items-center gap-2.5 text-muted-foreground">
+                <HugeiconsIcon icon={row.icon} strokeWidth={2} className={cn("h-4 w-4 shrink-0", row.tint)} />
+                <span className="truncate">{row.label}</span>
+              </dt>
+              <dd className="shrink-0 font-medium tabular-nums text-foreground">{row.value}</dd>
             </div>
           ))}
-          {body}
-        </div>
-        <div className="mt-8">{action}</div>
+        </dl>
+      )}
+
+      {/* Grows to fill the card, so the buttons line up whatever the lists hold. */}
+      <div className={cn("flex-1 space-y-4 pb-7", rows ? "mt-6 border-t border-foreground/10 pt-5" : "mt-5")}>
+        {groups.map((group) => (
+          <div key={group.label ?? "included"}>
+            {group.label && <p className="mb-3 text-sm text-muted-foreground">{group.label}</p>}
+            <ul className="space-y-3">
+              {group.items.map((item) => (
+                <li key={item} className="flex items-start gap-2.5 text-sm text-foreground">
+                  <HugeiconsIcon icon={Tick} strokeWidth={2.25} className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        {body}
       </div>
+
+      {action}
     </div>
   );
 }

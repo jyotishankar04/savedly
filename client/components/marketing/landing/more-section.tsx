@@ -24,10 +24,11 @@ import { cn } from "@/lib/utils";
 // the app today; a planned connector is drawn as planned, and anything tied
 // to a paid plan says so.
 //
-// On a wide screen the section holds still while the page scrolls and the
-// cards take turns: picture left and words right, then the reverse, each
-// sliding in from its own side. On a phone, or with reduced motion, the same
-// cards are simply stacked.
+// The section holds still while the page scrolls and the cards take turns,
+// each half sliding in from its own side. On a wide screen that is picture
+// left and words right, then the reverse. On a phone the picture is always
+// above the words, and the two still arrive from alternate sides. With
+// reduced motion the same cards are simply stacked.
 
 /** The frame every picture sits in. */
 function Panel({ children, className }: { children: ReactNode; className?: string }) {
@@ -223,8 +224,6 @@ const CARDS: { icon: IconSvgElement; title: string; body: string; picture: React
 ];
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-/** How far the page scrolls for each card, in viewport heights. */
-const SCROLL_PER_CARD = 0.8;
 
 function Heading() {
   return (
@@ -249,7 +248,7 @@ function Heading() {
 const ALSO =
   "Also: links, notes, images, PDFs, videos and voice memos all save the same way. Bulk actions on many memories at once (Lite and Pro). Self-host with one command and bring your own AI key from OpenAI, Anthropic, Gemini, Groq or OpenRouter, with backups and update notices in the admin area.";
 
-/** One card at a time, changing with the scroll. Wide screens with motion allowed. */
+/** One card at a time, changing with the scroll. */
 function Stage() {
   const track = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: track, offset: ["start start", "end end"] });
@@ -259,9 +258,14 @@ function Stage() {
   });
 
   return (
-    <div ref={track} style={{ height: `${100 + CARDS.length * SCROLL_PER_CARD * 100}vh` }}>
-      <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
-        <div className="relative mx-auto h-[min(64vh,520px)] w-full max-w-6xl">
+    <div
+      ref={track}
+      // How far the page scrolls per card: less on a phone, where every pinned stretch adds to an already long page.
+      style={{ height: `calc(100svh + ${CARDS.length} * var(--per-card))` }}
+      className="[--per-card:48svh] lg:[--per-card:70vh]"
+    >
+      <div className="sticky top-0 flex h-svh flex-col justify-center overflow-hidden pt-16 lg:pt-0">
+        <div className="relative mx-auto h-[78svh] w-full max-w-6xl lg:h-[min(64vh,520px)]">
           {CARDS.map((card, i) => {
             const shown = i === active;
             // Even cards: picture left, words right. Odd cards: the reverse.
@@ -272,21 +276,22 @@ function Stage() {
               <article
                 key={card.title}
                 aria-hidden={!shown}
-                className={cn("absolute inset-0 grid grid-cols-2 items-center gap-16", !shown && "pointer-events-none")}
+                className={cn("absolute inset-0 flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16", !shown && "pointer-events-none")}
               >
                 <motion.div
-                  className={cn(pictureLeft ? "order-1" : "order-2")}
+                  // A phone always has the picture on top; a wide screen alternates its side.
+                  className={cn("shrink-0", pictureLeft ? "lg:order-1" : "lg:order-2")}
                   initial={false}
                   animate={{ opacity: shown ? 1 : 0, x: shown ? 0 : off(pictureLeft ? "left" : "right"), scale: shown ? 1 : 0.97 }}
                   transition={{ duration: 0.65, ease: EASE }}
                 >
-                  <Panel className="aspect-auto h-[min(64vh,520px)] p-10">
-                    <div className="flex w-full origin-center scale-[1.45] items-center justify-center">{card.picture}</div>
+                  <Panel className="aspect-auto h-[32svh] p-4 lg:h-[min(64vh,520px)] lg:p-10">
+                    <div className="flex w-full origin-center scale-[0.82] items-center justify-center lg:scale-[1.45]">{card.picture}</div>
                   </Panel>
                 </motion.div>
 
                 <motion.div
-                  className={cn("max-w-md", pictureLeft ? "order-2" : "order-1 justify-self-end")}
+                  className={cn("max-w-md", pictureLeft ? "lg:order-2" : "lg:order-1 lg:justify-self-end")}
                   initial={false}
                   animate={{ opacity: shown ? 1 : 0, x: shown ? 0 : off(pictureLeft ? "right" : "left") }}
                   transition={{ duration: 0.65, ease: EASE, delay: shown ? 0.08 : 0 }}
@@ -294,13 +299,13 @@ function Stage() {
                   <p className="font-mono text-xs tabular-nums text-muted-foreground">
                     {String(i + 1).padStart(2, "0")} / {String(CARDS.length).padStart(2, "0")}
                   </p>
-                  <HugeiconsIcon icon={card.icon} strokeWidth={1.75} className="mt-6 h-7 w-7 text-primary" />
-                  <h3 className="mt-4 font-serif text-[clamp(1.6rem,2.6vw,2.25rem)] font-medium leading-[1.12] tracking-[-0.02em] text-balance text-foreground">{card.title}</h3>
-                  <p className="mt-4 text-lg leading-relaxed text-pretty text-muted-foreground">{card.body}</p>
+                  <HugeiconsIcon icon={card.icon} strokeWidth={1.75} className="mt-3 h-6 w-6 text-primary lg:mt-6 lg:h-7 lg:w-7" />
+                  <h3 className="mt-3 font-serif text-[clamp(1.45rem,2.6vw,2.25rem)] font-medium leading-[1.12] tracking-[-0.02em] text-balance text-foreground lg:mt-4">{card.title}</h3>
+                  <p className="mt-3 text-[15px] leading-relaxed text-pretty text-muted-foreground lg:mt-4 lg:text-lg">{card.body}</p>
                   <Link
                     href={card.href}
                     tabIndex={shown ? undefined : -1}
-                    className="mt-6 inline-flex border-b border-foreground/25 pb-0.5 text-sm font-medium text-foreground transition-colors hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                    className="mt-4 inline-flex border-b border-foreground/25 pb-0.5 text-sm font-medium text-foreground lg:mt-6 transition-colors hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                   >
                     Read the guide
                   </Link>
@@ -311,7 +316,7 @@ function Stage() {
         </div>
 
         {/* Where you are in the six. */}
-        <div className="mx-auto mt-10 flex w-full max-w-6xl gap-1.5" aria-hidden>
+        <div className="mx-auto mt-3 flex w-full max-w-6xl gap-1.5 lg:mt-10" aria-hidden>
           {CARDS.map((card, i) => (
             <span key={card.title} className={cn("h-1 rounded-full transition-all duration-500", i === active ? "w-10 bg-foreground" : "w-4 bg-foreground/15")} />
           ))}
@@ -321,7 +326,7 @@ function Stage() {
   );
 }
 
-/** The same cards, one under another. Phones and tablets, and anyone who asked for less motion. */
+/** The same cards, one under another, for anyone who asked for less motion. */
 function Stack() {
   return (
     <div className="mt-14 grid gap-x-5 gap-y-12 sm:grid-cols-2">
@@ -342,23 +347,23 @@ function Stack() {
 }
 
 export function MoreSection() {
-  // Which layout shows is decided in CSS (screen width and the reduced-motion
-  // setting), not in JavaScript, so the server and the browser always agree.
+  // Which layout shows is decided in CSS (the reduced-motion setting), not
+  // in JavaScript, so the server and the browser always agree.
   return (
     <section id="everything" className="scroll-mt-24 bg-background px-5 font-sans antialiased sm:px-8">
       <div className="mx-auto max-w-6xl pt-20 md:pt-28">
         <Heading />
       </div>
 
-      <div className="hidden lg:block motion-reduce:lg:hidden">
+      <div className="motion-reduce:hidden">
         <Stage />
       </div>
-      <div className="mx-auto max-w-6xl lg:hidden motion-reduce:lg:block">
+      <div className="mx-auto hidden max-w-6xl motion-reduce:block">
         <Stack />
       </div>
 
       <div className="mx-auto max-w-6xl pb-20 md:pb-28">
-        <p className="mt-14 max-w-3xl border-t border-foreground/15 pt-6 text-sm leading-relaxed text-muted-foreground lg:mt-0">{ALSO}</p>
+        <p className="max-w-3xl border-t border-foreground/15 pt-6 text-sm leading-relaxed text-muted-foreground motion-reduce:mt-14">{ALSO}</p>
       </div>
     </section>
   );

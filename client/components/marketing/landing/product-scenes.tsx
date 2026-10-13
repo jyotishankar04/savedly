@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
+import { useReducedMotionSafe } from "@/hooks/use-reduced-motion-safe";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Calendar03Icon as CalendarIcon,
@@ -22,7 +23,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 /** Text that types itself in. Shown whole when motion is reduced. */
 function useTyped(text: string, startMs: number, speedMs = 34): string {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const [count, setCount] = useState(0);
   useEffect(() => {
     if (reduce) return;
@@ -40,7 +41,7 @@ function useTyped(text: string, startMs: number, speedMs = 34): string {
 
 /** Fades and lifts its children in after `delay` seconds. */
 function Rise({ delay, className, children }: { delay: number; className?: string; children: React.ReactNode }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   return (
     <motion.div
       className={className}
@@ -54,7 +55,7 @@ function Rise({ delay, className, children }: { delay: number; className?: strin
 }
 
 function Tag({ children, delay }: { children: React.ReactNode; delay: number }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   return (
     <motion.span
       initial={reduce ? false : { opacity: 0, scale: 0.8 }}
@@ -173,7 +174,7 @@ export function AskScene() {
 
 /** Organize: collections fill themselves, and a date in a note becomes an event. */
 export function OrganizeScene() {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const [added, setAdded] = useState(false);
   useEffect(() => {
     if (reduce) return;
