@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Check, AlertCircle, RefreshCw, Settings, ExternalLink, ShieldAlert, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff
+  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff
 } from "lucide-react";
 import { apiFetch, ApiError } from "../lib/api";
-import { SHOW_FLOATING_ICON_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
+import { SHOW_FLOATING_ICON_STORAGE_KEY, SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
 
 type ExtensionState = "checking" | "unauthorized" | "ready" | "saving" | "saved" | "error";
 
@@ -114,32 +114,32 @@ export default function Popup() {
       return;
     }
 
-    // Ask the background worker to re-read the auth cookie before trusting
-    // storage — it may be stale if login/logout happened since the last
-    // chrome.cookies.onChanged event (see background/service-worker.ts).
+    // Ask the background worker whether this browser is signed in to
+    // Savedly (it checks with the server, renewing the sign-in if it has
+    // run out; see lib/api.ts).
     let settled = false;
-    const proceedFromStorage = () => {
+    const proceed = (signedIn: boolean) => {
       if (settled) return;
       settled = true;
-      chrome.storage.local.get(["savedly_token"], (result) => {
-        if (!result.savedly_token) {
-          setState("unauthorized");
-        } else {
-          loadPageInfo();
-        }
-      });
+      if (signedIn) loadPageInfo();
+      else setState("unauthorized");
     };
 
-    // If the background worker doesn't respond in time (e.g. it's still
-    // waking up from being suspended, or busy with something else like an
-    // in-flight screenshot upload), fall back to whatever's already in
-    // storage from the last sync rather than leaving the popup stuck on
-    // this spinner forever — a slow background shouldn't look like the
-    // popup didn't open at all.
-    const timeout = setTimeout(proceedFromStorage, 1200);
-    chrome.runtime.sendMessage({ action: "SYNC_AUTH" }, () => {
+    // If the background worker doesn't answer in time (e.g. it's still
+    // waking up, the server is slow, or it's busy with an in-flight
+    // screenshot upload), go by the last known answer rather than leaving
+    // the popup stuck on this spinner — a slow check shouldn't look like
+    // the popup didn't open at all.
+    const timeout = setTimeout(() => {
+      chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => proceed(!!result[SIGNED_IN_STORAGE_KEY]));
+    }, 2500);
+    chrome.runtime.sendMessage({ action: "SYNC_AUTH" }, (response?: { signedIn?: boolean }) => {
       clearTimeout(timeout);
-      proceedFromStorage();
+      if (chrome.runtime.lastError || !response) {
+        chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => proceed(!!result[SIGNED_IN_STORAGE_KEY]));
+        return;
+      }
+      proceed(!!response.signedIn);
     });
   }, []);
 
@@ -320,11 +320,13 @@ export default function Popup() {
 
       {state === "unauthorized" && (
         <div style={styles.centerContainer}>
-          <ShieldAlert size={28} color="#ff3b30" />
-          <p style={styles.unauthLabel}>Save anything you find.</p>
-          <p style={styles.unauthSub}>Connect this extension to your main Savedly dashboard account.</p>
+          <img src={chrome.runtime.getURL("icon-128.png")} alt="" width={56} height={56} />
+          <p style={styles.unauthLabel}>Sign in to start saving</p>
+          <p style={styles.unauthSub}>
+            Sign in to Savedly on the website, then come back here. The extension uses that same sign-in, so there is nothing else to set up.
+          </p>
           <button style={styles.primaryButton} onClick={handleSignIn}>
-            Sign in
+            Sign in to Savedly
           </button>
         </div>
       )}

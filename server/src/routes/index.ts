@@ -20,6 +20,7 @@ import { adminRouter as featureFlagsAdminRoutes, publicRouter as featureFlagsPub
 import aiUsageRoutes from "../modules/ai-usage";
 import { adminRouter as announcementsAdminRoutes, publicRouter as announcementsPublicRoutes } from "../modules/announcements";
 import { adminRouter as whatsNewAdminRoutes, publicRouter as whatsNewPublicRoutes } from "../modules/whats-new";
+import { adminRouter as blogAdminRoutes, publicRouter as blogPublicRoutes } from "../modules/blog";
 import adminRoutes from "../modules/admin";
 import instanceSettingsRoutes from "../modules/instance-settings";
 import configRoutes from "../modules/config";
@@ -88,6 +89,8 @@ router.use("/admin/announcements", announcementsAdminRoutes);
 router.use("/announcements", announcementsPublicRoutes);
 router.use("/admin/whats-new", whatsNewAdminRoutes);
 router.use("/whats-new", whatsNewPublicRoutes);
+router.use("/admin/blog", blogAdminRoutes);
+router.use("/blog", blogPublicRoutes);
 router.use("/maintenance", featureFlagsPublicRoutes);
 router.use("/admin", adminRoutes);
 

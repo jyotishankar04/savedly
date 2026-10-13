@@ -36,7 +36,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: "contact", title: "Contact", href: "/contact", summary: "How to reach the team for support, questions or feedback." },
   { id: "report", title: "Report a bug", href: "/report", summary: "A form to report a problem or request a feature." },
   { id: "about", title: "About", href: "/about", summary: "Who makes Savedly and why." },
-  { id: "blog", title: "Blog", href: "/blog", summary: "The blog. There are no posts yet." },
+  { id: "blog", title: "Blog", href: "/blog", summary: "The blog: notes from building Savedly." },
   { id: "sign-in", title: "Sign in", href: "/auth/login", summary: "Sign in to an existing account." },
   { id: "sign-up", title: "Create an account", href: "/auth/signup", summary: "Create a new account on the hosted service." },
   { id: "github", title: "Source code on GitHub", href: GITHUB_URL, summary: "The public repository: the code, issues, and the installer for self-hosting." },

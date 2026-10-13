@@ -153,8 +153,25 @@ export default function PrivacyPage() {
             </p>
           </section>
 
+          <section id="browser-extension" className="space-y-3 scroll-mt-28">
+            <h2 className="text-base font-bold text-foreground">7. The browser extension</h2>
+            <p>
+              The Savedly browser extension saves things to your Savedly account when you ask it to. It sends nothing about a page until you choose to save.
+            </p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li><strong>What is sent when you save:</strong> the page&apos;s address, title, description and preview image address, plus whatever you add (a note, tags, collections). Saving selected text sends that text; saving an image sends the image&apos;s address; a screenshot sends the picture of the area you chose and the text visible inside it.</li>
+              <li><strong>What is not collected:</strong> your browsing history, pages you don&apos;t save, what you type on other sites, or your clipboard.</li>
+              <li><strong>Why it can run on every site:</strong> so it can show its on-page button, draw the screenshot selection, and read a page&apos;s description when you open the extension. That happens inside your browser.</li>
+              <li><strong>Sign-in:</strong> the extension uses the sign-in you already have with Savedly in the same browser. It does not keep a copy of your password or sign-in token.</li>
+              <li><strong>Kept on your device:</strong> whether you are signed in, and whether you turned the on-page button off.</li>
+            </ul>
+            <p>
+              What you save through the extension is handled like everything else in your account, as described in the rest of this policy. Data is not sold, and is not used for advertising.
+            </p>
+          </section>
+
           <section className="space-y-3">
-            <h2 className="text-base font-bold text-foreground">7. Your rights and controls</h2>
+            <h2 className="text-base font-bold text-foreground">8. Your rights and controls</h2>
             <ul className="list-disc pl-5 space-y-2">
               <li>Export a complete copy of everything you&apos;ve saved, at any time, from Settings → Privacy &amp; Data.</li>
               <li>Delete individual memories (moved to Trash, permanently removed after 15 days) or delete your entire account and everything tied to it.</li>
@@ -164,14 +181,14 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-bold text-foreground">8. Changes to this policy</h2>
+            <h2 className="text-base font-bold text-foreground">9. Changes to this policy</h2>
             <p>
               If this policy changes in a meaningful way, we&apos;ll update the date at the top of this page. Since the source code is public, the actual data handling described here can always be verified directly against it.
             </p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-base font-bold text-foreground">9. Contact</h2>
+            <h2 className="text-base font-bold text-foreground">10. Contact</h2>
             <p>
               Questions about this policy or your data can be sent to <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
             </p>

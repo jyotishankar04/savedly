@@ -1,20 +1,17 @@
-// Content script to scrape webpage metadata for Savedly Capture extension.
-// Auth token sync lives in background/service-worker.ts via chrome.cookies —
-// the web app's auth cookie is httpOnly, so page-context JS (this file)
-// can never read it directly; a prior version tried a localStorage read here
-// and could never have worked.
+// Content script for the Savedly extension: reads a page's description for
+// the popup, draws the screenshot selection, and shows the on-page button.
 //
 // No imports in this file, deliberately — content scripts always run as
 // classic scripts (manifest.json's content_scripts has no "type: module"
 // option, unlike the background service worker), so an `import` statement
 // here is a hard runtime failure, not just a style choice. Vite will
 // happily emit one anyway if this file imports from a module shared with
-// another entry point (it did, the first time this constant was pulled in
+// another entry point (it did, the first time a constant was pulled in
 // from ../lib/config — silently broke the whole content script, since
 // nothing in the build catches "this chunk must stay import-free").
-// TOKEN_STORAGE_KEY and SHOW_FLOATING_ICON_STORAGE_KEY below must be kept
-// in sync with ../lib/config.ts by hand.
-const TOKEN_STORAGE_KEY = "savedly_token";
+// The two storage keys below must be kept in sync with ../lib/config.ts by
+// hand. __WEB_APP_URL__ is filled in by the build (vite.config.ts).
+const SIGNED_IN_STORAGE_KEY = "savedly_signed_in";
 const SHOW_FLOATING_ICON_STORAGE_KEY = "savedly_show_floating_icon";
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -260,6 +257,18 @@ function extractTextInRect(rect: { x: number; y: number; width: number; height: 
 // Reacts live to both changing (storage.onChanged), so signing in makes
 // it appear immediately rather than needing a page reload.
 
+// The Savedly mark (client/public/logo.svg), drawn inline so nothing has to
+// be loaded from the extension by the page. The gradient ids are prefixed so
+// they can't collide with ids the page itself uses.
+const LOGO_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" width="30" height="30" aria-hidden="true" style="display:block;pointer-events:none">' +
+  '<defs><linearGradient id="savedly-fb-b" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3D7BFF"/><stop offset="1" stop-color="#0B3FE3"/></linearGradient>' +
+  '<linearGradient id="savedly-fb-f" x1="50" y1="50" x2="80" y2="80" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#E6EEFF"/><stop offset="1" stop-color="#9DB9FF"/></linearGradient></defs>' +
+  '<g transform="translate(13.5 28) rotate(-12 40 40)"><rect width="80" height="80" rx="20" fill="url(#savedly-fb-b)"/>' +
+  '<path d="M80 40C73 50 60 50 54 57C47 65 50 74 43 80H60A20 20 0 0 0 80 60Z" fill="url(#savedly-fb-f)"/>' +
+  '<path d="M18.5 38A6.5 6.5 0 0 1 31.5 38M44.5 38A6.5 6.5 0 0 1 57.5 38" stroke="#fff" stroke-width="7" stroke-linecap="round"/>' +
+  '<path d="M88 6L95 -4M92 18L102 11" stroke="#2F6BFF" stroke-width="8" stroke-linecap="round"/></g></svg>';
+
 const FLOATING_BUTTON_ID = "savedly-floating-button";
 const FLOATING_MENU_ID = "savedly-floating-menu";
 
@@ -268,8 +277,8 @@ let floatingMenuEl: HTMLDivElement | null = null;
 
 function shouldShowFloatingButton(): Promise<boolean> {
   return new Promise((resolve) => {
-    chrome.storage.local.get([TOKEN_STORAGE_KEY, SHOW_FLOATING_ICON_STORAGE_KEY], (result) => {
-      const signedIn = !!result[TOKEN_STORAGE_KEY];
+    chrome.storage.local.get([SIGNED_IN_STORAGE_KEY, SHOW_FLOATING_ICON_STORAGE_KEY], (result) => {
+      const signedIn = !!result[SIGNED_IN_STORAGE_KEY];
       const enabled = result[SHOW_FLOATING_ICON_STORAGE_KEY] ?? true; // defaults on
       resolve(signedIn && enabled);
     });
@@ -292,12 +301,11 @@ function createFloatingButton(): void {
   button.type = "button";
   button.setAttribute("aria-label", "Savedly quick actions");
   button.title = "Savedly quick actions";
-  button.textContent = "M";
+  button.innerHTML = LOGO_SVG;
   button.style.cssText =
-    "position:fixed;right:20px;bottom:20px;width:44px;height:44px;border-radius:50%;border:none;" +
-    "background:#1447E6;color:#fff;cursor:pointer;z-index:2147483646;box-shadow:0 4px 14px rgba(20,71,230,0.4);" +
-    "display:flex;align-items:center;justify-content:center;font:700 16px -apple-system,BlinkMacSystemFont,sans-serif;" +
-    "padding:0;transition:transform 0.15s ease;";
+    "position:fixed;right:20px;bottom:20px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(15,17,21,0.08);" +
+    "background:#fff;cursor:pointer;z-index:2147483646;box-shadow:0 4px 14px rgba(15,17,21,0.18);" +
+    "display:flex;align-items:center;justify-content:center;padding:0;transition:transform 0.15s ease;";
   button.addEventListener("mouseenter", () => (button.style.transform = "scale(1.08)"));
   button.addEventListener("mouseleave", () => (button.style.transform = "scale(1)"));
   button.addEventListener("click", (e) => {
@@ -383,45 +391,30 @@ function quickSavePage(): void {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  if (TOKEN_STORAGE_KEY in changes || SHOW_FLOATING_ICON_STORAGE_KEY in changes) {
+  if (SIGNED_IN_STORAGE_KEY in changes || SHOW_FLOATING_ICON_STORAGE_KEY in changes) {
     refreshFloatingButtonVisibility();
   }
 });
 
-// --- Clipboard monitoring for quick URL saves ----- (new feature)
+// --- Keeping "signed in" current --------------------------------------
 //
-// Detects when URLs are copied and offers quick-save. Paste events are
-// MV3-compliant and don't require extra permissions.
-
-const URL_PATTERN = /^https?:\/\/[^\s]+$/;
-let lastSavedUrl = "";
-let clipboardDebounceTimer: number | null = null;
-
-document.addEventListener(
-  "paste",
-  (event) => {
-    const text = event.clipboardData?.getData("text")?.trim();
-    if (!text || !URL_PATTERN.test(text) || text === lastSavedUrl) return;
-
-    lastSavedUrl = text;
-
-    // Debounce rapid pastes (500ms)
-    if (clipboardDebounceTimer) clearTimeout(clipboardDebounceTimer);
-    clipboardDebounceTimer = window.setTimeout(() => {
-      chrome.runtime.sendMessage(
-        { action: "CLIPBOARD_URL_DETECTED", url: text },
-        (response) => {
-          if (!response) return;
-          if (response.ok) {
-            console.log("Savedly: Saved URL from clipboard");
-          } else {
-            console.log("Savedly: Could not save clipboard URL:", response.error);
-          }
-        }
-      );
-    }, 500);
-  },
-  true
-);
+// Signing in and out happens on the Savedly website. When one of its pages
+// loads or comes back into view, ask the background worker to check with the
+// server, so the popup and the button above follow without a browser restart.
+if (location.origin === __WEB_APP_URL__) {
+  const syncSignIn = () => {
+    // The extension may have been reloaded under this page; then there is
+    // no one to tell, and sendMessage throws.
+    try {
+      chrome.runtime.sendMessage({ action: "SYNC_AUTH" }, () => void chrome.runtime.lastError);
+    } catch {
+      /* nothing to do */
+    }
+  };
+  syncSignIn();
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") syncSignIn();
+  });
+}
 
 refreshFloatingButtonVisibility();

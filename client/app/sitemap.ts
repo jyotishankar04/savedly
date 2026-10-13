@@ -2,8 +2,9 @@ import { MetadataRoute } from 'next'
 import { competitors } from '@/lib/data/comparisons'
 import { SELF_HOSTED } from '@/lib/instance'
 import { SITE_URL } from "@/lib/site-url";
+import { getPublishedPosts } from "@/lib/blog";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (SELF_HOSTED) return []
 
   const baseUrl = SITE_URL;
@@ -38,5 +39,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }))
 
-  return [...staticRoutes, ...competitorRoutes]
+  // Every published post. Empty if the API can't be reached: the rest of the map still stands.
+  const { posts } = await getPublishedPosts()
+  const postRoutes = posts.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }))
+
+  return [...staticRoutes, ...competitorRoutes, ...postRoutes]
 }

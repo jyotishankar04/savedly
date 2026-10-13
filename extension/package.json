@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "build:local": "tsc && vite build --mode development",
+    "package": "pnpm build && rm -f savedly-extension-*.zip && cd dist && zip -qr ../savedly-extension-$npm_package_version.zip . && cd .. && ls -lh savedly-extension-*.zip"
   },
   "dependencies": {
     "react": "^18.3.1",

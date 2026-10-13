@@ -22,6 +22,7 @@ import {
   AiRole,
   AnnouncementDisplayMode,
   WhatsNewKind,
+  BlogPostStatus,
   AnnouncementType,
   CalendarProvider,
   CollectionSource,
@@ -1216,6 +1217,38 @@ export const announcements = pgTable(
     index("idx_announcements_active").on(table.isActive),
     index("idx_announcements_created_at").on(table.createdAt),
   ]
+);
+
+export const blogPostStatusEnum = pgEnum("blog_post_status", [BlogPostStatus.DRAFT, BlogPostStatus.PUBLISHED]);
+
+// The public blog (/blog on the website). Written by admins, in Markdown.
+// Only published posts are ever returned by the public routes.
+export const blogPosts = pgTable(
+  "blog_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // The post's address: /blog/<slug>. Lowercase words joined by hyphens.
+    slug: varchar("slug", { length: 160 }).notNull().unique(),
+    title: varchar("title", { length: 200 }).notNull(),
+    // One or two sentences for the post list, link previews and search results.
+    excerpt: text("excerpt"),
+    // Markdown.
+    content: text("content").notNull().default(""),
+    coverImageUrl: text("cover_image_url"),
+    tags: jsonb("tags").$type<string[]>().notNull().default([]),
+    status: blogPostStatusEnum("status").notNull().default(BlogPostStatus.DRAFT),
+    // The byline, as text: a post keeps its author's name if their account goes.
+    authorName: varchar("author_name", { length: 120 }),
+    // Set the first time a post is published; an admin may change it to backdate.
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("idx_blog_posts_status_published").on(table.status, table.publishedAt)]
 );
 
 // -----------------------------------------------------------------------------

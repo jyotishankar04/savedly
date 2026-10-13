@@ -61,6 +61,12 @@ export enum AnnouncementType {
   UPDATE = "update",
 }
 
+// A blog post is visible to the public only once published (see blogPosts).
+export enum BlogPostStatus {
+  DRAFT = "draft",
+  PUBLISHED = "published",
+}
+
 // What a "What's new" card is telling the visitor about (see whatsNewItems).
 export enum WhatsNewKind {
   NEW = "new",
