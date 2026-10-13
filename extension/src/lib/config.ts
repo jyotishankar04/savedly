@@ -1,17 +1,14 @@
-// Dev-only, hardcoded (the extension has no build-time env wiring yet,
-// unlike client/server's .env-based config) — matches the server's
-// documented default (server/.env.example: PORT=4000, FRONTEND_URL=3000).
-export const SERVER_ORIGIN = "http://localhost:4000";
+// Which Savedly this build talks to. Fixed at build time (vite.config.ts):
+// savedly.app for the published extension, localhost for `pnpm build:local`.
+export const SERVER_ORIGIN = __API_ORIGIN__;
 export const API_BASE = `${SERVER_ORIGIN}/api/v1`;
-export const WEB_APP_URL = "http://localhost:3000";
+export const WEB_APP_URL = __WEB_APP_URL__;
 
-// Must match server/src/shared/utils/cookies.ts's ACCESS_TOKEN_COOKIE.
-export const ACCESS_TOKEN_COOKIE = "savedly_access_token";
-
-// chrome.storage.local key the background worker mirrors the cookie into —
-// storage (not the cookie itself) is what the popup/content script read,
-// since only the background service worker has the "cookies" permission.
-export const TOKEN_STORAGE_KEY = "savedly_token";
+// chrome.storage.local key: true while the browser is signed in to Savedly.
+// Only this yes/no is kept. The sign-in itself stays in the browser's own
+// cookies for the Savedly server, which the extension never reads or copies
+// (see api.ts).
+export const SIGNED_IN_STORAGE_KEY = "savedly_signed_in";
 
 // chrome.storage.local key for the floating on-page quick-actions button —
 // local only for now (extension-only scope; syncing this from the web

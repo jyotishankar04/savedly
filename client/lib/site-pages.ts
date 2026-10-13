@@ -18,6 +18,7 @@ export interface SitePage {
 export const SITE_PAGES: SitePage[] = [
   { id: "home", title: "Home", href: "/", summary: "What Savedly is and how it works, with a box to ask questions." },
   { id: "features", title: "Features", href: "/features", summary: "Every capability explained: saving, automatic summaries and tags, search by meaning, the Ask assistant, collections, the memory graph, the vault, calendar sync and integrations." },
+  { id: "how-it-works", title: "How it works", href: "/how-it-works", summary: "What happens to a save step by step (read, summarized, filed, indexed), what the system is made of, and exactly what data leaves it and why." },
   { id: "pricing", title: "Pricing", href: "/pricing", summary: "The hosted plans (Free, Lite, Pro), what each includes, their prices, and how self-hosting compares." },
   { id: "help", title: "Help Center", href: "/help", summary: "The documentation: step-by-step guides for getting started, saving, importing, organizing, search, Ask, sharing, the vault, calendar, notifications, keyboard shortcuts, account settings and self-hosting." },
   { id: "getting-started", title: "Getting started guide", href: "/help/docs/get-started/getting-started", summary: "The first guide to read: create an account and save your first items." },
@@ -35,7 +36,7 @@ export const SITE_PAGES: SitePage[] = [
   { id: "contact", title: "Contact", href: "/contact", summary: "How to reach the team for support, questions or feedback." },
   { id: "report", title: "Report a bug", href: "/report", summary: "A form to report a problem or request a feature." },
   { id: "about", title: "About", href: "/about", summary: "Who makes Savedly and why." },
-  { id: "blog", title: "Blog", href: "/blog", summary: "The blog. There are no posts yet." },
+  { id: "blog", title: "Blog", href: "/blog", summary: "The blog: notes from building Savedly." },
   { id: "sign-in", title: "Sign in", href: "/auth/login", summary: "Sign in to an existing account." },
   { id: "sign-up", title: "Create an account", href: "/auth/signup", summary: "Create a new account on the hosted service." },
   { id: "github", title: "Source code on GitHub", href: GITHUB_URL, summary: "The public repository: the code, issues, and the installer for self-hosting." },

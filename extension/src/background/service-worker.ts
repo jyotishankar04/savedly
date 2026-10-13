@@ -1,72 +1,27 @@
-// Background service worker for Savedly Chrome Extension V1
-import { ACCESS_TOKEN_COOKIE, SERVER_ORIGIN, TOKEN_STORAGE_KEY } from "../lib/config";
-import { apiFetch, ApiError } from "../lib/api";
+// Background service worker for the Savedly Chrome extension
+import { apiFetch, ApiError, checkSignedIn } from "../lib/api";
 
-// Only the background worker holds the "cookies" permission — it mirrors the
-// httpOnly access-token cookie into chrome.storage.local, which is what the
-// popup and this file's own saveMemory() actually read (see api.ts). This
-// replaces a prior, broken attempt in content-script.ts to read the cookie
-// via page-context localStorage, which can never see an httpOnly cookie.
-function syncAuthToken(done: () => void = () => {}): void {
-  chrome.cookies.get({ url: SERVER_ORIGIN, name: ACCESS_TOKEN_COOKIE }, (cookie) => {
-    chrome.storage.local.set({ [TOKEN_STORAGE_KEY]: cookie?.value ?? null }, done);
-  });
-}
-
-chrome.cookies.onChanged.addListener((changeInfo) => {
-  if (changeInfo.cookie.name === ACCESS_TOKEN_COOKIE) {
-    syncAuthToken();
-  }
-});
-
-// The popup asks for a fresh sync on open, in case the cookie was set (login)
-// or cleared (logout) since the last onChanged event, e.g. right after the
-// extension itself was installed. Must return true + call sendResponse
-// asynchronously (inside the cookies.get callback), or the message channel
-// closes before the storage write actually lands.
+// Sign-in is the browser's own Savedly session (see lib/api.ts). This file
+// only keeps the yes/no "signed in" flag fresh for the popup and the on-page
+// button: it asks the server when the browser starts, when the popup opens,
+// and when a Savedly page loads (the content script says so, which is how a
+// sign-in or sign-out on the website shows up here straight away).
+// Must return true and answer asynchronously, or the message channel closes
+// before the answer is ready.
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === "SYNC_AUTH") {
-    syncAuthToken(() => sendResponse({ ok: true }));
+    checkSignedIn().then((signedIn) => sendResponse({ ok: true, signedIn }));
     return true;
   }
   return undefined;
 });
 
-chrome.runtime.onStartup.addListener(syncAuthToken);
-
-// Clipboard monitoring for quick URL saves (MV3 paste detection via content script coordination)
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "CLIPBOARD_URL_DETECTED") {
-    (async () => {
-      const token = await getStoredToken();
-      if (!token) {
-        sendResponse({ ok: false });
-        return;
-      }
-
-      try {
-        // Save the URL from clipboard
-        const urlStr = request.url;
-        const urlObj = new URL(urlStr);
-        await createMemory({
-          type: "web",
-          url: urlStr,
-          title: urlObj.hostname || urlStr,
-          description: "Captured from clipboard",
-        });
-        sendResponse({ ok: true, message: "URL saved from clipboard" });
-      } catch (err) {
-        notifySaveError(err);
-        sendResponse({ ok: false, error: err instanceof Error ? err.message : "Failed to save" });
-      }
-    })();
-    return true;
-  }
-  return undefined;
-});
+chrome.runtime.onStartup.addListener(() => void checkSignedIn());
 
 chrome.runtime.onInstalled.addListener(() => {
-  syncAuthToken();
+  // Earlier builds kept a copy of the access token here. Nothing reads it now.
+  chrome.storage.local.remove("savedly_token");
+  void checkSignedIn();
 
   // Root menu for Savedly actions
   chrome.contextMenus.create({
@@ -134,23 +89,8 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("Savedly Extension context menus initialized.");
 });
 
-// Reads the real session token synced into storage by the popup/content script,
-// instead of ever hardcoding it — background saves must use the same auth as the rest of the extension.
-function getStoredToken(): Promise<string | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get([TOKEN_STORAGE_KEY], (result) => {
-      resolve(result[TOKEN_STORAGE_KEY] || null);
-    });
-  });
-}
-
 // Context Menus Click Handler
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  const token = await getStoredToken();
-  if (!token) {
-    notifySignInRequired();
-    return;
-  }
 
   try {
     if (info.menuItemId === "save-page" && tab?.url) {
@@ -206,11 +146,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.commands.onCommand.addListener(async (command) => {
   if (command !== "quick-save-page") return;
 
-  const token = await getStoredToken();
-  if (!token) {
-    notifySignInRequired();
-    return;
-  }
 
   chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
     const activeTab = tabs[0];
@@ -372,11 +307,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // it (that's what the popup is still for).
   if (request.action === "QUICK_SAVE_PAGE") {
     (async () => {
-      const token = await getStoredToken();
-      if (!token) {
-        notifySignInRequired();
-        return;
-      }
       try {
         await createMemory({
           type: "web",
@@ -427,11 +357,6 @@ async function handleScreenshotRegion(
   },
   windowId: number,
 ): Promise<void> {
-  const token = await getStoredToken();
-  if (!token) {
-    notifySignInRequired();
-    return;
-  }
 
   const dataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: "png" });
   const blob = await cropToRect(dataUrl, msg.rect, msg.dpr);
@@ -512,10 +437,15 @@ async function createMemory(payload: MemoryCreatePayload): Promise<void> {
 }
 
 function notifySignInRequired(): void {
-  notify("Sign in to Savedly", "Open the Savedly extension popup and sign in before saving.");
+  notify("Sign in to Savedly", "Click the Savedly icon in the toolbar and sign in, then save again.");
 }
 
 function notifySaveError(err: unknown): void {
+  // Signed out (or the sign-in ran out and couldn't be renewed).
+  if (err instanceof ApiError && err.status === 401) {
+    notifySignInRequired();
+    return;
+  }
   const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Something went wrong.";
   notify("Couldn't save to Savedly", message);
 }

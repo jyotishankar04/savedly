@@ -74,8 +74,8 @@ const productLinks: MenuEntry[] = [
   {
     title: "How it works",
     icon: Layers01Icon,
-    description: "See the ingestion and search pipeline in action.",
-    href: "/features#how-it-works",
+    description: "One save followed step by step, and what runs where.",
+    href: "/how-it-works",
   },
   {
     title: "Changelog",

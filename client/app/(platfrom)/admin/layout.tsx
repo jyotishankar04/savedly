@@ -19,6 +19,7 @@ import {
   Layers01Icon as Layers,
   Mail01Icon as Mail,
   Megaphone01Icon as Megaphone,
+  QuillWrite01Icon as QuillWrite,
   SlideIcon as Sliders,
   CloudServerIcon as CloudServer,
 } from "@hugeicons/core-free-icons";
@@ -65,6 +66,7 @@ const NAV_ENTRIES: NavEntry[] = [
   { label: "Emails", href: "/admin/emails", icon: Mail },
   { label: "AI Usage", href: "/admin/ai-usage", icon: Cpu },
   { label: "What's new", href: "/admin/whats-new", icon: Megaphone },
+  { label: "Blog", href: "/admin/blog", icon: QuillWrite },
   { label: "Features", href: "/admin/features", icon: Sliders },
   { label: "Configuration", href: "/admin/configuration", icon: Settings },
   { label: "Infrastructure", href: "/admin/infrastructure", icon: CloudServer },
@@ -99,6 +101,8 @@ function useAdminNav() {
     hidden.add("/admin/plans-limits");
     // Its cards only appear on the landing page, which a self-hosted install doesn't have.
     hidden.add("/admin/whats-new");
+    // The blog is part of the public website, which a self-hosted install doesn't have either.
+    hidden.add("/admin/blog");
     if (!system?.services.email) hidden.add("/admin/emails");
   }
   const keep = (leaf: NavLeaf) => !hidden.has(leaf.href);

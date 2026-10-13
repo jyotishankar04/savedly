@@ -89,13 +89,40 @@ function usePinned(): boolean {
   const reduce = useReducedMotion();
   const [wide, setWide] = useState(false);
   useEffect(() => {
-    const query = window.matchMedia("(min-width: 1024px) and (min-height: 640px)");
+    // A phone pins too, when it is tall enough to hold the words and the picture at once.
+    const query = window.matchMedia("(min-width: 1024px) and (min-height: 640px), (max-width: 1023px) and (min-height: 600px)");
     const update = () => setWide(query.matches);
     update();
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
   return wide && !reduce;
+}
+
+// The demos are drawn for a box about this tall. On a phone the box grows a
+// little with the screen, and the demo is enlarged to match, up to a limit:
+// past it the demo would be too narrow to read.
+const SCENE_BASE_HEIGHT = 220;
+const SCENE_MAX_SCALE = 1.18;
+
+/** How much to enlarge the demo so it fills its box. 1 until measured, and on wide screens, which size it in CSS. */
+function useSceneScale(box: React.RefObject<HTMLDivElement | null>, enabled: boolean): number {
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const el = box.current;
+    if (!enabled || !el) return;
+    const narrow = window.matchMedia("(max-width: 1023px)");
+    const measure = () => setScale(narrow.matches ? Math.min(SCENE_MAX_SCALE, Math.max(1, el.clientHeight / SCENE_BASE_HEIGHT)) : 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    narrow.addEventListener("change", measure);
+    return () => {
+      observer.disconnect();
+      narrow.removeEventListener("change", measure);
+    };
+  }, [box, enabled]);
+  return enabled ? scale : 1;
 }
 
 /** The soft, slowly drifting colour behind the scenes. */
@@ -133,6 +160,8 @@ function Switcher() {
   const pinned = usePinned();
   const reduce = useReducedMotion();
   const track = useRef<HTMLDivElement>(null);
+  const sceneBox = useRef<HTMLDivElement>(null);
+  const sceneScale = useSceneScale(sceneBox, pinned);
   const [active, setActive] = useState(0);
   const [touched, setTouched] = useState(false);
   const { scrollYProgress } = useScroll({ target: track, offset: ["start start", "end end"] });
@@ -190,13 +219,15 @@ function Switcher() {
   const Scene = tab.Scene;
 
   return (
-    <div ref={track} className={cn("relative mt-14 md:mt-20", pinned && "h-[480vh]")}>
-      <div className={cn(pinned ? "sticky top-0 h-screen" : "mx-auto w-full max-w-[1240px] px-3 sm:px-5")}>
+    <div ref={track} className={cn("relative mt-14 md:mt-20", pinned && "h-[300svh] lg:h-[480vh]")}>
+      <div className={cn(pinned ? "sticky top-0 h-svh" : "mx-auto w-full max-w-[1240px] px-3 sm:px-5")}>
         <motion.div
           style={pinned ? { top, bottom, left: side, right: side, borderRadius: radius } : undefined}
           className={cn(
-            "flex flex-col items-center justify-center overflow-hidden px-3 py-8 sm:px-8 sm:py-12",
-            pinned ? "absolute" : "relative rounded-[1.75rem] sm:rounded-[2.25rem]",
+            "flex flex-col items-center justify-center overflow-hidden px-3 sm:px-8 sm:py-12",
+            // Pinned on a phone: room at the top for the navigation bar that floats over the panel.
+            // The tabs and card keep their own height and sit in the middle of what's left.
+            pinned ? "absolute pb-3 pt-[4.5rem] lg:py-12" : "relative rounded-[1.75rem] py-8 sm:rounded-[2.25rem]",
           )}
         >
           <Backdrop tones={tab.tones} />
@@ -210,13 +241,13 @@ function Switcher() {
               // Appears as the panel grows, and can't be tabbed to or clicked before then.
               style={{ opacity: grow, pointerEvents: skipClickable }}
               // Below the navigation bar: its strip spans the full width and would take the click.
-              className="absolute right-6 top-[5.5rem] z-20 flex h-11 w-11 items-center justify-center rounded-xl bg-card/60 text-foreground/70 ring-1 ring-foreground/10 backdrop-blur transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              className="absolute right-3 top-[4.5rem] z-20 flex h-9 w-9 items-center lg:right-6 lg:top-[5.5rem] lg:h-11 lg:w-11 justify-center rounded-xl bg-card/60 text-foreground/70 ring-1 ring-foreground/10 backdrop-blur transition-colors hover:bg-card hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             >
               <HugeiconsIcon icon={CloseIcon} strokeWidth={2} className="h-5 w-5" />
             </motion.button>
           )}
 
-          <div role="tablist" aria-label="What Savedly does" className="relative z-10 flex gap-2">
+          <div role="tablist" aria-label="What Savedly does" className={cn("relative z-10 flex gap-2", pinned && "max-lg:self-start")}>
             {TABS.map((t, i) => {
               const selected = i === active;
               return (
@@ -228,7 +259,7 @@ function Switcher() {
                   aria-controls="hero-scene"
                   onClick={() => choose(i)}
                   className={cn(
-                    "group flex h-11 items-center gap-2 rounded-2xl px-3 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                    "group flex h-10 items-center gap-2 rounded-2xl px-3 text-sm font-medium lg:h-11 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                     selected
                       ? "bg-card text-foreground shadow-md ring-1 ring-foreground/[0.06]"
                       : "bg-card/55 text-muted-foreground hover:bg-card/85 hover:text-foreground",
@@ -244,7 +275,9 @@ function Switcher() {
           <div
             id="hero-scene"
             role="tabpanel"
-            className="relative z-10 mt-5 grid w-full max-w-6xl items-center gap-6 rounded-[1.5rem] bg-card/95 p-5 shadow-xl shadow-primary/10 ring-1 ring-foreground/[0.05] backdrop-blur sm:p-8 md:grid-cols-[1fr_1.15fr] md:gap-12 md:p-10 lg:p-12"
+            className={cn(
+              "relative z-10 mt-3 grid w-full max-w-6xl items-center gap-4 rounded-[1.5rem] bg-card/95 p-4 shadow-xl sm:mt-5 sm:gap-6 sm:p-5 shadow-primary/10 ring-1 ring-foreground/[0.05] backdrop-blur sm:p-8 md:grid-cols-[1fr_1.15fr] md:gap-12 md:p-10 lg:p-12",
+            )}
           >
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -258,13 +291,13 @@ function Switcher() {
                   <HugeiconsIcon icon={tab.icon} strokeWidth={2} className="h-4 w-4" />
                   {tab.label}
                 </p>
-                <h2 className="mt-3 text-[1.75rem] font-medium leading-[1.1] tracking-[-0.03em] text-balance text-foreground sm:text-4xl lg:text-[2.75rem]">
+                <h2 className={cn("mt-2 font-medium leading-[1.1] tracking-[-0.03em] text-balance text-foreground sm:mt-3 sm:text-4xl lg:text-[2.75rem]", pinned ? "text-[clamp(1.65rem,3.9svh,2.15rem)]" : "text-[1.65rem]")}>
                   {tab.title}
                 </h2>
-                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-pretty text-muted-foreground">{tab.body}</p>
+                <p className={cn("mt-2.5 max-w-md leading-relaxed text-pretty text-muted-foreground sm:mt-4 sm:text-[15px]", pinned ? "text-[clamp(15px,2.1svh,17.5px)]" : "text-[15px]")}>{tab.body}</p>
                 <Link
                   href={tab.href}
-                  className="group mt-6 inline-flex items-center gap-1.5 border-b border-foreground/25 pb-1 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                  className="group mt-4 hidden items-center gap-1.5 border-b border-foreground/25 pb-1 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary sm:mt-6 sm:inline-flex [@media(min-height:780px)]:inline-flex"
                 >
                   See how it works
                   <HugeiconsIcon icon={ArrowRightIcon} strokeWidth={2} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -272,7 +305,7 @@ function Switcher() {
               </motion.div>
             </AnimatePresence>
 
-            <div className="relative h-[270px] overflow-hidden rounded-2xl bg-muted/70 ring-1 ring-foreground/[0.04] sm:h-[310px] lg:h-[400px]">
+            <div ref={sceneBox} className={cn("relative overflow-hidden rounded-2xl bg-muted/70 ring-1 ring-foreground/[0.04] sm:h-[310px] lg:h-[400px]", pinned ? "h-[clamp(220px,33svh,290px)]" : "h-[270px]")}>
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={`scene-${tab.id}`}
@@ -282,8 +315,14 @@ function Switcher() {
                   exit={reduce ? undefined : { opacity: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {/* Drawn at phone size, enlarged where there is room. */}
-                  <div className="h-full w-full lg:h-[80%] lg:w-[80%] lg:origin-top-left lg:scale-125">
+                  {/* Drawn at phone size, enlarged where there is room: by a fixed
+                      amount on a wide screen, and to fit the box on a tall phone. A
+                      box drawn smaller by the same factor it is then enlarged by
+                      ends up exactly filling the space. */}
+                  <div
+                    className="h-full w-full origin-top-left lg:h-[80%] lg:w-[80%] lg:scale-125"
+                    style={sceneScale > 1 ? { width: `${100 / sceneScale}%`, height: `${100 / sceneScale}%`, transform: `scale(${sceneScale})` } : undefined}
+                  >
                     <Scene />
                   </div>
                 </motion.div>
@@ -299,10 +338,13 @@ function Switcher() {
 export function HeroSwitcher() {
   const cta = useAuthCta();
   const reduce = useReducedMotion();
+  // The starting state is the same whether or not motion is reduced: the
+  // server can't know the setting, and a different first render in the
+  // browser is a hydration error. Reduced motion skips the travel instead.
   const rise = (delay: number) => ({
-    initial: reduce ? false : ({ opacity: 0, y: 16 } as const),
+    initial: { opacity: 0, y: 16 } as const,
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.7, ease: EASE, delay },
+    transition: reduce ? { duration: 0 } : { duration: 0.7, ease: EASE, delay },
   });
 
   return (
@@ -318,7 +360,7 @@ export function HeroSwitcher() {
 
         <motion.h1
           {...rise(0.06)}
-          className="mt-8 text-[clamp(2.25rem,6vw,4.75rem)] font-medium leading-[1.04] tracking-[-0.04em] text-foreground"
+          className="mt-8 text-[clamp(2.1rem,6vw,4.75rem)] font-medium leading-[1.04] tracking-[-0.04em] text-balance text-foreground"
         >
           <span className="block">Save anything.</span>
           <span className="block">Find it when you need it.</span>

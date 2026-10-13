@@ -8,7 +8,9 @@ import { cn } from "@/lib/utils";
 // One capability, told as a short list beside a picture. On a wide screen the
 // block holds still while you scroll: the headline stays, the list moves up
 // so the current item sits under it, a thin line fills as you go, and the
-// picture changes with the item. On a phone it's a plain list you tap.
+// picture changes with the item. A phone does the same in one column: the
+// picture above, the current item under it. Only a very short screen, or
+// reduced motion, falls back to a plain list you tap.
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -35,7 +37,8 @@ function usePinned(): boolean {
   const reduce = useReducedMotion();
   const [wide, setWide] = useState(false);
   useEffect(() => {
-    const query = window.matchMedia("(min-width: 1024px) and (min-height: 640px)");
+    // Tall enough to hold the headline, the picture and one item at once.
+    const query = window.matchMedia("(min-width: 1024px) and (min-height: 640px), (max-width: 1023px) and (min-height: 600px)");
     const update = () => setWide(query.matches);
     update();
     query.addEventListener("change", update);
@@ -83,17 +86,19 @@ export function FeatureBlock({ id, label, labelIcon, title, items, tone, flip = 
   const Picture = items[active].Picture;
 
   const picture = (
-    <div className={cn("relative aspect-square w-full overflow-hidden rounded-[2rem] bg-gradient-to-b sm:rounded-[2.5rem]", tone)}>
+    <div className={cn("relative w-full overflow-hidden rounded-[2rem] bg-gradient-to-b sm:rounded-[2.5rem] lg:aspect-square lg:h-auto", pinned ? "h-[40svh]" : "aspect-[5/4]", tone)}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={active}
-          className="absolute inset-0 flex items-center justify-center p-6 sm:p-10"
+          className="absolute inset-0 flex items-center justify-center p-5 sm:p-10"
           initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={reduce ? undefined : { opacity: 0, y: -10 }}
           transition={{ duration: 0.45, ease: EASE }}
         >
-          <Picture />
+          <div className="flex w-full items-center justify-center max-lg:[@media(max-height:700px)]:scale-[0.84]">
+            <Picture />
+          </div>
         </motion.div>
       </AnimatePresence>
     </div>
@@ -101,9 +106,14 @@ export function FeatureBlock({ id, label, labelIcon, title, items, tone, flip = 
 
   return (
     <section id={id} className="scroll-mt-24 bg-background font-sans antialiased">
-      <div ref={track} style={pinned ? { height: `calc(100vh + ${items.length * 55}vh)` } : undefined} className="relative">
-        <div className={cn("mx-auto w-full max-w-6xl px-5 sm:px-8", pinned ? "sticky top-0 flex h-screen items-center pt-16" : "py-16")}>
-          <div className={cn("grid w-full items-start gap-10 lg:grid-cols-2 lg:gap-16", flip && "lg:[&>*:first-child]:order-2")}>
+      <div
+        ref={track}
+        // How far the page scrolls per item: less on a phone, where every pinned stretch adds to an already long page.
+        style={pinned ? { height: `calc(100svh + ${items.length} * var(--per-item))` } : undefined}
+        className="relative [--per-item:36svh] lg:[--per-item:55vh]"
+      >
+        <div className={cn("mx-auto w-full max-w-6xl px-5 sm:px-8", pinned ? "sticky top-0 flex h-svh items-start pt-[4.5rem] lg:items-center lg:pt-16" : "py-16")}>
+          <div className={cn("grid w-full grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-16", flip && "lg:[&>*:first-child]:order-2")}>
             <div className="min-w-0">
               <p className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
                 <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary/15 text-primary">
@@ -111,12 +121,12 @@ export function FeatureBlock({ id, label, labelIcon, title, items, tone, flip = 
                 </span>
                 {label}
               </p>
-              <h2 className="mt-3 font-serif text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.08] tracking-[-0.025em] text-balance text-foreground">{title}</h2>
+              <h2 className="mt-2 font-serif text-[clamp(1.6rem,4vw,3rem)] font-medium lg:mt-3 leading-[1.08] tracking-[-0.025em] text-balance text-foreground">{title}</h2>
 
               {/* Phones: the picture comes before the list it illustrates. */}
-              <div className="mt-8 lg:hidden">{picture}</div>
+              <div className="mt-4 lg:hidden">{picture}</div>
 
-              <div className={cn("mt-8 border-t border-foreground/15", pinned && "h-[46vh] overflow-hidden [mask-image:linear-gradient(to_bottom,black_70%,transparent)]")}>
+              <div className={cn("mt-4 border-t border-foreground/15 lg:mt-8", pinned && "h-[25svh] overflow-hidden [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:h-[46vh]")}>
                 {/* `relative`, so each row's offsetTop is measured from this list whether or not it has moved yet. */}
                 <motion.ul className="relative" animate={{ y: -offset }} transition={reduce ? { duration: 0 } : { duration: 0.6, ease: EASE }}>
                   {items.map((item, i) => {
@@ -127,13 +137,13 @@ export function FeatureBlock({ id, label, labelIcon, title, items, tone, flip = 
                         ref={(el) => {
                           rows.current[i] = el;
                         }}
-                        className={cn("relative border-b border-foreground/15 transition-opacity duration-500", current ? "opacity-100" : pinned && i < active ? "opacity-0" : "opacity-35")}
+                        className={cn("relative border-b border-foreground/15 transition-opacity duration-500", current ? "opacity-100" : pinned && i < active ? "opacity-0" : pinned ? "opacity-35" : "opacity-60")}
                       >
                         <button
                           type="button"
                           aria-current={current}
                           onClick={() => choose(i)}
-                          className="block w-full py-7 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 lg:py-9"
+                          className="block w-full py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 lg:py-9"
                         >
                           <span className="flex items-center gap-2.5 text-[17px] font-medium tracking-[-0.01em] text-foreground">
                             <HugeiconsIcon icon={item.icon} strokeWidth={2} className="h-5 w-5 shrink-0" />

@@ -1,53 +1,115 @@
-"use client";
-
-import React from "react";
+import Link from "next/link";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, ArrowLeft01Icon as ArrowLeft } from "@hugeicons/core-free-icons";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { formatPostDate, getPublishedPosts, type BlogPostSummary } from "@/lib/blog";
 
-export default function BlogPage() {
+// The post list. Read on the server (lib/blog.ts), so the posts are in the
+// page a search engine or a link preview sees. A new post shows within a
+// minute of being published.
+
+/** Who wrote it, when, and how long it takes: the line under a post's title. */
+function Byline({ post }: { post: BlogPostSummary }) {
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/[0.03] via-background to-background text-foreground font-sans">
-      <Navbar />
-      
-      <main className="flex-1 pt-32 pb-20 flex flex-col justify-center items-center text-center px-6">
-        
-        {/* Glowing badge */}
-        <div className="relative w-16 h-16 flex items-center justify-center mb-6">
-          <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-          <div className="w-14 h-14 rounded-2xl border border-primary/30 flex items-center justify-center bg-card shadow-md">
-            <HugeiconsIcon icon={Sparkles} strokeWidth={2.25} className="h-7 w-7 text-primary" />
-          </div>
-        </div>
-
-        {/* Content text */}
-        <div className="space-y-4 max-w-md mx-auto">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
-            The Savedly Blog
+    <p className="text-sm text-muted-foreground">
+      {formatPostDate(post.publishedAt)}
+      <span className="mx-2" aria-hidden>
+        ·
+      </span>
+      {post.readingMinutes} min read
+      {post.authorName && (
+        <>
+          <span className="mx-2" aria-hidden>
+            ·
           </span>
-          <h1 className="text-4xl md:text-5xl font-medium tracking-tight text-foreground leading-[1.15] pt-2">
-            Adding soon.
-          </h1>
-          <p className="text-muted-foreground text-xs md:text-sm leading-relaxed">
-            We are preparing deep dives on personal knowledge graphs, local-first vector search, semantic RAG setups, and productivity frameworks. 
-          </p>
-        </div>
+          {post.authorName}
+        </>
+      )}
+    </p>
+  );
+}
 
-        {/* Action Button */}
-        <div className="pt-8">
-          <Button
-            render={<Link href="/" />}
-            nativeButton={false}
-            className="h-10 px-6 rounded-full font-medium shadow-xs flex items-center gap-1.5"
-            variant="outline"
-          >
-            <HugeiconsIcon icon={ArrowLeft} strokeWidth={2.25} className="h-4 w-4" /> Back to home
-          </Button>
-        </div>
+function Cover({ post, className }: { post: BlogPostSummary; className?: string }) {
+  if (!post.coverImageUrl) return null;
+  return (
+    <div className={className}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- an admin-supplied image from any host */}
+      <img src={post.coverImageUrl} alt="" loading="lazy" className="aspect-[16/9] w-full rounded-2xl object-cover ring-1 ring-foreground/10" />
+    </div>
+  );
+}
 
+export default async function BlogPage() {
+  const { posts } = await getPublishedPosts();
+  const [latest, ...rest] = posts;
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background font-sans text-foreground antialiased">
+      <Navbar />
+
+      <main className="flex-1 px-5 pt-36 pb-20 sm:px-8 md:pt-44 md:pb-28">
+        <div className="mx-auto max-w-6xl">
+          <header className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-16">
+            <h1 className="font-serif text-[clamp(2.5rem,6vw,4.5rem)] font-medium leading-[1.04] tracking-[-0.03em] text-foreground">Blog</h1>
+            <p className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
+              Notes from building Savedly: how it works, what changed, and what we learned along the way.
+            </p>
+          </header>
+
+          {!latest ? (
+            <div className="mt-16 border-t border-foreground/15 pt-16 text-center">
+              <p className="font-serif text-2xl font-medium text-foreground">Nothing here yet</p>
+              <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-muted-foreground">
+                The first post is on its way. Until then, the{" "}
+                <Link href="/changelog" className="font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
+                  changelog
+                </Link>{" "}
+                has what&apos;s shipped, and{" "}
+                <Link href="/how-it-works" className="font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
+                  how it works
+                </Link>{" "}
+                explains what happens to what you save.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* The newest post, large */}
+              <article className="mt-14 border-t border-foreground/15 pt-12">
+                <Link href={`/blog/${latest.slug}`} className="group grid gap-8 focus-visible:outline-none lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-14">
+                  <Cover post={latest} className="lg:order-2" />
+                  <div className={latest.coverImageUrl ? "" : "lg:col-span-2 lg:max-w-3xl"}>
+                    <p className="text-sm font-medium text-primary">Latest</p>
+                    <h2 className="mt-3 font-serif text-[clamp(1.9rem,3.6vw,3rem)] font-medium leading-[1.08] tracking-[-0.025em] text-balance text-foreground underline decoration-transparent underline-offset-[6px] transition-colors group-hover:decoration-foreground/30 group-focus-visible:decoration-foreground/30">
+                      {latest.title}
+                    </h2>
+                    {latest.excerpt && <p className="mt-4 text-lg leading-relaxed text-pretty text-muted-foreground">{latest.excerpt}</p>}
+                    <div className="mt-5">
+                      <Byline post={latest} />
+                    </div>
+                  </div>
+                </Link>
+              </article>
+
+              {rest.length > 0 && (
+                <div className="mt-16 grid gap-x-10 gap-y-14 border-t border-foreground/15 pt-12 sm:grid-cols-2 lg:grid-cols-3">
+                  {rest.map((post) => (
+                    <article key={post.id}>
+                      <Link href={`/blog/${post.slug}`} className="group block focus-visible:outline-none">
+                        <Cover post={post} className="mb-5" />
+                        <h2 className="font-serif text-[1.55rem] font-medium leading-[1.15] tracking-[-0.02em] text-balance text-foreground underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-foreground/30 group-focus-visible:decoration-foreground/30">
+                          {post.title}
+                        </h2>
+                        {post.excerpt && <p className="mt-3 line-clamp-3 text-base leading-relaxed text-muted-foreground">{post.excerpt}</p>}
+                        <div className="mt-4">
+                          <Byline post={post} />
+                        </div>
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </main>
 
       <MainFooter />
