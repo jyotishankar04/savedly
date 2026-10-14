@@ -3,9 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
+import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
+import { Reveal, RevealList } from "@/components/marketing/motion/reveal";
+import { ReadingProgress } from "@/components/marketing/motion/reading-progress";
 import { PostBody } from "@/components/blog/post-body";
 import { formatPostDate, getPublishedPost, getPublishedPosts } from "@/lib/blog";
 import { SITE_URL } from "@/lib/site-url";
+import { BLOG_AUTHORS, blogAuthor } from "@/lib/blog-authors";
+import { coverLoads } from "@/lib/blog-cover";
 
 // One post. Read on the server, so its text, title and preview image are in
 // the page itself. A draft, or an address that never existed, is "not found".
@@ -29,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `/blog/${post.slug}`,
       publishedTime: post.publishedAt ?? undefined,
       modifiedTime: post.updatedAt,
-      authors: post.authorName ? [post.authorName] : undefined,
+      authors: [blogAuthor(post.authorName).name],
       tags: post.tags,
       // With no cover, the site's own preview image is used.
       ...(post.coverImageUrl ? { images: [{ url: post.coverImageUrl }] } : {}),
@@ -45,6 +50,9 @@ export default async function BlogPostPage({ params }: Props) {
 
   const { posts } = await getPublishedPosts({ limit: 4 });
   const more = posts.filter((p) => p.slug !== post.slug).slice(0, 3);
+  const author = blogAuthor(post.authorName);
+  // A cover that won't load is left out rather than shown as a broken image.
+  const cover = post.coverImageUrl && (await coverLoads(post.coverImageUrl)) ? post.coverImageUrl : null;
 
   // What search engines read to show the post as an article.
   const jsonLd = {
@@ -55,7 +63,7 @@ export default async function BlogPostPage({ params }: Props) {
     image: post.coverImageUrl ?? undefined,
     datePublished: post.publishedAt ?? undefined,
     dateModified: post.updatedAt,
-    author: post.authorName ? { "@type": "Person", name: post.authorName } : { "@type": "Organization", name: "Savedly" },
+    author: blogAuthor(post.authorName).name === BLOG_AUTHORS[0].name ? { "@type": "Organization", name: "Savedly" } : { "@type": "Person", name: blogAuthor(post.authorName).name },
     publisher: { "@type": "Organization", name: "Savedly", url: SITE_URL },
     mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
   };
@@ -65,6 +73,7 @@ export default async function BlogPostPage({ params }: Props) {
       {/* "<" is escaped so a title can never close the script tag. */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <Navbar />
+      <ReadingProgress />
 
       <main className="flex-1 px-5 pt-32 pb-20 sm:px-8 md:pt-40 md:pb-28">
         <article className="mx-auto max-w-[44rem]">
@@ -72,37 +81,45 @@ export default async function BlogPostPage({ params }: Props) {
             ← All posts
           </Link>
 
-          <header className="mt-8">
+          <HeroReveal className="mt-8">
             {post.tags.length > 0 && <p className="text-sm font-medium text-primary">{post.tags.join(" · ")}</p>}
             <h1 className="mt-3 font-serif text-[clamp(2.2rem,5vw,3.5rem)] font-medium leading-[1.06] tracking-[-0.03em] text-balance text-foreground">{post.title}</h1>
             {post.excerpt && <p className="mt-5 text-xl leading-relaxed text-pretty text-muted-foreground">{post.excerpt}</p>}
-            <p className="mt-6 text-sm text-muted-foreground">
-              {post.authorName && <span className="font-medium text-foreground">{post.authorName}</span>}
-              {post.authorName && (
-                <span className="mx-2" aria-hidden>
-                  ·
-                </span>
+            <div className="mt-7 flex items-center gap-3">
+              {author.avatar && (
+                // eslint-disable-next-line @next/next/no-img-element -- a small local picture
+                <img src={author.avatar} alt="" width={40} height={40} className="h-10 w-10 rounded-full object-cover ring-1 ring-foreground/10" />
               )}
-              <time dateTime={post.publishedAt ?? undefined}>{formatPostDate(post.publishedAt)}</time>
-              <span className="mx-2" aria-hidden>
-                ·
-              </span>
-              {post.readingMinutes} min read
-            </p>
-          </header>
+              <div className="text-sm leading-snug">
+                <p>
+                  <span className="font-medium text-foreground">{author.name}</span>
+                  {author.role && <span className="text-muted-foreground">, {author.role}</span>}
+                </p>
+                <p className="text-muted-foreground">
+                  <time dateTime={post.publishedAt ?? undefined}>{formatPostDate(post.publishedAt)}</time>
+                  <span className="mx-2" aria-hidden>
+                    ·
+                  </span>
+                  {post.readingMinutes} min read
+                </p>
+              </div>
+            </div>
+          </HeroReveal>
 
-          {post.coverImageUrl && (
+          <Reveal delay={0.4}>
+          {cover && (
             // eslint-disable-next-line @next/next/no-img-element -- an admin-supplied image from any host
-            <img src={post.coverImageUrl} alt="" className="mt-10 aspect-[16/9] w-full rounded-2xl object-cover ring-1 ring-foreground/10" />
+            <img src={cover} alt="" className="mt-10 aspect-[16/9] w-full rounded-2xl object-cover ring-1 ring-foreground/10" />
           )}
 
           <PostBody markdown={post.content} className="mt-10" />
+          </Reveal>
         </article>
 
         {more.length > 0 && (
           <aside className="mx-auto mt-20 max-w-6xl border-t border-foreground/15 pt-12" aria-label="More posts">
             <h2 className="font-serif text-2xl font-medium tracking-[-0.02em] text-foreground">More from the blog</h2>
-            <div className="mt-8 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+            <RevealList className="mt-8 grid gap-10 sm:grid-cols-2 lg:grid-cols-3" gap={0.08}>
               {more.map((p) => (
                 <Link key={p.id} href={`/blog/${p.slug}`} className="group block focus-visible:outline-none">
                   <h3 className="font-serif text-xl font-medium leading-snug tracking-[-0.015em] text-balance text-foreground underline decoration-transparent underline-offset-4 transition-colors group-hover:decoration-foreground/30 group-focus-visible:decoration-foreground/30">
@@ -112,7 +129,7 @@ export default async function BlogPostPage({ params }: Props) {
                   <p className="mt-3 text-sm text-muted-foreground">{formatPostDate(p.publishedAt)}</p>
                 </Link>
               ))}
-            </div>
+            </RevealList>
           </aside>
         )}
       </main>

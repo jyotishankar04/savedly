@@ -25,12 +25,11 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Logo, LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
-import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
+import { DISCORD_URL, GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
 import { ProductHuntBadge } from "@/components/marketing/product-hunt-badge";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
 
 /** The community server, the same invite the Community page links to. */
-const DISCORD_URL = "https://discord.gg/PzGFcMNyRK";
 
 // What is deliberately not here, because it would be fake:
 // - A newsletter form. Nothing in this codebase can subscribe an address, and
@@ -71,7 +70,7 @@ const sections: { title: string; links: FooterLink[] }[] = [
       { label: "Blog", href: "/blog" },
       { label: "Help Center", href: "/help" },
       { label: "Community", href: "/community" },
-      { label: "Report a bug", href: "/report" },
+      { label: "Report a bug or idea", href: "/report" },
       { label: "Cookie Policy", href: "/cookies" },
     ],
   },
@@ -80,6 +79,7 @@ const sections: { title: string; links: FooterLink[] }[] = [
     links: [
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
+      { label: "Contribute", href: "/contribute" },
       { label: "Privacy", href: "/privacy" },
       { label: "Terms", href: "/terms" },
       { label: "Security", href: "/security" },
@@ -198,7 +198,7 @@ function MarketingFooter() {
                   href={GITHUB_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-foreground/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   Contribute on GitHub
                   <HugeiconsIcon icon={ArrowUpRight} strokeWidth={2} className="h-4 w-4" />
@@ -258,7 +258,7 @@ function MarketingFooter() {
             >
               <HugeiconsIcon icon={Mail} strokeWidth={2} className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1 truncate">{SUPPORT_EMAIL}</span>
-              <span className="flex h-9 w-12 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-transform group-hover:translate-x-0.5">
+              <span className="flex h-9 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform group-hover:translate-x-0.5">
                 <HugeiconsIcon icon={ArrowRight} strokeWidth={2} className="h-4 w-4" />
               </span>
             </a>
@@ -268,7 +268,7 @@ function MarketingFooter() {
         {/* Bottom bar */}
         <motion.div variants={riseItem} className="mt-16 flex flex-col gap-5 border-t border-foreground/10 py-7 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Savedly <span className="mx-1.5">·</span> {LICENSE} license <span className="mx-1.5">·</span> Made in Bengaluru
+            &copy; {new Date().getFullYear()} Savedly <span className="mx-1.5">·</span> {LICENSE} license <span className="mx-1.5">·</span> Made in Bhubaneswar
           </p>
 
           <div className="flex flex-wrap items-center gap-4">

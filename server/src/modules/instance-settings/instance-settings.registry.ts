@@ -346,8 +346,17 @@ export const SECTIONS: SectionDef[] = [
         fromEnv: () => env("SMTP_FROM_ADDRESS"),
       },
       { name: "fromName", label: "From name", kind: "text", showWhen: { field: "enabled", equals: [true] }, fromEnv: () => env("SMTP_FROM_NAME") },
+      {
+        name: "contactAddress",
+        label: "Contact form goes to",
+        kind: "text",
+        help: "Messages from the website's contact page are emailed here, with Reply-To set to the person who wrote.",
+        placeholder: "support@example.com",
+        showWhen: { field: "enabled", equals: [true] },
+        fromEnv: () => env("CONTACT_ADDRESS"),
+      },
     ],
-    defaults: { enabled: false, port: 587, secure: false, fromName: "Savedly", fromAddress: "noreply@savedly.local" },
+    defaults: { enabled: false, port: 587, secure: false, fromName: "Savedly", fromAddress: "noreply@savedly.local", contactAddress: "support@savedly.app" },
     hostedDefaults: { enabled: true, host: "localhost", port: 1025 },
     schema: z
       .object({

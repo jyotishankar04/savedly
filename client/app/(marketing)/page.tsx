@@ -11,6 +11,7 @@ import { PricingStrip } from "@/components/marketing/landing/pricing-strip";
 import { FaqSection } from "@/components/marketing/landing/faq-section";
 import { FinalCtaSection } from "@/components/marketing/landing/final-cta-section";
 import MainFooter from "@/components/marketing/landing/main-footer";
+import { Reveal } from "@/components/marketing/motion/reveal";
 
 /**
  * The product proves itself: the hero opens on the real app in a window
@@ -20,6 +21,8 @@ import MainFooter from "@/components/marketing/landing/main-footer";
  * Earlier layouts are kept as unused alternates: hero-stacked.tsx (full-bleed
  * salt-flat art), features-grid-cards.tsx (9-card grid), and the sticky and
  * alternating feature sections. The full anchored breakdown lives on /features.
+ *
+ * Each section below the hero fades up as it scrolls in (Motion's Reveal).
  */
 export default function MarketingPage() {
   return (
@@ -43,15 +46,33 @@ export default function MarketingPage() {
       />
       <WhatsNewPopup />
       <HeroSwitcher />
-      <StepsSection />
-      <FeatureBlocks />
-      <MoreSection />
-      <ConnectSection />
-      <ImportSection />
-      <PrivacySection />
-      <OpenSection />
-      <PricingStrip />
-      <FaqSection />
+      <Reveal>
+        <StepsSection />
+      </Reveal>
+      <Reveal>
+        <FeatureBlocks />
+      </Reveal>
+      <Reveal>
+        <MoreSection />
+      </Reveal>
+      <Reveal>
+        <ConnectSection />
+      </Reveal>
+      <Reveal>
+        <ImportSection />
+      </Reveal>
+      <Reveal>
+        <PrivacySection />
+      </Reveal>
+      <Reveal>
+        <OpenSection />
+      </Reveal>
+      <Reveal>
+        <PricingStrip />
+      </Reveal>
+      <Reveal>
+        <FaqSection />
+      </Reveal>
       <FinalCtaSection />
       <MainFooter />
     </>

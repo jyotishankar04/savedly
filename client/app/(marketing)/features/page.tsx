@@ -9,6 +9,8 @@ import { ConnectSection } from "@/components/marketing/landing/connect-section";
 import { ImportSection } from "@/components/marketing/landing/import-section";
 import { PrivacySection } from "@/components/marketing/landing/privacy-section";
 import { FinalCtaSection } from "@/components/marketing/landing/final-cta-section";
+import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
+import { Reveal } from "@/components/marketing/motion/reveal";
 
 export const metadata: Metadata = {
   title: "Features · Savedly",
@@ -49,14 +51,14 @@ export default function FeaturesPage() {
       <Navbar />
 
       <main className="flex-1">
-        <header className="px-5 pt-36 sm:px-8 md:pt-44">
+        <HeroReveal className="px-5 pt-36 sm:px-8 md:pt-44">
           <div className="mx-auto max-w-6xl">
             <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-16">
               <h1 className="font-serif text-[clamp(2.5rem,6vw,4.5rem)] font-medium leading-[1.04] tracking-[-0.03em] text-balance text-foreground">
                 Everything
                 <br className="hidden sm:block" /> Savedly does
               </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
+              <p data-hero-after className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
                 Save anything, and find it again from whatever you remember about it. Each part below is shown working, with the same examples all the way down. For what happens behind it, see{" "}
                 <Link href="/how-it-works" className="font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
                   how it works
@@ -65,7 +67,7 @@ export default function FeaturesPage() {
               </p>
             </div>
 
-            <nav aria-label="On this page" className="mt-12 grid border-t border-foreground/15 sm:grid-cols-2 lg:grid-cols-4">
+            <nav data-hero-after aria-label="On this page" className="mt-12 grid border-t border-foreground/15 sm:grid-cols-2 lg:grid-cols-4">
               {INDEX.map((item) => (
                 <Link
                   key={item.href}
@@ -83,22 +85,34 @@ export default function FeaturesPage() {
               ))}
             </nav>
           </div>
-        </header>
+        </HeroReveal>
 
         <Target id="how-it-works" />
         <Target id="formats" />
-        <StepsSection />
+        <Reveal>
+          <StepsSection />
+        </Reveal>
 
-        <FeatureBlocks />
+        <Reveal>
+          <FeatureBlocks />
+        </Reveal>
 
         <Target id="graph" />
         <Target id="vault" />
         <Target id="everywhere" />
-        <MoreSection />
+        <Reveal>
+          <MoreSection />
+        </Reveal>
 
-        <ConnectSection />
-        <ImportSection />
-        <PrivacySection />
+        <Reveal>
+          <ConnectSection />
+        </Reveal>
+        <Reveal>
+          <ImportSection />
+        </Reveal>
+        <Reveal>
+          <PrivacySection />
+        </Reveal>
         <FinalCtaSection />
       </main>
 

@@ -182,7 +182,7 @@ export function OpenSection() {
               <div className="flex flex-wrap items-center gap-3">
                 <Link
                   href={hosted ? cta.href : "/help/docs/self-host/self-host"}
-                  className="group inline-flex h-11 items-center justify-center rounded-xl bg-foreground px-5 text-sm font-medium text-background transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="group inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
                   {hosted ? (cta.isAuthenticated ? cta.label : "Start saving free") : "Read the guide"}
                   <HugeiconsIcon icon={ArrowRightIcon} strokeWidth={2} className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />

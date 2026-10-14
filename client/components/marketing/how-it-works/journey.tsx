@@ -270,7 +270,7 @@ export function Journey() {
             <button
               type="button"
               onClick={() => go(i + 1)}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-foreground/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             >
               {i === STEPS.length - 1 ? "Start again" : `Next: ${STEPS[i + 1].name}`}
               <HugeiconsIcon icon={Next} strokeWidth={2} className="h-4 w-4" />

@@ -42,6 +42,8 @@ export interface SendMailInput {
   html: string;
   /** Extra message headers, such as List-Unsubscribe. */
   headers?: Record<string, string>;
+  /** Where a reply goes, when not to the sender (the contact form: the person who wrote in). */
+  replyTo?: string;
 }
 
 /**
@@ -62,5 +64,6 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     // Sent as multipart/alternative: see html-to-text.ts for why.
     text: htmlToText(input.html),
     headers: input.headers,
+    replyTo: input.replyTo,
   });
 }

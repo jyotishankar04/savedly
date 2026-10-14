@@ -4,6 +4,8 @@ import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
 import { FinalCtaSection } from "@/components/marketing/landing/final-cta-section";
 import { Journey } from "@/components/marketing/how-it-works/journey";
+import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
+import { Reveal, RevealList } from "@/components/marketing/motion/reveal";
 import { GITHUB_URL, INSTALL_COMMAND, LICENSE } from "@/lib/open-source";
 
 export const metadata: Metadata = {
@@ -54,13 +56,13 @@ export default function HowItWorksPage() {
       <Navbar />
 
       <main className="flex-1">
-        <header className="px-5 pt-36 sm:px-8 md:pt-44">
+        <HeroReveal className="px-5 pt-36 sm:px-8 md:pt-44">
           <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-16">
             <h1 className="font-serif text-[clamp(2.5rem,6vw,4.5rem)] font-medium leading-[1.04] tracking-[-0.03em] text-balance text-foreground">
               How Savedly
               <br className="hidden sm:block" /> works
             </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
+            <p data-hero-after className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
               What happens between pressing Save and finding it again, what the system is made of, and what leaves it. All of it is in the{" "}
               <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
                 open source code
@@ -68,18 +70,20 @@ export default function HowItWorksPage() {
               , so none of it has to be taken on trust.
             </p>
           </div>
-        </header>
+        </HeroReveal>
 
         {/* 1. One save, step by step */}
         <section id="journey" className="scroll-mt-24 px-5 py-20 sm:px-8 md:py-28">
           <div className="mx-auto max-w-6xl">
+            <Reveal>
             <h2 className={H2}>One save, step by step</h2>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
               Follow a single article from the moment it&apos;s saved. The steps run by themselves, in a few seconds, and side by side where they don&apos;t depend on each other.
             </p>
-            <div className="mt-12">
+            </Reveal>
+            <Reveal className="mt-12" delay={0.1}>
               <Journey />
-            </div>
+            </Reveal>
           </div>
         </section>
 
@@ -87,10 +91,12 @@ export default function HowItWorksPage() {
         <section id="architecture" className="scroll-mt-24 px-3 py-10 sm:px-5 md:py-16">
           <div className="mx-auto max-w-[1400px] rounded-[2rem] bg-muted/60 px-5 py-16 sm:px-8 md:rounded-[2.5rem] md:py-24">
             <div className="mx-auto max-w-6xl">
+              <Reveal>
               <h2 className={H2}>What it&apos;s made of</h2>
               <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">A few parts, each doing one job. A save travels down through them; a search travels back up.</p>
 
-              <div className="mt-12 space-y-3">
+              </Reveal>
+              <RevealList className="mt-12 space-y-3" gap={0.1}>
                 {PARTS.map((row, r) => (
                   <div key={r}>
                     {r > 0 && (
@@ -111,7 +117,7 @@ export default function HowItWorksPage() {
                     </div>
                   </div>
                 ))}
-              </div>
+              </RevealList>
 
               <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted-foreground">
                 Every request for your data is checked against your account, in the API and again in each tool Ask can use, so one person&apos;s library can&apos;t be reached from another&apos;s.
@@ -123,7 +129,7 @@ export default function HowItWorksPage() {
         {/* 3. What leaves */}
         <section id="data" className="scroll-mt-24 px-5 py-20 sm:px-8 md:py-28">
           <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-20">
-            <div className="max-w-md">
+            <Reveal className="max-w-md">
               <h2 className={H2}>What leaves the system</h2>
               <p className="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
                 These places, and only for the reason beside each one. Nothing is sent to advertisers, and nothing is used to train a model.
@@ -131,9 +137,9 @@ export default function HowItWorksPage() {
               <Link href="/privacy" className="mt-7 inline-flex border-b border-foreground/25 pb-0.5 text-sm font-medium text-foreground transition-colors hover:border-foreground">
                 Read the privacy policy
               </Link>
-            </div>
+            </Reveal>
 
-            <dl className="border-t border-foreground/15">
+            <RevealList as="dl" className="border-t border-foreground/15" gap={0.06}>
               {LEAVES.map((item) => (
                 <div key={item.to} className="border-b border-foreground/15 py-6">
                   <dt className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -143,14 +149,14 @@ export default function HowItWorksPage() {
                   <dd className="mt-1.5 max-w-lg text-base leading-relaxed text-muted-foreground">{item.what}</dd>
                 </div>
               ))}
-            </dl>
+            </RevealList>
           </div>
         </section>
 
         {/* 4. Run it yourself */}
         <section id="self-host" className="scroll-mt-24 px-5 pb-20 sm:px-8 md:pb-28">
           <div className="mx-auto max-w-6xl border-t border-foreground/15 pt-20 md:pt-28">
-            <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:gap-20">
+            <Reveal className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:gap-20">
               <div>
                 <h2 className={H2}>Or run all of it yourself</h2>
                 <p className="mt-5 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
@@ -167,7 +173,7 @@ export default function HowItWorksPage() {
                   <span className="text-primary">$</span> {INSTALL_COMMAND}
                 </p>
               </div>
-            </div>
+            </Reveal>
           </div>
         </section>
 

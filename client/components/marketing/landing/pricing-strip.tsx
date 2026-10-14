@@ -117,7 +117,7 @@ function PlanCard({ card, highlight, signupHref }: { card: Card; highlight: bool
         href={free ? signupHref : "/pricing"}
         className={cn(
           "inline-flex h-10 w-full shrink-0 items-center justify-center rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
-          highlight ? "bg-foreground text-background hover:bg-foreground/85" : "bg-foreground/[0.06] text-foreground hover:bg-foreground/10",
+          highlight ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-foreground/[0.06] text-foreground hover:bg-foreground/10",
         )}
       >
         {free ? "Get started" : `Choose ${plan.name}`}
