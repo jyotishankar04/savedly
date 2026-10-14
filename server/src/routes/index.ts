@@ -35,6 +35,7 @@ import { GITHUB_STARS_CALLBACK_PATH } from "../modules/integrations/github/githu
 import batchRoutes from "../modules/batch";
 import searchRoutes from "../modules/search";
 import reportRoutes from "../modules/report";
+import contactRoutes from "../modules/contact";
 import { responseCache } from "../shared/cache/response-cache";
 import { maintenanceMode } from "../shared/middlewares/maintenance-mode";
 
@@ -82,6 +83,7 @@ router.use("/integrations", integrationsRoutes);
 router.use("/batch", batchRoutes);
 router.use("/search", searchRoutes);
 router.use("/reports", reportRoutes);
+router.use("/contact", contactRoutes);
 router.use("/admin/flags", featureFlagsAdminRoutes);
 router.use("/admin/instance-settings", instanceSettingsRoutes);
 router.use("/admin/ai-usage", aiUsageRoutes);

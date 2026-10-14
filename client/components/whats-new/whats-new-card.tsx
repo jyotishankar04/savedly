@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowRight01Icon as ArrowRight, Tick02Icon as Tick } from "@hugeicons/core-free-icons";
@@ -28,6 +31,9 @@ export function WhatsNewCard({
   onAction?: () => void;
   className?: string;
 }) {
+  // The image that failed to load, if any: its space stays, empty, rather
+  // than showing the browser's broken-image icon.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const hasCta = item.ctaLabel && item.ctaUrl;
   const external = hasCta && /^https?:\/\//i.test(item.ctaUrl!);
   const ctaClass =
@@ -46,8 +52,10 @@ export function WhatsNewCard({
         // itself turns transparent toward the bottom, so it blends into
         // whatever is behind the card (the popup's glass, or a plain card).
         <div className="relative aspect-[16/9] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,black_50%,transparent)]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- admin-supplied image from any host */}
-          <img src={item.imageUrl} alt="" className="h-full w-full object-cover object-top" />
+          {failedSrc !== item.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element -- admin-supplied image from any host
+            <img src={item.imageUrl} alt="" onError={() => setFailedSrc(item.imageUrl)} className="h-full w-full object-cover object-top" />
+          )}
         </div>
       )}
 

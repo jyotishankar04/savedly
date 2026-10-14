@@ -3,6 +3,9 @@
 import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
+import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
+import { Reveal } from "@/components/marketing/motion/reveal";
+import { ReadingProgress } from "@/components/marketing/motion/reading-progress";
 import { SELF_HOSTED } from "@/lib/instance";
 import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
@@ -11,13 +14,14 @@ export default function PrivacyPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/[0.03] via-background to-background text-foreground font-sans">
       <Navbar />
+      <ReadingProgress />
 
       <main className="flex-1 pt-32 pb-20 max-w-4xl mx-auto px-6">
 
         {SELF_HOSTED && <HostedPolicyNotice />}
 
         {/* Header */}
-        <div className="text-center space-y-4 mb-16">
+        <HeroReveal as="div" className="text-center space-y-4 mb-16">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
             Legal Policy
           </span>
@@ -27,10 +31,12 @@ export default function PrivacyPage() {
           <p className="text-muted-foreground text-xs font-mono">
             Last Updated: October 2026
           </p>
-        </div>
+        </HeroReveal>
 
         {/* Content text */}
         <div className="prose prose-zinc dark:prose-invert max-w-none text-xs leading-relaxed text-foreground/80 space-y-8">
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">1. Introduction</h2>
@@ -41,6 +47,9 @@ export default function PrivacyPage() {
               Your saved content belongs to you. We don&apos;t sell it, we don&apos;t use it to train AI models, and we don&apos;t show you ads.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">2. Information we collect</h2>
@@ -56,6 +65,9 @@ export default function PrivacyPage() {
               <li><strong>Content you share with others:</strong> if you create a share link or invite someone to a memory or collection, the information needed to fulfill that (e.g. the invitee&apos;s email) is stored until you revoke it.</li>
             </ul>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">3. How AI processing works</h2>
@@ -72,6 +84,9 @@ export default function PrivacyPage() {
               <strong>We do not use your saved content, your questions, or your AI provider responses to train any model — ours or anyone else&apos;s.</strong>
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section id="google-user-data" className="space-y-3 scroll-mt-28">
             <h2 className="text-base font-bold text-foreground">4. Google user data</h2>
@@ -136,6 +151,9 @@ export default function PrivacyPage() {
               , including the Limited Use requirements.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">5. Where your data is stored</h2>
@@ -145,6 +163,9 @@ export default function PrivacyPage() {
               <li><strong>Vault:</strong> memories you move into the Vault are gated behind a PIN you set (hashed, never stored in plain text) and hidden from every normal view. This is access control, not end-to-end encryption of the content itself — worth knowing plainly rather than implying more than it is.</li>
             </ul>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">6. Cookies and sessions</h2>
@@ -152,6 +173,9 @@ export default function PrivacyPage() {
               We use a small number of functional cookies to keep you signed in and to verify access to password-protected or Vault-gated content — nothing used for advertising or cross-site tracking.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section id="browser-extension" className="space-y-3 scroll-mt-28">
             <h2 className="text-base font-bold text-foreground">7. The browser extension</h2>
@@ -169,6 +193,9 @@ export default function PrivacyPage() {
               What you save through the extension is handled like everything else in your account, as described in the rest of this policy. Data is not sold, and is not used for advertising.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">8. Your rights and controls</h2>
@@ -179,6 +206,9 @@ export default function PrivacyPage() {
               <li>Revoke a share link or a specific person&apos;s access to something you&apos;ve shared, at any time.</li>
             </ul>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">9. Changes to this policy</h2>
@@ -186,6 +216,9 @@ export default function PrivacyPage() {
               If this policy changes in a meaningful way, we&apos;ll update the date at the top of this page. Since the source code is public, the actual data handling described here can always be verified directly against it.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">10. Contact</h2>
@@ -193,6 +226,7 @@ export default function PrivacyPage() {
               Questions about this policy or your data can be sent to <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
             </p>
           </section>
+          </Reveal>
 
         </div>
 

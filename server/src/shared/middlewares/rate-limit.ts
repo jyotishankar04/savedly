@@ -91,6 +91,17 @@ export const reportRateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
+// The public contact form (modules/contact): each message is an email to
+// the support inbox, so a script can't be allowed to fill it.
+export const contactRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? ""),
+});
+
 // The public help box (modules/help-assistant): nobody is signed in, and
 // each question costs an AI call. A person asks a handful; a script asks
 // thousands.

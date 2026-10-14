@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { uploadFile } from "@/lib/uploads";
 import { ApiError } from "@/lib/auth";
 import { createBlogPost, getBlogPost, slugify, updateBlogPost, type BlogPost, type BlogPostInput } from "@/lib/blog";
+import { BLOG_AUTHORS, DEFAULT_BLOG_AUTHOR, blogAuthor } from "@/lib/blog-authors";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PostBody } from "@/components/blog/post-body";
 import { MarkdownEditor } from "@/components/blog/markdown-editor";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
@@ -44,7 +46,7 @@ interface Draft {
   publishedAt: string;
 }
 
-const EMPTY: Draft = { title: "", slug: "", excerpt: "", content: "", coverImageUrl: "", tags: [], authorName: "", publishedAt: "" };
+const EMPTY: Draft = { title: "", slug: "", excerpt: "", content: "", coverImageUrl: "", tags: [], authorName: DEFAULT_BLOG_AUTHOR, publishedAt: "" };
 
 /** An ISO time as <input type="datetime-local"> wants it, in local time. */
 function toLocalInput(iso: string | null): string {
@@ -62,7 +64,7 @@ function toDraft(post: BlogPost): Draft {
     content: post.content,
     coverImageUrl: post.coverImageUrl ?? "",
     tags: post.tags,
-    authorName: post.authorName ?? "",
+    authorName: blogAuthor(post.authorName).name,
     publishedAt: toLocalInput(post.publishedAt),
   };
 }
@@ -482,7 +484,29 @@ export default function BlogEditorPage({ params }: { params: Promise<{ id: strin
               <label htmlFor="post-author" className={label}>
                 Author
               </label>
-              <Input id="post-author" value={draft.authorName} onChange={(e) => set("authorName", e.target.value)} placeholder="Your name, if left empty" maxLength={120} className="mt-1.5 text-sm" />
+              {/* The three people a post can be by (lib/blog-authors.ts), plus an older post's own name if it isn't one of them. */}
+              <Select
+                items={Object.fromEntries([...BLOG_AUTHORS.map((a) => [a.name, a.role ? `${a.name}, ${a.role}` : a.name]), ...(BLOG_AUTHORS.some((a) => a.name === draft.authorName) ? [] : [[draft.authorName, draft.authorName]])])}
+                value={draft.authorName}
+                onValueChange={(v) => v && set("authorName", v as string)}
+              >
+                <SelectTrigger id="post-author" className="mt-1.5 w-full text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BLOG_AUTHORS.map((author) => (
+                    <SelectItem key={author.name} value={author.name}>
+                      <span className="flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- a small local picture */}
+                        <img src={author.avatar} alt="" className="h-5 w-5 rounded-full object-cover" />
+                        {author.name}
+                        {author.role && <span className="text-muted-foreground">{author.role}</span>}
+                      </span>
+                    </SelectItem>
+                  ))}
+                  {!BLOG_AUTHORS.some((a) => a.name === draft.authorName) && <SelectItem value={draft.authorName}>{draft.authorName}</SelectItem>}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

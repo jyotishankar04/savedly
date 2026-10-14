@@ -3,6 +3,9 @@
 import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
+import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
+import { Reveal } from "@/components/marketing/motion/reveal";
+import { ReadingProgress } from "@/components/marketing/motion/reading-progress";
 import Link from "next/link";
 import { SELF_HOSTED } from "@/lib/instance";
 import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
@@ -12,13 +15,14 @@ export default function CookiesPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/[0.03] via-background to-background text-foreground font-sans">
       <Navbar />
+      <ReadingProgress />
 
       <main className="flex-1 pt-32 pb-20 max-w-4xl mx-auto px-6">
 
         {SELF_HOSTED && <HostedPolicyNotice />}
 
         {/* Header */}
-        <div className="text-center space-y-4 mb-16">
+        <HeroReveal as="div" className="text-center space-y-4 mb-16">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
             Legal Policy
           </span>
@@ -28,10 +32,12 @@ export default function CookiesPage() {
           <p className="text-muted-foreground text-xs font-mono">
             Last Updated: September 2026
           </p>
-        </div>
+        </HeroReveal>
 
         {/* Content text */}
         <div className="prose prose-zinc dark:prose-invert max-w-none text-sm md:text-base leading-relaxed text-foreground/80 space-y-8">
+
+          <Reveal>
 
           <section className="space-y-4">
             <p>
@@ -39,6 +45,9 @@ export default function CookiesPage() {
               By using Savedly, you consent to the use of cookies as described in this policy.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">1. What are cookies?</h2>
@@ -47,6 +56,9 @@ export default function CookiesPage() {
               They are widely used to make websites work, improve efficiency, and provide crucial functional information to the owners of the site.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">2. How we use cookies</h2>
@@ -64,6 +76,9 @@ export default function CookiesPage() {
               </li>
             </ul>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">3. Third-party cookies</h2>
@@ -72,6 +87,9 @@ export default function CookiesPage() {
               We do not control the cookies set by these third-party services. Please refer to their respective privacy policies for more information.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-4">
             <h2 className="text-xl font-bold text-foreground">4. Managing cookies</h2>
@@ -83,6 +101,9 @@ export default function CookiesPage() {
               To find out more about cookies, including how to see what cookies have been set and how to manage and delete them, visit <a href="https://www.allaboutcookies.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">allaboutcookies.org</a>.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-4 pt-8 border-t border-border">
             <h2 className="text-xl font-bold text-foreground">5. Contact us</h2>
@@ -91,6 +112,7 @@ export default function CookiesPage() {
               For broader information regarding how we handle your personal data, please review our <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
             </p>
           </section>
+          </Reveal>
 
         </div>
       </main>

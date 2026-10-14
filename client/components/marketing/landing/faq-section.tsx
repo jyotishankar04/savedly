@@ -194,7 +194,7 @@ function AskRow() {
               request.current?.abort();
             }}
             aria-label="Stop"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <HugeiconsIcon icon={StopIcon} strokeWidth={2.25} className="h-3.5 w-3.5 fill-current" />
           </button>
@@ -204,7 +204,7 @@ function AskRow() {
             type="submit"
             disabled={text.trim().length < 3}
             aria-label="Ask"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-25"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-25"
           >
             <HugeiconsIcon icon={SendIcon} strokeWidth={2.25} className="h-4 w-4" />
           </button>

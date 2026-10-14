@@ -3,6 +3,9 @@
 import React from "react";
 import { Navbar } from "@/components/marketing/navbar";
 import MainFooter from "@/components/marketing/landing/main-footer";
+import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
+import { Reveal } from "@/components/marketing/motion/reveal";
+import { ReadingProgress } from "@/components/marketing/motion/reading-progress";
 import { GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
 import { SELF_HOSTED, hostedHref } from "@/lib/instance";
 import { HostedPolicyNotice } from "@/components/self-hosted/plain-chrome";
@@ -12,13 +15,14 @@ export default function TermsPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-primary/[0.03] via-background to-background text-foreground font-sans">
       <Navbar />
+      <ReadingProgress />
 
       <main className="flex-1 pt-32 pb-20 max-w-4xl mx-auto px-6">
 
         {SELF_HOSTED && <HostedPolicyNotice />}
 
         {/* Header */}
-        <div className="text-center space-y-4 mb-16">
+        <HeroReveal as="div" className="text-center space-y-4 mb-16">
           <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-3 py-1 rounded-full">
             Legal Policy
           </span>
@@ -28,10 +32,12 @@ export default function TermsPage() {
           <p className="text-muted-foreground text-xs font-mono">
             Last Updated: September 2026
           </p>
-        </div>
+        </HeroReveal>
 
         {/* Content text */}
         <div className="prose prose-zinc dark:prose-invert max-w-none text-xs leading-relaxed text-foreground/80 space-y-8">
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">1. Agreement to terms</h2>
@@ -39,6 +45,9 @@ export default function TermsPage() {
               By accessing or using Savedly — the web dashboard or browser extension — you agree to these Terms of Service. If you don&apos;t agree, please don&apos;t use the service.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">2. Account registration</h2>
@@ -46,6 +55,9 @@ export default function TermsPage() {
               You sign in with Google or GitHub, or with an email and password where that&apos;s enabled. You&apos;re responsible for keeping those sign-in details secure, and for telling us if you believe your Savedly account has been accessed without your permission.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">3. Open source, free plan and paid plans</h2>
@@ -58,6 +70,9 @@ export default function TermsPage() {
               ) : null}
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">3a. Paying for a plan</h2>
@@ -65,6 +80,9 @@ export default function TermsPage() {
               Payments are processed by Dodo Payments, which acts as the merchant of record: it charges you, handles sales tax, VAT or GST, and issues your invoices. A paid plan renews automatically each billing period until you cancel. You can cancel at any time from Settings → Plan &amp; usage → Manage billing; you keep the paid plan until the end of the period you&apos;ve paid for, and then move to the Free plan. Your saved content is never deleted because a plan ends, but new saves and uploads follow the Free plan&apos;s limits. If you believe you were charged in error, contact us and we&apos;ll look into it.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">4. AI on the hosted service</h2>
@@ -80,6 +98,9 @@ export default function TermsPage() {
               If you self-host Savedly, you connect your own AI provider instead, and you&apos;re responsible for that account, its costs and its terms.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">5. Acceptable use</h2>
@@ -91,6 +112,9 @@ export default function TermsPage() {
               <li>Use a share link, invite, or access-request feature to harass someone or to gain access to content you weren&apos;t meant to see.</li>
             </ul>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">6. Your content</h2>
@@ -98,6 +122,9 @@ export default function TermsPage() {
               Whatever you save — links, notes, files, voice recordings — is yours. We don&apos;t claim ownership of it, and we only store, process, and display it back to you (and to anyone you explicitly choose to share it with) in order to run the service. You can export or permanently delete it at any time from Settings → Privacy &amp; Data.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">7. Service provided &ldquo;as is&rdquo;</h2>
@@ -105,6 +132,9 @@ export default function TermsPage() {
               Whether you use a free or a paid plan, the service comes with no support contract or uptime guarantee. We work to keep it reliable, but it&apos;s provided as-is, without warranties of any kind, and we&apos;re not liable for lost data, downtime, or indirect damages arising from its use — to the fullest extent the law allows.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">8. Termination</h2>
@@ -112,6 +142,9 @@ export default function TermsPage() {
               You can delete your account at any time from Settings → Privacy &amp; Data — this is permanent. We may suspend or terminate an account that violates Section 5 (Acceptable use). Memories you delete are held in Trash for 15 days before permanent removal, same as if you&apos;d deleted them yourself.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">9. Changes to these terms</h2>
@@ -119,6 +152,9 @@ export default function TermsPage() {
               If these terms change in a meaningful way, we&apos;ll update the date at the top of this page.
             </p>
           </section>
+          </Reveal>
+
+          <Reveal>
 
           <section className="space-y-3">
             <h2 className="text-base font-bold text-foreground">10. Contact</h2>
@@ -126,6 +162,7 @@ export default function TermsPage() {
               Questions about these terms can be sent to <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a>.
             </p>
           </section>
+          </Reveal>
 
         </div>
 

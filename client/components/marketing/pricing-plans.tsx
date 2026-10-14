@@ -29,6 +29,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toast";
 import { CopyCommand } from "@/components/copy-command";
 import { cn } from "@/lib/utils";
+import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
+import { Reveal } from "@/components/marketing/motion/reveal";
 import { GITHUB_URL, INSTALL_COMMAND } from "@/lib/open-source";
 import { useCurrentUserQuery } from "@/context/UserContext";
 import { getServerConfig } from "@/lib/server-config";
@@ -220,15 +222,15 @@ export function PricingPlans() {
   return (
     <div className="px-5 sm:px-6">
       {/* Heading */}
-      <section className="mx-auto max-w-6xl pt-16 pb-12 md:pt-24">
+      <HeroReveal as="section" className="mx-auto max-w-6xl pt-16 pb-12 md:pt-24">
         <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-16">
           <h1 className="font-serif text-[clamp(2.5rem,6vw,4.5rem)] font-medium leading-[1.04] tracking-[-0.03em] text-foreground">Pricing</h1>
-          <p className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
+          <p data-hero-after className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground lg:justify-self-end">
             Start free with AI we supply, move up for more room and features, or run it yourself for free with everything unlocked.
           </p>
         </div>
 
-        <dl className="mt-12 grid grid-cols-2 border-t border-foreground/15 lg:grid-cols-4">
+        <dl data-hero-after className="mt-12 grid grid-cols-2 border-t border-foreground/15 lg:grid-cols-4">
           {FACTS.map((fact) => (
             <div key={fact.label} className="border-b border-foreground/15 py-6 pr-4">
               <dt className="sr-only">{fact.label}</dt>
@@ -237,7 +239,7 @@ export function PricingPlans() {
             </div>
           ))}
         </dl>
-      </section>
+      </HeroReveal>
 
       {/* Plans */}
       <section id="plans" className="mx-auto max-w-6xl scroll-mt-24 pb-20">
@@ -428,6 +430,7 @@ export function PricingPlans() {
       </section>
 
       {/* FAQ */}
+      <Reveal>
       <section className="mx-auto max-w-6xl pb-8 pt-8">
         <h2 className="font-serif text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.08] tracking-[-0.025em] text-foreground">Questions about pricing</h2>
         <Accordion className="mt-8 rounded-3xl border-foreground/10">
@@ -442,6 +445,7 @@ export function PricingPlans() {
           Prices include applicable taxes, handled by our payment provider (merchant of record).
         </p>
       </section>
+      </Reveal>
     </div>
   );
 }
@@ -449,7 +453,7 @@ export function PricingPlans() {
 const buttonClass =
   "inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-60";
 /** The one card the row is built around. */
-const strongButton = "bg-foreground text-background hover:bg-foreground/85";
+const strongButton = "bg-primary text-primary-foreground hover:bg-primary/90";
 const quietButton = "bg-foreground/[0.06] text-foreground hover:bg-foreground/10";
 
 interface CardRow {
