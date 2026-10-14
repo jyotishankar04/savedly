@@ -470,8 +470,8 @@ export default function AdminWhatsNewPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Load the feature tour?</AlertDialogTitle>
             <AlertDialogDescription>
-              {items.length > 0 ? `This removes the ${items.length} card${items.length === 1 ? "" : "s"} here now and puts` : "This puts"} five cards in their place that
-              introduce what Savedly does. You can edit, reorder or switch them off afterwards.
+              {items.length > 0 ? `This removes the ${items.length} card${items.length === 1 ? "" : "s"} here now and puts` : "This puts"} the feature tour in their place: one card for
+              each feature, with a short clip of it. You can edit, reorder or switch them off afterwards.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
