@@ -42,15 +42,16 @@ export function WhatsNewCard({
   return (
     <article className={cn("flex flex-col", className)}>
       {item.imageUrl && (
-        <div className="px-2 pt-2">
-          <div className="aspect-[2/1] w-full overflow-hidden rounded-[20px] sm:aspect-[16/9] bg-muted ring-1 ring-foreground/10">
-            {/* eslint-disable-next-line @next/next/no-img-element -- admin-supplied image from any host */}
-            <img src={item.imageUrl} alt="" className="h-full w-full object-cover" />
-          </div>
+        // Edge to edge, and fading out into the words below it. The picture
+        // itself turns transparent toward the bottom, so it blends into
+        // whatever is behind the card (the popup's glass, or a plain card).
+        <div className="relative aspect-[16/9] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,black_50%,transparent)]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- admin-supplied image from any host */}
+          <img src={item.imageUrl} alt="" className="h-full w-full object-cover object-top" />
         </div>
       )}
 
-      <div className={cn("flex flex-col px-5 pb-6 sm:px-7 sm:pb-7", item.imageUrl ? "pt-5 sm:pt-6" : "pt-8")}>
+      <div className={cn("flex flex-col px-5 pb-6 sm:px-7 sm:pb-7", item.imageUrl ? "-mt-10 relative pt-0" : "pt-8")}>
         <span className={cn("inline-flex w-fit items-center gap-2 text-[13px] font-medium", KIND_STYLE[item.kind])}>
           <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
           {WHATS_NEW_KIND_LABEL[item.kind]}
