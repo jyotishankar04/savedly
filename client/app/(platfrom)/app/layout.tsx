@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MaintenanceFullPage } from "@/components/maintenance/maintenance-full-page";
 import { getMaintenanceStatus } from "@/lib/maintenance";
@@ -47,7 +48,7 @@ import { useNextAdapter } from "nextstepjs/adapters/next";
 import { productTourSteps, TourCard, TourAutoStart } from "@/components/product-tour";
 import { AskWidget } from "@/components/ask-widget/ask-widget";
 import { ExtensionInstallPrompt } from "@/components/extension/install-prompt";
-import { UpgradeBadge, UpgradeCard, UpgradeRing } from "@/components/upgrade-card";
+import { PlanUsage, ThemeSwitch, UpgradeRing } from "@/components/upgrade-card";
 import { useSyncTimeZone } from "@/hooks/use-settings-group";
 
 /** Exact-matches Home ("/app"); prefix-matches everything else, so a nav
@@ -982,8 +983,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Sidebar Bottom user profile */}
         <div className="relative w-60 border-t border-border/40 p-3">
-          <UpgradeCard className="mb-2.5" />
-          <UpgradeRing>
+          <UpgradeRing menuOpen={userDropdownOpen} onOpenMenu={() => setUserDropdownOpen(true)}>
             <button
               type="button"
               onClick={() => setUserDropdownOpen((open) => !open)}
@@ -1003,13 +1003,21 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </UpgradeRing>
 
-          {userDropdownOpen && (
+          {/* Rendered on the page rather than in the sidebar, which clips
+              anything wider than itself (for its collapse animation): the
+              menu gets room to breathe, and the click-away layer covers the
+              whole page, not just the sidebar. */}
+          {userDropdownOpen && createPortal(
             <>
               <button type="button" aria-label="Close menu" tabIndex={-1} onClick={() => setUserDropdownOpen(false)} className="fixed inset-0 z-40 cursor-default" />
-              <div role="menu" className="absolute inset-x-3 bottom-[4.25rem] z-50 rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-xl">
+              <div role="menu" className="fixed bottom-[4.5rem] left-3 z-50 w-[17rem] rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl">
                 <div className="px-2.5 py-2">
                   <p className="truncate text-[13px] font-medium">{currentUser.name ?? currentUser.email}</p>
                   {currentUser.name && <p className="truncate text-[11px] text-muted-foreground">{currentUser.email}</p>}
+                </div>
+                <PlanUsage className="mx-1 mb-1.5 rounded-lg border border-border/60 bg-muted/40 p-3.5" onNavigate={() => setUserDropdownOpen(false)} />
+                <div className="px-1 py-1">
+                  <ThemeSwitch />
                 </div>
                 <div className="my-1 h-px bg-border/60" />
                 <Link href="/app/settings" role="menuitem" onClick={() => setUserDropdownOpen(false)} className={PROFILE_MENU_ITEM}>
@@ -1029,7 +1037,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   Log out
                 </button>
               </div>
-            </>
+            </>,
+            document.body,
           )}
         </div>
 
@@ -1165,14 +1174,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <UserAvatar user={currentUser} className="h-10 w-10 shrink-0 text-sm" />
               <div className="min-w-0 flex-1 pr-8">
                 <p className="truncate text-sm font-medium text-foreground">{currentUser.name ?? currentUser.email}</p>
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-xs text-muted-foreground">{planLabel.label} plan</p>
-                  <UpgradeBadge />
-                </div>
+                <p className="truncate text-xs text-muted-foreground">{planLabel.label} plan</p>
               </div>
             </div>
 
             <nav aria-label="All sections" className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 py-4">
+              {/* At the top of the list, so it scrolls away rather than squeezing the sections. */}
+              <PlanUsage className="rounded-xl border border-border/60 bg-muted/40 p-3.5" onNavigate={() => setMobileMenuOpen(false)} />
               <div className="space-y-0.5">
                 {primaryNavItems.map((item) => (
                   <MobileMenuLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onNavigate={() => setMobileMenuOpen(false)} />
@@ -1219,7 +1227,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
 
             <div className="space-y-0.5 border-t border-border/40 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-              <UpgradeCard className="mb-2" onNavigate={() => setMobileMenuOpen(false)} />
+              <ThemeSwitch className="mb-2" />
               <MobileMenuLink item={{ label: "Settings", href: "/app/settings", icon: Settings }} active={isNavItemActive(pathname, "/app/settings")} onNavigate={() => setMobileMenuOpen(false)} />
               <Link href="/help" onClick={() => setMobileMenuOpen(false)} className={cn(MOBILE_MENU_ROW, "text-foreground active:bg-muted")}>
                 <HugeiconsIcon icon={HelpCircle} strokeWidth={2} className="h-5 w-5 shrink-0 text-muted-foreground" />
