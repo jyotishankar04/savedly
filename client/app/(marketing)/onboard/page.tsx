@@ -41,6 +41,14 @@ const captureChannels = [
   { label: "Import bookmarks", desc: "Bring in an exported bookmarks file from Import", icon: Upload },
 ];
 
+// Step 7: ideas for a first save, for anyone staring at an empty box. Each
+// one only changes the hint and focuses the box; nothing is typed for them.
+const firstSavePrompts = [
+  { label: "A link you meant to read", hint: "Paste the link here" },
+  { label: "An idea you had", hint: "Write the idea down, in a line or two" },
+  { label: "Something you'll need later", hint: "A quote, a name, a book, a number…" },
+];
+
 function OnboardingFlow() {
   // Hosted plans run on AI we supply; only a self-hosted install asks for keys.
   const { data: serverConfig } = useQuery({ queryKey: ["server-config"], queryFn: getServerConfig });
@@ -73,6 +81,8 @@ function OnboardingFlow() {
   const [saveMost, setSaveMost] = useState<string[]>([]);
   const [orgMode, setOrgMode] = useState<"auto" | "manual">("auto");
   const [customLink, setCustomLink] = useState("");
+  const [firstSavePrompt, setFirstSavePrompt] = useState<number | null>(null);
+  const firstSaveBox = React.useRef<HTMLTextAreaElement>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Auth guard: onboarding answers are saved to the signed-in user's account.
@@ -120,9 +130,15 @@ function OnboardingFlow() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [step, name]);
 
-  const handleSaveMemory = async (e: React.FormEvent) => {
+  const handleSaveMemory = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customLink.trim() || completeOnboardingMutation.isPending) return;
+    if (!customLink.trim()) return;
+    void finishOnboarding(true);
+  };
+
+  // The first save is optional: "Skip for now" finishes without one.
+  const finishOnboarding = async (withMemory: boolean) => {
+    if (completeOnboardingMutation.isPending) return;
 
     setSubmitError(null);
     try {
@@ -136,6 +152,10 @@ function OnboardingFlow() {
       // memory, not just onboarding decoration — save it the same way
       // capture/page.tsx does, so it's not silently discarded once onboarding
       // completes.
+      if (!withMemory) {
+        setStep(8);
+        return;
+      }
       const detectedType = detectMemoryType({ text: customLink, attachmentMimeType: null });
       const { url: extractedUrl, caption } = splitLinkAndCaption(customLink);
       const isLink = detectedType === "web" || detectedType === "video";
@@ -573,36 +593,83 @@ function OnboardingFlow() {
           </div>
         )}
 
-        {/* STEP 7: Save First Memory (No border, no ring) */}
+        {/* STEP 7: Save a first memory (optional) */}
         {step === 7 && (
-          <div className="w-full space-y-12 text-center animate-fade-in my-auto">
-            <div className="space-y-4">
-              <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-foreground">
-                Save something you want to remember.
+          <div className="w-full max-w-lg space-y-8 animate-fade-in my-auto">
+            <div className="text-center space-y-3">
+              <h2 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground">
+                Save your first thing
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Paste a link, write a thought, or drop something you&apos;ve discovered.
+              <p className="text-sm text-muted-foreground text-pretty">
+                Anything you&apos;d be sorry to lose. Savedly gives it a title, a short summary and tags, and it&apos;s on your home page when you get there.
               </p>
             </div>
 
-            <form onSubmit={handleSaveMemory} className="space-y-8 max-w-md mx-auto w-full">
+            <div className="space-y-2.5">
+              <p className="text-xs font-medium text-muted-foreground text-center">Not sure? Pick one</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {firstSavePrompts.map((prompt, i) => (
+                  <button
+                    key={prompt.label}
+                    type="button"
+                    onClick={() => {
+                      setFirstSavePrompt(i);
+                      firstSaveBox.current?.focus();
+                    }}
+                    className={cn(
+                      "h-9 rounded-full border px-4 text-[13px] font-medium transition-colors",
+                      firstSavePrompt === i
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-foreground hover:bg-muted",
+                    )}
+                  >
+                    {prompt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveMemory} className="space-y-4">
               <textarea
-                placeholder="Paste a link or write something..."
+                ref={firstSaveBox}
+                aria-label="What to save"
+                placeholder={firstSavePrompt === null ? "Paste a link or write something" : firstSavePrompts[firstSavePrompt].hint}
                 value={customLink}
                 onChange={(e) => setCustomLink(e.target.value)}
-                required
-                rows={2}
-                className="w-full bg-transparent text-foreground text-center text-2xl md:text-3xl font-medium border-none ring-0 outline-none focus:outline-none focus:ring-0 focus:border-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/20 resize-none leading-relaxed"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) e.currentTarget.form?.requestSubmit();
+                }}
+                rows={3}
+                className="w-full resize-none rounded-2xl border border-border bg-card px-4 py-3.5 text-base leading-relaxed text-foreground shadow-xs outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-4 focus:ring-primary/10"
               />
+              <p className="text-xs text-muted-foreground text-center">
+                Nothing to hand?{" "}
+                <button
+                  type="button"
+                  onClick={() => setCustomLink(`${window.location.origin}/help/docs/get-started/getting-started`)}
+                  className="font-medium text-primary hover:underline"
+                >
+                  Save our getting-started guide
+                </button>
+              </p>
               {submitError && (
-                <p className="text-xs text-destructive">{submitError}</p>
+                <p className="text-xs text-destructive text-center">{submitError}</p>
               )}
               <Button
                 type="submit"
-                disabled={completeOnboardingMutation.isPending}
-                className="w-full h-12 rounded-full font-medium shadow-md"
+                disabled={!customLink.trim() || completeOnboardingMutation.isPending}
+                className="w-full h-11 rounded-full font-medium shadow-xs"
               >
-                {completeOnboardingMutation.isPending ? "Saving..." : "Add to Savedly"}
+                {completeOnboardingMutation.isPending ? "Saving…" : "Save it"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => void finishOnboarding(false)}
+                disabled={completeOnboardingMutation.isPending}
+                className="w-full h-10 rounded-full font-medium text-muted-foreground"
+              >
+                Skip for now
               </Button>
             </form>
           </div>
