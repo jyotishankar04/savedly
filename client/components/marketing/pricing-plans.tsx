@@ -515,12 +515,9 @@ function PlanCard({
             aria-hidden
             className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(120%_70%_at_100%_0%,color-mix(in_oklch,var(--primary)_38%,transparent),color-mix(in_oklch,var(--primary)_10%,transparent)_45%,transparent_70%)] dark:bg-[radial-gradient(120%_75%_at_100%_0%,color-mix(in_oklch,var(--primary)_60%,transparent),color-mix(in_oklch,var(--primary)_18%,transparent)_45%,transparent_72%)]"
           />
-          <HugeiconsIcon
-            icon={SparklesIcon}
-            strokeWidth={1.75}
-            aria-hidden
-            className="pointer-events-none absolute top-5 right-6 -z-10 h-6 w-6 text-primary dark:text-white/90"
-          />
+          <div aria-hidden className="pointer-events-none absolute top-5 right-6 -z-10">
+            <HugeiconsIcon icon={SparklesIcon} strokeWidth={1.75} className="h-6 w-6 text-primary dark:text-white" />
+          </div>
         </>
       )}
       <div className="flex items-center gap-2">
