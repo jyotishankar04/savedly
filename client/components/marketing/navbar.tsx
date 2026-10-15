@@ -6,6 +6,8 @@ import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { GlidingHighlight } from "@/components/ui/gliding-highlight";
+import { CHROME_WEB_STORE_URL } from "@/lib/extension";
+import { DISCORD_URL, GITHUB_URL } from "@/lib/open-source";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -121,31 +123,61 @@ const compareColumns = COMPARE_GROUPS.map((group, i) => ({
     .map((c) => ({ title: `vs ${c.name}`, href: `/vs/${c.slug}` })),
 }));
 
-function CompareMenu() {
+interface MegaLink {
+  title: string;
+  href: string;
+  /** Opens in a new tab (another site). */
+  external?: boolean;
+}
+
+interface MegaMenuProps {
+  title: string;
+  blurb: string;
+  cta: MegaLink;
+  columns: { label: string; links: MegaLink[] }[];
+}
+
+const MEGA_LINK =
+  "inline-block text-sm text-foreground transition-[color,transform] duration-200 hover:translate-x-0.5 hover:text-primary focus-visible:text-primary focus-visible:outline-none motion-reduce:hover:translate-x-0";
+
+function MegaHref({ link, className, children }: { link: MegaLink; className: string; children: React.ReactNode }) {
+  return link.external ? (
+    <a href={link.href} target="_blank" rel="noopener noreferrer" className={className}>
+      {children}
+    </a>
+  ) : (
+    <Link href={link.href} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+/** A dropdown laid out as a heading with one button, then plain links in labelled columns. */
+function MegaMenu({ title, blurb, cta, columns }: MegaMenuProps) {
   return (
-    <div className="grid w-[820px] grid-cols-[200px_1fr_1fr_1fr] gap-8 p-7">
+    <div
+      className={cn("grid gap-8 p-7", columns.length >= 3 ? "w-[820px]" : "w-[640px]")}
+      style={{ gridTemplateColumns: `200px repeat(${columns.length}, minmax(0, 1fr))` }}
+    >
       <div>
-        <p className="text-xl font-medium tracking-[-0.02em] text-foreground">Compare</p>
-        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">How Savedly stacks up against the apps people use today.</p>
-        <Link
-          href="/vs"
+        <p className="text-xl font-medium tracking-[-0.02em] text-foreground">{title}</p>
+        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{blurb}</p>
+        <MegaHref
+          link={cta}
           className="mt-5 inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          All comparisons
-        </Link>
+          {cta.title}
+        </MegaHref>
       </div>
-      {compareColumns.map((column) => (
+      {columns.map((column) => (
         <div key={column.label}>
           <p className="text-[13px] text-muted-foreground">{column.label}</p>
           <ul className="mt-3.5 space-y-2.5">
             {column.links.map((link) => (
               <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="inline-block text-sm text-foreground transition-[color,transform] duration-200 hover:translate-x-0.5 hover:text-primary focus-visible:text-primary focus-visible:outline-none motion-reduce:hover:translate-x-0"
-                >
+                <MegaHref link={link} className={MEGA_LINK}>
                   {link.title}
-                </Link>
+                </MegaHref>
               </li>
             ))}
           </ul>
@@ -154,6 +186,95 @@ function CompareMenu() {
     </div>
   );
 }
+
+const PRODUCT_MENU: MegaMenuProps = {
+  title: "Product",
+  blurb: "Everything Savedly does, and how it works.",
+  cta: { title: "See all features", href: "/features" },
+  columns: [
+    {
+      label: "Explore",
+      links: [
+        { title: "Features", href: "/features" },
+        { title: "How it works", href: "/how-it-works" },
+        { title: "Pricing", href: "/pricing" },
+      ],
+    },
+    {
+      label: "Get Savedly",
+      links: [
+        { title: "Chrome extension", href: CHROME_WEB_STORE_URL, external: true },
+        { title: "Self-host it", href: "/help/docs/self-host/self-host" },
+        { title: "Changelog", href: "/changelog" },
+      ],
+    },
+  ],
+};
+
+const COMPARE_MENU: MegaMenuProps = {
+  title: "Compare",
+  blurb: "How Savedly stacks up against the apps people use today.",
+  cta: { title: "All comparisons", href: "/vs" },
+  columns: compareColumns,
+};
+
+const RESOURCES_MENU: MegaMenuProps = {
+  title: "Resources",
+  blurb: "Guides, notes from the team, and people to ask.",
+  cta: { title: "Help Center", href: "/help" },
+  columns: [
+    {
+      label: "Learn",
+      links: [
+        { title: "Getting started", href: "/help/docs/get-started/getting-started" },
+        { title: "Save from Chrome", href: "/help/docs/get-started/extension" },
+        { title: "Import your bookmarks", href: "/help/docs/get-started/import" },
+        { title: "Self-host it", href: "/help/docs/self-host/self-host" },
+      ],
+    },
+    {
+      label: "Read",
+      links: [
+        { title: "Blog", href: "/blog" },
+        { title: "RSS feed", href: "/blog/feed.xml" },
+        { title: "Changelog", href: "/changelog" },
+      ],
+    },
+    {
+      label: "Talk to us",
+      links: [
+        { title: "Community", href: "/community" },
+        { title: "Discord", href: DISCORD_URL, external: true },
+        { title: "Report a bug or idea", href: "/report" },
+      ],
+    },
+  ],
+};
+
+const COMPANY_MENU: MegaMenuProps = {
+  title: "Company",
+  blurb: "The people behind Savedly, in Bhubaneswar.",
+  cta: { title: "About us", href: "/about" },
+  columns: [
+    {
+      label: "Savedly",
+      links: [
+        { title: "Contact", href: "/contact" },
+        { title: "Contribute", href: "/contribute" },
+        { title: "GitHub", href: GITHUB_URL, external: true },
+      ],
+    },
+    {
+      label: "Trust",
+      links: [
+        { title: "Security", href: "/security" },
+        { title: "Privacy", href: "/privacy" },
+        { title: "Terms", href: "/terms" },
+        { title: "Cookies", href: "/cookies" },
+      ],
+    },
+  ],
+};
 
 const resourceLinks: MenuEntry[] = [
   {
@@ -221,27 +342,6 @@ function MobileMenuRow({ entry, active, onNavigate }: { entry: MenuEntry; active
     >
       <HugeiconsIcon icon={entry.icon} strokeWidth={2} className={cn("h-5 w-5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
       <span className="min-w-0 flex-1 truncate">{entry.title}</span>
-    </Link>
-  );
-}
-
-function MenuRow({ entry }: { entry: MenuEntry }) {
-  return (
-    <Link href={entry.href} data-nav-row="" className="group relative z-[1] flex items-center gap-3.5 rounded-xl p-2.5 focus-visible:outline-none">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-primary/10 text-primary shadow-none transition-[background-color,color,transform,box-shadow] duration-200 ease-out group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-[0_6px_16px_-6px_color-mix(in_oklch,var(--primary)_70%,transparent)] group-focus-visible:bg-primary group-focus-visible:text-primary-foreground motion-reduce:group-hover:scale-100">
-        <HugeiconsIcon icon={entry.icon} strokeWidth={1.75} className="h-5 w-5" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-foreground">{entry.title}</span>
-        <span className="mt-0.5 block text-[13px] leading-snug text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">{entry.description}</span>
-      </span>
-      {/* Slides in on the row under the pointer. */}
-      <HugeiconsIcon
-        icon={ChevronRight}
-        strokeWidth={2}
-        aria-hidden
-        className="h-4 w-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:translate-x-0"
-      />
     </Link>
   );
 }
@@ -337,11 +437,7 @@ function MarketingNavbar() {
                   Product
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-foreground/[0.05] ring-1 ring-foreground/[0.06]" className="w-[360px] p-1.5">
-                    {productLinks.map((entry) => (
-                      <MenuRow key={entry.title} entry={entry} />
-                    ))}
-                  </GlidingHighlight>
+                  <MegaMenu {...PRODUCT_MENU} />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
@@ -357,7 +453,7 @@ function MarketingNavbar() {
                   Compare
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <CompareMenu />
+                  <MegaMenu {...COMPARE_MENU} />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
@@ -373,11 +469,7 @@ function MarketingNavbar() {
                   Resources
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-foreground/[0.05] ring-1 ring-foreground/[0.06]" className="w-[320px] p-1.5">
-                    {resourceLinks.map((entry) => (
-                      <MenuRow key={entry.title} entry={entry} />
-                    ))}
-                  </GlidingHighlight>
+                  <MegaMenu {...RESOURCES_MENU} />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
@@ -393,11 +485,7 @@ function MarketingNavbar() {
                   Company
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-foreground/[0.05] ring-1 ring-foreground/[0.06]" className="w-[320px] p-1.5">
-                    {companyLinks.map((entry) => (
-                      <MenuRow key={entry.title} entry={entry} />
-                    ))}
-                  </GlidingHighlight>
+                  <MegaMenu {...COMPANY_MENU} />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
