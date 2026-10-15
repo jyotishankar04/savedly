@@ -510,18 +510,17 @@ function PlanCard({
     >
       {highlight && (
         <>
-          {/* Light pooling in the top corner, with a few sparkles in it. */}
+          {/* Light pooling in the top corner, with a sparkle in it. */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(120%_70%_at_100%_0%,color-mix(in_oklch,var(--primary)_38%,transparent),color-mix(in_oklch,var(--primary)_10%,transparent)_45%,transparent_70%)] dark:bg-[radial-gradient(120%_75%_at_100%_0%,color-mix(in_oklch,var(--primary)_60%,transparent),color-mix(in_oklch,var(--primary)_18%,transparent)_45%,transparent_72%)]"
           />
-          <div aria-hidden className="pointer-events-none absolute top-5 right-6 -z-10 text-primary-foreground/90 dark:text-white/90">
-            <HugeiconsIcon icon={SparklesIcon} strokeWidth={1.75} className="h-6 w-6 text-primary dark:text-white" />
-            <span className="absolute -top-2 -left-8 h-1 w-1 rounded-full bg-primary/70 dark:bg-white/80" />
-            <span className="absolute top-7 -left-4 h-[3px] w-[3px] rounded-full bg-primary/60 dark:bg-white/60" />
-            <span className="absolute -top-1 -left-16 h-[3px] w-[3px] rounded-full bg-primary/50 dark:bg-white/50" />
-            <span className="absolute top-3 -left-24 h-0.5 w-0.5 rounded-full bg-primary/50 dark:bg-white/50" />
-          </div>
+          <HugeiconsIcon
+            icon={SparklesIcon}
+            strokeWidth={1.75}
+            aria-hidden
+            className="pointer-events-none absolute top-5 right-6 -z-10 h-6 w-6 text-primary dark:text-white/90"
+          />
         </>
       )}
       <div className="flex items-center gap-2">
