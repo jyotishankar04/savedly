@@ -1015,7 +1015,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   <p className="truncate text-[13px] font-medium">{currentUser.name ?? currentUser.email}</p>
                   {currentUser.name && <p className="truncate text-[11px] text-muted-foreground">{currentUser.email}</p>}
                 </div>
-                <PlanUsage className="mx-1 mb-1.5 rounded-lg border border-border bg-card p-3.5" onNavigate={() => setUserDropdownOpen(false)} />
+                <PlanUsage className="mx-1 mb-1.5" onNavigate={() => setUserDropdownOpen(false)} />
                 <div className="px-1 py-1">
                   <ThemeSwitch />
                 </div>
@@ -1180,7 +1180,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
             <nav aria-label="All sections" className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-3 py-4">
               {/* At the top of the list, so it scrolls away rather than squeezing the sections. */}
-              <PlanUsage className="rounded-xl border border-border/60 bg-muted/40 p-3.5" onNavigate={() => setMobileMenuOpen(false)} />
+              <PlanUsage onNavigate={() => setMobileMenuOpen(false)} />
               <div className="space-y-0.5">
                 {primaryNavItems.map((item) => (
                   <MobileMenuLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} onNavigate={() => setMobileMenuOpen(false)} />

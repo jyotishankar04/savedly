@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { SparklesIcon } from "@hugeicons/core-free-icons";
+import { FlashIcon, SparklesIcon } from "@hugeicons/core-free-icons";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { useQuery } from "@tanstack/react-query";
 import { useMyPlanQuery, usePlanLimit } from "@/hooks/use-plan-limit";
-import type { PlanLimitType } from "@/lib/plans";
+import { formatPriceMinor, listPublicPlans, type PlanLimitType } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 /**
@@ -40,21 +41,17 @@ function Meter({ type, label }: { type: PlanLimitType; label: string }) {
   const status = usePlanLimit(type);
   if (status.limit == null || status.limit <= 0) return null;
   const share = Math.min(status.used / status.limit, 1);
-  const near = share >= 0.9;
   return (
     <div>
-      <div className="flex items-baseline justify-between text-[11px]">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="tabular-nums text-muted-foreground">
-          <span className={cn("font-semibold", near ? "text-destructive" : "text-foreground")}>{status.used}</span> / {status.limit}
+      <div className="flex items-baseline justify-between text-[11px] text-primary-foreground/75">
+        <span>{label}</span>
+        <span className="tabular-nums">
+          <span className="font-semibold text-primary-foreground">{status.used}</span> / {status.limit}
         </span>
       </div>
-      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-foreground/[0.08]">
+      <div className="mt-1 h-1 overflow-hidden rounded-full bg-primary-foreground/20">
         <div
-          className={cn(
-            "h-full rounded-full transition-[width] duration-700 ease-out",
-            near ? "bg-destructive" : "bg-gradient-to-r from-primary/55 to-primary",
-          )}
+          className={cn("h-full rounded-full transition-[width] duration-700 ease-out", share >= 0.9 ? "bg-amber-300" : "bg-primary-foreground")}
           style={{ width: `${Math.max(share * 100, 3)}%` }}
         />
       </div>
@@ -62,37 +59,48 @@ function Meter({ type, label }: { type: PlanLimitType; label: string }) {
   );
 }
 
+/** The cheapest paid monthly plan on sale, for "Upgrade to Lite · $5/month". Live, so it follows the admin's prices. */
+function useEntryPlan() {
+  const { data } = useQuery({ queryKey: ["plans", "public"], queryFn: listPublicPlans });
+  return data
+    ?.filter((plan) => plan.billingInterval === "monthly" && plan.priceMinor > 0)
+    .sort((a, b) => a.priceMinor - b.priceMinor)[0];
+}
+
 export function PlanUsage({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
+  const entry = useEntryPlan();
   if (!useIsFreeHosted()) return null;
   return (
-    <div className={cn("relative isolate overflow-hidden", className)}>
-      {/* A soft glow of the accent colour in the top corner. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-16 -right-12 -z-10 h-40 w-40 rounded-full bg-primary/25 blur-3xl"
-      />
+    <div className={cn("relative isolate overflow-hidden rounded-xl bg-primary p-4 text-primary-foreground shadow-[0_10px_30px_-12px_color-mix(in_oklch,var(--primary)_80%,transparent)]", className)}>
+      {/* A little light from the top corner, so the colour isn't flat. */}
+      <div aria-hidden className="pointer-events-none absolute -top-20 -right-16 -z-10 h-44 w-44 rounded-full bg-white/20 blur-3xl" />
 
-      <div className="flex items-center justify-between">
-        <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em] text-muted-foreground">
-          FREE
-        </span>
-        <span className="text-[11px] text-muted-foreground">Resets {resetLabel()}</span>
+      <div className="flex items-start justify-between gap-2">
+        <HugeiconsIcon icon={FlashIcon} strokeWidth={2} className="h-5 w-5" />
+        <span className="text-[11px] text-primary-foreground/70">Resets {resetLabel()}</span>
       </div>
 
-      <div className="mt-3.5 space-y-3">
+      <p className="mt-3 text-[15px] font-semibold tracking-[-0.01em]">Upgrade to {entry?.name ?? "a paid plan"}</p>
+      <p className="mt-1 text-[12px] leading-relaxed text-primary-foreground/80">
+        More AI each month, more storage and the private vault.
+      </p>
+
+      <div className="mt-3.5 space-y-2.5">
         <Meter type="ai_monthly_saves" label="AI saves" />
         <Meter type="ai_monthly_queries" label="Ask questions" />
       </div>
 
-      <div className="mt-4">
-        <p className="text-[13px] font-medium tracking-[-0.01em] text-foreground">Get more with Lite or Pro</p>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">More AI each month, more storage and the private vault.</p>
-      </div>
+      {entry && (
+        <p className="mt-4 flex items-baseline gap-1">
+          <span className="text-[26px] font-semibold leading-none tracking-[-0.02em]">{formatPriceMinor(entry.priceMinor, entry.currency)}</span>
+          <span className="text-[12px] text-primary-foreground/70">/month</span>
+        </p>
+      )}
 
       <Link
         href="/app/settings/billing"
         onClick={onNavigate}
-        className="group mt-3.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary text-[13px] font-medium text-primary-foreground shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_16px_-6px_color-mix(in_oklch,var(--primary)_70%,transparent)] transition-[background-color,transform] hover:bg-primary/90 active:scale-[0.98]"
+        className="group mt-3.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-primary-foreground/25 bg-primary-foreground/15 text-[13px] font-medium text-primary-foreground transition-[background-color,transform] hover:bg-primary-foreground/25 active:scale-[0.98]"
       >
         <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12" />
         Upgrade now
