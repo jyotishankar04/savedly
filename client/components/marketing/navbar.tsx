@@ -137,21 +137,17 @@ interface MegaMenuProps {
   columns: { label: string; links: MegaLink[] }[];
 }
 
-// Each link is a row for the GlidingHighlight around the menu: the highlight
-// slides to whichever link is under the pointer, and the link's text eases
-// into the accent colour as it arrives. The negative margin keeps the text
-// lined up with the column label while the padding gives the highlight room.
+// Plain text links: on hover the text eases into the accent colour, nothing else.
 const MEGA_LINK =
-  "relative z-[1] -mx-2.5 inline-block rounded-lg px-2.5 py-1.5 text-sm text-foreground transition-colors duration-300 ease-out hover:text-primary focus-visible:text-primary focus-visible:outline-none";
+  "inline-block text-sm text-foreground transition-colors duration-300 ease-out hover:text-primary focus-visible:text-primary focus-visible:outline-none";
 
-function MegaHref({ link, className, row, children }: { link: MegaLink; className: string; row?: boolean; children: React.ReactNode }) {
-  const rowProps = row ? { "data-nav-row": "" } : {};
+function MegaHref({ link, className, children }: { link: MegaLink; className: string; children: React.ReactNode }) {
   return link.external ? (
-    <a href={link.href} target="_blank" rel="noopener noreferrer" className={className} {...rowProps}>
+    <a href={link.href} target="_blank" rel="noopener noreferrer" className={className}>
       {children}
     </a>
   ) : (
-    <Link href={link.href} className={className} {...rowProps}>
+    <Link href={link.href} className={className}>
       {children}
     </Link>
   );
@@ -162,9 +158,7 @@ function MegaMenu({ title, blurb, cta, columns }: MegaMenuProps) {
   return (
     // Full width (see NavigationMenu fullWidth), with the content held to the
     // navbar's own width so it lines up with the logo.
-    <GlidingHighlight
-      as="div"
-      highlightClassName="rounded-lg bg-primary/10"
+    <div
       // 76rem with 3.5rem of padding puts the heading under the logo at every
       // width: the bar is 72rem plus its own padding, inside 2rem of gutter.
       // Centred against the window, not with mx-auto: while a panel fades out
@@ -186,10 +180,10 @@ function MegaMenu({ title, blurb, cta, columns }: MegaMenuProps) {
       {columns.map((column) => (
         <div key={column.label}>
           <p className="text-[13px] text-muted-foreground">{column.label}</p>
-          <ul className="mt-2.5 space-y-0.5">
+          <ul className="mt-3.5 space-y-2.5">
             {column.links.map((link) => (
               <li key={link.href}>
-                <MegaHref link={link} className={MEGA_LINK} row>
+                <MegaHref link={link} className={MEGA_LINK}>
                   {link.title}
                 </MegaHref>
               </li>
@@ -197,7 +191,7 @@ function MegaMenu({ title, blurb, cta, columns }: MegaMenuProps) {
           </ul>
         </div>
       ))}
-    </GlidingHighlight>
+    </div>
   );
 }
 
