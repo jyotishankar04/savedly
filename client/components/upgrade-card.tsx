@@ -36,21 +36,25 @@ function resetLabel(): string {
   return next.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 }
 
-function Meter({ type, unit }: { type: PlanLimitType; unit: string }) {
+function Meter({ type, label }: { type: PlanLimitType; label: string }) {
   const status = usePlanLimit(type);
   if (status.limit == null || status.limit <= 0) return null;
   const share = Math.min(status.used / status.limit, 1);
+  const near = share >= 0.9;
   return (
     <div>
       <div className="flex items-baseline justify-between text-[11px]">
-        <span className="text-muted-foreground">
-          <span className="font-medium text-foreground tabular-nums">{status.used}</span>
-          <span className="tabular-nums"> / {status.limit}</span> {unit}
+        <span className="text-muted-foreground">{label}</span>
+        <span className="tabular-nums text-muted-foreground">
+          <span className={cn("font-semibold", near ? "text-destructive" : "text-foreground")}>{status.used}</span> / {status.limit}
         </span>
       </div>
-      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-foreground/10">
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-foreground/[0.08]">
         <div
-          className={cn("h-full rounded-full transition-[width] duration-500", share >= 0.9 ? "bg-destructive" : "bg-primary")}
+          className={cn(
+            "h-full rounded-full transition-[width] duration-700 ease-out",
+            near ? "bg-destructive" : "bg-gradient-to-r from-primary/55 to-primary",
+          )}
           style={{ width: `${Math.max(share * 100, 3)}%` }}
         />
       </div>
@@ -61,20 +65,36 @@ function Meter({ type, unit }: { type: PlanLimitType; unit: string }) {
 export function PlanUsage({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
   if (!useIsFreeHosted()) return null;
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <span className="font-medium text-foreground">Free plan</span>
-        <span>Resets on {resetLabel()}</span>
+    <div className={cn("relative isolate overflow-hidden", className)}>
+      {/* A soft glow of the accent colour in the top corner. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-12 -z-10 h-40 w-40 rounded-full bg-primary/25 blur-3xl"
+      />
+
+      <div className="flex items-center justify-between">
+        <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em] text-muted-foreground">
+          FREE
+        </span>
+        <span className="text-[11px] text-muted-foreground">Resets {resetLabel()}</span>
       </div>
-      <Meter type="ai_monthly_saves" unit="AI saves" />
-      <Meter type="ai_monthly_queries" unit="questions" />
-      <p className="text-[11px] leading-relaxed text-muted-foreground">More AI, more storage and the private vault with Lite or Pro.</p>
+
+      <div className="mt-3.5 space-y-3">
+        <Meter type="ai_monthly_saves" label="AI saves" />
+        <Meter type="ai_monthly_queries" label="Ask questions" />
+      </div>
+
+      <div className="mt-4">
+        <p className="text-[13px] font-medium tracking-[-0.01em] text-foreground">Get more with Lite or Pro</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">More AI each month, more storage and the private vault.</p>
+      </div>
+
       <Link
         href="/app/settings/billing"
         onClick={onNavigate}
-        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        className="group mt-3.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary text-[13px] font-medium text-primary-foreground shadow-[inset_0_1px_0_rgb(255_255_255/0.18),0_6px_16px_-6px_color-mix(in_oklch,var(--primary)_70%,transparent)] transition-[background-color,transform] hover:bg-primary/90 active:scale-[0.98]"
       >
-        <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="h-3.5 w-3.5" />
+        <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12" />
         Upgrade now
       </Link>
     </div>
