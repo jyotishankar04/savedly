@@ -16,6 +16,8 @@ import { CopyButton } from "@/components/arc/copy-button/copy-button";
 import { DISCORD_URL, GITHUB_URL, LICENSE } from "@/lib/open-source";
 import { BMC_QR_IMAGE, BMC_URL } from "@/lib/support";
 import { cn } from "@/lib/utils";
+import type { Contributor } from "@/lib/github-contributors";
+import { ContributorsSection } from "@/components/marketing/contribute/contributors-section";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText);
 
@@ -114,7 +116,7 @@ function RunLocally() {
   );
 }
 
-export function ContributeContent() {
+export function ContributeContent({ contributors }: { contributors: Contributor[] }) {
   const root = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -232,7 +234,7 @@ export function ContributeContent() {
           </section>
 
           {/* Your first pull request */}
-          <section className="px-5 py-20 sm:px-8 md:py-28">
+          <section id="first-pull-request" className="scroll-mt-28 px-5 py-20 sm:px-8 md:py-28">
             <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-20 [&>*]:min-w-0">
               <div className="max-w-md lg:sticky lg:top-32 lg:self-start">
                 <h2 className={H2}>Your first pull request</h2>
@@ -278,6 +280,9 @@ export function ContributeContent() {
               </ol>
             </div>
           </section>
+
+          {/* Who's already in it */}
+          <ContributorsSection contributors={contributors} h2Class={H2} />
 
           {/* Or keep the servers running */}
           <section className="px-3 pb-20 sm:px-5 md:pb-28">
