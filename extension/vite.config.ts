@@ -1,19 +1,48 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
+import fs from "fs";
 
-// Which Savedly the extension talks to is fixed when it is built:
-//   pnpm build        -> savedly.app (what goes to the Chrome Web Store)
-//   pnpm build:local  -> a server and web app running on this machine
-// A self-hosted install builds its own copy with SAVEDLY_API_ORIGIN and
-// SAVEDLY_WEB_URL set to its addresses.
+/** Generates host_permissions in the built manifest based on the target server origin. */
+function generateManifestPlugin(apiOrigin: string): Plugin {
+  return {
+    name: "vite-plugin-generate-manifest",
+    writeBundle(options) {
+      const outDir = options.dir || resolve(__dirname, "dist");
+      const manifestPath = resolve(outDir, "manifest.json");
+      if (fs.existsSync(manifestPath)) {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+        manifest.host_permissions = [`${apiOrigin.replace(/\/+$/, "")}/*`];
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+      }
+    },
+  };
+}
+
+// Which Savedly the extension talks to is driven by Vite environment variables:
+//   VITE_SERVER_ORIGIN  -> backend API origin (e.g. https://api.savedly.app or http://localhost:4000)
+//   VITE_WEB_APP_URL    -> web dashboard address (e.g. https://savedly.app or http://localhost:3000)
+// Defaults to localhost in development, or the hosted app for production builds.
 export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
   const local = mode === "development";
-  const apiOrigin = (process.env.SAVEDLY_API_ORIGIN ?? (local ? "http://localhost:4000" : "https://api.savedly.app")).replace(/\/+$/, "");
-  const webAppUrl = (process.env.SAVEDLY_WEB_URL ?? (local ? "http://localhost:3000" : "https://savedly.app")).replace(/\/+$/, "");
+
+  const apiOrigin = (
+    env.VITE_SERVER_ORIGIN ||
+    process.env.VITE_SERVER_ORIGIN ||
+    process.env.SAVEDLY_API_ORIGIN ||
+    (local ? "http://localhost:4000" : "https://api.savedly.app")
+  ).replace(/\/+$/, "");
+
+  const webAppUrl = (
+    env.VITE_WEB_APP_URL ||
+    process.env.VITE_WEB_APP_URL ||
+    process.env.SAVEDLY_WEB_URL ||
+    (local ? "http://localhost:3000" : "https://savedly.app")
+  ).replace(/\/+$/, "");
 
   return {
-    plugins: [react()],
+    plugins: [react(), generateManifestPlugin(apiOrigin)],
     // Replaced in the source as plain text, so the content script (which
     // can't import anything, see content-script.ts) can use them too.
     define: {
