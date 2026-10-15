@@ -47,6 +47,7 @@ import { useNextAdapter } from "nextstepjs/adapters/next";
 import { productTourSteps, TourCard, TourAutoStart } from "@/components/product-tour";
 import { AskWidget } from "@/components/ask-widget/ask-widget";
 import { ExtensionInstallPrompt } from "@/components/extension/install-prompt";
+import { UpgradeCard } from "@/components/upgrade-card";
 import { useSyncTimeZone } from "@/hooks/use-settings-group";
 
 /** Exact-matches Home ("/app"); prefix-matches everything else, so a nav
@@ -981,6 +982,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Sidebar Bottom user profile */}
         <div className="relative w-60 border-t border-border/40 p-3">
+          <UpgradeCard className="mb-2.5" />
           <button
             type="button"
             onClick={() => setUserDropdownOpen((open) => !open)}
@@ -1212,6 +1214,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
 
             <div className="space-y-0.5 border-t border-border/40 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <UpgradeCard className="mb-2" onNavigate={() => setMobileMenuOpen(false)} />
               <MobileMenuLink item={{ label: "Settings", href: "/app/settings", icon: Settings }} active={isNavItemActive(pathname, "/app/settings")} onNavigate={() => setMobileMenuOpen(false)} />
               <Link href="/help" onClick={() => setMobileMenuOpen(false)} className={cn(MOBILE_MENU_ROW, "text-foreground active:bg-muted")}>
                 <HugeiconsIcon icon={HelpCircle} strokeWidth={2} className="h-5 w-5 shrink-0 text-muted-foreground" />
