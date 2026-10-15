@@ -4,13 +4,14 @@ import React, { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
+import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, ArrowLeft01Icon as ArrowLeft, Cancel01Icon as Close, PlayIcon, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getServerConfig } from "@/lib/server-config";
 import { ChromeLogo } from "@/components/chrome-logo";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { completeOnboarding } from "@/lib/user";
 import { useCurrentUserQuery, useSetCurrentUser } from "@/context/UserContext";
 import { useCreateMemoryMutation } from "@/context/MemoryContext";
@@ -32,10 +33,30 @@ const interests = [
 ];
 
 // Step 5 Ways to save — informational only; each is a real capture path.
+// Step 5. Each row opens a short looping clip of it in use (the same clips
+// as the What's new tour, in public/whats-new/loops/).
 const captureChannels = [
-  { label: "Browser extension", desc: "Save the current page with Ctrl/Cmd + Shift + S", icon: Puzzle },
-  { label: "Quick Capture", desc: "Press Ctrl/Cmd + Q anywhere in the dashboard", icon: Keyboard },
-  { label: "Import bookmarks", desc: "Bring in an exported bookmarks file from Import", icon: Upload },
+  {
+    label: "Browser extension",
+    desc: "Save the current page with Ctrl/Cmd + Shift + S",
+    icon: Puzzle,
+    clip: "/whats-new/loops/extension.webp",
+    about: "Save the page you're on, a link, some text, an image or a screenshot, without leaving it. Click the Savedly button in Chrome's toolbar, right-click anything, or press Ctrl/Cmd + Shift + S.",
+  },
+  {
+    label: "Quick Capture",
+    desc: "Press Ctrl/Cmd + Q anywhere in the dashboard",
+    icon: Keyboard,
+    clip: "/whats-new/loops/capture.webp",
+    about: "Paste a link, write a note or drop in a file, and carry on. Open it from the Quick Capture button, the home page, or Ctrl/Cmd + Q anywhere in Savedly.",
+  },
+  {
+    label: "Import bookmarks",
+    desc: "Bring in an exported bookmarks file from Import",
+    icon: Upload,
+    clip: "/whats-new/loops/import.webp",
+    about: "Bring your old bookmarks over in one go. Export them from Chrome, Firefox, Safari or Edge and upload the file, or paste a list of links. Find it under Import.",
+  },
 ];
 
 // Step 7: ideas for a first save, for anyone staring at an empty box. Each
@@ -78,6 +99,7 @@ function OnboardingFlow() {
   const [useFor, setUseFor] = useState<string[]>([]);
   const [orgMode, setOrgMode] = useState<"auto" | "manual">("auto");
   const [customLink, setCustomLink] = useState("");
+  const [preview, setPreview] = useState<number | null>(null);
   const [firstSavePrompt, setFirstSavePrompt] = useState<number | null>(null);
   const firstSaveBox = React.useRef<HTMLTextAreaElement>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -441,23 +463,26 @@ function OnboardingFlow() {
               {captureChannels.map((item, idx) => {
                 const Icon = item.icon;
                 return (
-                  <div 
-                    key={idx}
-                    className="rounded-xl border border-border/45 bg-muted/75 p-0.5 shadow-xs hover:border-primary/20 transition-all duration-300"
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => setPreview(idx)}
+                    className="group w-full rounded-xl border border-border/45 bg-muted/75 p-0.5 text-left shadow-xs transition-all duration-200 hover:border-primary/30 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
-                    <div className="p-3.5 rounded-lg border border-border/75 bg-card flex items-center">
-                      <div className="flex items-center gap-3">
-                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-                          <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-4.5 w-4.5" />
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-foreground leading-none">{item.label}</h4>
-                          <p className="text-[10px] text-muted-foreground mt-1 leading-none">{item.desc}</p>
-                        </div>
+                    <div className="flex items-center gap-3 rounded-lg border border-border/75 bg-card p-3.5">
+                      <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                        <HugeiconsIcon icon={Icon} strokeWidth={2.25} className="h-4.5 w-4.5" />
                       </div>
-
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs font-bold text-foreground leading-none">{item.label}</h4>
+                        <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{item.desc}</p>
+                      </div>
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                        <HugeiconsIcon icon={PlayIcon} strokeWidth={2.25} className="h-3 w-3" />
+                        Watch
+                      </span>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -470,6 +495,58 @@ function OnboardingFlow() {
                 Continue
               </Button>
             </div>
+
+            <Dialog open={preview !== null} onOpenChange={(open) => !open && setPreview(null)}>
+              {preview !== null && (
+                <DialogContent showCloseButton={false} className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+                  {/* Its own close button, on a solid circle so it shows over any clip. */}
+                  <DialogClose
+                    aria-label="Close"
+                    className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-foreground/10 backdrop-blur transition-colors hover:bg-background max-md:top-9"
+                  >
+                    <HugeiconsIcon icon={Close} strokeWidth={2.25} className="h-4 w-4" />
+                  </DialogClose>
+                  <div className="aspect-[16/9] w-full overflow-hidden border-b border-border/60 bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- an animated WebP loop */}
+                    <img
+                      key={captureChannels[preview].clip}
+                      src={captureChannels[preview].clip}
+                      alt={`${captureChannels[preview].label} in use`}
+                      className="h-full w-full object-cover object-top"
+                    />
+                  </div>
+                  <div className="space-y-2 p-5 sm:p-6">
+                    <DialogTitle className="text-lg font-medium tracking-tight">{captureChannels[preview].label}</DialogTitle>
+                    <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+                      {captureChannels[preview].about}
+                    </DialogDescription>
+                    <div className="flex items-center justify-between gap-3 pt-3">
+                      <div className="flex gap-1.5" aria-hidden>
+                        {captureChannels.map((c, i) => (
+                          <span key={c.label} className={cn("h-1.5 rounded-full transition-all", i === preview ? "w-5 bg-primary" : "w-1.5 bg-border")} />
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" disabled={preview === 0} onClick={() => setPreview(preview - 1)} className="rounded-full">
+                          <HugeiconsIcon icon={ArrowLeft} strokeWidth={2.25} className="h-3.5 w-3.5" />
+                          Previous
+                        </Button>
+                        {preview < captureChannels.length - 1 ? (
+                          <Button size="sm" onClick={() => setPreview(preview + 1)} className="rounded-full">
+                            Next
+                            <HugeiconsIcon icon={ArrowRight} strokeWidth={2.25} className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : (
+                          <Button size="sm" onClick={() => setPreview(null)} className="rounded-full">
+                            Done
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              )}
+            </Dialog>
           </div>
         )}
 
