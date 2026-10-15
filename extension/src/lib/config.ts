@@ -1,8 +1,15 @@
-// Which Savedly this build talks to. Fixed at build time (vite.config.ts):
-// savedly.app for the published extension, localhost for `pnpm build:local`.
-export const SERVER_ORIGIN = __API_ORIGIN__;
+// Which Savedly this build talks to.
+// Reads from Vite env variables (VITE_SERVER_ORIGIN, VITE_WEB_APP_URL),
+// defaulting to localhost values for development.
+export const SERVER_ORIGIN = (
+  import.meta.env.VITE_SERVER_ORIGIN ||
+  (typeof __API_ORIGIN__ !== "undefined" ? __API_ORIGIN__ : "http://localhost:4000")
+).replace(/\/+$/, "");
 export const API_BASE = `${SERVER_ORIGIN}/api/v1`;
-export const WEB_APP_URL = __WEB_APP_URL__;
+export const WEB_APP_URL = (
+  import.meta.env.VITE_WEB_APP_URL ||
+  (typeof __WEB_APP_URL__ !== "undefined" ? __WEB_APP_URL__ : "http://localhost:3000")
+).replace(/\/+$/, "");
 
 // chrome.storage.local key: true while the browser is signed in to Savedly.
 // Only this yes/no is kept. The sign-in itself stays in the browser's own
