@@ -19,19 +19,16 @@ import { Logo } from "@/components/logo";
 import { useExtensionStatus } from "@/hooks/use-extension-status";
 import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 
-// Step 2 Interests
+// Step 2: what they'll use Savedly for. There used to be a second question
+// ("What do you save most?") with twelve chips; it asked nearly the same
+// thing, so its answer is now read off this one (`types`, saved as the
+// onboarding contentTypes).
 const interests = [
-  { id: "inspiration", label: "Inspiration", desc: "Websites, designs & ideas", icon: "🎨" },
-  { id: "learning", label: "Learning", desc: "Tutorials, courses & resources", icon: "💻" },
-  { id: "ideas", label: "Ideas", desc: "Things you want to build", icon: "💡" },
-  { id: "research", label: "Research", desc: "Articles, papers & references", icon: "🔬" },
-  { id: "content", label: "Content", desc: "Videos, reels & posts", icon: "🎬" },
-];
-
-// Step 3 Content Options
-const saveTypes = [
-  "Websites", "Videos", "Articles", "Screenshots", "GitHub repos", 
-  "Social posts", "Notes", "Ideas", "Products", "Books", "Courses", "Tools"
+  { id: "inspiration", label: "Inspiration", desc: "Websites, designs & ideas", icon: "🎨", types: ["Websites", "Screenshots"] },
+  { id: "learning", label: "Learning", desc: "Tutorials, courses & resources", icon: "💻", types: ["Courses", "Videos", "Books"] },
+  { id: "ideas", label: "Ideas", desc: "Things you want to build", icon: "💡", types: ["Notes", "Ideas"] },
+  { id: "research", label: "Research", desc: "Articles, papers & references", icon: "🔬", types: ["Articles", "GitHub repos", "Tools"] },
+  { id: "content", label: "Content", desc: "Videos, reels & posts", icon: "🎬", types: ["Videos", "Social posts"] },
 ];
 
 // Step 5 Ways to save — informational only; each is a real capture path.
@@ -71,14 +68,14 @@ function OnboardingFlow() {
   const extensionStatus = useExtensionStatus();
   const showExtensionStep = extensionStatus === "missing" || extensionStatus === "checking";
   const [extensionOpened, setExtensionOpened] = useState(false);
-  const totalSteps = showExtensionStep ? 8 : 7;
-  const displayStep = !showExtensionStep && step > 6 ? step - 1 : step;
+  const stepOrder = showExtensionStep ? [1, 2, 4, 5, 6, 7, 8] : [1, 2, 4, 5, 7, 8];
+  const totalSteps = stepOrder.length;
+  const displayStep = Math.max(stepOrder.indexOf(step), 0) + 1;
   const progressWidth = `${Math.min((displayStep / totalSteps) * 100, 100)}%`;
 
   // Form State
   const [name, setName] = useState("");
   const [useFor, setUseFor] = useState<string[]>([]);
-  const [saveMost, setSaveMost] = useState<string[]>([]);
   const [orgMode, setOrgMode] = useState<"auto" | "manual">("auto");
   const [customLink, setCustomLink] = useState("");
   const [firstSavePrompt, setFirstSavePrompt] = useState<number | null>(null);
@@ -145,7 +142,7 @@ function OnboardingFlow() {
       await completeOnboardingMutation.mutateAsync({
         name: name.trim(),
         interests: useFor,
-        contentTypes: saveMost,
+        contentTypes: [...new Set(interests.filter((item) => useFor.includes(item.id)).flatMap((item) => item.types))],
         organizeMode: orgMode,
       });
       // Whatever the user typed/pasted in the "save something" box is a real
@@ -176,8 +173,8 @@ function OnboardingFlow() {
     }
   };
 
-  const nextStep = () => setStep((prev) => (prev === 5 && !showExtensionStep ? 7 : Math.min(prev + 1, 8)));
-  const prevStep = () => setStep((prev) => (prev === 7 && !showExtensionStep ? 5 : Math.max(prev - 1, 1)));
+  const nextStep = () => setStep((prev) => stepOrder[Math.min(stepOrder.indexOf(prev) + 1, stepOrder.length - 1)]);
+  const prevStep = () => setStep((prev) => stepOrder[Math.max(stepOrder.indexOf(prev) - 1, 0)]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground font-sans transition-colors duration-300">
@@ -241,7 +238,7 @@ function OnboardingFlow() {
           </div>
         )}
 
-        {/* STEP 2: Use Cases */}
+        {/* STEP 2: What it's for (one tap each, or one for everything) */}
         {step === 2 && (
           <div className="w-full space-y-8 animate-fade-in">
             <div className="text-center space-y-3">
@@ -249,55 +246,48 @@ function OnboardingFlow() {
                 What will you use Savedly for?
               </h2>
               <p className="text-sm text-muted-foreground">
-                Choose what you want Savedly to help you remember.
+                Pick any that fit. You can skip this.
               </p>
             </div>
 
-            <div className="space-y-3 max-w-md mx-auto">
-              {interests.map((item) => {
-                const isSelected = useFor.includes(item.id);
+            <div className="grid grid-cols-2 gap-2.5 max-w-md mx-auto">
+              {[...interests, { id: "all", label: "A bit of everything", desc: "All of the above", icon: "✨" }].map((item) => {
+                const all = item.id === "all";
+                const isSelected = all ? useFor.length === interests.length : useFor.includes(item.id);
                 return (
-                  <div
+                  <button
                     key={item.id}
+                    type="button"
+                    aria-pressed={isSelected}
                     onClick={() => {
-                      setUseFor((prev) => 
-                        prev.includes(item.id) 
-                          ? prev.filter((id) => id !== item.id) 
-                          : [...prev, item.id]
-                      );
+                      if (all) {
+                        setUseFor(isSelected ? [] : interests.map((i) => i.id));
+                        return;
+                      }
+                      setUseFor((prev) => (prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]));
                     }}
                     className={cn(
-                      "rounded-xl border p-0.5 cursor-pointer transition-all duration-200 select-none",
-                      isSelected 
-                        ? "border-primary/40 bg-primary/5 shadow-xs" 
-                        : "border-border/45 bg-muted/75 dark:border-border/65"
+                      "relative flex flex-col items-start gap-2.5 rounded-2xl border p-4 text-left transition-all duration-150 select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                      isSelected
+                        ? "border-primary/60 bg-primary/[0.07] shadow-xs"
+                        : "border-border/70 bg-card hover:border-foreground/20 hover:bg-muted/40",
                     )}
                   >
-                    <div 
+                    <span className="text-2xl leading-none" aria-hidden>{item.icon}</span>
+                    <span>
+                      <span className="block text-sm font-medium text-foreground">{item.label}</span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">{item.desc}</span>
+                    </span>
+                    <span
+                      aria-hidden
                       className={cn(
-                        "p-4 rounded-lg border bg-card flex items-center justify-between transition-colors",
-                        isSelected ? "border-primary/50 shadow-xs" : "border-border/75"
+                        "absolute top-3 right-3 flex h-5 w-5 items-center justify-center rounded-full border transition-all",
+                        isSelected ? "border-primary bg-primary text-primary-foreground scale-100" : "border-border scale-90",
                       )}
                     >
-                      <div className="flex items-center gap-4">
-                        <span className="text-xl">{item.icon}</span>
-                        <div>
-                          <h4 className="text-xs font-bold text-foreground">{item.label}</h4>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
-                        </div>
-                      </div>
-
-                      <div 
-                        className="h-4.5 w-4.5 rounded-full border flex items-center justify-center shrink-0 transition-colors"
-                        style={{ 
-                          borderColor: isSelected ? "var(--color-primary)" : "var(--color-border)",
-                          backgroundColor: isSelected ? "var(--color-primary)" : "transparent"
-                        }}
-                      >
-                        {isSelected && <HugeiconsIcon icon={Check} strokeWidth={2.25} className="h-2.5 w-2.5 text-white stroke-[3.5]" />}
-                      </div>
-                    </div>
-                  </div>
+                      {isSelected && <HugeiconsIcon icon={Check} strokeWidth={3} className="h-3 w-3" />}
+                    </span>
+                  </button>
                 );
               })}
             </div>
@@ -306,71 +296,12 @@ function OnboardingFlow() {
               <Button variant="ghost" onClick={prevStep} className="flex-1 h-11 rounded-full font-medium">
                 Back
               </Button>
-              <Button 
-                onClick={nextStep} 
+              <Button
+                onClick={nextStep}
+                variant={useFor.length ? "default" : "outline"}
                 className="flex-1 h-11 rounded-full font-medium shadow-xs"
               >
-                Continue
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: Content types to save */}
-        {step === 3 && (
-          <div className="w-full space-y-8 animate-fade-in">
-            <div className="text-center space-y-3">
-              <h2 className="text-3xl font-medium tracking-tight text-foreground">
-                What do you save most?
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Pick a few things you never want to lose.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-md mx-auto">
-              {saveTypes.map((type) => {
-                const isSelected = saveMost.includes(type);
-                return (
-                  <div
-                    key={type}
-                    onClick={() => {
-                      setSaveMost((prev) => 
-                        prev.includes(type) 
-                          ? prev.filter((t) => t !== type) 
-                          : [...prev, type]
-                      );
-                    }}
-                    className={cn(
-                      "rounded-lg border p-0.5 cursor-pointer transition-all duration-200 select-none text-center",
-                      isSelected 
-                        ? "border-primary/40 bg-primary/5 shadow-xs" 
-                        : "border-border/45 bg-muted/75 dark:border-border/65"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "px-3 py-2.5 rounded border bg-card flex items-center justify-center gap-1.5 transition-colors text-[10px] font-bold uppercase tracking-wider text-foreground",
-                        isSelected ? "border-primary/50 shadow-xs" : "border-border/75"
-                      )}
-                    >
-                      {isSelected && <span className="text-primary font-bold">✓</span>}
-                      <span>{type}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex gap-3 max-w-md mx-auto">
-              <Button variant="ghost" onClick={prevStep} className="flex-1 h-11 rounded-full font-medium">
-                Back
-              </Button>
-              <Button 
-                onClick={nextStep} 
-                className="flex-1 h-11 rounded-full font-medium shadow-xs"
-              >
-                Continue
+                {useFor.length ? "Continue" : "Skip"}
               </Button>
             </div>
           </div>
