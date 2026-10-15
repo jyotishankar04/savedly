@@ -12,13 +12,15 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // The authenticated app and the API have nothing crawlable in them.
+      // The authenticated app and the API have nothing crawlable in them, and
+      // onboarding, unsubscribe, the share target and the pre-launch waitlist
+      // are personal or temporary pages, not something to find in a search.
       //
       // /s/ is deliberately NOT disallowed: shared pages are noindex by
       // default via their own robots meta tag, which lets an owner opt a
       // single page in. A blanket rule here would override that and make
       // the per-share setting a lie.
-      disallow: ["/api/", "/app/", "/admin/", "/auth/"],
+      disallow: ["/api/", "/app/", "/admin/", "/auth/", "/onboard", "/unsubscribe", "/share-target", "/waitlist"],
     },
     sitemap: `${baseUrl}/sitemap.xml`,
   };
