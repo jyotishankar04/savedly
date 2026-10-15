@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useNextStep } from "nextstepjs";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon as Close, ChromeIcon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon as Close } from "@hugeicons/core-free-icons";
 import { useExtensionStatus } from "@/hooks/use-extension-status";
+import { ChromeLogo } from "@/components/chrome-logo";
 import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 
 /**
@@ -99,7 +100,7 @@ export function ExtensionInstallPrompt() {
               onClick={() => close(3)}
               className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <HugeiconsIcon icon={ChromeIcon} strokeWidth={2} className="h-4 w-4" />
+              <ChromeLogo className="h-4 w-4 rounded-full ring-2 ring-white/90" />
               Add to Chrome
             </a>
             <button type="button" onClick={() => close(1)} className="mt-2 h-8 w-full rounded-full text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground">

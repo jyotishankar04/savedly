@@ -4,9 +4,10 @@ import React, { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, ChromeIcon, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
+import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getServerConfig } from "@/lib/server-config";
+import { ChromeLogo } from "@/components/chrome-logo";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -556,7 +557,7 @@ function OnboardingFlow() {
                   onClick={() => setExtensionOpened(true)}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary font-medium text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
                 >
-                  <HugeiconsIcon icon={ChromeIcon} strokeWidth={2} className="h-4 w-4" />
+                  <ChromeLogo className="h-4 w-4 rounded-full ring-2 ring-white/90" />
                   Add to Chrome
                 </a>
               )}
