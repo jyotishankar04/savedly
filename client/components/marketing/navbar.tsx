@@ -160,7 +160,10 @@ function MegaMenu({ title, blurb, cta, columns }: MegaMenuProps) {
     <div
       // 76rem with 3.5rem of padding puts the heading under the logo at every
       // width: the bar is 72rem plus its own padding, inside 2rem of gutter.
-      className="mx-auto grid w-screen max-w-[76rem] gap-10 px-14 py-9"
+      // Centred against the window, not with mx-auto: while a panel fades out
+      // the menu takes it out of the flow, and mx-auto would then snap it to
+      // the left edge mid-fade.
+      className="ml-[max(0px,calc((100vw-76rem)/2))] grid w-screen max-w-[76rem] gap-10 px-[3.125rem] py-9"
       style={{ gridTemplateColumns: `minmax(0, 1.3fr) repeat(3, minmax(0, 1fr))` }}
     >
       <div>
@@ -359,6 +362,9 @@ function MarketingNavbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  // While a dropdown is open the whole bar takes the dropdown's colour, edge
+  // to edge, so the two read as one sheet over the dimmed page.
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const pathname = usePathname();
   const bannerRef = React.useRef<HTMLDivElement>(null);
   const [bannerHeight, setBannerHeight] = React.useState(0);
@@ -406,13 +412,15 @@ function MarketingNavbar() {
       <div ref={bannerRef}>
         <AnnouncementBanner />
       </div>
-      <header className="mt-4 w-full px-4 sm:px-8">
+      <header className={cn("w-full px-4 pt-4 transition-colors duration-200 sm:px-8", dropdownOpen ? "bg-popover" : "bg-transparent")}>
       <nav
         className={cn(
           "mx-auto flex h-14 max-w-6xl items-center px-3 rounded-full border transition-all duration-300",
-          isScrolled
-            ? "border-border/50 bg-background backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.24)]"
-            : "border-transparent bg-transparent shadow-none"
+          dropdownOpen
+            ? "border-transparent bg-transparent shadow-none"
+            : isScrolled
+              ? "border-border/50 bg-background backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.24)]"
+              : "border-transparent bg-transparent shadow-none"
         )}
       >
         {/* Logo */}
@@ -427,7 +435,7 @@ function MarketingNavbar() {
         {/* One highlight glides between the items under the pointer (GlidingHighlight),
             as in the app's sidebars. An open menu's item keeps its own fill. */}
         <GlidingHighlight as="div" highlightClassName="rounded-full bg-muted" className="mx-auto hidden md:flex">
-          <NavigationMenu fullWidth>
+          <NavigationMenu fullWidth onValueChange={(value) => setDropdownOpen(value != null)}>
             <NavigationMenuList className="gap-1">
               {/* Product */}
               <NavigationMenuItem>

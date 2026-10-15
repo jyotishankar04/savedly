@@ -89,7 +89,9 @@ function NavigationMenuContent({
     <NavigationMenuPrimitive.Content
       data-slot="navigation-menu-content"
       className={cn(
-        "data-ending-style:data-activation-direction=left:translate-x-[50%] data-ending-style:data-activation-direction=right:translate-x-[-50%] data-starting-style:data-activation-direction=left:translate-x-[-50%] data-starting-style:data-activation-direction=right:translate-x-[50%] h-full w-auto p-1.5 transition-[opacity,transform,translate] duration-[0.35s] ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[viewport=false]/navigation-menu:rounded-xl group-data-[viewport=false]/navigation-menu:bg-popover group-data-[viewport=false]/navigation-menu:text-popover-foreground group-data-[viewport=false]/navigation-menu:shadow-md group-data-[viewport=false]/navigation-menu:ring-1 group-data-[viewport=false]/navigation-menu:ring-foreground/10 group-data-[viewport=false]/navigation-menu:duration-300 data-ending-style:opacity-0 data-starting-style:opacity-0 data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 data-[motion^=from-]:animate-in data-[motion^=from-]:fade-in data-[motion^=to-]:animate-out data-[motion^=to-]:fade-out **:data-[slot=navigation-menu-link]:focus:ring-0 **:data-[slot=navigation-menu-link]:focus:outline-none group-data-[viewport=false]/navigation-menu:data-open:animate-in group-data-[viewport=false]/navigation-menu:data-open:fade-in-0 group-data-[viewport=false]/navigation-menu:data-open:zoom-in-95 group-data-[viewport=false]/navigation-menu:data-closed:animate-out group-data-[viewport=false]/navigation-menu:data-closed:fade-out-0 group-data-[viewport=false]/navigation-menu:data-closed:zoom-out-95",
+        // A full-width panel only cross-fades: sliding sideways across the
+        // whole window reads as a jump, on close and between menus alike.
+        "group-data-[full-width]/navigation-menu-positioner:translate-x-0! group-data-[full-width]/navigation-menu-positioner:animate-none! group-data-[full-width]/navigation-menu-positioner:transition-opacity! group-data-[full-width]/navigation-menu-positioner:duration-200! group-data-[full-width]/navigation-menu-positioner:ease-out! data-ending-style:data-activation-direction=left:translate-x-[50%] data-ending-style:data-activation-direction=right:translate-x-[-50%] data-starting-style:data-activation-direction=left:translate-x-[-50%] data-starting-style:data-activation-direction=right:translate-x-[50%] h-full w-auto p-1.5 transition-[opacity,transform,translate] duration-[0.35s] ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[viewport=false]/navigation-menu:rounded-xl group-data-[viewport=false]/navigation-menu:bg-popover group-data-[viewport=false]/navigation-menu:text-popover-foreground group-data-[viewport=false]/navigation-menu:shadow-md group-data-[viewport=false]/navigation-menu:ring-1 group-data-[viewport=false]/navigation-menu:ring-foreground/10 group-data-[viewport=false]/navigation-menu:duration-300 data-ending-style:opacity-0 data-starting-style:opacity-0 data-[motion=from-end]:slide-in-from-right-52 data-[motion=from-start]:slide-in-from-left-52 data-[motion=to-end]:slide-out-to-right-52 data-[motion=to-start]:slide-out-to-left-52 data-[motion^=from-]:animate-in data-[motion^=from-]:fade-in data-[motion^=to-]:animate-out data-[motion^=to-]:fade-out **:data-[slot=navigation-menu-link]:focus:ring-0 **:data-[slot=navigation-menu-link]:focus:outline-none group-data-[viewport=false]/navigation-menu:data-open:animate-in group-data-[viewport=false]/navigation-menu:data-open:fade-in-0 group-data-[viewport=false]/navigation-menu:data-open:zoom-in-95 group-data-[viewport=false]/navigation-menu:data-closed:animate-out group-data-[viewport=false]/navigation-menu:data-closed:fade-out-0 group-data-[viewport=false]/navigation-menu:data-closed:zoom-out-95",
         className
       )}
       {...props}
@@ -111,10 +113,13 @@ function NavigationMenuPositioner({
       <NavigationMenuPrimitive.Positioner
         side={side}
         sideOffset={sideOffset ?? (fullWidth ? 10 : 8)}
+        // The panel's content is rendered in here (a portal), not under the
+        // menu's root, so the full-width styles key off this element.
+        data-full-width={fullWidth ? "" : undefined}
         align={align}
         alignOffset={alignOffset}
         className={cn(
-          "isolate z-50 h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom] duration-[0.35s] ease-[cubic-bezier(0.22,1,0.36,1)] data-instant:transition-none data-[side=bottom]:before:top-[-10px] data-[side=bottom]:before:right-0 data-[side=bottom]:before:left-0",
+          "group/navigation-menu-positioner isolate z-50 h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom] duration-[0.35s] ease-[cubic-bezier(0.22,1,0.36,1)] data-instant:transition-none data-[side=bottom]:before:top-[-10px] data-[side=bottom]:before:right-0 data-[side=bottom]:before:left-0",
           // Pinned to the window's edges whatever trigger opened it.
           fullWidth && "!right-0 !left-0 !w-screen !max-w-none transition-[top]",
           className
@@ -128,7 +133,7 @@ function NavigationMenuPositioner({
               ? // Edge to edge, a hairline below, and the page under it dimmed: a
                 // shadow spread over the whole window, clipped at the panel's top
                 // edge so the bar above stays bright.
-                "w-full border-b border-border/70 shadow-[0_0_0_100vmax_rgb(0_0_0/0.22)] [clip-path:inset(0_0_-100vmax_0)] data-ending-style:-translate-y-1 data-starting-style:-translate-y-1"
+                "w-full border-b border-border/70 shadow-[0_0_0_100vmax_rgb(0_0_0/0.22)] dark:shadow-[0_0_0_100vmax_rgb(0_0_0/0.55)] [clip-path:inset(0_0_-100vmax_0)] data-ending-style:-translate-y-1 data-starting-style:-translate-y-1"
               : "xs:w-(--popup-width) w-(--popup-width) origin-(--transform-origin) rounded-2xl shadow-xl shadow-black/10 ring-1 ring-foreground/10 data-ending-style:scale-90 data-starting-style:scale-90"
           )}
         >
