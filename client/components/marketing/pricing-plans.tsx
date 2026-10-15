@@ -21,6 +21,7 @@ import {
   ServerStack01Icon,
   Settings01Icon,
   Share08Icon,
+  SparklesIcon,
   Tick02Icon as Tick,
 } from "@hugeicons/core-free-icons";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -329,9 +330,12 @@ export function PricingPlans() {
                 const below = i === 0 ? free : paid[i - 1];
                 const isCurrent = plan.key === current?.key;
                 const buyable = !!config?.billing && plan.priceMinor > 0 && !isCurrent;
+                // The middle card, the one the row is built around.
+                const highlighted = i === 0 && paid.length > 1;
                 return (
                   <PlanCard
                     key={plan.key}
+                    highlight={highlighted ? "Recommended" : undefined}
                     name={plan.name}
                     mark={TIER_MARK[planTier(plan.key)]}
                     tagline={TAGLINES[planTier(plan.key)] ?? plan.description ?? ""}
@@ -342,7 +346,7 @@ export function PricingPlans() {
                     // Each card builds on the one below it: Lite on Free, Pro on Lite.
                     groups={[{ label: `Everything in ${below?.name ?? freeName} +`, items: planFeatureBullets(plan.features, below?.features) }]}
                     action={
-                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, i === 0 && paid.length > 1 ? strongButton : quietButton)}>
+                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, highlighted ? cn(strongButton, glowButton) : quietButton)}>
                         {pending === plan.key && <Spinner />}
                         {isCurrent ? "Current plan" : buyable ? "Upgrade" : "Coming soon"}
                       </button>
@@ -455,6 +459,8 @@ const buttonClass =
 /** The one card the row is built around. */
 const strongButton = "bg-primary text-primary-foreground hover:bg-primary/90";
 const quietButton = "bg-foreground/[0.06] text-foreground hover:bg-foreground/10";
+/** The recommended card's button: a soft halo of the accent colour. */
+const glowButton = "shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_60%,white_10%),0_10px_30px_-8px_color-mix(in_oklch,var(--primary)_70%,transparent)]";
 
 interface CardRow {
   label: string;
@@ -478,7 +484,10 @@ function PlanCard({
   groups,
   body,
   action,
+  highlight,
 }: {
+  /** Marks the recommended card: a little larger, ringed in the accent colour, with this badge on its top edge. */
+  highlight?: string;
   name: string;
   mark?: { icon: IconSvgElement; tint: string };
   tagline: string;
@@ -491,10 +500,34 @@ function PlanCard({
   action: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-3xl bg-card p-6 ring-1 ring-foreground/[0.08] sm:p-7">
+    <div
+      className={cn(
+        "relative flex flex-col rounded-3xl bg-card p-6 sm:p-7",
+        highlight
+          ? "isolate z-10 overflow-hidden shadow-[0_30px_70px_-30px_color-mix(in_oklch,var(--primary)_55%,transparent)] ring-1 ring-primary/25 lg:scale-[1.04]"
+          : "ring-1 ring-foreground/[0.08]",
+      )}
+    >
+      {highlight && (
+        <>
+          {/* Light pooling in the top corner, with a sparkle in it. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(120%_70%_at_100%_0%,color-mix(in_oklch,var(--primary)_38%,transparent),color-mix(in_oklch,var(--primary)_10%,transparent)_45%,transparent_70%)] dark:bg-[radial-gradient(120%_75%_at_100%_0%,color-mix(in_oklch,var(--primary)_60%,transparent),color-mix(in_oklch,var(--primary)_18%,transparent)_45%,transparent_72%)]"
+          />
+          <div aria-hidden className="pointer-events-none absolute top-5 right-6 -z-10">
+            <HugeiconsIcon icon={SparklesIcon} strokeWidth={1.75} className="h-6 w-6 text-primary dark:text-white" />
+          </div>
+        </>
+      )}
       <div className="flex items-center gap-2">
         {mark && <HugeiconsIcon icon={mark.icon} strokeWidth={2} className={cn("h-[18px] w-[18px]", mark.tint)} />}
         <h3 className="text-base font-medium text-foreground">{name}</h3>
+        {highlight && (
+          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary ring-1 ring-primary/30 dark:text-[color-mix(in_oklch,var(--primary)_55%,white)]">
+            {highlight}
+          </span>
+        )}
       </div>
       <p className="mt-1.5 text-sm text-muted-foreground">{tagline}</p>
 
@@ -527,7 +560,7 @@ function PlanCard({
             <ul className="space-y-3">
               {group.items.map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-foreground">
-                  <HugeiconsIcon icon={Tick} strokeWidth={2.25} className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <HugeiconsIcon icon={Tick} strokeWidth={2.25} className={cn("mt-0.5 h-4 w-4 shrink-0", highlight ? "text-primary" : "text-muted-foreground")} />
                   {item}
                 </li>
               ))}

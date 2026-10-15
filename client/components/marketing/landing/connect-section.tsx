@@ -19,6 +19,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { LogoMark } from "@/components/logo";
 import { useAuthCta } from "@/hooks/use-auth-cta";
+import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 import { cn } from "@/lib/utils";
 
 // What Savedly connects to, as a board of tiles seen at an angle, sliding
@@ -26,7 +27,7 @@ import { cn } from "@/lib/utils";
 //
 // The tiles are the connectors on the app's own Integrations page
 // (app/(platfrom)/app/integrations), with the same badges: a round, brand-
-// colored disc and a white icon, and Google's own "G". Two connect today;
+// colored disc and a white icon, and Google's own "G". Three work today;
 // the rest are planned, drawn fainter, as that page marks them.
 
 type Kind = "live" | "planned";
@@ -65,7 +66,7 @@ const T = {
   telegram: { name: "Telegram", kind: "planned", icon: TelegramIcon, badge: "bg-sky-500 text-white" },
   whatsapp: { name: "WhatsApp", kind: "planned", icon: WhatsappIcon, badge: "bg-emerald-500 text-white" },
   slack: { name: "Slack", kind: "planned", icon: SlackIcon, badge: "bg-purple-700 text-white" },
-  extension: { name: "Browser extension", kind: "planned", icon: ChromeIcon, badge: "bg-amber-500 text-white" },
+  extension: { name: "Browser extension", kind: "live", icon: ChromeIcon, badge: "bg-amber-500 text-white" },
 } satisfies Record<string, Tile>;
 
 // Three rows that slide past. The top and bottom rows cross the whole board
@@ -180,16 +181,27 @@ export function ConnectSection() {
             <br className="hidden sm:block" /> you already use
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
-            Google Calendar and GitHub connect today. Notion, Raindrop, the browser extension and more are on the way.
+            Google Calendar, GitHub and the Chrome extension work today. Notion, Raindrop and more are on the way.
           </p>
 
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href={cta.href}
-            className="group mt-8 inline-flex h-11 items-center justify-center gap-1.5 rounded-full px-6 text-[15px] font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            className="group inline-flex h-11 items-center justify-center gap-1.5 rounded-full px-6 text-[15px] font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
             {cta.isAuthenticated ? cta.label : "Get started"}
             <HugeiconsIcon icon={ArrowRightIcon} strokeWidth={2} className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
+            <a
+              href={CHROME_WEB_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            >
+              <HugeiconsIcon icon={ChromeIcon} strokeWidth={2} className="h-4 w-4" />
+              Add to Chrome
+            </a>
+          </div>
 
           <p className="mt-6 text-xs text-muted-foreground">The brighter tiles work today. The fainter ones are planned.</p>
         </div>

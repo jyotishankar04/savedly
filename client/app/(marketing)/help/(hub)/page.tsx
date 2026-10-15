@@ -10,6 +10,7 @@ import { Reveal, RevealList } from "@/components/marketing/motion/reveal";
 export const metadata: Metadata = {
   title: "Help Center · Savedly",
   description: "Step-by-step guides for every Savedly feature, plus a live model chooser for picking your AI models.",
+  alternates: { canonical: "/help" },
 };
 
 export default function HelpHubPage() {

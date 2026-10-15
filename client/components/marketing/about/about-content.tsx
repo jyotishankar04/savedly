@@ -279,7 +279,7 @@ export function AboutContent() {
                   <br className="hidden sm:block" /> Will you help shape it?
                 </h2>
                 <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-white/70">
-                  Savedly is new and made in Bhubaneswar. The browser extension is waiting on the Chrome Web Store; the rest is live.
+                  Savedly is new and made in Bhubaneswar, and everything on it is live, the Chrome extension included.
                 </p>
 
                 <motion.ul
