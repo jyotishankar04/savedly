@@ -402,6 +402,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // loads or comes back into view, ask the background worker to check with the
 // server, so the popup and the button above follow without a browser restart.
 if (location.origin === __WEB_APP_URL__) {
+  // Tell the Savedly website (and only it) that the extension is installed,
+  // so it stops suggesting it. Other sites can't see this.
+  document.documentElement.dataset.savedlyExtension = chrome.runtime.getManifest().version;
+
   const syncSignIn = () => {
     // The extension may have been reloaded under this page; then there is
     // no one to tell, and sendMessage throws.

@@ -46,6 +46,7 @@ import { NextStepProvider, NextStep } from "nextstepjs";
 import { useNextAdapter } from "nextstepjs/adapters/next";
 import { productTourSteps, TourCard, TourAutoStart } from "@/components/product-tour";
 import { AskWidget } from "@/components/ask-widget/ask-widget";
+import { ExtensionInstallPrompt } from "@/components/extension/install-prompt";
 import { useSyncTimeZone } from "@/hooks/use-settings-group";
 
 /** Exact-matches Home ("/app"); prefix-matches everything else, so a nav
@@ -1540,6 +1541,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <DuplicateAskHost />
 
       <AskWidget />
+      <ExtensionInstallPrompt />
 
       {/* Global CSS animations styles */}
       <style>{`

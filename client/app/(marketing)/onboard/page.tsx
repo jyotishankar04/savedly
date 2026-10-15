@@ -4,7 +4,7 @@ import React, { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
+import { CheckIcon as Check, ArrowRight01Icon as ArrowRight, ChromeIcon, PuzzleIcon as Puzzle, Upload01Icon as Upload, KeyboardIcon as Keyboard, Key01Icon as Key, SlidersHorizontalIcon as Sliders } from "@hugeicons/core-free-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getServerConfig } from "@/lib/server-config";
 import { LogoMark } from "@/components/logo";
@@ -15,6 +15,8 @@ import { useCurrentUserQuery, useSetCurrentUser } from "@/context/UserContext";
 import { useCreateMemoryMutation } from "@/context/MemoryContext";
 import { detectMemoryType, deriveTitle, splitLinkAndCaption } from "@/lib/detect-memory-type";
 import { Logo } from "@/components/logo";
+import { useExtensionStatus } from "@/hooks/use-extension-status";
+import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 
 // Step 2 Interests
 const interests = [
@@ -53,7 +55,16 @@ function OnboardingFlow() {
   const requestedNext = searchParams.get("next");
   const nextDestination = requestedNext && /^\/s\/[A-Za-z0-9_-]{1,32}$/.test(requestedNext) ? requestedNext : "/app";
   const [step, setStep] = useState(1);
-  const progressWidth = `${Math.min((step / 7) * 100, 100)}%`;
+
+  // Step 6 suggests the Chrome extension, and only to someone on a desktop
+  // Chromium browser who doesn't have it; everyone else goes from 5 to 7,
+  // and the counter shows seven steps instead of eight.
+  const extensionStatus = useExtensionStatus();
+  const showExtensionStep = extensionStatus === "missing" || extensionStatus === "checking";
+  const [extensionOpened, setExtensionOpened] = useState(false);
+  const totalSteps = showExtensionStep ? 8 : 7;
+  const displayStep = !showExtensionStep && step > 6 ? step - 1 : step;
+  const progressWidth = `${Math.min((displayStep / totalSteps) * 100, 100)}%`;
 
   // Form State
   const [name, setName] = useState("");
@@ -138,14 +149,14 @@ function OnboardingFlow() {
         // Onboarding itself already succeeded — don't block entry to the app
         // over the bonus first-memory save failing.
       }
-      setStep(7);
+      setStep(8);
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Couldn't save your preferences. Please try again.");
     }
   };
 
-  const nextStep = () => setStep((prev) => Math.min(prev + 1, 7));
-  const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+  const nextStep = () => setStep((prev) => (prev === 5 && !showExtensionStep ? 7 : Math.min(prev + 1, 8)));
+  const prevStep = () => setStep((prev) => (prev === 7 && !showExtensionStep ? 5 : Math.max(prev - 1, 1)));
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground font-sans transition-colors duration-300">
@@ -157,7 +168,7 @@ function OnboardingFlow() {
             <Logo className="text-sm" />
           </Link>
           <span className="text-[11px] font-mono text-muted-foreground font-semibold">
-            ONBOARDING &middot; STEP {step.toString().padStart(2, "0")} / 07
+            ONBOARDING &middot; STEP {displayStep.toString().padStart(2, "0")} / {totalSteps.toString().padStart(2, "0")}
           </span>
         </div>
         
@@ -510,8 +521,59 @@ function OnboardingFlow() {
           </div>
         )}
 
-        {/* STEP 6: Save First Memory (No border, no ring) */}
+        {/* STEP 6: The Chrome extension (desktop Chromium without it only) */}
         {step === 6 && (
+          <div className="w-full space-y-8 animate-fade-in">
+            <div className="text-center space-y-3">
+              <h2 className="text-3xl font-medium tracking-tight text-foreground">Save from any page</h2>
+              <p className="text-sm text-muted-foreground">
+                Add Savedly to Chrome, and saving is one click from wherever you are.
+              </p>
+            </div>
+
+            <div className="mx-auto max-w-md overflow-hidden rounded-2xl ring-1 ring-foreground/10 shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element -- an animated WebP loop */}
+              <img src="/whats-new/loops/extension.webp" alt="The Savedly extension saving a page" className="aspect-[16/9] w-full object-cover object-top" />
+            </div>
+
+            <ul className="mx-auto max-w-md space-y-2 text-sm text-foreground">
+              {["Save the page you're on, with a note and tags", "Right-click to save a link, some text or an image", "Take a screenshot of an area or the whole view"].map((item) => (
+                <li key={item} className="flex items-start gap-2.5">
+                  <HugeiconsIcon icon={Check} strokeWidth={2.25} className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex flex-col items-center gap-2.5 max-w-md mx-auto pt-2">
+              {extensionStatus === "installed" ? (
+                <p className="text-sm font-medium text-primary">It&apos;s installed. You&apos;re all set.</p>
+              ) : (
+                <a
+                  href={CHROME_WEB_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setExtensionOpened(true)}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary font-medium text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
+                >
+                  <HugeiconsIcon icon={ChromeIcon} strokeWidth={2} className="h-4 w-4" />
+                  Add to Chrome
+                </a>
+              )}
+              {extensionOpened && (
+                <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                  Once it&apos;s added, pin it from Chrome&apos;s puzzle-piece menu so it stays in the toolbar. It uses this sign-in.
+                </p>
+              )}
+              <Button variant="ghost" onClick={nextStep} className="w-full h-11 rounded-full font-medium">
+                {extensionOpened || extensionStatus === "installed" ? "Continue" : "Skip for now"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 7: Save First Memory (No border, no ring) */}
+        {step === 7 && (
           <div className="w-full space-y-12 text-center animate-fade-in my-auto">
             <div className="space-y-4">
               <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-foreground">
@@ -545,8 +607,8 @@ function OnboardingFlow() {
           </div>
         )}
 
-        {/* STEP 7: Ready */}
-        {step === 7 && (
+        {/* STEP 8: Ready */}
+        {step === 8 && (
           <div className="my-auto w-full max-w-md text-center space-y-10 animate-fade-in flex flex-col items-center">
             
             {/* Minimal icon */}
