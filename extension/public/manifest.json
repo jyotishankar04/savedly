@@ -16,7 +16,7 @@
     "notifications"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "http://localhost:4000/*"
   ],
   "action": {
     "default_popup": "src/popup/popup.html",
