@@ -346,7 +346,7 @@ export function PricingPlans() {
                     // Each card builds on the one below it: Lite on Free, Pro on Lite.
                     groups={[{ label: `Everything in ${below?.name ?? freeName} +`, items: planFeatureBullets(plan.features, below?.features) }]}
                     action={
-                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, highlighted ? strongButton : quietButton)}>
+                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, highlighted ? cn(strongButton, glowButton) : quietButton)}>
                         {pending === plan.key && <Spinner />}
                         {isCurrent ? "Current plan" : buyable ? "Upgrade" : "Coming soon"}
                       </button>
@@ -459,6 +459,8 @@ const buttonClass =
 /** The one card the row is built around. */
 const strongButton = "bg-primary text-primary-foreground hover:bg-primary/90";
 const quietButton = "bg-foreground/[0.06] text-foreground hover:bg-foreground/10";
+/** The recommended card's button: a soft halo of the accent colour. */
+const glowButton = "shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_60%,white_10%),0_10px_30px_-8px_color-mix(in_oklch,var(--primary)_70%,transparent)]";
 
 interface CardRow {
   label: string;
@@ -502,19 +504,34 @@ function PlanCard({
       className={cn(
         "relative flex flex-col rounded-3xl bg-card p-6 sm:p-7",
         highlight
-          ? "z-10 mt-3 bg-[linear-gradient(to_bottom,color-mix(in_oklch,var(--primary)_7%,var(--card)),var(--card)_45%)] shadow-[0_24px_60px_-24px_color-mix(in_oklch,var(--primary)_45%,transparent)] ring-2 ring-primary md:mt-0 lg:scale-[1.04]"
+          ? "isolate z-10 overflow-hidden shadow-[0_30px_70px_-30px_color-mix(in_oklch,var(--primary)_55%,transparent)] ring-1 ring-primary/25 lg:scale-[1.04]"
           : "ring-1 ring-foreground/[0.08]",
       )}
     >
       {highlight && (
-        <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/30">
-          <HugeiconsIcon icon={SparklesIcon} strokeWidth={2.25} className="h-3.5 w-3.5" />
-          {highlight}
-        </span>
+        <>
+          {/* Light pooling in the top corner, with a few sparkles in it. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(120%_70%_at_100%_0%,color-mix(in_oklch,var(--primary)_38%,transparent),color-mix(in_oklch,var(--primary)_10%,transparent)_45%,transparent_70%)] dark:bg-[radial-gradient(120%_75%_at_100%_0%,color-mix(in_oklch,var(--primary)_60%,transparent),color-mix(in_oklch,var(--primary)_18%,transparent)_45%,transparent_72%)]"
+          />
+          <div aria-hidden className="pointer-events-none absolute top-5 right-6 -z-10 text-primary-foreground/90 dark:text-white/90">
+            <HugeiconsIcon icon={SparklesIcon} strokeWidth={1.75} className="h-6 w-6 text-primary dark:text-white" />
+            <span className="absolute -top-2 -left-8 h-1 w-1 rounded-full bg-primary/70 dark:bg-white/80" />
+            <span className="absolute top-7 -left-4 h-[3px] w-[3px] rounded-full bg-primary/60 dark:bg-white/60" />
+            <span className="absolute -top-1 -left-16 h-[3px] w-[3px] rounded-full bg-primary/50 dark:bg-white/50" />
+            <span className="absolute top-3 -left-24 h-0.5 w-0.5 rounded-full bg-primary/50 dark:bg-white/50" />
+          </div>
+        </>
       )}
       <div className="flex items-center gap-2">
         {mark && <HugeiconsIcon icon={mark.icon} strokeWidth={2} className={cn("h-[18px] w-[18px]", mark.tint)} />}
         <h3 className="text-base font-medium text-foreground">{name}</h3>
+        {highlight && (
+          <span className="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary ring-1 ring-primary/30 dark:text-[color-mix(in_oklch,var(--primary)_55%,white)]">
+            {highlight}
+          </span>
+        )}
       </div>
       <p className="mt-1.5 text-sm text-muted-foreground">{tagline}</p>
 
