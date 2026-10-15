@@ -8,7 +8,7 @@ import { coverLoads } from "@/lib/blog-cover";
 export const metadata: Metadata = {
   title: "Blog · Savedly",
   description: "Notes from building Savedly: how it works, what changed, and what we learned along the way.",
-  alternates: { canonical: "/blog", types: { "application/rss+xml": "/blog/feed.xml" } },
+  alternates: { canonical: "/blog" },
 };
 
 

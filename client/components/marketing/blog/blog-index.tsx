@@ -2,8 +2,6 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { RssIcon as Rss } from "@hugeicons/core-free-icons";
 import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
 import { Reveal } from "@/components/marketing/motion/reveal";
 import { BlogGrid, type BlogPost } from "@/components/arc/blocks/blog-grid/blog-grid";
@@ -54,12 +52,8 @@ export function BlogIndex({ posts }: { posts: BlogPostSummary[] }) {
           How it works, what changed, and what we learned along the way, written by the people making it.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm">
-          <Link href="/blog/rss" className="inline-flex items-center gap-1.5 font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground">
-            <HugeiconsIcon icon={Rss} strokeWidth={2} className="h-4 w-4" />
-            Follow with RSS
-          </Link>
-          <Link href="/changelog" className="font-medium text-muted-foreground transition-colors hover:text-foreground">
-            Or see what shipped
+          <Link href="/changelog" className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground">
+            See what shipped
           </Link>
         </div>
       </HeroReveal>
@@ -84,14 +78,10 @@ export function BlogIndex({ posts }: { posts: BlogPostSummary[] }) {
 
       {/* Where to hear about the next one */}
       <Reveal className="flex flex-col items-center gap-3 px-5 pt-8 pb-24 text-center sm:px-8 md:pb-32">
-        <p className="text-[clamp(1.5rem,3vw,2rem)] font-medium tracking-[-0.03em] text-balance text-foreground">Get the next post when it&apos;s out</p>
-        <p className="max-w-md text-[15px] leading-relaxed text-muted-foreground">Add the RSS feed to your reader, or join the Discord to talk about them.</p>
+        <p className="text-[clamp(1.5rem,3vw,2rem)] font-medium tracking-[-0.03em] text-balance text-foreground">Talk about the posts</p>
+        <p className="max-w-md text-[15px] leading-relaxed text-muted-foreground">Questions, ideas or a post you&apos;d like to see: the Discord is where we talk about them.</p>
         <div className="mt-4 flex flex-wrap justify-center gap-3">
-          <Link href="/blog/rss" className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-            <HugeiconsIcon icon={Rss} strokeWidth={2} className="h-4 w-4" />
-            RSS feed
-          </Link>
-          <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center rounded-full px-6 text-[15px] font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/5">
+          <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90">
             Join the Discord
           </a>
         </div>

@@ -244,7 +244,6 @@ const RESOURCES_MENU: MegaMenuProps = {
       label: "Read",
       links: [
         { title: "Blog", href: "/blog" },
-        { title: "RSS feed", href: "/blog/rss" },
         { title: "Changelog", href: "/changelog" },
       ],
     },
