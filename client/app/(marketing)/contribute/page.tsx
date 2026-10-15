@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ContributeContent } from "@/components/marketing/contribute/contribute-content";
+import { getContributors } from "@/lib/github-contributors";
 
 export const metadata: Metadata = {
   title: "Contribute · Savedly",
@@ -7,6 +8,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contribute" },
 };
 
-export default function ContributePage() {
-  return <ContributeContent />;
+// The contributors list is fetched on the server and refreshed every six hours.
+export default async function ContributePage() {
+  const contributors = await getContributors();
+  return <ContributeContent contributors={contributors} />;
 }

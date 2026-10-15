@@ -48,6 +48,7 @@ import { productTourSteps, TourCard, TourAutoStart } from "@/components/product-
 import { AskWidget } from "@/components/ask-widget/ask-widget";
 import { ExtensionInstallPrompt } from "@/components/extension/install-prompt";
 import { UpgradeBadge, UpgradeCard, UpgradeRing } from "@/components/upgrade-card";
+import { UpgradeDialog } from "@/components/upgrade-dialog";
 import { useSyncTimeZone } from "@/hooks/use-settings-group";
 
 /** Exact-matches Home ("/app"); prefix-matches everything else, so a nav
@@ -85,12 +86,12 @@ function MobileMenuLink({ item, active, onNavigate }: { item: NavItem; active: b
       href={item.href}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
-      className={cn(MOBILE_MENU_ROW, active ? "bg-primary/10 text-primary" : "text-foreground active:bg-muted")}
+      className={cn(MOBILE_MENU_ROW, active ? "bg-sidebar-accent text-foreground" : "text-foreground active:bg-muted")}
     >
       {item.logo ? (
         <LogoMark ticks={false} className="h-5 w-5 shrink-0" />
       ) : (
-        <HugeiconsIcon icon={item.icon} strokeWidth={2} className={cn("h-5 w-5 shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+        <HugeiconsIcon icon={item.icon} strokeWidth={2} className={cn("h-5 w-5 shrink-0", active ? "text-foreground" : "text-muted-foreground")} />
       )}
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       {item.badge ? (
@@ -113,7 +114,7 @@ function SidebarLink({ item, active, ...rest }: { item: NavItem; active: boolean
       className={cn(
         SIDEBAR_ROW,
         // No hover fill of its own: the nav's one highlight glides to it (GlidingHighlight).
-        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+        active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:text-foreground"
       )}
     >
       {item.logo ? (
@@ -827,6 +828,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Ambient primary-color glow — decorative, sits behind everything else */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        {/* A soft light from the top of the page, fading down: barely there in
+            the light theme, a little more in the dark one. */}
+        <div className="absolute inset-0 bg-[radial-gradient(130%_70%_at_50%_-10%,color-mix(in_oklch,var(--foreground)_2.5%,transparent),transparent_70%)] dark:bg-[radial-gradient(130%_70%_at_50%_-10%,color-mix(in_oklch,var(--foreground)_6%,transparent),transparent_70%)]" />
         <div className="absolute -top-40 -left-32 h-[26rem] w-[26rem] rounded-full bg-primary/10 blur-[110px] animate-ambient-flash" />
         <div className="absolute -bottom-48 -right-24 h-[30rem] w-[30rem] rounded-full bg-primary/[0.07] blur-[130px] animate-ambient-flash [animation-delay:-9s]" />
       </div>
@@ -844,7 +848,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           });
         }}
         className={cn(
-          "relative z-10 bg-muted/15 flex flex-col justify-between shrink-0 hidden md:flex overflow-hidden",
+          "relative z-10 bg-sidebar flex flex-col justify-between shrink-0 hidden md:flex overflow-hidden",
           sidebarCollapsed ? "border-r-0" : "border-r border-border/60"
         )}
       >
@@ -945,7 +949,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                       data-nav-row=""
                       className={cn(
                         SIDEBAR_ROW,
-                        active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                        active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <span aria-hidden className="flex w-[18px] shrink-0 justify-center text-sm leading-none">{col.icon}</span>
@@ -1202,7 +1206,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
                         href={href}
                         onClick={() => setMobileMenuOpen(false)}
                         aria-current={active ? "page" : undefined}
-                        className={cn(MOBILE_MENU_ROW, active ? "bg-primary/10 text-primary" : "text-foreground active:bg-muted")}
+                        className={cn(MOBILE_MENU_ROW, active ? "bg-sidebar-accent text-foreground" : "text-foreground active:bg-muted")}
                       >
                         <span aria-hidden className="flex w-5 shrink-0 justify-center text-base leading-none">{col.icon}</span>
                         <span className="min-w-0 flex-1 truncate">{col.name}</span>
@@ -1551,6 +1555,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
       <AskWidget />
       <ExtensionInstallPrompt />
+      <UpgradeDialog />
 
       {/* Global CSS animations styles */}
       <style>{`

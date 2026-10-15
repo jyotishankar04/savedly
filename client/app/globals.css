@@ -8,6 +8,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Light theme in the manner of ChatGPT's: a white page, white cards and
+     menus, a barely grey sidebar, soft grey fills and pills for hover and
+     the active row, and very light neutral borders. */
   --background: oklch(1.0000 0 0);
   --foreground: oklch(0.1448 0 0);
   --card: oklch(1.0000 0 0);
@@ -16,29 +19,29 @@
   --popover-foreground: oklch(0.1448 0 0);
   --primary: oklch(0.4878 0.2432 264.4045);
   --primary-foreground: oklch(0.9851 0 0);
-  --secondary: oklch(0.9702 0 0);
+  --secondary: oklch(0.9670 0 0);
   --secondary-foreground: oklch(0.2046 0 0);
-  --muted: oklch(0.9702 0 0);
+  --muted: oklch(0.9670 0 0);
   --muted-foreground: oklch(0.5555 0 0);
-  --accent: oklch(0.9702 0 0);
+  --accent: #efefef;
   --accent-foreground: oklch(0.2046 0 0);
   --destructive: oklch(0.5830 0.2387 28.4765);
   --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.9219 0 0);
-  --input: oklch(0.9219 0 0);
+  --border: oklch(0.9250 0 0);
+  --input: oklch(0.9200 0 0);
   --ring: oklch(0.4878 0.2432 264.4045);
   --chart-1: oklch(0.8088 0.0991 251.7533);
   --chart-2: oklch(0.6207 0.1894 259.9358);
   --chart-3: oklch(0.5495 0.2202 263.0917);
   --chart-4: oklch(0.4893 0.2202 264.0405);
   --chart-5: oklch(0.4210 0.1792 266.0094);
-  --sidebar: oklch(0.9731 0 0);
+  --sidebar: oklch(0.9850 0 0);
   --sidebar-foreground: oklch(0.1448 0 0);
   --sidebar-primary: oklch(0.4878 0.2432 264.4045);
   --sidebar-primary-foreground: oklch(0.9851 0 0);
-  --sidebar-accent: oklch(1.0000 0 0);
+  --sidebar-accent: oklch(0.9400 0 0);
   --sidebar-accent-foreground: oklch(0.2046 0 0);
-  --sidebar-border: oklch(0.9219 0 0);
+  --sidebar-border: oklch(0.9250 0 0);
   --sidebar-ring: oklch(0.4878 0.2432 264.4045);
   --font-sans: var(--font-geist-sans), ui-sans-serif, sans-serif, system-ui;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
@@ -60,40 +63,46 @@
   --shadow-2xl: 0 0px 4px -7.5px hsl(0 0% 0% / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  /* The one hover background in the light theme. */
+  --hover: #efefef;
 }
 
 .dark {
-  --background: oklch(0.1957 0 0);
+  /* Dark theme, the same idea as the light one: a black page, a slightly
+     lifted sidebar panel, cards, then menus and muted fills, borders that
+     show on both the page and the cards, one hover colour (#262626) and a
+     grey pill for the active row. */
+  --background: oklch(0 0 0);
   --foreground: oklch(0.9851 0 0);
-  --card: oklch(0.2393 0 0);
+  --card: oklch(0.2000 0 0);
   --card-foreground: oklch(0.9851 0 0);
-  --popover: oklch(0.2752 0 0);
+  --popover: oklch(0.2300 0 0);
   --popover-foreground: oklch(0.9851 0 0);
   --primary: oklch(0.6187 0.2067 259.2316);
   --primary-foreground: oklch(0.9851 0 0);
-  --secondary: oklch(0.2752 0 0);
+  --secondary: oklch(0.2350 0 0);
   --secondary-foreground: oklch(0.9851 0 0);
-  --muted: oklch(0.2752 0 0);
+  --muted: oklch(0.2350 0 0);
   --muted-foreground: oklch(0.8388 0 0);
-  --accent: oklch(0.3100 0 0);
+  --accent: #262626;
   --accent-foreground: oklch(0.9851 0 0);
   --destructive: oklch(0.7022 0.1892 22.2279);
   --destructive-foreground: oklch(0.9851 0 0);
-  --border: oklch(0.2393 0 0);
-  --input: oklch(0.3299 0 0);
+  --border: oklch(0.2500 0 0);
+  --input: oklch(0.3000 0 0);
   --ring: oklch(0.4475 0.1432 258.6866);
   --chart-1: oklch(0.8088 0.0991 251.7533);
   --chart-2: oklch(0.6207 0.1894 259.9358);
   --chart-3: oklch(0.5495 0.2202 263.0917);
   --chart-4: oklch(0.4893 0.2202 264.0405);
   --chart-5: oklch(0.4210 0.1792 266.0094);
-  --sidebar: oklch(0.2393 0 0);
+  --sidebar: oklch(0.1400 0 0);
   --sidebar-foreground: oklch(0.9851 0 0);
   --sidebar-primary: oklch(0.6187 0.2067 259.2316);
   --sidebar-primary-foreground: oklch(0.9851 0 0);
-  --sidebar-accent: oklch(0.2752 0 0);
+  --sidebar-accent: oklch(0.2900 0 0);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
-  --sidebar-border: oklch(0.2752 0 0);
+  --sidebar-border: oklch(0.2200 0 0);
   --sidebar-ring: oklch(0.6187 0.2067 259.2316);
   --font-sans: var(--font-geist-sans), ui-sans-serif, sans-serif, system-ui;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
@@ -113,6 +122,7 @@
   --shadow-lg: 0 0px 4px -7.5px hsl(0 0% 0% / 0.10), 0 4px 6px -8.5px hsl(0 0% 0% / 0.10);
   --shadow-xl: 0 0px 4px -7.5px hsl(0 0% 0% / 0.10), 0 8px 10px -8.5px hsl(0 0% 0% / 0.10);
   --shadow-2xl: 0 0px 4px -7.5px hsl(0 0% 0% / 0.25);
+  --hover: #262626;
 }
 
 @theme inline {
@@ -412,4 +422,14 @@
 @keyframes tab-progress {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
+}
+
+/* Every hover:bg-muted (and its /30 to /70 strengths) lands on the theme's
+   one hover colour, --hover (#efefef light, #262626 dark), like the gliding
+   highlight. In the utilities layer, later than Tailwind's own, so it takes
+   over without !important. */
+@layer utilities {
+  :is(.hover\:bg-muted, .hover\:bg-muted\/30, .hover\:bg-muted\/40, .hover\:bg-muted\/50, .hover\:bg-muted\/60, .hover\:bg-muted\/70):hover {
+    background-color: var(--hover);
+  }
 }

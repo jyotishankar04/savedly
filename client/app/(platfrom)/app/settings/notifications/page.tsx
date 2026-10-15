@@ -14,7 +14,7 @@ export default function NotificationsSettingsPage() {
 
       <div className="space-y-1 pb-4 border-b border-border/25">
         <h3 className="text-sm font-bold text-foreground">Notifications</h3>
-        <p className="text-[10px] text-muted-foreground">Manage your rediscovery alerts frequencies.</p>
+        <p className="text-[10px] text-muted-foreground">Manage your notification preferences.</p>
       </div>
 
       {loading && <HugeiconsIcon icon={Loader2} strokeWidth={2.25} className="h-4 w-4 animate-spin text-muted-foreground" />}
@@ -24,8 +24,6 @@ export default function NotificationsSettingsPage() {
         <div className="space-y-4">
           {(
             [
-              { key: "weeklySummary", title: "Weekly memories summary email", desc: "Receive highlights of items saved during the week." },
-              { key: "forgottenMemories", title: "Forgotten memories alerts", desc: "Periodic notification of high-value saves from months ago." },
               { key: "productUpdates", title: "Product news & announcements", desc: "Emails from the team about new features and changes." },
             ] as const
           ).map((item) => (

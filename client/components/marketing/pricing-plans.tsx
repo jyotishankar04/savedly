@@ -58,7 +58,7 @@ const TAGLINES: Record<string, string> = {
 const ESSENTIALS = ["Search by meaning", "Ask your library", "Collections and tags", "Sharing by link", "Import and export"];
 
 /** Every limit a plan has, one row each, in the order they read best. Values come from the server. */
-const ROWS: { type: PlanLimitType; label: string; icon: IconSvgElement; tint: string }[] = [
+export const ROWS: { type: PlanLimitType; label: string; icon: IconSvgElement; tint: string }[] = [
   { type: "memory_count", label: "Memories", icon: FolderLibraryIcon, tint: "text-sky-500" },
   { type: "storage_mb", label: "Storage", icon: Database01Icon, tint: "text-violet-500" },
   { type: "ai_monthly_saves", label: "Saves read by AI / month", icon: AiMagicIcon, tint: "text-emerald-500" },
@@ -69,7 +69,7 @@ const ROWS: { type: PlanLimitType; label: string; icon: IconSvgElement; tint: st
   { type: "import_monthly_count", label: "Imports / month", icon: Download04Icon, tint: "text-orange-500" },
 ];
 
-const TIER_MARK: Record<string, { icon: IconSvgElement; tint: string }> = {
+export const TIER_MARK: Record<string, { icon: IconSvgElement; tint: string }> = {
   free: { icon: Leaf01Icon, tint: "text-sky-500" },
   lite: { icon: FlashIcon, tint: "text-orange-500" },
   ai: { icon: Rocket01Icon, tint: "text-violet-500" },
@@ -123,7 +123,7 @@ const FAQ = [
 
 type Tab = "cloud" | "self";
 
-function formatPerMonth(plan: PublicPlan): { price: string; per: string | null; note: string | null } {
+export function formatPerMonth(plan: PublicPlan): { price: string; per: string | null; note: string | null } {
   if (plan.priceMinor <= 0) return { price: "Coming soon", per: null, note: null };
   if (plan.billingInterval === "yearly") {
     return {
@@ -346,7 +346,7 @@ export function PricingPlans() {
                     // Each card builds on the one below it: Lite on Free, Pro on Lite.
                     groups={[{ label: `Everything in ${below?.name ?? freeName} +`, items: planFeatureBullets(plan.features, below?.features) }]}
                     action={
-                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, highlighted ? cn(strongButton, glowButton) : quietButton)}>
+                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, highlighted ? cn(strongButton) : quietButton)}>
                         {pending === plan.key && <Spinner />}
                         {isCurrent ? "Current plan" : buyable ? "Upgrade" : "Coming soon"}
                       </button>
@@ -459,8 +459,6 @@ const buttonClass =
 /** The one card the row is built around. */
 const strongButton = "bg-primary text-primary-foreground hover:bg-primary/90";
 const quietButton = "bg-foreground/[0.06] text-foreground hover:bg-foreground/10";
-/** The recommended card's button: a soft halo of the accent colour. */
-const glowButton = "shadow-[0_0_0_1px_color-mix(in_oklch,var(--primary)_60%,white_10%),0_10px_30px_-8px_color-mix(in_oklch,var(--primary)_70%,transparent)]";
 
 interface CardRow {
   label: string;
@@ -504,19 +502,23 @@ function PlanCard({
       className={cn(
         "relative flex flex-col rounded-3xl bg-card p-6 sm:p-7",
         highlight
-          ? "isolate z-10 overflow-hidden shadow-[0_30px_70px_-30px_color-mix(in_oklch,var(--primary)_55%,transparent)] ring-1 ring-primary/25 lg:scale-[1.04]"
+          ? "isolate z-10 overflow-hidden ring-1 ring-primary/25 lg:scale-[1.04]"
           : "ring-1 ring-foreground/[0.08]",
       )}
     >
       {highlight && (
         <>
-          {/* Light pooling in the top corner, with a sparkle in it. */}
+          {/* Light pooling in the top corner, with a few sparkles in it. */}
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(120%_70%_at_100%_0%,color-mix(in_oklch,var(--primary)_38%,transparent),color-mix(in_oklch,var(--primary)_10%,transparent)_45%,transparent_70%)] dark:bg-[radial-gradient(120%_75%_at_100%_0%,color-mix(in_oklch,var(--primary)_60%,transparent),color-mix(in_oklch,var(--primary)_18%,transparent)_45%,transparent_72%)]"
           />
-          <div aria-hidden className="pointer-events-none absolute top-5 right-6 -z-10">
+          <div aria-hidden className="pointer-events-none absolute top-5 right-6 -z-10 text-primary-foreground/90 dark:text-white/90">
             <HugeiconsIcon icon={SparklesIcon} strokeWidth={1.75} className="h-6 w-6 text-primary dark:text-white" />
+            <span className="absolute -top-2 -left-8 h-1 w-1 rounded-full bg-primary/70 dark:bg-white/80" />
+            <span className="absolute top-7 -left-4 h-[3px] w-[3px] rounded-full bg-primary/60 dark:bg-white/60" />
+            <span className="absolute -top-1 -left-16 h-[3px] w-[3px] rounded-full bg-primary/50 dark:bg-white/50" />
+            <span className="absolute top-3 -left-24 h-0.5 w-0.5 rounded-full bg-primary/50 dark:bg-white/50" />
           </div>
         </>
       )}
