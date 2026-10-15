@@ -50,10 +50,10 @@ const FACTS = `- What Savedly is: a personal library for everything you save. Yo
 - On the hosted service Savedly supplies the AI. A self-hosted install uses the AI provider its admin connects (OpenAI, Anthropic, Google, Groq, OpenRouter or a compatible one).
 - You can save links, notes, images and screenshots, PDFs and other documents, and videos.
 - There is no native mobile app. The website works in a phone's browser and can be installed to the home screen.
-- The browser extension is built but not yet published to the Chrome Web Store.
+- The browser extension is in the Chrome Web Store (https://chromewebstore.google.com/detail/savedly/ohhfepdoalacfbbjplmnflhjcjbkhfgp). It saves the page you are on, links, selected text, images and screenshots, and uses your Savedly sign-in. Ctrl+Shift+S (Cmd+Shift+S on a Mac) saves the current page.
 - The vault is protected by a PIN. It is not end-to-end encryption.
 - Saved content is not used to train AI models.
-- Integrations available now: Google Calendar and GitHub stars. Others are planned.`;
+- Integrations available now: Google Calendar, GitHub stars and the Chrome extension. Others are planned.`;
 
 const SYSTEM = `You answer questions about Savedly, an app that saves links, notes, files and screenshots and helps people find them again. You are a help box on Savedly's public website, and you know the whole site.
 

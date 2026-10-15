@@ -26,6 +26,7 @@ import {
 import { Logo, LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { DISCORD_URL, GITHUB_CONFIGURED, GITHUB_URL, LICENSE } from "@/lib/open-source";
+import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 import { ProductHuntBadge } from "@/components/marketing/product-hunt-badge";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
 
@@ -51,6 +52,7 @@ const sections: { title: string; links: FooterLink[] }[] = [
       { label: "How it works", href: "/how-it-works" },
       { label: "Pricing", href: "/pricing" },
       { label: "Integrations", href: "/#integrations" },
+      { label: "Chrome extension", href: CHROME_WEB_STORE_URL, external: true },
       { label: "Changelog", href: "/changelog" },
       { label: "Self-hosting", href: "/help/docs/self-host/self-host" },
     ],
