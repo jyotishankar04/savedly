@@ -22,7 +22,7 @@ Free and open source, with no paid tier behind it. Every answer from "Ask" links
 
 - Web dashboard (Next.js) is the only shipped client; it is responsive and used on phones.
 - Capture: Quick Capture (link, note, file), bulk import of a browser bookmarks HTML file or a URL list.
-- Chrome extension is built but **not yet published**. There is **no mobile app**. Landing copy must say so, never imply otherwise.
+- The Chrome extension is **live in the Chrome Web Store** (since October 2026; link in `lib/extension.ts`): save the page, links, text, images and screenshots, plus Ctrl+Shift+S. There is **no mobile app**. Landing copy must say so, never imply otherwise.
 
 ## Capabilities and Constraints
 

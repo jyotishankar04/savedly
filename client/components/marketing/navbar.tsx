@@ -6,6 +6,8 @@ import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { GlidingHighlight } from "@/components/ui/gliding-highlight";
+import { CHROME_WEB_STORE_URL } from "@/lib/extension";
+import { DISCORD_URL, GITHUB_URL } from "@/lib/open-source";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -88,6 +90,7 @@ const productLinks: MenuEntry[] = [
 
 import { competitors } from "@/lib/data/comparisons";
 
+// The phone menu's Compare list (the desktop menu is CompareMenu below).
 const compareLinks: MenuEntry[] = [
   {
     title: "All Comparisons",
@@ -95,13 +98,190 @@ const compareLinks: MenuEntry[] = [
     description: "See how we stack up against all the alternatives.",
     href: "/vs",
   },
-  ...competitors.map(c => ({
+  ...competitors.map((c) => ({
     title: `vs ${c.name}`,
     icon: BalanceScaleIcon,
     description: c.type,
     href: `/vs/${c.slug}`,
-  }))
+  })),
 ];
+
+// The Compare menu: plain links, grouped by the kind of app. A competitor
+// added to lib/data/comparisons.ts without a group here lands in the last
+// column, so it's never left out.
+const COMPARE_GROUPS: { label: string; slugs: string[] }[] = [
+  { label: "AI memory apps", slugs: ["mymind", "memorie", "fabric", "tome"] },
+  { label: "Bookmarks & reading", slugs: ["raindrop", "readwise-reader", "glasp"] },
+  { label: "Notes & workspaces", slugs: ["notion", "evernote", "google-keep", "capacities"] },
+];
+
+const compareColumns = COMPARE_GROUPS.map((group, i) => ({
+  label: group.label,
+  links: competitors
+    .filter((c) => group.slugs.includes(c.slug) || (i === COMPARE_GROUPS.length - 1 && !COMPARE_GROUPS.some((g) => g.slugs.includes(c.slug))))
+    .sort((a, b) => group.slugs.indexOf(a.slug) - group.slugs.indexOf(b.slug))
+    .map((c) => ({ title: `vs ${c.name}`, href: `/vs/${c.slug}` })),
+}));
+
+interface MegaLink {
+  title: string;
+  href: string;
+  /** Opens in a new tab (another site). */
+  external?: boolean;
+}
+
+interface MegaMenuProps {
+  title: string;
+  blurb: string;
+  cta: MegaLink;
+  columns: { label: string; links: MegaLink[] }[];
+}
+
+// Plain text links: on hover the text eases into the accent colour, nothing else.
+const MEGA_LINK =
+  "inline-block text-sm text-foreground transition-colors duration-300 ease-out hover:text-primary focus-visible:text-primary focus-visible:outline-none";
+
+function MegaHref({ link, className, children }: { link: MegaLink; className: string; children: React.ReactNode }) {
+  return link.external ? (
+    <a href={link.href} target="_blank" rel="noopener noreferrer" className={className}>
+      {children}
+    </a>
+  ) : (
+    <Link href={link.href} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+/** A dropdown laid out as a heading with one button, then plain links in labelled columns. */
+function MegaMenu({ title, blurb, cta, columns }: MegaMenuProps) {
+  return (
+    // Full width (see NavigationMenu fullWidth), with the content held to the
+    // navbar's own width so it lines up with the logo.
+    <div
+      // 76rem with 3.5rem of padding puts the heading under the logo at every
+      // width: the bar is 72rem plus its own padding, inside 2rem of gutter.
+      // Centred against the window, not with mx-auto: while a panel fades out
+      // the menu takes it out of the flow, and mx-auto would then snap it to
+      // the left edge mid-fade.
+      className="ml-[max(0px,calc((100vw-76rem)/2))] grid w-screen max-w-[76rem] gap-10 px-[3.125rem] py-9"
+      style={{ gridTemplateColumns: `minmax(0, 1.3fr) repeat(3, minmax(0, 1fr))` }}
+    >
+      <div>
+        <p className="text-xl font-medium tracking-[-0.02em] text-foreground">{title}</p>
+        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">{blurb}</p>
+        <MegaHref
+          link={cta}
+          className="mt-5 inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          {cta.title}
+        </MegaHref>
+      </div>
+      {columns.map((column) => (
+        <div key={column.label}>
+          <p className="text-[13px] text-muted-foreground">{column.label}</p>
+          <ul className="mt-3.5 space-y-2.5">
+            {column.links.map((link) => (
+              <li key={link.href}>
+                <MegaHref link={link} className={MEGA_LINK}>
+                  {link.title}
+                </MegaHref>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const PRODUCT_MENU: MegaMenuProps = {
+  title: "Product",
+  blurb: "Everything Savedly does, and how it works.",
+  cta: { title: "See all features", href: "/features" },
+  columns: [
+    {
+      label: "Explore",
+      links: [
+        { title: "Features", href: "/features" },
+        { title: "How it works", href: "/how-it-works" },
+        { title: "Pricing", href: "/pricing" },
+      ],
+    },
+    {
+      label: "Get Savedly",
+      links: [
+        { title: "Chrome extension", href: CHROME_WEB_STORE_URL, external: true },
+        { title: "Self-host it", href: "/help/docs/self-host/self-host" },
+        { title: "Changelog", href: "/changelog" },
+      ],
+    },
+  ],
+};
+
+const COMPARE_MENU: MegaMenuProps = {
+  title: "Compare",
+  blurb: "How Savedly stacks up against the apps people use today.",
+  cta: { title: "All comparisons", href: "/vs" },
+  columns: compareColumns,
+};
+
+const RESOURCES_MENU: MegaMenuProps = {
+  title: "Resources",
+  blurb: "Guides, notes from the team, and people to ask.",
+  cta: { title: "Help Center", href: "/help" },
+  columns: [
+    {
+      label: "Learn",
+      links: [
+        { title: "Getting started", href: "/help/docs/get-started/getting-started" },
+        { title: "Save from Chrome", href: "/help/docs/get-started/extension" },
+        { title: "Import your bookmarks", href: "/help/docs/get-started/import" },
+        { title: "Self-host it", href: "/help/docs/self-host/self-host" },
+      ],
+    },
+    {
+      label: "Read",
+      links: [
+        { title: "Blog", href: "/blog" },
+        { title: "Changelog", href: "/changelog" },
+      ],
+    },
+    {
+      label: "Talk to us",
+      links: [
+        { title: "Community", href: "/community" },
+        { title: "Discord", href: DISCORD_URL, external: true },
+        { title: "Report a bug or idea", href: "/report" },
+      ],
+    },
+  ],
+};
+
+const COMPANY_MENU: MegaMenuProps = {
+  title: "Company",
+  blurb: "The people behind Savedly, in Bhubaneswar.",
+  cta: { title: "About us", href: "/about" },
+  columns: [
+    {
+      label: "Savedly",
+      links: [
+        { title: "Contact", href: "/contact" },
+        { title: "Contribute", href: "/contribute" },
+        { title: "GitHub", href: GITHUB_URL, external: true },
+      ],
+    },
+    {
+      label: "Trust",
+      links: [
+        { title: "Security", href: "/security" },
+        { title: "Privacy", href: "/privacy" },
+        { title: "Terms", href: "/terms" },
+        { title: "Cookies", href: "/cookies" },
+      ],
+    },
+  ],
+};
 
 const resourceLinks: MenuEntry[] = [
   {
@@ -173,20 +353,6 @@ function MobileMenuRow({ entry, active, onNavigate }: { entry: MenuEntry; active
   );
 }
 
-function MenuRow({ entry }: { entry: MenuEntry }) {
-  return (
-    <Link href={entry.href} data-nav-row="" className="group relative z-[1] flex items-center gap-3.5 rounded-xl p-2.5 focus-visible:outline-none">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-focus-visible:bg-primary group-focus-visible:text-primary-foreground">
-        <HugeiconsIcon icon={entry.icon} strokeWidth={1.75} className="h-5 w-5" />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-foreground">{entry.title}</span>
-        <span className="mt-0.5 block text-[13px] leading-snug text-muted-foreground">{entry.description}</span>
-      </span>
-    </Link>
-  );
-}
-
 /** The site header. A self-hosted install gets the plain one: it has no product pages to link to. */
 export function Navbar() {
   return SELF_HOSTED ? <PlainNavbar /> : <MarketingNavbar />;
@@ -196,6 +362,9 @@ function MarketingNavbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  // While a dropdown is open the whole bar takes the dropdown's colour, edge
+  // to edge, so the two read as one sheet over the dimmed page.
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const pathname = usePathname();
   const bannerRef = React.useRef<HTMLDivElement>(null);
   const [bannerHeight, setBannerHeight] = React.useState(0);
@@ -243,13 +412,24 @@ function MarketingNavbar() {
       <div ref={bannerRef}>
         <AnnouncementBanner />
       </div>
-      <header className="mt-4 w-full px-4 sm:px-8">
+      {/* While open, the bar's colour also runs 8px down under the dropdown (a
+          shadow, so nothing moves): wherever the two edges meet on a fraction
+          of a pixel, the dropdown's top edge then blends into the same colour
+          instead of showing a hairline of page between them. */}
+      <header
+        className={cn(
+          "w-full px-4 pt-4 transition-[background-color,box-shadow] duration-200 sm:px-8",
+          dropdownOpen ? "bg-popover shadow-[0_8px_0_0_var(--popover)]" : "bg-transparent shadow-none",
+        )}
+      >
       <nav
         className={cn(
           "mx-auto flex h-14 max-w-6xl items-center px-3 rounded-full border transition-all duration-300",
-          isScrolled
-            ? "border-border/50 bg-background backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.24)]"
-            : "border-transparent bg-transparent shadow-none"
+          dropdownOpen
+            ? "border-transparent bg-transparent shadow-none"
+            : isScrolled
+              ? "border-border/50 bg-background backdrop-blur-md shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.24)]"
+              : "border-transparent bg-transparent shadow-none"
         )}
       >
         {/* Logo */}
@@ -264,7 +444,7 @@ function MarketingNavbar() {
         {/* One highlight glides between the items under the pointer (GlidingHighlight),
             as in the app's sidebars. An open menu's item keeps its own fill. */}
         <GlidingHighlight as="div" highlightClassName="rounded-full bg-muted" className="mx-auto hidden md:flex">
-          <NavigationMenu>
+          <NavigationMenu fullWidth onValueChange={(value) => setDropdownOpen(value != null)}>
             <NavigationMenuList className="gap-1">
               {/* Product */}
               <NavigationMenuItem>
@@ -278,11 +458,7 @@ function MarketingNavbar() {
                   Product
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[360px] p-1.5">
-                    {productLinks.map((entry) => (
-                      <MenuRow key={entry.title} entry={entry} />
-                    ))}
-                  </GlidingHighlight>
+                  <MegaMenu {...PRODUCT_MENU} />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
@@ -298,11 +474,7 @@ function MarketingNavbar() {
                   Compare
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[600px] grid grid-cols-2 p-1.5 gap-x-2 gap-y-1">
-                    {compareLinks.map((entry) => (
-                      <MenuRow key={entry.title} entry={entry} />
-                    ))}
-                  </GlidingHighlight>
+                  <MegaMenu {...COMPARE_MENU} />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
@@ -318,11 +490,7 @@ function MarketingNavbar() {
                   Resources
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[320px] p-1.5">
-                    {resourceLinks.map((entry) => (
-                      <MenuRow key={entry.title} entry={entry} />
-                    ))}
-                  </GlidingHighlight>
+                  <MegaMenu {...RESOURCES_MENU} />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
@@ -338,11 +506,7 @@ function MarketingNavbar() {
                   Company
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[320px] p-1.5">
-                    {companyLinks.map((entry) => (
-                      <MenuRow key={entry.title} entry={entry} />
-                    ))}
-                  </GlidingHighlight>
+                  <MegaMenu {...COMPANY_MENU} />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
