@@ -47,7 +47,7 @@ import { useNextAdapter } from "nextstepjs/adapters/next";
 import { productTourSteps, TourCard, TourAutoStart } from "@/components/product-tour";
 import { AskWidget } from "@/components/ask-widget/ask-widget";
 import { ExtensionInstallPrompt } from "@/components/extension/install-prompt";
-import { UpgradeCard } from "@/components/upgrade-card";
+import { UpgradeBadge, UpgradeCard, UpgradeRing } from "@/components/upgrade-card";
 import { useSyncTimeZone } from "@/hooks/use-settings-group";
 
 /** Exact-matches Home ("/app"); prefix-matches everything else, so a nav
@@ -983,23 +983,25 @@ function AppShell({ children }: { children: React.ReactNode }) {
         {/* Sidebar Bottom user profile */}
         <div className="relative w-60 border-t border-border/40 p-3">
           <UpgradeCard className="mb-2.5" />
-          <button
-            type="button"
-            onClick={() => setUserDropdownOpen((open) => !open)}
-            aria-expanded={userDropdownOpen}
-            aria-haspopup="menu"
-            className={cn(
-              "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/70",
-              userDropdownOpen && "bg-muted/70"
-            )}
-          >
-            <UserAvatar user={currentUser} className="h-8 w-8 shrink-0 text-xs" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-foreground">{currentUser.name ?? currentUser.email}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{planLabel.label} plan</p>
-            </div>
-            <HugeiconsIcon icon={ChevronDown} strokeWidth={2} className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200", userDropdownOpen && "rotate-180")} />
-          </button>
+          <UpgradeRing>
+            <button
+              type="button"
+              onClick={() => setUserDropdownOpen((open) => !open)}
+              aria-expanded={userDropdownOpen}
+              aria-haspopup="menu"
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted/70",
+                userDropdownOpen && "bg-muted/70"
+              )}
+            >
+              <UserAvatar user={currentUser} className="h-8 w-8 shrink-0 text-xs" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-foreground">{currentUser.name ?? currentUser.email}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{planLabel.label} plan</p>
+              </div>
+              <HugeiconsIcon icon={ChevronDown} strokeWidth={2} className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200", userDropdownOpen && "rotate-180")} />
+            </button>
+          </UpgradeRing>
 
           {userDropdownOpen && (
             <>
@@ -1163,7 +1165,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <UserAvatar user={currentUser} className="h-10 w-10 shrink-0 text-sm" />
               <div className="min-w-0 flex-1 pr-8">
                 <p className="truncate text-sm font-medium text-foreground">{currentUser.name ?? currentUser.email}</p>
-                <p className="truncate text-xs text-muted-foreground">{planLabel.label} plan</p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-xs text-muted-foreground">{planLabel.label} plan</p>
+                  <UpgradeBadge />
+                </div>
               </div>
             </div>
 
