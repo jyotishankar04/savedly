@@ -176,13 +176,20 @@ function MobileMenuRow({ entry, active, onNavigate }: { entry: MenuEntry; active
 function MenuRow({ entry }: { entry: MenuEntry }) {
   return (
     <Link href={entry.href} data-nav-row="" className="group relative z-[1] flex items-center gap-3.5 rounded-xl p-2.5 focus-visible:outline-none">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground group-focus-visible:bg-primary group-focus-visible:text-primary-foreground">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-primary/10 text-primary shadow-none transition-[background-color,color,transform,box-shadow] duration-200 ease-out group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-[0_6px_16px_-6px_color-mix(in_oklch,var(--primary)_70%,transparent)] group-focus-visible:bg-primary group-focus-visible:text-primary-foreground motion-reduce:group-hover:scale-100">
         <HugeiconsIcon icon={entry.icon} strokeWidth={1.75} className="h-5 w-5" />
       </span>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold text-foreground">{entry.title}</span>
-        <span className="mt-0.5 block text-[13px] leading-snug text-muted-foreground">{entry.description}</span>
+        <span className="mt-0.5 block text-[13px] leading-snug text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">{entry.description}</span>
       </span>
+      {/* Slides in on the row under the pointer. */}
+      <HugeiconsIcon
+        icon={ChevronRight}
+        strokeWidth={2}
+        aria-hidden
+        className="h-4 w-4 shrink-0 -translate-x-1 text-muted-foreground opacity-0 transition-[opacity,transform] duration-200 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:translate-x-0"
+      />
     </Link>
   );
 }
@@ -278,7 +285,7 @@ function MarketingNavbar() {
                   Product
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[360px] p-1.5">
+                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-foreground/[0.05] ring-1 ring-foreground/[0.06]" className="w-[360px] p-1.5">
                     {productLinks.map((entry) => (
                       <MenuRow key={entry.title} entry={entry} />
                     ))}
@@ -298,7 +305,7 @@ function MarketingNavbar() {
                   Compare
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[600px] grid grid-cols-2 p-1.5 gap-x-2 gap-y-1">
+                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-foreground/[0.05] ring-1 ring-foreground/[0.06]" className="w-[600px] grid grid-cols-2 p-1.5 gap-x-2 gap-y-1">
                     {compareLinks.map((entry) => (
                       <MenuRow key={entry.title} entry={entry} />
                     ))}
@@ -318,7 +325,7 @@ function MarketingNavbar() {
                   Resources
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[320px] p-1.5">
+                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-foreground/[0.05] ring-1 ring-foreground/[0.06]" className="w-[320px] p-1.5">
                     {resourceLinks.map((entry) => (
                       <MenuRow key={entry.title} entry={entry} />
                     ))}
@@ -338,7 +345,7 @@ function MarketingNavbar() {
                   Company
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-muted" className="w-[320px] p-1.5">
+                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-foreground/[0.05] ring-1 ring-foreground/[0.06]" className="w-[320px] p-1.5">
                     {companyLinks.map((entry) => (
                       <MenuRow key={entry.title} entry={entry} />
                     ))}
