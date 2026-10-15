@@ -1,7 +1,6 @@
 "use client";
 
 import { useSyncExternalStore, type ReactNode } from "react";
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -9,6 +8,7 @@ import { Cancel01Icon as Close, FlashIcon, SparklesIcon } from "@hugeicons/core-
 import { useMyPlanQuery, usePlanLimit } from "@/hooks/use-plan-limit";
 import { formatPriceMinor, listPublicPlans, type PlanLimitType } from "@/lib/plans";
 import { cn } from "@/lib/utils";
+import { openUpgradeDialog } from "@/components/upgrade-dialog";
 
 /**
  * The upgrade prompt at the foot of the app's sidebar, for people on the Free
@@ -158,14 +158,19 @@ export function UpgradeCard({ className, onNavigate }: { className?: string; onN
                 </p>
               )}
 
-              <Link
-                href="/app/settings/billing"
-                onClick={onNavigate}
+              {/* Opens the plan picker over the app (upgrade-dialog.tsx) rather
+                  than leaving for the Billing page. */}
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate?.();
+                  openUpgradeDialog();
+                }}
                 className="group mt-3.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-primary-foreground/25 bg-primary-foreground/15 text-[13px] font-medium text-primary-foreground transition-[background-color,transform] hover:bg-primary-foreground/25 active:scale-[0.98]"
               >
                 <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12" />
                 Upgrade now
-              </Link>
+              </button>
             </div>
           </div>
         </motion.div>

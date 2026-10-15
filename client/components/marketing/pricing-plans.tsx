@@ -58,7 +58,7 @@ const TAGLINES: Record<string, string> = {
 const ESSENTIALS = ["Search by meaning", "Ask your library", "Collections and tags", "Sharing by link", "Import and export"];
 
 /** Every limit a plan has, one row each, in the order they read best. Values come from the server. */
-const ROWS: { type: PlanLimitType; label: string; icon: IconSvgElement; tint: string }[] = [
+export const ROWS: { type: PlanLimitType; label: string; icon: IconSvgElement; tint: string }[] = [
   { type: "memory_count", label: "Memories", icon: FolderLibraryIcon, tint: "text-sky-500" },
   { type: "storage_mb", label: "Storage", icon: Database01Icon, tint: "text-violet-500" },
   { type: "ai_monthly_saves", label: "Saves read by AI / month", icon: AiMagicIcon, tint: "text-emerald-500" },
@@ -69,7 +69,7 @@ const ROWS: { type: PlanLimitType; label: string; icon: IconSvgElement; tint: st
   { type: "import_monthly_count", label: "Imports / month", icon: Download04Icon, tint: "text-orange-500" },
 ];
 
-const TIER_MARK: Record<string, { icon: IconSvgElement; tint: string }> = {
+export const TIER_MARK: Record<string, { icon: IconSvgElement; tint: string }> = {
   free: { icon: Leaf01Icon, tint: "text-sky-500" },
   lite: { icon: FlashIcon, tint: "text-orange-500" },
   ai: { icon: Rocket01Icon, tint: "text-violet-500" },
@@ -123,7 +123,7 @@ const FAQ = [
 
 type Tab = "cloud" | "self";
 
-function formatPerMonth(plan: PublicPlan): { price: string; per: string | null; note: string | null } {
+export function formatPerMonth(plan: PublicPlan): { price: string; per: string | null; note: string | null } {
   if (plan.priceMinor <= 0) return { price: "Coming soon", per: null, note: null };
   if (plan.billingInterval === "yearly") {
     return {
