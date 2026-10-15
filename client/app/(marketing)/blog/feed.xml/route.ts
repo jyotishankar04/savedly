@@ -31,10 +31,7 @@ export async function GET() {
     })
     .join("\n");
 
-  // The stylesheet only changes what a person sees opening this in a browser
-  // (public/rss.xsl); feed readers ignore it.
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="/rss.xsl"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>Savedly blog</title>
@@ -46,7 +43,6 @@ ${items}
   </channel>
 </rss>
 `;
-  // application/xml, not application/rss+xml: browsers show the latter as
-  // plain text and skip the stylesheet, and every feed reader takes either.
-  return new Response(xml, { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=300" } });
+  // People are sent to /blog/rss, which explains the feed; this is for readers.
+  return new Response(xml, { headers: { "Content-Type": "application/rss+xml; charset=utf-8", "Cache-Control": "public, max-age=300" } });
 }

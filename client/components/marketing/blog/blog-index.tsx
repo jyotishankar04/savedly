@@ -54,10 +54,10 @@ export function BlogIndex({ posts }: { posts: BlogPostSummary[] }) {
           How it works, what changed, and what we learned along the way, written by the people making it.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm">
-          <a href="/blog/feed.xml" className="inline-flex items-center gap-1.5 font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground">
+          <Link href="/blog/rss" className="inline-flex items-center gap-1.5 font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground">
             <HugeiconsIcon icon={Rss} strokeWidth={2} className="h-4 w-4" />
             Follow with RSS
-          </a>
+          </Link>
           <Link href="/changelog" className="font-medium text-muted-foreground transition-colors hover:text-foreground">
             Or see what shipped
           </Link>
@@ -87,10 +87,10 @@ export function BlogIndex({ posts }: { posts: BlogPostSummary[] }) {
         <p className="text-[clamp(1.5rem,3vw,2rem)] font-medium tracking-[-0.03em] text-balance text-foreground">Get the next post when it&apos;s out</p>
         <p className="max-w-md text-[15px] leading-relaxed text-muted-foreground">Add the RSS feed to your reader, or join the Discord to talk about them.</p>
         <div className="mt-4 flex flex-wrap justify-center gap-3">
-          <a href="/blog/feed.xml" className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+          <Link href="/blog/rss" className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90">
             <HugeiconsIcon icon={Rss} strokeWidth={2} className="h-4 w-4" />
             RSS feed
-          </a>
+          </Link>
           <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center rounded-full px-6 text-[15px] font-medium text-foreground ring-1 ring-foreground/15 transition-colors hover:bg-foreground/5">
             Join the Discord
           </a>
