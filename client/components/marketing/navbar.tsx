@@ -155,9 +155,13 @@ function MegaHref({ link, className, children }: { link: MegaLink; className: st
 /** A dropdown laid out as a heading with one button, then plain links in labelled columns. */
 function MegaMenu({ title, blurb, cta, columns }: MegaMenuProps) {
   return (
+    // Full width (see NavigationMenu fullWidth), with the content held to the
+    // navbar's own width so it lines up with the logo.
     <div
-      className={cn("grid gap-8 p-7", columns.length >= 3 ? "w-[820px]" : "w-[640px]")}
-      style={{ gridTemplateColumns: `200px repeat(${columns.length}, minmax(0, 1fr))` }}
+      // 76rem with 3.5rem of padding puts the heading under the logo at every
+      // width: the bar is 72rem plus its own padding, inside 2rem of gutter.
+      className="mx-auto grid w-screen max-w-[76rem] gap-10 px-14 py-9"
+      style={{ gridTemplateColumns: `minmax(0, 1.3fr) repeat(3, minmax(0, 1fr))` }}
     >
       <div>
         <p className="text-xl font-medium tracking-[-0.02em] text-foreground">{title}</p>
@@ -423,7 +427,7 @@ function MarketingNavbar() {
         {/* One highlight glides between the items under the pointer (GlidingHighlight),
             as in the app's sidebars. An open menu's item keeps its own fill. */}
         <GlidingHighlight as="div" highlightClassName="rounded-full bg-muted" className="mx-auto hidden md:flex">
-          <NavigationMenu>
+          <NavigationMenu fullWidth>
             <NavigationMenuList className="gap-1">
               {/* Product */}
               <NavigationMenuItem>

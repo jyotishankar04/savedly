@@ -7,11 +7,15 @@ import { ChevronDownIcon } from "@hugeicons/core-free-icons";
 
 function NavigationMenu({
   align = "start",
+  fullWidth = false,
   className,
   children,
   ...props
 }: NavigationMenuPrimitive.Root.Props &
-  Pick<NavigationMenuPrimitive.Positioner.Props, "align">) {
+  Pick<NavigationMenuPrimitive.Positioner.Props, "align"> & {
+    /** The open panel spans the whole window under the bar, with the page dimmed below it. */
+    fullWidth?: boolean
+  }) {
   return (
     <NavigationMenuPrimitive.Root
       data-slot="navigation-menu"
@@ -22,7 +26,7 @@ function NavigationMenu({
       {...props}
     >
       {children}
-      <NavigationMenuPositioner align={align} />
+      <NavigationMenuPositioner align={align} fullWidth={fullWidth} />
     </NavigationMenuPrimitive.Root>
   )
 }
@@ -96,25 +100,38 @@ function NavigationMenuContent({
 function NavigationMenuPositioner({
   className,
   side = "bottom",
-  sideOffset = 8,
+  sideOffset,
   align = "start",
   alignOffset = 0,
+  fullWidth = false,
   ...props
-}: NavigationMenuPrimitive.Positioner.Props) {
+}: NavigationMenuPrimitive.Positioner.Props & { fullWidth?: boolean }) {
   return (
     <NavigationMenuPrimitive.Portal>
       <NavigationMenuPrimitive.Positioner
         side={side}
-        sideOffset={sideOffset}
+        sideOffset={sideOffset ?? (fullWidth ? 10 : 8)}
         align={align}
         alignOffset={alignOffset}
         className={cn(
           "isolate z-50 h-(--positioner-height) w-(--positioner-width) max-w-(--available-width) transition-[top,left,right,bottom] duration-[0.35s] ease-[cubic-bezier(0.22,1,0.36,1)] data-instant:transition-none data-[side=bottom]:before:top-[-10px] data-[side=bottom]:before:right-0 data-[side=bottom]:before:left-0",
+          // Pinned to the window's edges whatever trigger opened it.
+          fullWidth && "!right-0 !left-0 !w-screen !max-w-none transition-[top]",
           className
         )}
         {...props}
       >
-        <NavigationMenuPrimitive.Popup className="data-[ending-style]:easing-[ease] xs:w-(--popup-width) relative h-(--popup-height) w-(--popup-width) origin-(--transform-origin) rounded-2xl bg-popover text-popover-foreground shadow-xl shadow-black/10 ring-1 ring-foreground/10 transition-[opacity,transform,width,height,scale,translate] duration-[0.35s] ease-[cubic-bezier(0.22,1,0.36,1)] outline-none data-ending-style:scale-90 data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:scale-90 data-starting-style:opacity-0">
+        <NavigationMenuPrimitive.Popup
+          className={cn(
+            "data-[ending-style]:easing-[ease] relative h-(--popup-height) bg-popover text-popover-foreground transition-[opacity,transform,width,height,scale,translate] duration-[0.35s] ease-[cubic-bezier(0.22,1,0.36,1)] outline-none data-ending-style:opacity-0 data-ending-style:duration-150 data-starting-style:opacity-0",
+            fullWidth
+              ? // Edge to edge, a hairline below, and the page under it dimmed: a
+                // shadow spread over the whole window, clipped at the panel's top
+                // edge so the bar above stays bright.
+                "w-full border-b border-border/70 shadow-[0_0_0_100vmax_rgb(0_0_0/0.22)] [clip-path:inset(0_0_-100vmax_0)] data-ending-style:-translate-y-1 data-starting-style:-translate-y-1"
+              : "xs:w-(--popup-width) w-(--popup-width) origin-(--transform-origin) rounded-2xl shadow-xl shadow-black/10 ring-1 ring-foreground/10 data-ending-style:scale-90 data-starting-style:scale-90"
+          )}
+        >
           <NavigationMenuPrimitive.Viewport className="relative size-full overflow-hidden" />
         </NavigationMenuPrimitive.Popup>
       </NavigationMenuPrimitive.Positioner>
