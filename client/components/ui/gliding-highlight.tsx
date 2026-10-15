@@ -69,7 +69,7 @@ export function GlidingHighlight<T extends "nav" | "div" | "aside" | "ul" = "nav
           <motion.span
             aria-hidden
             data-slot="gliding-highlight"
-            className={cn("pointer-events-none absolute top-0 left-0 z-0 rounded-lg bg-muted/70", highlightClassName)}
+            className={cn("pointer-events-none absolute top-0 left-0 z-0 rounded-lg bg-[var(--hover)]", highlightClassName)}
             // It appears in place, then travels.
             initial={{ opacity: 0, ...box }}
             animate={{ opacity: 1, ...box }}
