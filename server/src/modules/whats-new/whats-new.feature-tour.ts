@@ -4,7 +4,7 @@ import { WhatsNewKind } from "../../db/enums";
 
 // The launch tour: one card for each feature, in the order a new visitor
 // would want them, for the landing page's popup. The last is the browser
-// extension, marked "Coming soon" until it is in the Chrome Web Store. At
+// extension, in the Chrome Web Store since October 2026. At
 // launch everything is new, so these stand in for "what changed" until there
 // is real news to post.
 //
@@ -150,13 +150,13 @@ export const FEATURE_TOUR_CARDS = [
     ctaUrl: "/app",
   },
   {
-    kind: WhatsNewKind.UPCOMING,
+    kind: WhatsNewKind.FEATURE,
     title: "Save from any page",
-    body: "The Savedly browser extension saves the page you are on, a link, some text, an image or a screenshot, without leaving it.",
+    body: "The Savedly extension for Chrome saves the page you are on, a link, some text, an image or a screenshot, without leaving it.",
     bullets: ["One click, or right-click anything", "Screenshot an area or the whole view", "Uses your Savedly sign-in"],
     imageUrl: "/whats-new/loops/extension.webp",
-    ctaLabel: null,
-    ctaUrl: null,
+    ctaLabel: "Add to Chrome",
+    ctaUrl: "https://chromewebstore.google.com/detail/savedly/ohhfepdoalacfbbjplmnflhjcjbkhfgp",
   },
 ];
 

@@ -13,7 +13,8 @@ import {
   Search01Icon as SearchIcon,
 } from "@hugeicons/core-free-icons";
 import { Navbar } from "@/components/marketing/navbar";
-import { GithubStarButton } from "@/components/marketing/github-star-button";
+import { ChromeLogo } from "@/components/chrome-logo";
+import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 import { ProductHuntBadge } from "@/components/marketing/product-hunt-badge";
 import { useAuthCta } from "@/hooks/use-auth-cta";
 import { cn } from "@/lib/utils";
@@ -378,7 +379,16 @@ export function HeroSwitcher() {
             {cta.isAuthenticated ? cta.label : "Start saving free"}
             <HugeiconsIcon icon={ArrowRightIcon} strokeWidth={2} className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
-          <GithubStarButton variant="hero" label="Explore on GitHub" />
+          {/* The extension is live, so the second button installs it; GitHub keeps its star in the navbar. */}
+          <a
+            href={CHROME_WEB_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-12 items-center justify-center gap-2.5 rounded-full border border-border bg-background/70 px-6 text-[15px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <ChromeLogo className="h-5 w-5" />
+            Add to Chrome
+          </a>
         </motion.div>
 
         <motion.p {...rise(0.28)} className="mt-5 text-sm text-muted-foreground">

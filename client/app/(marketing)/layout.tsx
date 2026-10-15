@@ -1,10 +1,9 @@
 import Script from "next/script";
-import type { Metadata } from "next";
 import { SELF_HOSTED } from "@/lib/instance";
 
-export const metadata: Metadata = {
-  alternates: { canonical: "/" },
-};
+// No shared canonical here. A default of "/" told search engines that every
+// page without its own (the Help Center and all its guides) was a copy of the
+// home page. Each indexable page sets its own instead.
 
 // Floating "Buy Me a Coffee" widget — marketing pages only, deliberately not
 // the (platfrom)/app or /admin trees: a persistent floating nag is fine for

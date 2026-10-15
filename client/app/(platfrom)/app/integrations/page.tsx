@@ -27,6 +27,7 @@ import { getCalendarConnectUrl, type CalendarProviderKey } from "@/lib/calendar-
 import { getServerConfig } from "@/lib/server-config";
 import { useCalendarConnectionsQuery, useDisconnectCalendarMutation } from "@/hooks/use-calendar";
 import { cn } from "@/lib/utils";
+import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 import { usePlanFeature } from "@/hooks/use-plan-limit";
 import { ProBadge } from "@/components/plan-limit-notice";
 import { ConnectLink } from "@/components/integrations/connect-link";
@@ -68,6 +69,9 @@ interface PlannedIntegration {
   brings: string[];
   icon: IconSvgElement;
   iconClassName: string;
+  /** Set once it can be installed: the card then offers it instead of "Coming soon". */
+  installUrl?: string;
+  installLabel?: string;
 }
 
 const PLANNED: PlannedIntegration[] = [
@@ -186,10 +190,12 @@ const PLANNED: PlannedIntegration[] = [
     title: "Browser extension",
     category: "Browser",
     how: "Extension",
-    description: "Quick-capture from any tab with a keyboard shortcut. Built, but not yet published to the Chrome Web Store.",
-    brings: ["The page you're on", "Selected text", "Links from the right-click menu"],
+    description: "Save the page you're on, a link, some text, an image or a screenshot without leaving it. Uses your Savedly sign-in.",
+    brings: ["The page you're on", "Selected text, links and images", "Screenshots of an area or the whole view"],
     icon: ChromeIcon,
     iconClassName: "bg-amber-500 text-white",
+    installUrl: CHROME_WEB_STORE_URL,
+    installLabel: "Add to Chrome",
   },
 ];
 
@@ -502,7 +508,15 @@ export default function IntegrationsPage() {
               connected={false}
               description={p.description}
               brings={p.brings}
-              action={<ConnectPill state="coming-soon">Coming soon</ConnectPill>}
+              action={
+                p.installUrl ? (
+                  <ConnectPill state="action" render={<a href={p.installUrl} target="_blank" rel="noopener noreferrer" />} nativeButton={false}>
+                    {p.installLabel ?? "Install"}
+                  </ConnectPill>
+                ) : (
+                  <ConnectPill state="coming-soon">Coming soon</ConnectPill>
+                )
+              }
             />
           ))}
 

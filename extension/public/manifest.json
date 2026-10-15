@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Savedly",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Save pages, links, text, images and screenshots to Savedly, and find them again by describing what you remember.",
   "icons": {
     "16": "icon-16.png",

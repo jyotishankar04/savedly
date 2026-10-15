@@ -15,6 +15,8 @@ export function GuideActions({ actions }: { actions: GuideAction[] }) {
         <Link
           key={action.href}
           href={action.href}
+          // An outside address (the Chrome Web Store, say) opens in a new tab, so the guide stays open.
+          {...(/^https?:\/\//.test(action.href) ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           className={
             i === 0
               ? "inline-flex h-10 items-center gap-1.5 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"

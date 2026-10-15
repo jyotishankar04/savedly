@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils";
 // type their own. That row is answered by the server from the Help Center's
 // guides (server/src/modules/help-assistant). Every written answer below is
 // checked against the product: the vault is a PIN gate, not encryption; the
-// extension isn't published yet; there is no native mobile app.
+// extension is in the Chrome Web Store (October 2026); there is no native
+// mobile app.
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const MAX_QUESTION = 300;
@@ -51,7 +52,7 @@ const FAQS: Faq[] = [
   },
   {
     question: "Is there a mobile app or a browser extension?",
-    answer: "There's no native mobile app; the site works in a phone's browser and can be added to your home screen. The browser extension is built but not yet published.",
+    answer: "There's no native mobile app; the site works in a phone's browser and can be added to your home screen. The browser extension is in the Chrome Web Store: it saves the page you're on, links, text, images and screenshots, using your Savedly sign-in.",
   },
 ];
 
