@@ -413,31 +413,3 @@
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
 }
-
-/* A black surface whatever the theme (the account menu at the foot of the
-   app's sidebar). Inside it the neutral colours take dark values so text and
-   controls read on black, Arc's tokens included (components/arc/foundation.css
-   resolves them once at :root, so they are restated here). --primary is left
-   alone, so the person's accent colour still shows. */
-.surface-black {
-  --background: oklch(0.1450 0 0);
-  --foreground: oklch(0.9851 0 0);
-  --card: oklch(0.1950 0 0);
-  --card-foreground: oklch(0.9851 0 0);
-  --popover: oklch(0.1450 0 0);
-  --popover-foreground: oklch(0.9851 0 0);
-  --muted: oklch(0.2200 0 0);
-  --muted-foreground: oklch(0.7400 0 0);
-  --accent: oklch(0.2400 0 0);
-  --accent-foreground: oklch(0.9851 0 0);
-  --border: oklch(0.2700 0 0);
-  --input: oklch(0.3000 0 0);
-  --destructive: oklch(0.7022 0.1892 22.2279);
-  --surface: var(--card);
-  --surface-muted: var(--muted);
-  --text-muted: var(--muted-foreground);
-  --shadow-resting: 0 1px 2px oklch(0% 0 0 / .3);
-  background-color: var(--background);
-  color: var(--foreground);
-  color-scheme: dark;
-}
