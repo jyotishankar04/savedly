@@ -88,6 +88,7 @@ const productLinks: MenuEntry[] = [
 
 import { competitors } from "@/lib/data/comparisons";
 
+// The phone menu's Compare list (the desktop menu is CompareMenu below).
 const compareLinks: MenuEntry[] = [
   {
     title: "All Comparisons",
@@ -95,13 +96,64 @@ const compareLinks: MenuEntry[] = [
     description: "See how we stack up against all the alternatives.",
     href: "/vs",
   },
-  ...competitors.map(c => ({
+  ...competitors.map((c) => ({
     title: `vs ${c.name}`,
     icon: BalanceScaleIcon,
     description: c.type,
     href: `/vs/${c.slug}`,
-  }))
+  })),
 ];
+
+// The Compare menu: plain links, grouped by the kind of app. A competitor
+// added to lib/data/comparisons.ts without a group here lands in the last
+// column, so it's never left out.
+const COMPARE_GROUPS: { label: string; slugs: string[] }[] = [
+  { label: "AI memory apps", slugs: ["mymind", "memorie", "fabric", "tome"] },
+  { label: "Bookmarks & reading", slugs: ["raindrop", "readwise-reader", "glasp"] },
+  { label: "Notes & workspaces", slugs: ["notion", "evernote", "google-keep", "capacities"] },
+];
+
+const compareColumns = COMPARE_GROUPS.map((group, i) => ({
+  label: group.label,
+  links: competitors
+    .filter((c) => group.slugs.includes(c.slug) || (i === COMPARE_GROUPS.length - 1 && !COMPARE_GROUPS.some((g) => g.slugs.includes(c.slug))))
+    .sort((a, b) => group.slugs.indexOf(a.slug) - group.slugs.indexOf(b.slug))
+    .map((c) => ({ title: `vs ${c.name}`, href: `/vs/${c.slug}` })),
+}));
+
+function CompareMenu() {
+  return (
+    <div className="grid w-[820px] grid-cols-[200px_1fr_1fr_1fr] gap-8 p-7">
+      <div>
+        <p className="text-xl font-medium tracking-[-0.02em] text-foreground">Compare</p>
+        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">How Savedly stacks up against the apps people use today.</p>
+        <Link
+          href="/vs"
+          className="mt-5 inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          All comparisons
+        </Link>
+      </div>
+      {compareColumns.map((column) => (
+        <div key={column.label}>
+          <p className="text-[13px] text-muted-foreground">{column.label}</p>
+          <ul className="mt-3.5 space-y-2.5">
+            {column.links.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="inline-block text-sm text-foreground transition-[color,transform] duration-200 hover:translate-x-0.5 hover:text-primary focus-visible:text-primary focus-visible:outline-none motion-reduce:hover:translate-x-0"
+                >
+                  {link.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const resourceLinks: MenuEntry[] = [
   {
@@ -305,11 +357,7 @@ function MarketingNavbar() {
                   Compare
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <GlidingHighlight as="div" highlightClassName="rounded-xl bg-foreground/[0.05] ring-1 ring-foreground/[0.06]" className="w-[600px] grid grid-cols-2 p-1.5 gap-x-2 gap-y-1">
-                    {compareLinks.map((entry) => (
-                      <MenuRow key={entry.title} entry={entry} />
-                    ))}
-                  </GlidingHighlight>
+                  <CompareMenu />
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
