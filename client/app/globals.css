@@ -80,8 +80,8 @@
   --accent-foreground: oklch(0.9851 0 0);
   --destructive: oklch(0.7022 0.1892 22.2279);
   --destructive-foreground: oklch(0.9851 0 0);
-  --border: oklch(0.2393 0 0);
-  --input: oklch(0.3299 0 0);
+  --border: oklch(0.1950 0 0);
+  --input: oklch(0.2700 0 0);
   --ring: oklch(0.4475 0.1432 258.6866);
   --chart-1: oklch(0.8088 0.0991 251.7533);
   --chart-2: oklch(0.6207 0.1894 259.9358);
@@ -94,7 +94,7 @@
   --sidebar-primary-foreground: oklch(0.9851 0 0);
   --sidebar-accent: oklch(0.2200 0 0);
   --sidebar-accent-foreground: oklch(0.9851 0 0);
-  --sidebar-border: oklch(0.2752 0 0);
+  --sidebar-border: oklch(0.1950 0 0);
   --sidebar-ring: oklch(0.6187 0.2067 259.2316);
   --font-sans: var(--font-geist-sans), ui-sans-serif, sans-serif, system-ui;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
@@ -413,4 +413,30 @@
 @keyframes tab-progress {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
+}
+
+/* Quieter outlines in the dark theme. On the true-black background the
+   faint white rings and borders (ring-foreground/10, border-foreground/15
+   and the like, a hundred and fifty of them) read about twice as strong as
+   they do on grey, so here each common strength is roughly halved. In the
+   utilities layer and wrapped in :where(), so a hover or focus colour on the
+   same element (hover:ring-foreground/20) still wins. The theme's own border
+   colours are lowered in the .dark block above. */
+@layer utilities {
+  :where(.dark) .ring-foreground\/5 { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 3%, transparent); }
+  :where(.dark) .ring-foreground\/\[0\.04\] { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 2.5%, transparent); }
+  :where(.dark) .ring-foreground\/\[0\.05\] { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 3%, transparent); }
+  :where(.dark) .ring-foreground\/\[0\.06\] { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 3.5%, transparent); }
+  :where(.dark) .ring-foreground\/\[0\.07\] { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 4%, transparent); }
+  :where(.dark) .ring-foreground\/8 { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 4.5%, transparent); }
+  :where(.dark) .ring-foreground\/\[0\.08\] { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 4.5%, transparent); }
+  :where(.dark) .ring-foreground\/10 { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 6%, transparent); }
+  :where(.dark) .ring-foreground\/12 { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 7%, transparent); }
+  :where(.dark) .ring-foreground\/15 { --tw-ring-color: color-mix(in oklab, var(--color-foreground) 8%, transparent); }
+  :where(.dark) .border-foreground\/8 { border-color: color-mix(in oklab, var(--color-foreground) 4.5%, transparent); }
+  :where(.dark) .border-foreground\/\[0\.07\] { border-color: color-mix(in oklab, var(--color-foreground) 4%, transparent); }
+  :where(.dark) .border-foreground\/10 { border-color: color-mix(in oklab, var(--color-foreground) 6%, transparent); }
+  :where(.dark) .border-foreground\/15 { border-color: color-mix(in oklab, var(--color-foreground) 8%, transparent); }
+  :where(.dark) .border-foreground\/20 { border-color: color-mix(in oklab, var(--color-foreground) 11%, transparent); }
+  :where(.dark) .border-foreground\/25 { border-color: color-mix(in oklab, var(--color-foreground) 14%, transparent); }
 }
