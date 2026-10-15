@@ -412,7 +412,16 @@ function MarketingNavbar() {
       <div ref={bannerRef}>
         <AnnouncementBanner />
       </div>
-      <header className={cn("w-full px-4 pt-4 transition-colors duration-200 sm:px-8", dropdownOpen ? "bg-popover" : "bg-transparent")}>
+      {/* While open, the bar's colour also runs 8px down under the dropdown (a
+          shadow, so nothing moves): wherever the two edges meet on a fraction
+          of a pixel, the dropdown's top edge then blends into the same colour
+          instead of showing a hairline of page between them. */}
+      <header
+        className={cn(
+          "w-full px-4 pt-4 transition-[background-color,box-shadow] duration-200 sm:px-8",
+          dropdownOpen ? "bg-popover shadow-[0_8px_0_0_var(--popover)]" : "bg-transparent shadow-none",
+        )}
+      >
       <nav
         className={cn(
           "mx-auto flex h-14 max-w-6xl items-center px-3 rounded-full border transition-all duration-300",
