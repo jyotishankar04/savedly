@@ -21,6 +21,7 @@ import {
   ServerStack01Icon,
   Settings01Icon,
   Share08Icon,
+  SparklesIcon,
   Tick02Icon as Tick,
 } from "@hugeicons/core-free-icons";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -329,9 +330,12 @@ export function PricingPlans() {
                 const below = i === 0 ? free : paid[i - 1];
                 const isCurrent = plan.key === current?.key;
                 const buyable = !!config?.billing && plan.priceMinor > 0 && !isCurrent;
+                // The middle card, the one the row is built around.
+                const highlighted = i === 0 && paid.length > 1;
                 return (
                   <PlanCard
                     key={plan.key}
+                    highlight={highlighted ? "Recommended" : undefined}
                     name={plan.name}
                     mark={TIER_MARK[planTier(plan.key)]}
                     tagline={TAGLINES[planTier(plan.key)] ?? plan.description ?? ""}
@@ -342,7 +346,7 @@ export function PricingPlans() {
                     // Each card builds on the one below it: Lite on Free, Pro on Lite.
                     groups={[{ label: `Everything in ${below?.name ?? freeName} +`, items: planFeatureBullets(plan.features, below?.features) }]}
                     action={
-                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, i === 0 && paid.length > 1 ? strongButton : quietButton)}>
+                      <button type="button" onClick={() => buy(plan)} disabled={pending !== null || !buyable} className={cn(buttonClass, highlighted ? strongButton : quietButton)}>
                         {pending === plan.key && <Spinner />}
                         {isCurrent ? "Current plan" : buyable ? "Upgrade" : "Coming soon"}
                       </button>
@@ -478,7 +482,10 @@ function PlanCard({
   groups,
   body,
   action,
+  highlight,
 }: {
+  /** Marks the recommended card: a little larger, ringed in the accent colour, with this badge on its top edge. */
+  highlight?: string;
   name: string;
   mark?: { icon: IconSvgElement; tint: string };
   tagline: string;
@@ -491,7 +498,20 @@ function PlanCard({
   action: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-3xl bg-card p-6 ring-1 ring-foreground/[0.08] sm:p-7">
+    <div
+      className={cn(
+        "relative flex flex-col rounded-3xl bg-card p-6 sm:p-7",
+        highlight
+          ? "z-10 mt-3 bg-[linear-gradient(to_bottom,color-mix(in_oklch,var(--primary)_7%,var(--card)),var(--card)_45%)] shadow-[0_24px_60px_-24px_color-mix(in_oklch,var(--primary)_45%,transparent)] ring-2 ring-primary md:mt-0 lg:scale-[1.04]"
+          : "ring-1 ring-foreground/[0.08]",
+      )}
+    >
+      {highlight && (
+        <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/30">
+          <HugeiconsIcon icon={SparklesIcon} strokeWidth={2.25} className="h-3.5 w-3.5" />
+          {highlight}
+        </span>
+      )}
       <div className="flex items-center gap-2">
         {mark && <HugeiconsIcon icon={mark.icon} strokeWidth={2} className={cn("h-[18px] w-[18px]", mark.tint)} />}
         <h3 className="text-base font-medium text-foreground">{name}</h3>
@@ -527,7 +547,7 @@ function PlanCard({
             <ul className="space-y-3">
               {group.items.map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm text-foreground">
-                  <HugeiconsIcon icon={Tick} strokeWidth={2.25} className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <HugeiconsIcon icon={Tick} strokeWidth={2.25} className={cn("mt-0.5 h-4 w-4 shrink-0", highlight ? "text-primary" : "text-muted-foreground")} />
                   {item}
                 </li>
               ))}
