@@ -1010,12 +1010,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
           {userDropdownOpen && createPortal(
             <>
               <button type="button" aria-label="Close menu" tabIndex={-1} onClick={() => setUserDropdownOpen(false)} className="fixed inset-0 z-40 cursor-default" />
-              <div role="menu" className="fixed bottom-[4.5rem] left-3 z-50 w-[17rem] rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl">
+              <div role="menu" className="surface-black fixed bottom-[4.5rem] left-3 z-50 w-[17rem] rounded-xl border border-border p-1.5 shadow-2xl shadow-black/40">
                 <div className="px-2.5 py-2">
                   <p className="truncate text-[13px] font-medium">{currentUser.name ?? currentUser.email}</p>
                   {currentUser.name && <p className="truncate text-[11px] text-muted-foreground">{currentUser.email}</p>}
                 </div>
-                <PlanUsage className="mx-1 mb-1.5 rounded-lg border border-border/60 bg-muted/40 p-3.5" onNavigate={() => setUserDropdownOpen(false)} />
+                <PlanUsage className="mx-1 mb-1.5 rounded-lg border border-border bg-card p-3.5" onNavigate={() => setUserDropdownOpen(false)} />
                 <div className="px-1 py-1">
                   <ThemeSwitch />
                 </div>
