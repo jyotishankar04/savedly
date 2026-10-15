@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useNextStep } from "nextstepjs";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon as Close, ChromeIcon } from "@hugeicons/core-free-icons";
 import { useExtensionStatus } from "@/hooks/use-extension-status";
@@ -13,12 +14,16 @@ import { CHROME_WEB_STORE_URL } from "@/lib/extension";
  * It waits a few seconds so it never greets someone the moment a page opens,
  * sits above the Ask button, and is hidden on phones.
  *
- * "Not now" or the close button keeps it away for three weeks; "Add to
- * Chrome" for a week, since an install made in an open tab isn't noticed
- * until the page reloads (see useExtensionStatus). Both are remembered in
- * this browser only, which is all a suggestion needs.
+ * "Not now" or the close button keeps it away until the next day, so it
+ * comes back once a day until the extension is there; "Add to Chrome" for
+ * three days, since an install made in an open tab isn't noticed until the
+ * page reloads (see useExtensionStatus). Once it's installed it never shows.
+ * Remembered in this browser only, which is all a suggestion needs. (The key
+ * was renamed when the wait went from three weeks to a day, so an older,
+ * longer dismissal doesn't keep it away.) It also stays out of the way while
+ * the product tour is running.
  */
-const STORAGE_KEY = "sfl:extension-prompt-until";
+const STORAGE_KEY = "sfl:extension-prompt-snooze";
 const SHOW_AFTER_MS = 5000;
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -42,12 +47,13 @@ export function ExtensionInstallPrompt() {
   const status = useExtensionStatus();
   const reduced = useReducedMotion();
   const [open, setOpen] = useState(false);
+  const { isNextStepVisible } = useNextStep();
 
   useEffect(() => {
-    if (status !== "missing" || snoozedUntil() > Date.now()) return;
+    if (status !== "missing" || isNextStepVisible || snoozedUntil() > Date.now()) return;
     const timer = window.setTimeout(() => setOpen(true), SHOW_AFTER_MS);
     return () => window.clearTimeout(timer);
-  }, [status]);
+  }, [status, isNextStepVisible]);
 
   function close(days: number) {
     snooze(days);
@@ -56,7 +62,7 @@ export function ExtensionInstallPrompt() {
 
   return (
     <AnimatePresence>
-      {open && (
+      {open && !isNextStepVisible && (
         <motion.aside
           role="complementary"
           aria-label="Get the Savedly extension"
@@ -69,7 +75,7 @@ export function ExtensionInstallPrompt() {
           <button
             type="button"
             aria-label="Close"
-            onClick={() => close(21)}
+            onClick={() => close(1)}
             className="absolute top-3 right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-background/80 text-muted-foreground ring-1 ring-foreground/10 backdrop-blur transition-colors hover:text-foreground"
           >
             <HugeiconsIcon icon={Close} strokeWidth={2} className="h-3.5 w-3.5" />
@@ -90,13 +96,13 @@ export function ExtensionInstallPrompt() {
               href={CHROME_WEB_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => close(7)}
+              onClick={() => close(3)}
               className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <HugeiconsIcon icon={ChromeIcon} strokeWidth={2} className="h-4 w-4" />
               Add to Chrome
             </a>
-            <button type="button" onClick={() => close(21)} className="mt-2 h-8 w-full rounded-full text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground">
+            <button type="button" onClick={() => close(1)} className="mt-2 h-8 w-full rounded-full text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground">
               Not now
             </button>
           </div>
