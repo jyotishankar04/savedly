@@ -1,5 +1,9 @@
 "use client";
 
+import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
+import { CollectionSelectionBar } from "@/components/selection/collection-selection-bar";
+import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
+import { useSelection } from "@/hooks/use-selection";
 import React from "react";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -254,6 +258,18 @@ function VaultContents() {
 
   const { data: memoriesData, isLoading: memoriesLoading } = useMemoriesQuery({ isVaulted: true, limit: 100 });
   const memories = memoriesData?.items ?? [];
+  // Bulk selection of the vault's memories, or of its collections, never both
+  // at once: starting one clears the other, so one bar shows at a time.
+  const memorySelection = useSelection(memories.map((m) => m.id));
+  const collectionSelection = useSelection(collections.map((c) => c.id));
+  const pickMemory = (id: string, e: { shiftKey?: boolean }) => {
+    if (collectionSelection.isSelecting) collectionSelection.clear();
+    memorySelection.toggle(id, e);
+  };
+  const pickCollection = (id: string, e: { shiftKey?: boolean }) => {
+    if (memorySelection.isSelecting) memorySelection.clear();
+    collectionSelection.toggle(id, e);
+  };
 
   const loading = collectionsQuery.isLoading || memoriesLoading;
   const empty = !loading && memories.length === 0 && collections.length === 0;
@@ -298,7 +314,18 @@ function VaultContents() {
               <h2 className="text-sm font-medium text-muted-foreground">Collections</h2>
               <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-6">
                 {collections.map((col) => (
-                  <div key={col.id} className="relative">
+                  <div
+                    key={col.id}
+                    {...selectableProps(collectionSelection.isSelecting, (e) => pickCollection(col.id, e))}
+                    className={cn("group relative rounded-2xl", collectionSelection.has(col.id) && "ring-2 ring-primary/50")}
+                  >
+                    <SelectCheckbox
+                      checked={collectionSelection.has(col.id)}
+                      selecting={collectionSelection.isSelecting}
+                      onToggle={(e) => pickCollection(col.id, e)}
+                      label={`Select ${col.name}`}
+                      className="top-3 left-3"
+                    />
                     <FolderCard
                       onClick={() => setSelectedCollectionId(col.id)}
                       count={col.memoryCount}
@@ -330,13 +357,22 @@ function VaultContents() {
               <h2 className="text-sm font-medium text-muted-foreground">Memories</h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {memories.map((item) => (
-                  <MemoryGridCardLink key={item.id} item={item} />
+                  <MemoryGridCardLink
+                    key={item.id}
+                    item={item}
+                    selected={memorySelection.has(item.id)}
+                    selecting={memorySelection.isSelecting}
+                    onSelect={(e) => pickMemory(item.id, e)}
+                  />
                 ))}
               </div>
             </section>
           )}
         </div>
       )}
+
+      <MemorySelectionBar selection={memorySelection} memories={memories} context="vault" />
+      <CollectionSelectionBar selection={collectionSelection} collections={collections} vaulted />
     </div>
   );
 }
@@ -394,9 +430,9 @@ function VaultCollectionView({ collection, onBack, header }: { collection: Colle
 /** A vaulted memory's single-item GET is unguarded (same as a trashed item —
  * a direct link still resolves), so opening one just navigates to the real
  * memory detail page rather than needing an in-vault preview. */
-function MemoryGridCardLink({ item }: { item: Memory }) {
+function MemoryGridCardLink({ item, ...select }: { item: Memory } & Pick<React.ComponentProps<typeof MemoryGridCard>, "selected" | "selecting" | "onSelect">) {
   const router = useRouter();
-  return <MemoryGridCard item={item} onClick={() => router.push(`/app/memories/${item.id}`)} />;
+  return <MemoryGridCard item={item} onClick={() => router.push(`/app/memories/${item.id}`)} {...select} />;
 }
 
 function PageSkeleton() {

@@ -120,7 +120,7 @@ function CollectionPickerBody({ title, confirm, excludeId, onPick }: { title: st
           <button
             type="button"
             disabled={create.isPending}
-            onClick={() => create.mutate({ name }, { onSuccess: (created) => onPick(created) })}
+            onClick={() => create.mutate({ name, icon: "📁" }, { onSuccess: (created) => onPick(created) })}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-primary transition-colors hover:bg-[var(--hover)]"
           >
             {create.isPending ? <Spinner className="h-4 w-4" /> : <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-4 w-4" />}

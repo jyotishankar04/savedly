@@ -1,5 +1,9 @@
 "use client";
 
+import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
+import { SelectButton } from "@/components/selection/selection-bar";
+import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
+import { useSelection } from "@/hooks/use-selection";
 import React, { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -30,6 +34,8 @@ export default function CollectionDetailPage() {
 
   const { data, isLoading, isError, refetch } = useMemoriesQuery({ collectionId: id, q: searchQuery.trim() || undefined, limit: 100 });
   const memories = data?.items ?? [];
+  // Above the early return below, so the hooks run in the same order every render.
+  const selection = useSelection(memories.map((m) => m.id));
 
   if (!collection) {
     return (
@@ -98,6 +104,7 @@ export default function CollectionDetailPage() {
         </div>
 
         <div className="flex items-center gap-3 text-xs">
+          {memories.length > 0 && <SelectButton selection={selection} />}
           <div className="flex items-center border border-border/60 rounded-lg bg-card overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
@@ -149,8 +156,19 @@ export default function CollectionDetailPage() {
             <Link
               key={item.id}
               href={`/app/memories/${item.id}`}
-              className="rounded-xl border border-border/45 bg-muted/75 p-1 shadow-xs hover:border-primary/20 transition-all duration-300 block group"
+              {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
+              className={cn(
+                "relative rounded-xl border border-border/45 bg-muted/75 p-1 shadow-xs hover:border-primary/20 transition-all duration-300 block group",
+                selection.has(item.id) && "border-primary/60 ring-2 ring-primary/40",
+              )}
             >
+              <SelectCheckbox
+                checked={selection.has(item.id)}
+                selecting={selection.isSelecting}
+                onToggle={(e) => selection.toggle(item.id, e)}
+                label={`Select ${item.title}`}
+                className="top-3 left-3"
+              />
               <div className="p-4 rounded-lg border border-border/75 bg-card flex flex-col justify-between h-full min-h-[165px] space-y-4">
                 <MemoryThumbnail item={item} className="rounded-lg" />
                 <div className="space-y-2">
@@ -176,6 +194,8 @@ export default function CollectionDetailPage() {
       )}
 
       <EditCollectionDialog collection={collection} open={editOpen} onOpenChange={setEditOpen} />
+
+      <MemorySelectionBar selection={selection} memories={memories} context="collection" collection={{ id: collection.id, name: collection.name }} />
 
       {/* Local animation keyframes */}
       <style>{`

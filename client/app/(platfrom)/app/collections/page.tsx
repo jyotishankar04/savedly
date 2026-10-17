@@ -1,5 +1,9 @@
 "use client";
 
+import { CollectionSelectionBar } from "@/components/selection/collection-selection-bar";
+import { SelectButton } from "@/components/selection/selection-bar";
+import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
+import { useSelection } from "@/hooks/use-selection";
 import React, { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusIcon as Plus, EyeIcon as Eye, EyeOffIcon as EyeOff, MoreHorizontalIcon as MoreHorizontal } from "@hugeicons/core-free-icons";
@@ -43,6 +47,7 @@ export default function CollectionsPage() {
   const collectionLimit = usePlanLimit("collection_count");
 
   const collections = allCollections.filter((c) => c.source === "user");
+  const selection = useSelection(collections.map((c) => c.id));
   const systemCollections = showSystem ? allCollections.filter((c) => c.source === "system") : [];
 
   const handleConvert = async (id: string) => {
@@ -101,6 +106,7 @@ export default function CollectionsPage() {
         dataTour="collections-header"
         action={
           <div className="flex items-center gap-2">
+            {collections.length > 0 && <SelectButton selection={selection} className="h-10 rounded-full px-4" />}
             <Button
               variant="ghost"
               onClick={() => setShowSystem((v) => !v)}
@@ -163,7 +169,18 @@ export default function CollectionsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-8">
           {collections.map((col) => (
-            <div key={col.id} className="relative">
+            <div
+              key={col.id}
+              {...selectableProps(selection.isSelecting, (e) => selection.toggle(col.id, e))}
+              className={cn("group relative rounded-2xl transition-shadow", selection.has(col.id) && "ring-2 ring-primary/50")}
+            >
+              <SelectCheckbox
+                checked={selection.has(col.id)}
+                selecting={selection.isSelecting}
+                onToggle={(e) => selection.toggle(col.id, e)}
+                label={`Select ${col.name}`}
+                className="top-3 left-3"
+              />
               <FolderCard
                 href={`/app/collections/${col.id}`}
                 count={col.memoryCount}
@@ -230,6 +247,8 @@ export default function CollectionsPage() {
           </div>
         </div>
       )}
+
+      <CollectionSelectionBar selection={selection} collections={collections} />
 
       {/* CREATE COLLECTION MODAL */}
       <Dialog open={showAddModal} onOpenChange={handleModalOpenChange}>

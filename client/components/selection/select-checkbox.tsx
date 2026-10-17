@@ -48,6 +48,17 @@ export function SelectCheckbox({
 
 const LONG_PRESS_MS = 450;
 
+// Kept outside the props, not in their closure: selecting re-renders the card,
+// which hands React new handlers, and the press must still be cancellable,
+// and the click that follows a long press still swallowed, across that.
+let pressTimer: ReturnType<typeof setTimeout> | null = null;
+let swallowClickUntil = 0;
+
+function cancelPress() {
+  if (pressTimer) clearTimeout(pressTimer);
+  pressTimer = null;
+}
+
 /**
  * Props for a selectable card's root. While something is selected, a click
  * anywhere on the card toggles it (Shift extends the range) instead of opening
@@ -55,16 +66,11 @@ const LONG_PRESS_MS = 450;
  */
 export function selectableProps(selecting: boolean, onSelect: ((event: { shiftKey?: boolean }) => void) | undefined) {
   if (!onSelect) return {};
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let longPressed = false;
-  const cancel = () => {
-    if (timer) clearTimeout(timer);
-    timer = null;
-  };
   return {
     onClickCapture: (event: React.MouseEvent) => {
-      if (longPressed) {
-        longPressed = false;
+      // The click a touch screen sends when a long press ends.
+      if (Date.now() < swallowClickUntil) {
+        swallowClickUntil = 0;
         event.preventDefault();
         event.stopPropagation();
         return;
@@ -76,18 +82,52 @@ export function selectableProps(selecting: boolean, onSelect: ((event: { shiftKe
     },
     onPointerDown: (event: React.PointerEvent) => {
       if (event.pointerType !== "touch") return;
-      longPressed = false;
-      timer = setTimeout(() => {
-        longPressed = true;
+      cancelPress();
+      pressTimer = setTimeout(() => {
+        pressTimer = null;
+        swallowClickUntil = Date.now() + 800;
         onSelect({});
         navigator.vibrate?.(10);
       }, LONG_PRESS_MS);
     },
-    onPointerUp: cancel,
-    onPointerLeave: cancel,
-    onPointerCancel: cancel,
+    onPointerUp: cancelPress,
+    onPointerLeave: cancelPress,
+    onPointerCancel: cancelPress,
     onContextMenu: (event: React.MouseEvent) => {
-      if (longPressed) event.preventDefault();
+      if (Date.now() < swallowClickUntil) event.preventDefault();
     },
   };
+}
+
+/**
+ * A list row's leading icon that turns into the selection check: the icon
+ * fades while selecting and the round check sits where it was.
+ */
+export function RowSelect({
+  checked,
+  selecting,
+  onToggle,
+  label,
+  className,
+  children,
+}: {
+  checked: boolean;
+  selecting: boolean;
+  onToggle: (event: React.MouseEvent) => void;
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("group/row-select relative", className)}>
+      <div className={cn("contents transition-opacity [&>*]:transition-opacity", (selecting || checked) && "[&>*]:opacity-0")}>{children}</div>
+      <SelectCheckbox
+        checked={checked}
+        selecting={selecting}
+        onToggle={onToggle}
+        label={label}
+        className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+      />
+    </div>
+  );
 }

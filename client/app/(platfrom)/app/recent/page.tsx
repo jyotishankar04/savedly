@@ -9,11 +9,17 @@ import { timeAgo, timelineGroup } from "@/lib/time";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import type { Memory } from "@/types/memory";
 import { QueryErrorState } from "@/components/query-error-state";
+import { cn } from "@/lib/utils";
+import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
+import { SelectButton } from "@/components/selection/selection-bar";
+import { RowSelect, selectableProps } from "@/components/selection/select-checkbox";
+import { useSelection } from "@/hooks/use-selection";
 import { PageHeader, EmptyState } from "@/components/app-page";
 
 export default function RecentPage() {
   const { data, isLoading, isError, refetch } = useMemoriesQuery({ limit: 60 });
   const items = data?.items ?? [];
+  const selection = useSelection(items.map((m) => m.id));
 
   // Group into timeline buckets in the order items already arrive (createdAt desc from the API).
   const groupedEntries: { group: string; items: Memory[] }[] = [];
@@ -29,7 +35,7 @@ export default function RecentPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6 md:py-10">
-      <PageHeader title="Recent" description="Your latest saves, most recent first — pick up where you left off." />
+      <PageHeader title="Recent" description="Your latest saves, most recent first — pick up where you left off." action={items.length > 0 ? <SelectButton selection={selection} /> : undefined} />
 
       {isError ? (
         <QueryErrorState onRetry={() => refetch()} />
@@ -61,8 +67,13 @@ export default function RecentPage() {
                     <li key={item.id}>
                       <Link
                         href={`/app/memories/${item.id}`}
-                        className="group flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                          selection.has(item.id) && "bg-primary/10 hover:bg-primary/10",
+                        )}
                       >
+                        <RowSelect checked={selection.has(item.id)} selecting={selection.isSelecting} onToggle={(e) => selection.toggle(item.id, e)} label={`Select ${item.title}`} className="shrink-0">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-primary">
                           {item.faviconUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element -- external, unpredictable-domain favicon
@@ -71,6 +82,7 @@ export default function RecentPage() {
                             <HugeiconsIcon icon={TypeIcon} strokeWidth={2} className="h-4.5 w-4.5" />
                           )}
                         </div>
+                        </RowSelect>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{item.title}</p>
                           <p className="truncate text-[13px] text-muted-foreground">{item.description || item.source}</p>
@@ -85,6 +97,8 @@ export default function RecentPage() {
           ))}
         </div>
       )}
+
+      <MemorySelectionBar selection={selection} memories={items} context="library" />
     </div>
   );
 }
