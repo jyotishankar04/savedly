@@ -1,4 +1,5 @@
 import { and, eq, inArray } from "drizzle-orm";
+import { deleteMemory } from "../memory/memory.service";
 import { db } from "../../db";
 import { collections, collectionMemories, memories, memoryTags, tags, users } from "../../db/schema";
 import { MemoryStatus } from "../../db/enums";
@@ -150,18 +151,29 @@ export async function batchDeleteMemories(userId: string, input: BatchDeleteInpu
 
   result.processed = input.memoryIds.length;
 
+  if (input.permanent) {
+    // One at a time through deleteMemory, so a bulk permanent delete cleans up
+    // exactly what a single one does: files in storage and an external vector
+    // store (Upstash, Pinecone) as well as the rows.
+    for (const id of input.memoryIds) {
+      try {
+        await deleteMemory(userId, id);
+        result.succeeded++;
+      } catch (err) {
+        result.failed++;
+        (result.errors ??= []).push({ id, error: err instanceof Error ? err.message : "Unknown error" });
+      }
+    }
+    return result;
+  }
+
   try {
     await db.transaction(async (tx) => {
-      if (input.permanent) {
-        // Permanent delete
-        await tx.delete(memories).where(inArray(memories.id, input.memoryIds));
-      } else {
-        // Soft delete (move to trash)
-        await tx
-          .update(memories)
-          .set({ inTrash: true, trashedAt: new Date() })
-          .where(inArray(memories.id, input.memoryIds));
-      }
+      // Soft delete (move to trash)
+      await tx
+        .update(memories)
+        .set({ inTrash: true, trashedAt: new Date() })
+        .where(inArray(memories.id, input.memoryIds));
       result.succeeded = input.memoryIds.length;
     });
   } catch (err) {
