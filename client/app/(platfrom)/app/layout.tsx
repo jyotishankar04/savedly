@@ -38,7 +38,7 @@ import { PaletteDialog, type PaletteItem } from "@/components/ui/palette-dialog"
 import { Textarea as ArcTextarea } from "@/components/arc/textarea/textarea";
 import { Input as ArcInput } from "@/components/arc/input/input";
 import { Button as ArcButton } from "@/components/arc/button/button";
-import { useCollectionDrop, useMemoryDragging } from "@/components/memory/collection-drop";
+import { type Shelf, useCollectionDrop, useMemoryDragging, useShelfDrop } from "@/components/memory/collection-drop";
 import { isEditableTarget, useQuickSave } from "@/components/capture/quick-save";
 import { DropToSave } from "@/components/capture/drop-to-save";
 import { Badge as ArcBadge } from "@/components/arc/badge/badge";
@@ -162,6 +162,33 @@ function SidebarLink({ item, active, ...rest }: { item: NavItem; active: boolean
           {item.badge > 99 ? "99+" : item.badge}
         </span>
       ) : null}
+    </Link>
+  );
+}
+
+/** The sidebar links that memories can be dropped on, and what dropping there does. */
+const SHELF_HREFS: Record<string, Shelf> = { "/app/favorites": "favorite", "/app/vault": "vault", "/app/archive": "archive", "/app/trash": "trash" };
+const SHELF_VERB: Record<Shelf, string> = { favorite: "Add", vault: "Lock", archive: "Archive", trash: "Trash" };
+
+/** Favorites, Vault, Archive or Trash in the sidebar, which also take dropped memories (see SidebarCollectionRow). */
+function SidebarShelfLink({ item, active, shelf, dragging }: { item: NavItem; active: boolean; shelf: Shelf; dragging: boolean }) {
+  const drop = useShelfDrop(shelf);
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      data-nav-row=""
+      {...drop.props}
+      className={cn(
+        SIDEBAR_ROW,
+        active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+        dragging && "outline-1 -outline-offset-1 outline-dashed outline-foreground/15",
+        drop.over && (shelf === "trash" ? "bg-destructive/12 text-destructive outline-destructive/60" : "bg-primary/15 text-primary outline-primary/60"),
+      )}
+    >
+      <HugeiconsIcon icon={item.icon} strokeWidth={2} className="h-[18px] w-[18px] shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {drop.over && <span className="text-[11px] font-semibold">{SHELF_VERB[shelf]}</span>}
     </Link>
   );
 }
@@ -861,20 +888,25 @@ function AppShell({ children }: { children: React.ReactNode }) {
     shortcuts: () => setShortcutsOpen(true),
     ...Object.fromEntries(pageItems.map((item) => [`go:${item.href}`, () => router.push(item.href)])),
   };
+  // While memories are dragged, every collection (and Favorites, Archive, Vault, Trash) is a place to drop them: show them all, with their sections open.
+  const dragging = useMemoryDragging();
   const renderSection = (section: (typeof navSections)[number]) => (
     <SidebarSection
       key={section.id}
       label={section.label}
-      open={!closedSections.includes(section.id)}
+      // A section with places to drop memories opens while they're dragged.
+      open={(dragging && section.items.some((item) => SHELF_HREFS[item.href])) || !closedSections.includes(section.id)}
       onToggle={() => toggleSection(section.id)}
     >
-      {section.items.map((item) => (
-        <SidebarLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} />
-      ))}
+      {section.items.map((item) =>
+        SHELF_HREFS[item.href] ? (
+          <SidebarShelfLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} shelf={SHELF_HREFS[item.href]!} dragging={dragging} />
+        ) : (
+          <SidebarLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} />
+        ),
+      )}
     </SidebarSection>
   );
-  // While memories are dragged, every collection is a place to drop them: show them all, with the section open.
-  const dragging = useMemoryDragging();
   const visibleCollections = collectionsShowAll || dragging ? collections : collections.slice(0, COLLECTIONS_PREVIEW_COUNT);
 
   return (

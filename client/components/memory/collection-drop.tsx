@@ -7,10 +7,17 @@ import { announceOutcome } from "@/components/selection/selection-bar";
 import { toast } from "@/components/ui/toast";
 import { openUpgradeDialog } from "@/components/upgrade-dialog";
 import { useUpdateMemoryMutation } from "@/context/MemoryContext";
-import { useBatchMoveToCollectionMutation, useBatchUncollectMutation } from "@/hooks/use-batch";
+import {
+  useBatchDeleteMutation,
+  useBatchMoveToCollectionMutation,
+  useBatchRestoreMutation,
+  useBatchUncollectMutation,
+  useBatchUpdateStatusMutation,
+} from "@/hooks/use-batch";
 import { usePlanFeature } from "@/hooks/use-plan-limit";
 import { clearSelections } from "@/hooks/use-selection";
-import { getMemory } from "@/lib/memories";
+import { getMemory, type UpdateMemoryInput } from "@/lib/memories";
+import type { Memory } from "@/types/memory";
 import { cachedMemories, draggedIds, isMemoryDrag, memoryDrag } from "@/lib/memory-drag";
 
 type Target = { id: string; name: string };
@@ -83,9 +90,8 @@ function useFileIntoCollection() {
   };
 }
 
-/** Props for a collection that memories can be dropped on, and whether some are over it now. */
-export function useCollectionDrop(target: Target) {
-  const file = useFileIntoCollection();
+/** Props for anything memories can be dropped on, and whether some are over it now. */
+function useMemoryDrop(onDrop: (ids: string[]) => void) {
   const [over, setOver] = useState(false);
   // Enter and leave fire for every child the pointer crosses; count them so the highlight doesn't flicker.
   const depth = useRef(0);
@@ -113,8 +119,97 @@ export function useCollectionDrop(target: Target) {
       depth.current = 0;
       setOver(false);
       const ids = draggedIds(event);
-      if (ids.length) void file(ids, target);
+      if (ids.length) onDrop(ids);
     },
   };
   return { over, props };
+}
+
+/** Props for a collection that memories can be dropped on, and whether some are over it now. */
+export function useCollectionDrop(target: Target) {
+  const file = useFileIntoCollection();
+  return useMemoryDrop((ids) => void file(ids, target));
+}
+
+/** The sidebar's places that are a state rather than a collection. */
+export type Shelf = "favorite" | "archive" | "vault" | "trash";
+
+const SHELVES: Record<
+  Shelf,
+  { has: (m: Memory) => boolean; done: (what: string) => string; already: string; undone: string; patch: (on: boolean) => UpdateMemoryInput }
+> = {
+  favorite: { has: (m) => m.isFavorite, done: (w) => `${w} added to favorites.`, already: "in your favorites", undone: "Taken out of favorites again.", patch: (on) => ({ isFavorite: on }) },
+  archive: { has: (m) => m.isArchived, done: (w) => `${w} archived.`, already: "archived", undone: "Back out of the archive.", patch: (on) => ({ isArchived: on }) },
+  vault: { has: (m) => m.isVaulted, done: (w) => `${w} moved to the vault.`, already: "in the vault", undone: "Taken back out of the vault.", patch: (on) => ({ isVaulted: on }) },
+  trash: { has: (m) => m.inTrash, done: (w) => `${w} moved to Trash.`, already: "in Trash", undone: "Restored.", patch: (on) => ({ inTrash: on }) },
+};
+
+/** Undoing out of the vault needs it unlocked, which moving in doesn't. */
+const friendlier = (err: unknown) =>
+  err instanceof Error && /vault is locked/i.test(err.message) ? new Error("Unlock your vault to take them back out.") : err;
+
+/** Favorite, archive, vault or trash dropped memories, with Undo; the same plan rules as filing into a collection. */
+function useShelve() {
+  const queryClient = useQueryClient();
+  const update = useUpdateMemoryMutation();
+  const status = useBatchUpdateStatusMutation();
+  const remove = useBatchDeleteMutation();
+  const restore = useBatchRestoreMutation();
+  const bulk = usePlanFeature("batchOperations");
+  const vault = usePlanFeature("vault");
+
+  return async (ids: string[], shelf: Shelf) => {
+    const rules = SHELVES[shelf];
+    const known = cachedMemories(queryClient, ids);
+    const todo = ids.filter((id) => !(known.get(id) && rules.has(known.get(id)!)));
+    if (todo.length === 0) {
+      toast.add({ title: `${ids.length === 1 ? "Already" : `All ${ids.length} are already`} ${rules.already}.`, type: "info" });
+      return;
+    }
+    if ((shelf === "vault" && !vault.allowed) || (todo.length > 1 && !bulk.allowed)) {
+      openUpgradeDialog();
+      return;
+    }
+    clearSelections();
+    const title = todo.length === 1 ? known.get(todo[0]!)?.title : undefined;
+    const what = (count: number) => (count === 1 && title ? `“${title}”` : n(count));
+
+    // Several go through the bulk endpoints; one through the memory itself, which works on every plan.
+    const apply = async (memoryIds: string[], on: boolean) => {
+      if (memoryIds.length === 1 && !bulk.allowed) {
+        await update.mutateAsync({ id: memoryIds[0]!, patch: rules.patch(on) });
+        return memoryIds;
+      }
+      const result =
+        shelf === "trash"
+          ? on
+            ? await remove.mutateAsync({ memoryIds, permanent: false })
+            : await restore.mutateAsync({ memoryIds })
+          : await status.mutateAsync({ memoryIds, [shelf === "favorite" ? "favorite" : shelf === "archive" ? "archived" : "vaulted"]: on });
+      if (result.succeeded === 0) throw new Error("That didn't go through. Refresh and try again.");
+      const failed = new Set((result.errors ?? []).map((e) => e.id));
+      return memoryIds.filter((id) => !failed.has(id));
+    };
+
+    try {
+      const changed = await apply(todo, true);
+      announceOutcome({
+        message: rules.done(what(changed.length)),
+        undo: async () => {
+          await apply(changed, false).catch((err) => {
+            throw friendlier(err);
+          });
+          return rules.undone;
+        },
+      });
+    } catch (err) {
+      toast.add({ title: err instanceof Error ? err.message : "That didn't work. Try again.", type: "error" });
+    }
+  };
+}
+
+/** Props for Favorites, Archive, Vault or Trash in the sidebar as a place to drop memories. */
+export function useShelfDrop(shelf: Shelf) {
+  const shelve = useShelve();
+  return useMemoryDrop((ids) => void shelve(ids, shelf));
 }
