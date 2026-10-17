@@ -108,6 +108,7 @@ export function MemorySelectionBar({
             key: "move",
             label: "Move to collection",
             icon: FolderTransferIcon,
+            inMenu: true,
             run: async () => {
               const target = await collectionPicker.pick(`Move ${n(ids.length)} to a collection`, "Move here", collection?.id);
               return report(await move.mutateAsync({ memoryIds: ids, collectionId: target.id, mode: "move" }), (c) => `${n(c)} moved to ${target.name}.`);
@@ -139,6 +140,7 @@ export function MemorySelectionBar({
                   key: "untag",
                   label: "Remove tags",
                   icon: TagsIcon,
+                  inMenu: true,
                   run: async () => {
                     const names = await tagPicker.pick(`Remove tags from ${n(ids.length)}`, "Remove tags", selectedTags);
                     return report(await tag.mutateAsync({ memoryIds: ids, tagNames: names, mode: "remove" }), (c) => `Removed ${names.join(", ")} from ${n(c)}.`);
@@ -162,6 +164,7 @@ export function MemorySelectionBar({
           },
           {
             key: "vault",
+            inMenu: context !== "vault",
             label: context === "vault" ? "Out of vault" : "Move to vault",
             icon: context === "vault" ? SquareUnlock01Icon : SquareLock01Icon,
             run: async () =>

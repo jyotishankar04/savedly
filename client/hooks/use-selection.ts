@@ -75,7 +75,7 @@ export function useSelection(visibleIds: string[]): Selection {
     if (!isSelecting) return;
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.closest("input, textarea, [contenteditable=true], [role=dialog]")) return;
+      if (event.defaultPrevented || target?.closest("input, textarea, [contenteditable=true], [role=dialog], [role=alertdialog], [role=menu]")) return;
       if (event.key === "Escape") {
         clear();
       } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
