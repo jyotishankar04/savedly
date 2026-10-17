@@ -63,6 +63,10 @@ export const updateMemorySchema = z.object({
   collectionIds: z.array(z.string().uuid()).max(50).optional(),
   tags: z.array(z.string().min(1).max(50)).max(30).optional(),
   attachments: z.array(attachmentInputSchema).max(10).optional(),
+  // The Inbox: true marks it read, false puts it back as unread.
+  isRead: z.boolean().optional(),
+  // "Remind me": when it should come back (with an offset); null cancels.
+  remindAt: z.string().datetime({ offset: true }).nullable().optional(),
 });
 
 export const listMemoriesQuerySchema = z.object({
@@ -77,6 +81,9 @@ export const listMemoriesQuerySchema = z.object({
   // case-insensitively against its source domain or URL.
   site: z.string().trim().min(1).max(100).optional(),
   q: z.string().optional(),
+  // "true" only. Not z.coerce.boolean(), which reads the string "false" as true.
+  inbox: z.enum(["true", "false"]).transform((v) => v === "true").optional(),
+  snoozed: z.enum(["true", "false"]).transform((v) => v === "true").optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

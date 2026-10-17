@@ -145,6 +145,8 @@ export enum NotificationType {
   SHARE_REVOKED = "share_revoked",
   EVENT_DETECTED = "event_detected",
   DUPLICATE_DETECTED = "duplicate_detected",
+  // A reminder the user set on a memory ("Remind me tomorrow") is due.
+  MEMORY_REMINDER = "memory_reminder",
 }
 
 export enum PlanLimitType {
@@ -227,6 +229,7 @@ export enum EmailTemplateKey {
   SHARE_ACCESS_DENIED = "share_access_denied",
   ADMIN_CUSTOM = "admin_custom",
   EVENT_DETECTED = "event_detected",
+  MEMORY_REMINDER = "memory_reminder",
 }
 
 export enum EmailStatus {

@@ -15,6 +15,7 @@ import {
 } from "./memory.service";
 import type { ListMemoriesQuery } from "./memory.schema";
 import { settleDuplicate } from "./duplicates";
+import { inboxCounts, lookupByUrl, markInboxRead } from "./inbox.service";
 
 export class MemoryController {
   static async list(req: Request, res: Response) {
@@ -78,6 +79,19 @@ export class MemoryController {
   }
 
   // File downloads, not ApiResponse-wrapped results.
+  static async inboxCount(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await inboxCounts(req.user!.id)));
+  }
+
+  static async inboxReadAll(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success({ marked: await markInboxRead(req.user!.id) }));
+  }
+
+  static async lookup(req: Request, res: Response) {
+    const url = typeof req.query.url === "string" ? req.query.url : "";
+    res.status(200).json(ApiResponse.success(url ? await lookupByUrl(req.user!.id, url) : null));
+  }
+
   static async exportAll(req: Request, res: Response) {
     const items = await exportAllMemories(req.user!.id);
     res.setHeader("Content-Type", "application/json");

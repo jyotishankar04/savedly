@@ -24,6 +24,7 @@ export interface SettingsResponse {
   notifications: {
     weeklySummary: boolean;
     forgottenMemories: boolean;
+    reminderEmails: boolean;
     productUpdates: boolean;
   };
   appearance: {
@@ -40,7 +41,7 @@ const DEFAULTS: Omit<SettingsResponse, "connectedAccounts"> = {
   timezone: null,
   ai: { autoOrganization: true, summaries: true, relatedMemories: true, semanticSearch: true, askSavedly: true },
   capture: { extractContent: true, generateTitle: true, generateSummary: true, suggestTags: true, defaultCollectionId: null },
-  notifications: { weeklySummary: true, forgottenMemories: true, productUpdates: true },
+  notifications: { weeklySummary: true, forgottenMemories: true, reminderEmails: true, productUpdates: true },
   appearance: { theme: SettingsTheme.SYSTEM, accentColor: AccentColor.BLUE },
 };
 
@@ -83,6 +84,7 @@ export async function getSettings(userId: string): Promise<SettingsResponse> {
     notifications: {
       weeklySummary: row.notifyWeeklySummary,
       forgottenMemories: row.notifyForgottenMemories,
+      reminderEmails: row.notifyReminderEmails,
       // On unless they unsubscribed from announcement emails.
       productUpdates: row.emailUnsubscribedAt === null,
     },
@@ -112,6 +114,7 @@ export async function updateSettings(userId: string, patch: UpdateSettingsInput)
 
   if (patch.notifications?.weeklySummary !== undefined) columns.notifyWeeklySummary = patch.notifications.weeklySummary;
   if (patch.notifications?.forgottenMemories !== undefined) columns.notifyForgottenMemories = patch.notifications.forgottenMemories;
+  if (patch.notifications?.reminderEmails !== undefined) columns.notifyReminderEmails = patch.notifications.reminderEmails;
   if (patch.notifications?.productUpdates !== undefined) columns.emailUnsubscribedAt = patch.notifications.productUpdates ? null : new Date();
 
   if (patch.appearance?.theme !== undefined) columns.theme = patch.appearance.theme as SettingsTheme;

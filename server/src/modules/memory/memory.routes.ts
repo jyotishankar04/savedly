@@ -18,6 +18,10 @@ router.post("/", authenticate, validateCreateMemory, MemoryController.create);
 router.get("/export", authenticate, MemoryController.exportAll);
 router.get("/export/okf", authenticate, MemoryController.exportOkf);
 router.get("/graph", authenticate, MemoryController.graph);
+router.get("/inbox/count", authenticate, MemoryController.inboxCount);
+router.post("/inbox/read-all", authenticate, MemoryController.inboxReadAll);
+// The extension: is this page already saved?
+router.get("/lookup", authenticate, MemoryController.lookup);
 router.get("/:id", authenticate, MemoryController.get);
 router.patch("/:id", authenticate, validateUpdateMemory, requireUnlockToUnvault, MemoryController.update);
 router.delete("/:id", authenticate, MemoryController.remove);

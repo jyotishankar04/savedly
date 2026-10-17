@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db";
 import { attachments, collectionMemories, collections, memories, memoryTags, tags } from "../../db/schema";
 import { MemoryStatus, PlanLimitType, type MemoryType } from "../../db/enums";
@@ -20,6 +20,9 @@ import type {
 import { assertFeature, assertWithinLimit } from "../plans/plans.service";
 import { DuplicateStatus, findDuplicate } from "./duplicates";
 
+/** Saves meant to be read or watched later: they start unread, in the Inbox. Notes and voice memos are the user's own words. */
+export const READ_LATER_TYPES = new Set<string>(["web", "video", "document", "image"]);
+
 export interface MemoryListItem {
   id: string;
   type: string;
@@ -34,6 +37,12 @@ export interface MemoryListItem {
   inTrash: boolean;
   trashedAt: Date | null;
   isVaulted: boolean;
+  /** Null = unread, in the Inbox. */
+  readAt: Date | null;
+  /** When it comes back ("Remind me"); in the future = snoozed. */
+  remindAt: Date | null;
+  /** When a reminder last brought it back. */
+  remindedAt: Date | null;
   eventAt: Date | null;
   /** How long the event runs, in minutes; null means 1 hour. */
   eventDurationMinutes: number | null;
@@ -150,6 +159,9 @@ function toListItem(
     inTrash: row.inTrash,
     trashedAt: row.trashedAt,
     isVaulted: row.isVaulted,
+    readAt: row.readAt,
+    remindAt: row.remindAt,
+    remindedAt: row.remindedAt,
     eventAt: row.eventAt,
     eventDurationMinutes: row.eventDurationMinutes,
     tags: memoryTagsList,
@@ -182,7 +194,7 @@ function toListItem(
  */
 async function buildFilterConditions(
   userId: string,
-  query: Pick<ListMemoriesQuery, "type" | "isFavorite" | "isArchived" | "inTrash" | "isVaulted" | "collectionId" | "tag" | "site">,
+  query: Pick<ListMemoriesQuery, "type" | "isFavorite" | "isArchived" | "inTrash" | "isVaulted" | "collectionId" | "tag" | "site" | "inbox" | "snoozed">,
 ): Promise<SQL[] | null> {
   const conditions: SQL[] = [
     eq(memories.userId, userId),
@@ -196,6 +208,9 @@ async function buildFilterConditions(
   ];
 
   if (query.type) conditions.push(eq(memories.type, query.type as MemoryType));
+  // The Inbox: unread, and not snoozed by a reminder still to come.
+  if (query.inbox) conditions.push(isNull(memories.readAt), or(isNull(memories.remindAt), lte(memories.remindAt, new Date()))!);
+  if (query.snoozed) conditions.push(gt(memories.remindAt, new Date()));
   if (query.isFavorite !== undefined) conditions.push(eq(memories.isFavorite, query.isFavorite));
   if (query.site) {
     const pattern = `%${query.site.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
@@ -248,7 +263,15 @@ export async function listMemories(
     .select()
     .from(memories)
     .where(where)
-    .orderBy(desc(memories.createdAt))
+    // The Inbox and the snoozed list read in their own order: what came back
+    // (or arrived) most recently first, and the next reminder first.
+    .orderBy(
+      query.snoozed
+        ? asc(memories.remindAt)
+        : query.inbox
+          ? desc(sql`coalesce(${memories.remindedAt}, ${memories.createdAt})`)
+          : desc(memories.createdAt),
+    )
     .limit(query.limit)
     .offset((query.page - 1) * query.limit);
 
@@ -681,6 +704,8 @@ export async function createMemory(
       previewImageUrl,
       keywords: input.keywords,
       captureMethod: input.captureMethod ?? "manual",
+      // Things to read or watch go to the Inbox unread; what the user wrote themselves doesn't.
+      readAt: READ_LATER_TYPES.has(input.type) ? null : new Date(),
       duplicateStatus,
       duplicateOfId: input.onDuplicate && existing ? existing.id : null,
     };
@@ -757,6 +782,9 @@ export async function updateMemory(
     // is always safe to do.
     if (input.isVaulted !== undefined) columns.isVaulted = input.isVaulted;
     if (input.eventAt !== undefined) columns.eventAt = input.eventAt ? new Date(input.eventAt) : null;
+    if (input.isRead !== undefined) columns.readAt = input.isRead ? new Date() : null;
+    // A new reminder snoozes it until then; null cancels one.
+    if (input.remindAt !== undefined) columns.remindAt = input.remindAt ? new Date(input.remindAt) : null;
 
     const [updated] = await tx
       .update(memories)
