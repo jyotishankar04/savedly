@@ -7,7 +7,8 @@ export type NotificationType =
   | "share_access_denied"
   | "share_revoked"
   | "event_detected"
-  | "duplicate_detected";
+  | "duplicate_detected"
+  | "memory_reminder";
 
 export interface AppNotification {
   id: string;

@@ -13,6 +13,10 @@ export interface ListMemoriesParams {
   collectionId?: string;
   tag?: string;
   q?: string;
+  /** The Inbox: unread and not snoozed. */
+  inbox?: boolean;
+  /** Waiting on a reminder. */
+  snoozed?: boolean;
   page?: number;
   limit?: number;
 }
@@ -67,6 +71,10 @@ export type UpdateMemoryInput = Partial<
 > & {
   /** ISO datetime, or null to clear it. Omit to leave unchanged. */
   eventAt?: string | null;
+  /** The Inbox: true marks it read, false unread again. */
+  isRead?: boolean;
+  /** "Remind me": ISO datetime, or null to cancel the reminder. */
+  remindAt?: string | null;
 };
 
 function toQueryString(params: ListMemoriesParams): string {
@@ -98,6 +106,20 @@ export async function createMemory(input: CreateMemoryInput): Promise<CreateMemo
 
 export async function updateMemory(id: string, patch: UpdateMemoryInput): Promise<MemoryDetail> {
   return apiFetch<MemoryDetail>(`/memories/${id}`, { method: "PATCH", body: patch });
+}
+
+export interface InboxCount {
+  unread: number;
+  snoozed: number;
+}
+
+export async function getInboxCount(): Promise<InboxCount> {
+  return apiFetch<InboxCount>("/memories/inbox/count");
+}
+
+/** Marks everything now in the Inbox as read (snoozed ones stay snoozed). */
+export async function markInboxRead(): Promise<{ marked: number }> {
+  return apiFetch<{ marked: number }>("/memories/inbox/read-all", { method: "POST" });
 }
 
 export async function deleteMemory(id: string): Promise<void> {

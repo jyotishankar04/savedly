@@ -18,6 +18,8 @@ import {
   createMemory,
   deleteMemory,
   getMemory,
+  getInboxCount,
+  markInboxRead,
   listMemories,
   updateMemory,
   type CreateMemoryInput,
@@ -63,6 +65,22 @@ export function useMemoriesQuery(params: ListMemoriesParams = {}) {
       const items = query.state.data?.items ?? [];
       return items.some((item) => item.resourceCategory === null) ? 4000 : false;
     },
+  });
+}
+
+/**
+ * Unread and snoozed counts for the Inbox. Keyed under ["memories"], so any
+ * change to memories (a save, a read, a reminder) refreshes the sidebar badge.
+ */
+export function useInboxCountQuery() {
+  return useQuery({ queryKey: ["memories", "inbox-count"] as const, queryFn: getInboxCount, refetchInterval: 60_000 });
+}
+
+export function useMarkInboxReadMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: markInboxRead,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["memories"] }),
   });
 }
 

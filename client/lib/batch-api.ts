@@ -50,6 +50,12 @@ export interface BatchStatusInput {
 export const batchUpdateStatus = (input: BatchStatusInput) =>
   apiFetch<BatchResult>("/batch/memories/status", { method: "POST", body: input });
 
+export const batchReadMemories = (input: { memoryIds: string[]; read: boolean }) =>
+  apiFetch<BatchResult>("/batch/memories/read", { method: "POST", body: input });
+
+export const batchRemindMemories = (input: { memoryIds: string[]; remindAt: string | null }) =>
+  apiFetch<BatchResult>("/batch/memories/remind", { method: "POST", body: input });
+
 export const batchUncollectMemories = (input: { memoryIds: string[]; collectionId: string }) =>
   apiFetch<BatchResult>("/batch/memories/uncollect", { method: "POST", body: input });
 

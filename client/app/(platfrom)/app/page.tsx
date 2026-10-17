@@ -15,9 +15,10 @@ import {
   PuzzleIcon as Puzzle,
   HistoryIcon as History,
   PlusSignIcon as Plus,
+  InboxIcon,
 } from "@hugeicons/core-free-icons";
 import { useUser } from "@/context/UserContext";
-import { useMemoriesQuery, useCollectionsQuery } from "@/context/MemoryContext";
+import { useMemoriesQuery, useCollectionsQuery, useInboxCountQuery } from "@/context/MemoryContext";
 import { useInsightsQuery } from "@/hooks/use-insights";
 import { humanizeLabel } from "@/lib/insights";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -168,6 +169,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <InboxCard />
 
       {/* Quick save */}
       <section aria-labelledby="home-save" className="space-y-3">
@@ -379,5 +382,33 @@ function RediscoverCard({ item }: { item: Memory }) {
         </div>
       </Link>
     </div>
+  );
+}
+
+/** What's waiting to be read: the count, and the first few, linking to the Inbox. Hidden when there's nothing. */
+function InboxCard() {
+  const unread = useInboxCountQuery().data?.unread ?? 0;
+  const { data } = useMemoriesQuery({ inbox: true, limit: 3 });
+  const first = data?.items ?? [];
+  if (unread === 0 || first.length === 0) return null;
+  return (
+    <section aria-labelledby="home-inbox" className="space-y-3">
+      <SectionHeader id="home-inbox" title="To read or watch" href="/app/inbox" />
+      <Link
+        href="/app/inbox"
+        className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <HugeiconsIcon icon={InboxIcon} strokeWidth={2} className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-foreground">
+            {unread} unread in your Inbox
+          </span>
+          <span className="block truncate text-[13px] text-muted-foreground">{first.map((m) => m.title).join(" · ")}</span>
+        </span>
+        <span className="shrink-0 text-xs font-medium text-primary group-hover:underline">Open Inbox</span>
+      </Link>
+    </section>
   );
 }

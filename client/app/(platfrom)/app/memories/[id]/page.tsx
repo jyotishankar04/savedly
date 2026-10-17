@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -18,11 +18,14 @@ import {
   Tick02Icon as Tick,
   PencilEdit02Icon as Pencil,
   Folder01Icon as Folder,
+  AlarmClockIcon as Alarm,
 } from "@hugeicons/core-free-icons";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
+import { useRemindMe } from "@/components/memory/remind-me";
+import { formatRemindAt } from "@/lib/remind";
 import { useMemoryQuery, useToggleFavoriteMutation, useUpdateMemoryMutation } from "@/context/MemoryContext";
 import { timeAgo } from "@/lib/time";
 import { isMemoryProcessing } from "@/lib/memory-processing";
@@ -95,6 +98,18 @@ export default function MemoryDetailPage() {
   const { data: memory, isLoading, isError } = useMemoryQuery(id);
   const toggleFavoriteMutation = useToggleFavoriteMutation();
   const updateMutation = useUpdateMemoryMutation();
+  const remindMe = useRemindMe();
+  // Read once: whether a reminder is still to come only needs to be right when the page opens.
+  const [openedAt] = useState(() => Date.now());
+
+  // Opening it is reading it: out of the Inbox. Once per memory, and only when it was unread.
+  const markedRead = useRef<string | null>(null);
+  const markRead = updateMutation.mutate;
+  useEffect(() => {
+    if (!memory || memory.readAt !== null || markedRead.current === memory.id) return;
+    markedRead.current = memory.id;
+    markRead({ id: memory.id, patch: { isRead: true } });
+  }, [memory, markRead]);
 
   // `content` is the body of a "note" memory, and for every other type the
   // caption the user typed alongside a link or file. Both are edited here,
@@ -209,7 +224,17 @@ export default function MemoryDetailPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground text-balance break-words">{memory.title}</h1>
         <p className="text-xs text-muted-foreground">
           Saved {formatSavedDate(memory.createdAt)} · {timeAgo(memory.createdAt)}
+          {memory.remindAt && new Date(memory.remindAt).getTime() > openedAt && (
+            <>
+              {" · "}
+              <button type="button" onClick={() => void remindMe.remind([memory])} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                <HugeiconsIcon icon={Alarm} strokeWidth={2} className="h-3.5 w-3.5" />
+                Back {formatRemindAt(memory.remindAt)}
+              </button>
+            </>
+          )}
         </p>
+        {remindMe.element}
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">

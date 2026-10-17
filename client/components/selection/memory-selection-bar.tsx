@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  AlarmClockIcon,
+  MailOpen01Icon as ReadIcon,
   ArchiveIcon,
   ArrowTurnBackwardIcon,
   Delete02Icon,
@@ -16,6 +18,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { SelectionBar, type ActionOutcome, type SelectionAction } from "@/components/selection/selection-bar";
 import { useCollectionPicker, useTagPicker } from "@/components/selection/pickers";
+import { useMarkRead, useRemindMe } from "@/components/memory/remind-me";
 import {
   useBatchDeleteMutation,
   useBatchMoveToCollectionMutation,
@@ -29,7 +32,7 @@ import type { BatchResult } from "@/lib/batch-api";
 import type { Memory } from "@/types/memory";
 
 /** Where the list is: decides which actions make sense. */
-export type MemoryListContext = "library" | "archive" | "vault" | "trash" | "collection";
+export type MemoryListContext = "library" | "archive" | "vault" | "trash" | "collection" | "inbox";
 
 const n = (count: number) => `${count} ${count === 1 ? "memory" : "memories"}`;
 
@@ -83,6 +86,8 @@ export function MemorySelectionBar({
   const uncollect = useBatchUncollectMutation();
   const collectionPicker = useCollectionPicker();
   const tagPicker = useTagPicker();
+  const remindMe = useRemindMe();
+  const markRead = useMarkRead();
 
   const ids = selection.ids;
   const selected = memories.filter((m) => selection.has(m.id));
@@ -120,6 +125,23 @@ export function MemorySelectionBar({
           },
         ]
       : [
+          ...(context === "inbox"
+            ? [
+                {
+                  key: "read",
+                  label: "Mark as read",
+                  icon: ReadIcon,
+                  run: () => markRead.outcome(selected, true),
+                },
+              ]
+            : []),
+          {
+            key: "remind",
+            label: "Remind me",
+            icon: AlarmClockIcon,
+            inMenu: context !== "inbox",
+            run: () => remindMe.pickAndSet(selected),
+          },
           {
             key: "add",
             label: "Add to collection",
@@ -311,6 +333,7 @@ export function MemorySelectionBar({
       <SelectionBar selection={selection} noun={["memory", "memories"]} actions={actions} />
       {collectionPicker.element}
       {tagPicker.element}
+      {remindMe.element}
     </>
   );
 }

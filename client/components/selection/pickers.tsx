@@ -10,6 +10,7 @@ import { GlidingHighlight } from "@/components/ui/gliding-highlight";
 import { Button } from "@/components/arc/button/button";
 import { TagInput } from "@/components/arc/tag-input/tag-input";
 import { useCollectionsQuery, useCreateCollectionMutation, useTagsQuery } from "@/context/MemoryContext";
+import { formatRemindAt, remindChoices, shortWhen, toLocalInput } from "@/lib/remind";
 import type { Collection } from "@/types/memory";
 import { cn } from "@/lib/utils";
 
@@ -400,6 +401,82 @@ function MergeBody({ options, onPick, onCancel }: { options: Collection[]; onPic
         </Button>
         <Button disabled={!kept} onClick={() => kept && onPick(kept)}>
           {kept ? `Merge into ${kept.name}` : "Merge"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+/**
+ * "Remind me": when it should come back. Resolves to an ISO time, or null
+ * for "cancel the reminder" (offered when one is set).
+ */
+export function useRemindPicker() {
+  const state = usePending<string | null>();
+  const [text, setText] = useState<{ title: string; current: string | null }>({ title: "", current: null });
+  const pick = (title: string, current: string | null = null) => {
+    setText({ title, current });
+    return state.ask();
+  };
+  const element = (
+    <Dialog open={state.open} onOpenChange={(open) => !open && state.dismiss()}>
+      {state.open && <RemindBody title={text.title} current={text.current} onPick={state.answer} onCancel={state.dismiss} />}
+    </Dialog>
+  );
+  return { pick, element };
+}
+
+function RemindBody({ title, current, onPick, onCancel }: { title: string; current: string | null; onPick: (at: string | null) => void; onCancel: () => void }) {
+  const choices = useMemo(() => remindChoices(), []);
+  const [custom, setCustom] = useState(false);
+  const [value, setValue] = useState(() => toLocalInput(choices.find((c) => c.id === "tomorrow")?.at ?? new Date()));
+  const [now] = useState(() => Date.now());
+  const customAt = value ? new Date(value) : null;
+  const customOk = !!customAt && !Number.isNaN(customAt.getTime()) && customAt.getTime() > now;
+  const future = current && new Date(current).getTime() > now ? current : null;
+
+  return (
+    <DialogContent className="gap-4 sm:max-w-sm">
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>
+          {future ? `Set for ${formatRemindAt(future)}. ` : ""}It leaves your Inbox and comes back then, with a notification.
+        </DialogDescription>
+      </DialogHeader>
+      <GlidingHighlight as="div" role="listbox" aria-label="When" className="-mx-2 space-y-0.5 px-2" highlightClassName="rounded-xl">
+        {choices.map((choice) => (
+          <PickerRow key={choice.id} chosen={false} onClick={() => onPick(choice.at.toISOString())}>
+            <span className="min-w-0 flex-1 font-medium">{choice.label}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{shortWhen(choice.at)}</span>
+          </PickerRow>
+        ))}
+        <PickerRow chosen={custom} onClick={() => setCustom((open) => !open)}>
+          <span className="min-w-0 flex-1 font-medium">Pick a date and time</span>
+        </PickerRow>
+      </GlidingHighlight>
+      {custom && (
+        <div className="flex items-center gap-2">
+          <input
+            type="datetime-local"
+            aria-label="Date and time"
+            value={value}
+            min={toLocalInput(new Date())}
+            onChange={(e) => setValue(e.target.value)}
+            className="h-10 min-w-0 flex-1 rounded-xl bg-foreground/[0.06] px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/30 [color-scheme:light] dark:[color-scheme:dark]"
+          />
+          <Button size="sm" disabled={!customOk} onClick={() => customAt && onPick(customAt.toISOString())}>
+            Set
+          </Button>
+        </div>
+      )}
+      <DialogFooter className="gap-2">
+        {future && (
+          <Button variant="ghost" onClick={() => onPick(null)}>
+            Cancel reminder
+          </Button>
+        )}
+        <Button variant="ghost" onClick={onCancel}>
+          Close
         </Button>
       </DialogFooter>
     </DialogContent>

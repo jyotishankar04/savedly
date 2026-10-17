@@ -15,6 +15,12 @@ export interface Memory {
   /** When this was trashed. Null unless inTrash is true — see the server's 15-day purge job. */
   trashedAt: string | null;
   isVaulted: boolean;
+  /** Null = unread, in the Inbox. */
+  readAt?: string | null;
+  /** When "Remind me" brings it back; in the future means snoozed. */
+  remindAt?: string | null;
+  /** When a reminder last brought it back. */
+  remindedAt?: string | null;
   /** User-set date/time this memory relates to — null means no event attached. Powers "Add to calendar". */
   eventAt: string | null;
   tags: string[];

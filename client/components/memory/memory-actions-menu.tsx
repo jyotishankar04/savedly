@@ -12,6 +12,9 @@ import {
   LockPasswordIcon as Lock,
   Delete02Icon as Trash2,
   Calendar03Icon as CalendarIcon,
+  AlarmClockIcon as Alarm,
+  MailOpen01Icon as ReadIcon,
+  Mail01Icon as Unread,
 } from "@hugeicons/core-free-icons";
 import {
   DropdownMenu,
@@ -35,11 +38,12 @@ import { toast } from "@/components/ui/toast";
 import { ShareDialog } from "@/components/share/share-dialog";
 import { MoveToCollectionDialog } from "@/components/memory/move-to-collection-dialog";
 import { AddToCalendarDialog } from "@/components/memory/add-to-calendar-dialog";
+import { useMarkRead, useRemindMe } from "@/components/memory/remind-me";
 import { useMoveToTrashMutation, useToggleFavoriteMutation, useUpdateMemoryMutation } from "@/context/MemoryContext";
 import type { Memory } from "@/types/memory";
 
 interface MemoryActionsMenuProps {
-  memory: Pick<Memory, "id" | "title" | "isFavorite" | "isArchived" | "isVaulted" | "collections" | "description" | "url" | "eventAt">;
+  memory: Pick<Memory, "id" | "title" | "isFavorite" | "isArchived" | "isVaulted" | "collections" | "description" | "url" | "eventAt" | "readAt" | "remindAt">;
   trigger?: React.ReactElement;
   align?: "start" | "end";
   /** Where to navigate after archive/vault/trash succeeds. Omit to stay put — used on list surfaces where the item just drops out of the refetched query. */
@@ -50,6 +54,9 @@ interface MemoryActionsMenuProps {
  * Favorite, Archive, Move to vault, Move to trash — used on every surface
  * that lists or opens a memory, so the options don't drift between pages. */
 export function MemoryActionsMenu({ memory, trigger, align = "end", redirectTo }: MemoryActionsMenuProps) {
+  const remindMe = useRemindMe();
+  const markRead = useMarkRead();
+  const [now] = React.useState(() => Date.now());
   const router = useRouter();
   const toggleFavorite = useToggleFavoriteMutation();
   const updateMutation = useUpdateMemoryMutation();
@@ -97,6 +104,24 @@ export function MemoryActionsMenu({ memory, trigger, align = "end", redirectTo }
             }}
           >
             <HugeiconsIcon icon={FolderOpen} strokeWidth={2.25} className="h-3.5 w-3.5" /> Move to collection
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              void remindMe.remind([memory]);
+            }}
+          >
+            <HugeiconsIcon icon={Alarm} strokeWidth={2.25} className="h-3.5 w-3.5" />
+            {memory.remindAt && new Date(memory.remindAt).getTime() > now ? "Change reminder" : "Remind me…"}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              void markRead.mark([memory], !memory.readAt);
+            }}
+          >
+            <HugeiconsIcon icon={memory.readAt ? Unread : ReadIcon} strokeWidth={2.25} className="h-3.5 w-3.5" />
+            {memory.readAt ? "Mark as unread" : "Mark as read"}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={(e) => {
@@ -193,6 +218,7 @@ export function MemoryActionsMenu({ memory, trigger, align = "end", redirectTo }
       />
 
       <AddToCalendarDialog memory={memory} open={calendarOpen} onOpenChange={setCalendarOpen} />
+      {remindMe.element}
 
       <AlertDialog open={trashConfirmOpen} onOpenChange={setTrashConfirmOpen}>
         <AlertDialogContent>
