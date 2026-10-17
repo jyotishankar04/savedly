@@ -11,11 +11,7 @@ import { CollectionActionsMenu } from "@/components/collection/collection-action
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FolderCard } from "@/components/ui/folder-card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { EmojiPicker } from "@/components/ui/emoji-picker";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CollectionFormDialog, type CollectionFormValues } from "@/components/collection/collection-form-dialog";
 import { useCollectionsQuery, useConvertCollectionMutation, useCreateCollectionMutation } from "@/context/MemoryContext";
 import { QueryErrorState } from "@/components/query-error-state";
 import { PageHeader, EmptyState } from "@/components/app-page";
@@ -64,36 +60,13 @@ export default function CollectionsPage() {
   };
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newDesc, setNewDesc] = useState("");
-  const [newEmoji, setNewEmoji] = useState("📁");
-  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
-
-  const handleCreateCollection = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim() || collectionLimit.isAtLimit) return;
-
+  const handleCreateCollection = async (values: CollectionFormValues) => {
+    if (collectionLimit.isAtLimit) return;
     try {
-      await createMutation.mutateAsync({
-        name: newName.trim(),
-        icon: newEmoji.trim() || "📁",
-        description: newDesc.trim() || undefined,
-      });
-      setNewName("");
-      setNewDesc("");
-      setNewEmoji("📁");
+      await createMutation.mutateAsync({ name: values.name, icon: values.icon, description: values.description || undefined });
       setShowAddModal(false);
     } catch (err) {
       toast.add({ title: err instanceof Error ? err.message : "Couldn't create this collection.", type: "error" });
-    }
-  };
-
-  const handleModalOpenChange = (open: boolean) => {
-    setShowAddModal(open);
-    if (!open) {
-      setNewName("");
-      setNewDesc("");
-      setNewEmoji("📁");
     }
   };
 
@@ -172,14 +145,15 @@ export default function CollectionsPage() {
             <div
               key={col.id}
               {...selectableProps(selection.isSelecting, (e) => selection.toggle(col.id, e))}
-              className={cn("group relative rounded-2xl transition-shadow", selection.has(col.id) && "ring-2 ring-primary/50")}
+              className="group relative"
             >
+              {/* Inside the lid's top-right corner: beside the ⋯ menu, and in its place while selecting. */}
               <SelectCheckbox
                 checked={selection.has(col.id)}
                 selecting={selection.isSelecting}
                 onToggle={(e) => selection.toggle(col.id, e)}
                 label={`Select ${col.name}`}
-                className="top-3 left-3"
+                className={cn("top-[2.6rem] left-auto", selection.isSelecting ? "right-4" : "right-[3.4rem]")}
               />
               <FolderCard
                 href={`/app/collections/${col.id}`}
@@ -187,10 +161,11 @@ export default function CollectionsPage() {
                 label={col.name}
                 badge={col.icon}
                 badgeClassName={colorFor(col.id)}
+                selected={selection.has(col.id)}
               />
               {/* Sibling of the FolderCard's own <Link>, not a child of it —
                   so opening the menu never triggers navigation. */}
-              <div className="absolute right-3 top-3 z-10">
+              <div className={cn("absolute right-3.5 top-[2.35rem] z-10", selection.isSelecting && "hidden")}>
                 <CollectionActionsMenu
                   collection={col}
                   trigger={
@@ -250,91 +225,17 @@ export default function CollectionsPage() {
 
       <CollectionSelectionBar selection={selection} collections={collections} />
 
-      {/* CREATE COLLECTION MODAL */}
-      <Dialog open={showAddModal} onOpenChange={handleModalOpenChange}>
-        <DialogContent className="sm:max-w-md p-6 gap-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
-          <DialogHeader className="border-b border-border/20 pb-2">
-            <DialogTitle className="text-xs font-bold text-foreground">Create collection</DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleCreateCollection} className="space-y-4 text-xs font-semibold">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <label className="text-[9px] uppercase tracking-wider text-muted-foreground">Icon / Emoji</label>
-                <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-                  <PopoverTrigger
-                    render={
-                      <button
-                        type="button"
-                        className="flex h-[42px] w-full items-center justify-center rounded-xl border border-input bg-background text-xl transition-colors hover:bg-muted"
-                      >
-                        {newEmoji}
-                      </button>
-                    }
-                  />
-                  <PopoverContent align="start" className="w-72 p-0">
-                    <EmojiPicker
-                      onEmojiSelect={(emoji) => {
-                        setNewEmoji(emoji);
-                        setEmojiPickerOpen(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="col-span-2 space-y-1">
-                <label className="text-[9px] uppercase tracking-wider text-muted-foreground">Collection name</label>
-                <Input
-                  type="text"
-                  required
-                  placeholder="E.g., Projects"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="h-[42px] w-full rounded-xl border-input bg-background px-3 text-xs text-foreground"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[9px] uppercase tracking-wider text-muted-foreground">Description</label>
-              <Textarea
-                placeholder="What is this collection for?"
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                rows={3}
-                className="w-full rounded-xl border-input bg-background px-3 py-2.5 text-xs text-foreground"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => handleModalOpenChange(false)}
-                className="flex-1 h-10 rounded-full"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || collectionLimit.isAtLimit}
-                title={collectionLimit.isAtLimit ? collectionLimit.message ?? undefined : undefined}
-                className={cn(
-                  "flex-1 h-10 rounded-full bg-primary text-primary-foreground",
-                  collectionLimit.isAtLimit && "opacity-50 cursor-not-allowed",
-                )}
-              >
-                {createMutation.isPending ? "Creating..." : collectionLimit.isAtLimit ? "Limit reached" : "Create Collection"}
-              </Button>
-            </div>
-
-            {collectionLimit.isAtLimit && (
-              <PlanLimitNotice message={collectionLimit.message ?? "You've reached your collection limit."} />
-            )}
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CollectionFormDialog
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        title="New collection"
+        description="Group memories around a topic. You can add to it any time."
+        submitLabel={collectionLimit.isAtLimit ? "Limit reached" : "Create collection"}
+        pending={createMutation.isPending}
+        disabled={collectionLimit.isAtLimit}
+        notice={collectionLimit.isAtLimit ? <PlanLimitNotice message={collectionLimit.message ?? "You've reached your collection limit."} /> : null}
+        onSubmit={handleCreateCollection}
+      />
 
       {/* Local animation keyframes */}
       <style>{`

@@ -317,14 +317,14 @@ function VaultContents() {
                   <div
                     key={col.id}
                     {...selectableProps(collectionSelection.isSelecting, (e) => pickCollection(col.id, e))}
-                    className={cn("group relative rounded-2xl", collectionSelection.has(col.id) && "ring-2 ring-primary/50")}
+                    className="group relative"
                   >
                     <SelectCheckbox
                       checked={collectionSelection.has(col.id)}
                       selecting={collectionSelection.isSelecting}
                       onToggle={(e) => pickCollection(col.id, e)}
                       label={`Select ${col.name}`}
-                      className="top-3 left-3"
+                      className={cn("top-[2.6rem] left-auto", collectionSelection.isSelecting ? "right-4" : "right-[3.4rem]")}
                     />
                     <FolderCard
                       onClick={() => setSelectedCollectionId(col.id)}
@@ -332,8 +332,9 @@ function VaultContents() {
                       label={col.name}
                       badge={col.icon}
                       badgeClassName={colorFor(col.id)}
+                      selected={collectionSelection.has(col.id)}
                     />
-                    <div className="absolute right-3 top-3 z-10">
+                    <div className={cn("absolute right-3.5 top-[2.35rem] z-10", collectionSelection.isSelecting && "hidden")}>
                       <CollectionActionsMenu
                         collection={col}
                         trigger={

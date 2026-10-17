@@ -181,7 +181,7 @@ function CollectionPickerBody({
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>Choose a collection, or type a new name to create one.</DialogDescription>
       </DialogHeader>
-      <label className="flex h-11 items-center gap-2.5 rounded-xl bg-muted px-3.5 transition-shadow focus-within:ring-2 focus-within:ring-primary/30">
+      <label className="flex h-11 items-center gap-2.5 rounded-xl bg-foreground/[0.06] px-3.5 transition-shadow focus-within:ring-2 focus-within:ring-primary/30">
         <HugeiconsIcon icon={Search} strokeWidth={2} className="h-4 w-4 shrink-0 text-muted-foreground" />
         <input
           ref={input}
@@ -208,7 +208,7 @@ function CollectionPickerBody({
         {isLoading && <Spinner className="mx-auto my-6" />}
         {shown.map((c) => (
           <PickerRow key={c.id} chosen={chosen === c.id} onClick={() => setChosen(c.id)} onDoubleClick={() => onPick(c)}>
-            <span data-id={c.id} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-base leading-none">
+            <span data-id={c.id} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.06] text-base leading-none">
               {emoji(c.icon)}
             </span>
             <span className="min-w-0 flex-1">
@@ -319,7 +319,7 @@ function TagPickerBody({
                   // Keeps focus in the field, whose blur would otherwise turn the half-typed text into a tag.
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => addKnown(n)}
-                  className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--hover)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
+                  className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.06] px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--hover)] hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
                 >
                   <HugeiconsIcon icon={Plus} strokeWidth={2.25} className="h-3 w-3" />
                   {n}
@@ -378,7 +378,7 @@ function MergeBody({ options, onPick, onCancel }: { options: Collection[]; onPic
       <GlidingHighlight as="div" role="radiogroup" aria-label="Collection to keep" className={listClass} highlightClassName="rounded-xl">
         {options.map((c) => (
           <PickerRow key={c.id} role="radio" chosen={chosen === c.id} onClick={() => setChosen(c.id)}>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-base leading-none">{emoji(c.icon)}</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.06] text-base leading-none">{emoji(c.icon)}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">Keep “{c.name}”</span>
               <span className="block text-xs text-muted-foreground">{memories(c.memoryCount)}</span>
