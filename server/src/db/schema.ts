@@ -150,6 +150,7 @@ export const planLimitTypeEnum = pgEnum("plan_limit_type", [
   PlanLimitType.AI_MONTHLY_SAVES,
   PlanLimitType.MAX_FILE_MB,
   PlanLimitType.IMPORT_MONTHLY_COUNT,
+  PlanLimitType.WEB_SEARCH_MONTHLY,
 ]);
 
 // SEMI_ANNUAL was missing here even though it's a real PlanBillingInterval
@@ -791,6 +792,10 @@ export const memories = pgTable(
     // text for that type (e.g. a recipe's ingredients, a task's due date).
     contentType: text("content_type"),
     extractedFields: jsonb("extracted_fields"),
+    // What the research step looked up on the web to understand this memory
+    // (a bare name like a film or a book): the query, what it found, and the
+    // pages, shown under "What Savedly understood". Null when it didn't search.
+    webResearch: jsonb("web_research").$type<{ query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string }>(),
   },
   (table) => [
     index("idx_memories_user_id").on(table.userId),

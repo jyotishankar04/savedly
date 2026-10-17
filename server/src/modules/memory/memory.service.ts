@@ -46,6 +46,8 @@ export interface MemoryListItem {
   inferredIntent: string | null;
   contentType: string | null;
   extractedFields: Record<string, string> | null;
+  /** What the AI looked up on the web to understand it, with the pages it used; null when it didn't. */
+  webResearch: { query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string } | null;
   // URL capture & preview system (docs/URL_CAPTURE_AND_PREVIEW.md) — status
   // is always set (defaults to "processing"); the preview.* fields stay null
   // until ingestion runs, or forever for non-link memories.
@@ -157,6 +159,7 @@ function toListItem(
     inferredIntent: row.inferredIntent,
     contentType: row.contentType,
     extractedFields: row.extractedFields as Record<string, string> | null,
+    webResearch: row.webResearch ?? null,
     status: row.status,
     previewStatus: row.previewStatus,
     previewSource: row.previewSource,

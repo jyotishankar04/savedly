@@ -78,6 +78,15 @@ function formatSavedDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
+/** "en.wikipedia.org" from a link, for the source list. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 export default function MemoryDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -406,6 +415,30 @@ export default function MemoryDetailPage() {
                 (processing ? "Still reading this. The summary appears here in a few seconds." : "No summary for this one.")}
             </p>
           </div>
+
+          {memory.webResearch && memory.webResearch.sources.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-[10px] font-semibold text-muted-foreground">Looked up on the web</h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                The note alone didn&apos;t say what this is, so Savedly searched for &ldquo;{memory.webResearch.query}&rdquo;.
+              </p>
+              <div className="flex flex-col gap-1">
+                {memory.webResearch.sources.map((source) => (
+                  <a
+                    key={source.url}
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="-mx-2 flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-muted"
+                  >
+                    <HugeiconsIcon icon={Globe} strokeWidth={2} className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1 truncate font-medium text-foreground">{source.title}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{hostOf(source.url)}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <h3 className="text-[10px] font-semibold text-muted-foreground">Tags</h3>

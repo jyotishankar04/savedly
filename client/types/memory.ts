@@ -25,6 +25,8 @@ export interface Memory {
   inferredIntent: string | null;
   contentType: string | null;
   extractedFields: Record<string, string> | null;
+  /** What the AI looked up on the web to understand this (a bare film or book name), with the pages it used. Null when it didn't. */
+  webResearch?: { query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string } | null;
   // URL capture & preview system — status is always set ("processing" at
   // creation); the preview.* fields stay null for non-link memories or until
   // ingestion runs. See docs/URL_CAPTURE_AND_PREVIEW.md.

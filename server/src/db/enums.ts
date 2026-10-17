@@ -169,6 +169,9 @@ export enum PlanLimitType {
   // Counts shares whose link is set to "public". Free plans get a handful;
   // the other sharing modes are gated by plans.features instead.
   PUBLIC_SHARE_COUNT = "public_share_count",
+  // Web lookups this month: the research step on saves and Ask's web search.
+  // The search service is always the platform's, so every lookup counts.
+  WEB_SEARCH_MONTHLY = "web_search_monthly",
 }
 
 export enum PlanBillingInterval {
