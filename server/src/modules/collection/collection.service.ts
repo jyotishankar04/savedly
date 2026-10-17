@@ -6,6 +6,13 @@ import { assertFeature, assertWithinLimit } from "../plans/plans.service";
 import { AppError } from "../../shared/errors/app-error";
 import type { CreateCollectionInput, ListCollectionsQuery, UpdateCollectionInput } from "./collection.schema";
 
+/** Every client shows a collection's icon as text, so it must be an emoji; anything else (an icon name like "book") becomes the folder. */
+export const DEFAULT_COLLECTION_ICON = "📁";
+export function collectionIcon(icon: string | undefined | null): string {
+  const trimmed = icon?.trim() ?? "";
+  return /^\p{Extended_Pictographic}/u.test(trimmed) ? trimmed : DEFAULT_COLLECTION_ICON;
+}
+
 export interface CollectionResponse {
   id: string;
   name: string;
@@ -56,7 +63,7 @@ export async function createCollection(
   await assertWithinLimit(userId, PlanLimitType.COLLECTION_COUNT, 1);
   const [row] = await db
     .insert(collections)
-    .values({ userId, name: input.name, icon: input.icon, description: input.description, source: CollectionSource.USER })
+    .values({ userId, name: input.name, icon: collectionIcon(input.icon), description: input.description, source: CollectionSource.USER })
     .returning();
 
   return { ...row, memoryCount: 0 };
@@ -70,7 +77,7 @@ export async function updateCollection(
   if (input.isVaulted === true) await assertFeature(userId, "vault");
   const columns: Record<string, unknown> = { updatedAt: new Date() };
   if (input.name !== undefined) columns.name = input.name;
-  if (input.icon !== undefined) columns.icon = input.icon;
+  if (input.icon !== undefined) columns.icon = collectionIcon(input.icon);
   if (input.description !== undefined) columns.description = input.description;
   if (input.isVaulted !== undefined) columns.isVaulted = input.isVaulted;
 
