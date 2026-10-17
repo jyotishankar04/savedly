@@ -106,7 +106,7 @@ function ArchiveRow({
   const selected = selection.has(item.id);
   return (
     <li
-      {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
+      {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e), { id: item.id, title: item.title, selected: selection.has(item.id) })}
       className={cn("group flex items-center gap-4 rounded-2xl border border-border bg-card p-3 transition-colors", selection.isSelecting && "cursor-pointer", selected && "border-primary/60 bg-primary/5")}
     >
       <RowSelect checked={selected} selecting={selection.isSelecting} onToggle={(e) => selection.toggle(item.id, e)} label={`Select ${item.title}`} className="w-16 shrink-0">

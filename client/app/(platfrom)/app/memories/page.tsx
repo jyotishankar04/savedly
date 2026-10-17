@@ -238,7 +238,7 @@ export default function MemoriesPage() {
                                 setSelectedMemoryId(item.id);
                               }
                             }}
-                            {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
+                            {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e), { id: item.id, title: item.title, selected: selection.has(item.id) })}
                             className={cn(
                               "group flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                               selection.has(item.id) && "bg-primary/10 hover:bg-primary/10",

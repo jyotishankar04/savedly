@@ -30,6 +30,21 @@ export interface Selection {
   total: number;
 }
 
+// Every selection on screen, so a dragged card can carry the rest of its selection (lib/memory-drag.ts).
+const live = new Set<{ ids: string[] }>();
+const CLEAR_EVENT = "savedly:clear-selection";
+
+/** The selected ids that include this one, if it is selected anywhere on screen. */
+export function selectionContaining(id: string): string[] | null {
+  for (const entry of live) if (entry.ids.includes(id)) return entry.ids;
+  return null;
+}
+
+/** Clears every selection on screen, such as after its memories were dropped on a collection. */
+export function clearSelections() {
+  window.dispatchEvent(new Event(CLEAR_EVENT));
+}
+
 export function useSelection(visibleIds: string[]): Selection {
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
   const [started, setStarted] = useState(false);
@@ -70,6 +85,20 @@ export function useSelection(visibleIds: string[]): Selection {
   const start = useCallback(() => setStarted(true), []);
 
   const isSelecting = ids.length > 0 || started;
+
+  const entry = useRef({ ids });
+  useEffect(() => {
+    entry.current.ids = ids;
+  }, [ids]);
+  useEffect(() => {
+    const mine = entry.current;
+    live.add(mine);
+    window.addEventListener(CLEAR_EVENT, clear);
+    return () => {
+      live.delete(mine);
+      window.removeEventListener(CLEAR_EVENT, clear);
+    };
+  }, [clear]);
 
   useEffect(() => {
     if (!isSelecting) return;

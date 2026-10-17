@@ -4,6 +4,7 @@ import type React from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Tick02Icon as Tick } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
+import { memoryDragProps } from "@/lib/memory-drag";
 
 /**
  * The round check in a card's top-left corner for bulk selection. Shown on
@@ -63,10 +64,19 @@ function cancelPress() {
  * Props for a selectable card's root. While something is selected, a click
  * anywhere on the card toggles it (Shift extends the range) instead of opening
  * it; on a touch screen a long press starts selecting.
+ *
+ * With `drag`, a memory's card or row can also be dragged onto a collection in
+ * the sidebar, taking the rest of the selection with it when it is selected.
  */
-export function selectableProps(selecting: boolean, onSelect: ((event: { shiftKey?: boolean }) => void) | undefined) {
-  if (!onSelect) return {};
+export function selectableProps(
+  selecting: boolean,
+  onSelect: ((event: { shiftKey?: boolean }) => void) | undefined,
+  drag?: { id: string; title: string; selected: boolean },
+) {
+  const dragProps = drag ? memoryDragProps(drag) : {};
+  if (!onSelect) return dragProps;
   return {
+    ...dragProps,
     onClickCapture: (event: React.MouseEvent) => {
       // The click a touch screen sends when a long press ends.
       if (Date.now() < swallowClickUntil) {
@@ -81,6 +91,8 @@ export function selectableProps(selecting: boolean, onSelect: ((event: { shiftKe
       onSelect({ shiftKey: event.shiftKey });
     },
     onPointerDown: (event: React.PointerEvent) => {
+      // A long press is for selecting on touch; dragging is for a mouse or pen.
+      if (drag) event.currentTarget.setAttribute("draggable", String(event.pointerType !== "touch"));
       if (event.pointerType !== "touch") return;
       cancelPress();
       pressTimer = setTimeout(() => {

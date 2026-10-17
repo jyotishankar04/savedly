@@ -35,7 +35,7 @@ export interface ActionOutcome {
 const UNDO_WINDOW_MS = 8000;
 
 /** The toast after an action: with an Undo button that turns it into "Undoing…" and then the result, in place. */
-function announce(outcome: string | ActionOutcome) {
+export function announceOutcome(outcome: string | ActionOutcome) {
   const { message, undo } = typeof outcome === "string" ? { message: outcome, undo: undefined } : outcome;
   if (!undo) {
     toast.add({ title: message, type: "success" });
@@ -94,7 +94,7 @@ export function SelectionBar({ selection, noun, actions }: { selection: Selectio
     setRunning(action.key);
     try {
       const outcome = await action.run();
-      if (outcome) announce(outcome);
+      if (outcome) announceOutcome(outcome);
       selection.clear();
     } catch (err) {
       // A picker dismissed: nothing happened, and the selection stays.

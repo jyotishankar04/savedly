@@ -156,7 +156,7 @@ export default function CollectionDetailPage() {
             <Link
               key={item.id}
               href={`/app/memories/${item.id}`}
-              {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
+              {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e), { id: item.id, title: item.title, selected: selection.has(item.id) })}
               className={cn(
                 "relative rounded-xl border border-border/45 bg-muted/75 p-1 shadow-xs hover:border-primary/20 transition-all duration-300 block group",
                 selection.has(item.id) && "border-primary/60 ring-2 ring-primary/40",

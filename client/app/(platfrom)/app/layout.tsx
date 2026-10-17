@@ -38,6 +38,7 @@ import { PaletteDialog, type PaletteItem } from "@/components/ui/palette-dialog"
 import { Textarea as ArcTextarea } from "@/components/arc/textarea/textarea";
 import { Input as ArcInput } from "@/components/arc/input/input";
 import { Button as ArcButton } from "@/components/arc/button/button";
+import { useCollectionDrop, useMemoryDragging } from "@/components/memory/collection-drop";
 import { Badge as ArcBadge } from "@/components/arc/badge/badge";
 import { FileDropzone, type FileDropzoneUpload } from "@/components/arc/file-dropzone/file-dropzone";
 import { ShortcutList, formatShortcut, usePlatform, type ShortcutListGroup } from "@/components/arc/shortcut-recorder/shortcut-recorder";
@@ -75,6 +76,37 @@ function readClosedSections(): string[] {
 
 const SIDEBAR_ROW =
   "relative z-[1] flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+
+/**
+ * A collection in the sidebar, which memories can also be dragged onto. While
+ * a drag is on, every row shows a dashed edge to say it takes drops; the one
+ * under the pointer fills with the accent and says Add.
+ */
+function SidebarCollectionRow({ collection, active, dragging }: { collection: Collection; active: boolean; dragging: boolean }) {
+  const drop = useCollectionDrop(collection);
+  return (
+    <Link
+      href={`/app/collections/${collection.id}`}
+      aria-current={active ? "page" : undefined}
+      data-nav-row=""
+      {...drop.props}
+      className={cn(
+        SIDEBAR_ROW,
+        active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+        dragging && "outline-1 -outline-offset-1 outline-dashed outline-foreground/15",
+        drop.over && "bg-primary/15 text-primary outline-primary/60",
+      )}
+    >
+      <span aria-hidden className="flex w-[18px] shrink-0 justify-center text-sm leading-none">{collection.icon}</span>
+      <span className="min-w-0 flex-1 truncate">{collection.name}</span>
+      {drop.over ? (
+        <span className="text-[11px] font-semibold text-primary">Add</span>
+      ) : (
+        collection.memoryCount > 0 && <span className="text-[11px] tabular-nums text-muted-foreground/70">{collection.memoryCount}</span>
+      )}
+    </Link>
+  );
+}
 
 // The phone menu's rows: taller than the sidebar's, for a thumb.
 const MOBILE_MENU_ROW =
@@ -817,7 +849,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
       ))}
     </SidebarSection>
   );
-  const visibleCollections = collectionsShowAll ? collections : collections.slice(0, COLLECTIONS_PREVIEW_COUNT);
+  // While memories are dragged, every collection is a place to drop them: show them all, with the section open.
+  const dragging = useMemoryDragging();
+  const visibleCollections = collectionsShowAll || dragging ? collections : collections.slice(0, COLLECTIONS_PREVIEW_COUNT);
 
   return (
     <NextStepProvider>
@@ -918,7 +952,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
           <SidebarSection
             label="Collections"
-            open={!closedSections.includes("collections")}
+            open={dragging || !closedSections.includes("collections")}
             onToggle={() => toggleSection("collections")}
             action={
               <Link
@@ -938,28 +972,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
               </p>
             ) : (
               <>
-                {visibleCollections.map((col) => {
-                  const href = `/app/collections/${col.id}`;
-                  const active = isNavItemActive(pathname, href);
-                  return (
-                    <Link
-                      key={col.id}
-                      href={href}
-                      aria-current={active ? "page" : undefined}
-                      data-nav-row=""
-                      className={cn(
-                        SIDEBAR_ROW,
-                        active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <span aria-hidden className="flex w-[18px] shrink-0 justify-center text-sm leading-none">{col.icon}</span>
-                      <span className="min-w-0 flex-1 truncate">{col.name}</span>
-                      {col.memoryCount > 0 && (
-                        <span className="text-[11px] tabular-nums text-muted-foreground/70">{col.memoryCount}</span>
-                      )}
-                    </Link>
-                  );
-                })}
+                {visibleCollections.map((col) => (
+                  <SidebarCollectionRow key={col.id} collection={col} active={isNavItemActive(pathname, `/app/collections/${col.id}`)} dragging={dragging} />
+                ))}
                 {collections.length > COLLECTIONS_PREVIEW_COUNT && (
                   <button
                     type="button"

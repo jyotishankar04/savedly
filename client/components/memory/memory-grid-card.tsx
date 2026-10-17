@@ -132,7 +132,7 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
 
   if (href) {
     return (
-      <Link href={href} className={className} {...selectableProps(selecting, onSelect)}>
+      <Link href={href} className={className} {...selectableProps(selecting, onSelect, { id: item.id, title: item.title, selected })}>
         {content}
       </Link>
     );
@@ -153,7 +153,7 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
           : undefined
       }
       className={className}
-      {...selectableProps(selecting, onSelect)}
+      {...selectableProps(selecting, onSelect, { id: item.id, title: item.title, selected })}
     >
       {content}
     </div>
