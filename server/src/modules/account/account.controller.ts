@@ -14,8 +14,8 @@ export class AccountController {
       return res.status(200).json(ApiResponse.success({ mode, count }));
     }
 
-    const { deleted, failed } = await deleteAllMemoriesNow(userId);
-    res.status(200).json(ApiResponse.success({ mode, deleted, failed }));
+    const { deleted, failed, collections, tags } = await deleteAllMemoriesNow(userId);
+    res.status(200).json(ApiResponse.success({ mode, deleted, failed, collections, tags }));
   }
 
   static async deleteAccount(req: Request, res: Response) {

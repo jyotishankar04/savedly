@@ -49,3 +49,15 @@ export interface BatchStatusInput {
 
 export const batchUpdateStatus = (input: BatchStatusInput) =>
   apiFetch<BatchResult>("/batch/memories/status", { method: "POST", body: input });
+
+export const batchUncollectMemories = (input: { memoryIds: string[]; collectionId: string }) =>
+  apiFetch<BatchResult>("/batch/memories/uncollect", { method: "POST", body: input });
+
+export const batchDeleteCollections = (input: { collectionIds: string[]; memories: "keep" | "trash" }) =>
+  apiFetch<BatchResult>("/batch/collections/delete", { method: "POST", body: input });
+
+export const batchMergeCollections = (input: { collectionIds: string[]; targetId: string }) =>
+  apiFetch<BatchResult>("/batch/collections/merge", { method: "POST", body: input });
+
+export const batchVaultCollections = (input: { collectionIds: string[]; isVaulted: boolean }) =>
+  apiFetch<BatchResult>("/batch/collections/vault", { method: "POST", body: input });

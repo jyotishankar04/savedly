@@ -20,6 +20,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDeleteMemoryMutation, useMemoriesQuery, useUpdateMemoryMutation } from "@/context/MemoryContext";
 import { QueryErrorState } from "@/components/query-error-state";
+import { cn } from "@/lib/utils";
+import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
+import { SelectButton } from "@/components/selection/selection-bar";
+import { RowSelect, selectableProps } from "@/components/selection/select-checkbox";
+import { useSelection, type Selection } from "@/hooks/use-selection";
 import { PageHeader, EmptyState } from "@/components/app-page";
 import { timeAgo } from "@/lib/time";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
@@ -28,6 +33,7 @@ import type { Memory } from "@/types/memory";
 export default function ArchivePage() {
   const { data, isLoading, isError, refetch } = useMemoriesQuery({ isArchived: true, limit: 100 });
   const archives = data?.items ?? [];
+  const selection = useSelection(archives.map((m) => m.id));
 
   const updateMutation = useUpdateMemoryMutation();
   const deleteMutation = useDeleteMemoryMutation();
@@ -51,7 +57,11 @@ export default function ArchivePage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6 md:py-10">
-      <PageHeader title="Archive" description="Archived memories are hidden from Home and search until you restore them." />
+      <PageHeader
+        title="Archive"
+        description="Archived memories are hidden from Home and search until you restore them."
+        action={archives.length > 0 ? <SelectButton selection={selection} /> : undefined}
+      />
 
       {isError ? (
         <QueryErrorState onRetry={() => refetch()} />
@@ -72,10 +82,12 @@ export default function ArchivePage() {
       ) : (
         <ul className="space-y-2">
           {archives.map((item) => (
-            <ArchiveRow key={item.id} item={item} onRestore={handleRestore} onDelete={handleDelete} />
+            <ArchiveRow key={item.id} item={item} onRestore={handleRestore} onDelete={handleDelete} selection={selection} />
           ))}
         </ul>
       )}
+
+      <MemorySelectionBar selection={selection} memories={archives} context="archive" />
     </div>
   );
 }
@@ -84,16 +96,24 @@ function ArchiveRow({
   item,
   onRestore,
   onDelete,
+  selection,
 }: {
   item: Memory;
   onRestore: (id: string, title: string) => void;
   onDelete: (id: string, title: string) => void;
+  selection: Selection;
 }) {
+  const selected = selection.has(item.id);
   return (
-    <li className="flex items-center gap-4 rounded-2xl border border-border bg-card p-3">
-      <div className="w-16 shrink-0">
-        <MemoryThumbnail item={item} className="rounded-xl" />
-      </div>
+    <li
+      {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e), { id: item.id, title: item.title, selected: selection.has(item.id) })}
+      className={cn("group flex items-center gap-4 rounded-2xl border border-border bg-card p-3 transition-colors", selection.isSelecting && "cursor-pointer", selected && "border-primary/60 bg-primary/5")}
+    >
+      <RowSelect checked={selected} selecting={selection.isSelecting} onToggle={(e) => selection.toggle(item.id, e)} label={`Select ${item.title}`} className="w-16 shrink-0">
+        <div className="w-16">
+          <MemoryThumbnail item={item} className="rounded-xl" />
+        </div>
+      </RowSelect>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">{timeAgo(item.createdAt)}</p>

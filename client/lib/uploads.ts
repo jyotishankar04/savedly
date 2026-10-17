@@ -1,6 +1,9 @@
 import axios from "axios";
 import { apiFetch } from "@/lib/auth";
 
+/** What the server takes as an attachment (server/src/modules/upload/upload.constants.ts). */
+export const UPLOADABLE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf"]);
+
 export interface UploadedFile {
   fileUrl: string;
   mimeType: string;

@@ -4,6 +4,7 @@ import { attachments, collectionMemories, collections, memories, memoryTags, tag
 import { MemoryStatus, PlanLimitType, type MemoryType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
+import { withFileCleanup } from "./memory-files";
 import { enqueueIngestion } from "../ai/ingestion/queue";
 import { getVectorStore } from "../ai/vector-store";
 import { hybridSearch, SEMANTIC_SIMILARITY_FLOOR } from "../ai/search";
@@ -804,10 +805,15 @@ export async function updateMemory(
 }
 
 export async function deleteMemory(userId: string, id: string): Promise<void> {
-  const [deleted] = await db
-    .delete(memories)
-    .where(and(eq(memories.id, id), eq(memories.userId, userId)))
-    .returning({ id: memories.id });
+  await assertOwnedMemory(userId, id);
+  // The memory's files go from storage too (memory-files.ts), not just the
+  // rows pointing at them: a permanent delete leaves nothing behind.
+  const [deleted] = await withFileCleanup([id], () =>
+    db
+      .delete(memories)
+      .where(and(eq(memories.id, id), eq(memories.userId, userId)))
+      .returning({ id: memories.id }),
+  );
 
   if (!deleted) {
     throw new AppError("Memory not found", 404, "NOT_FOUND");

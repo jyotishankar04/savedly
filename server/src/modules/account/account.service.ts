@@ -1,10 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
-import { memories, refreshTokens, sessions, userPlanAssignments, users } from "../../db/schema";
+import { collections, memories, refreshTokens, sessions, tags, userPlanAssignments, users } from "../../db/schema";
 import { PlanAssignmentStatus, UserStatus } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
 import { getVectorStore } from "../ai/vector-store";
 import { deleteMemory } from "../memory/memory.service";
+import { collectMemoryFileKeys, deleteUnusedFiles, ownFileKey } from "../memory/memory-files";
 
 /** How long a soft-deleted account is recoverable before the sweep hard-deletes it. Logging back in during this window (auth.service.ts's findOrCreateUser) is the cancellation mechanism — no separate "undo" button needed. */
 export const ACCOUNT_DELETION_GRACE_DAYS = 30;
@@ -20,12 +21,14 @@ export async function trashAllMemories(userId: string): Promise<number> {
 }
 
 /**
- * "Delete permanently" now — mirrors sweepExpiredTrash's per-row loop
- * exactly, reusing deleteMemory so the Upstash vector-store cleanup (which
- * only happens inside deleteMemory, never on a bulk DELETE) is never
- * skipped. One bad row never aborts the rest.
+ * "Delete permanently" now: a complete removal. Every memory goes through
+ * deleteMemory (the same per-row path as sweepExpiredTrash), so its
+ * embeddings, its vectors in an external store and its files in storage all
+ * go with it; one bad row never aborts the rest. Then the user's collections
+ * and tags are deleted too, leaving an empty library rather than empty
+ * folders.
  */
-export async function deleteAllMemoriesNow(userId: string): Promise<{ deleted: number; failed: number }> {
+export async function deleteAllMemoriesNow(userId: string): Promise<{ deleted: number; failed: number; collections: number; tags: number }> {
   const rows = await db.select({ id: memories.id }).from(memories).where(eq(memories.userId, userId));
   let deleted = 0;
   let failed = 0;
@@ -38,7 +41,15 @@ export async function deleteAllMemoriesNow(userId: string): Promise<{ deleted: n
       logger.error({ userId, memoryId: id, err }, "[account] failed to delete a memory during clear-all");
     }
   }
-  return { deleted, failed };
+  // Collections and tags only once every memory is gone, so a failed memory
+  // (rare) keeps its collection rather than being left uncategorised.
+  let removedCollections = 0;
+  let removedTags = 0;
+  if (failed === 0) {
+    removedCollections = (await db.delete(collections).where(eq(collections.userId, userId)).returning({ id: collections.id })).length;
+    removedTags = (await db.delete(tags).where(eq(tags.userId, userId)).returning({ id: tags.id })).length;
+  }
+  return { deleted, failed, collections: removedCollections, tags: removedTags };
 }
 
 /**
@@ -74,6 +85,14 @@ export async function hardDeleteAccount(userId: string): Promise<void> {
   await revokeAllSessionsForUser(userId);
 
   const userMemories = await db.select({ id: memories.id }).from(memories).where(eq(memories.userId, userId));
+  // Their files in storage go too: listed now, deleted once the rows are gone.
+  const memoryIds = userMemories.map((m) => m.id);
+  const fileKeys = await collectMemoryFileKeys(memoryIds).catch((err) => {
+    logger.error({ userId, err }, "[account] couldn't list files before hard delete");
+    return [] as string[];
+  });
+  const [owner] = await db.select({ avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, userId));
+  const avatarKey = await ownFileKey(owner?.avatarUrl).catch(() => null);
   for (const { id } of userMemories) {
     getVectorStore()
       .then((store) => store.deleteMemoryVectors(id))
@@ -89,4 +108,6 @@ export async function hardDeleteAccount(userId: string): Promise<void> {
     .where(and(eq(userPlanAssignments.userId, userId), eq(userPlanAssignments.status, PlanAssignmentStatus.ACTIVE)));
 
   await db.delete(users).where(eq(users.id, userId));
+
+  await deleteUnusedFiles(avatarKey ? [...fileKeys, avatarKey] : fileKeys, memoryIds);
 }

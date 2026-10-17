@@ -1,5 +1,9 @@
 "use client";
 
+// Changed locally for Savedly (re-installing overwrites this): optional `draft` and
+// `onDraftChange` props, so a parent can follow (and clear) the text being typed,
+// for suggestions that filter as you type.
+
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from "motion/react";
@@ -15,6 +19,10 @@ export interface TagInputProps {
   placeholder?: string;
   description?: string;
   id?: string;
+  /** The text being typed. Leave it out to let the input keep it. */
+  draft?: string;
+  /** Called with the typed text as it changes, and with "" once it becomes a tag. */
+  onDraftChange?: (draft: string) => void;
 }
 
 /** Changed words rise in and unblur while unchanged words hold still. Assistive tech reads the plain copy. */
@@ -55,12 +63,14 @@ function MessageRow({ id, text, className }: { id?: string; text: string; classN
  * leaves its slot and the rest glide in, and the shell follows wrapped rows on a spring. Backspace or the arrow keys
  * pick a tag first, a ring glides to it, and the next Backspace removes it.
  */
-export function TagInput({ label, value, defaultValue = [], onValueChange, placeholder = "Add a tag", description, id }: TagInputProps) {
+export function TagInput({ label, value, defaultValue = [], onValueChange, placeholder = "Add a tag", description, id, draft: draftProp, onDraftChange }: TagInputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const hintId = description ? `${inputId}-description` : undefined;
   const [internal, setInternal] = useState(defaultValue);
-  const [draft, setDraft] = useState("");
+  const [internalDraft, setInternalDraft] = useState("");
+  const draft = draftProp ?? internalDraft;
+  const setDraft = (next: string) => { if (draftProp === undefined) setInternalDraft(next); onDraftChange?.(next); };
   const [picked, setPicked] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const reduced = useReducedMotion();
