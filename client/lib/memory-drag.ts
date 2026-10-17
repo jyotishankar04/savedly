@@ -66,6 +66,8 @@ function setDragImage(event: React.DragEvent, text: string) {
 /** Props that make a memory's card or row draggable. */
 export function memoryDragProps({ id, title, selected }: { id: string; title: string; selected: boolean }) {
   return {
+    // Also how the list keys (components/memory/list-keys.ts) find memories on the page.
+    "data-memory-row": id,
     draggable: true,
     onDragStart: (event: React.DragEvent) => {
       const ids = (selected && selectionContaining(id)) || [id];

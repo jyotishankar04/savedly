@@ -433,3 +433,10 @@
     background-color: var(--hover);
   }
 }
+
+/* The memory in focus when moving through a list with J/K or the arrow keys
+   (components/memory/list-keys.ts). Keyboard focus only; a click draws none. */
+[data-memory-row]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}

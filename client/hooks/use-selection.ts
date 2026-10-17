@@ -40,6 +40,12 @@ export function selectionContaining(id: string): string[] | null {
   return null;
 }
 
+/** The selection on screen with something in it, if any. */
+export function activeSelection(): string[] | null {
+  for (const entry of live) if (entry.ids.length) return entry.ids;
+  return null;
+}
+
 /** Clears every selection on screen, such as after its memories were dropped on a collection. */
 export function clearSelections() {
   window.dispatchEvent(new Event(CLEAR_EVENT));

@@ -41,6 +41,7 @@ import { Button as ArcButton } from "@/components/arc/button/button";
 import { type Shelf, useCollectionDrop, useMemoryDragging, useShelfDrop } from "@/components/memory/collection-drop";
 import { isEditableTarget, useQuickSave } from "@/components/capture/quick-save";
 import { DropToSave } from "@/components/capture/drop-to-save";
+import { useMemoryListKeys } from "@/components/memory/list-keys";
 import { Badge as ArcBadge } from "@/components/arc/badge/badge";
 import { FileDropzone, type FileDropzoneUpload } from "@/components/arc/file-dropzone/file-dropzone";
 import { ShortcutList, formatShortcut, usePlatform, type ShortcutListGroup } from "@/components/arc/shortcut-recorder/shortcut-recorder";
@@ -327,6 +328,17 @@ const KEYBOARD_SHORTCUTS: ShortcutListGroup[] = [
       { label: "Save what you copied (outside a text box)", shortcut: "mod+v", keywords: "paste link screenshot note clipboard" },
       { label: "Show keyboard shortcuts", shortcut: "mod+/", keywords: "help keys" },
       { label: "Close an open menu", shortcut: "escape", keywords: "esc dismiss cancel" },
+    ],
+  },
+  {
+    label: "In a list of memories",
+    items: [
+      { label: "Next or previous memory", shortcut: "j", keywords: "down up arrow move k" },
+      { label: "Open it", shortcut: "enter", keywords: "view" },
+      { label: "Select it", shortcut: "x", keywords: "check pick" },
+      { label: "Favorite or unfavorite", shortcut: "f", keywords: "star" },
+      { label: "Archive, or take out of the archive", shortcut: "e", keywords: "done" },
+      { label: "Move to Trash", shortcut: "delete", keywords: "remove # hash" },
     ],
   },
   {
@@ -676,6 +688,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   // Paste anywhere to save: a link, some text or a screenshot pasted while no
   // text box has focus (and nothing is open on top) is saved straight away.
+  useMemoryListKeys();
   const quickSave = useQuickSave();
   const quickSaveRef = useRef(quickSave);
   useEffect(() => {

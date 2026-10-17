@@ -136,20 +136,60 @@ export type Shelf = "favorite" | "archive" | "vault" | "trash";
 
 const SHELVES: Record<
   Shelf,
-  { has: (m: Memory) => boolean; done: (what: string) => string; already: string; undone: string; patch: (on: boolean) => UpdateMemoryInput }
+  {
+    has: (m: Memory) => boolean;
+    done: (what: string) => string;
+    already: string;
+    undone: string;
+    /** The same for taking them off the shelf (unfavorite, unarchive…). */
+    off: { done: (what: string) => string; already: string; undone: string };
+    patch: (on: boolean) => UpdateMemoryInput;
+  }
 > = {
-  favorite: { has: (m) => m.isFavorite, done: (w) => `${w} added to favorites.`, already: "in your favorites", undone: "Taken out of favorites again.", patch: (on) => ({ isFavorite: on }) },
-  archive: { has: (m) => m.isArchived, done: (w) => `${w} archived.`, already: "archived", undone: "Back out of the archive.", patch: (on) => ({ isArchived: on }) },
-  vault: { has: (m) => m.isVaulted, done: (w) => `${w} moved to the vault.`, already: "in the vault", undone: "Taken back out of the vault.", patch: (on) => ({ isVaulted: on }) },
-  trash: { has: (m) => m.inTrash, done: (w) => `${w} moved to Trash.`, already: "in Trash", undone: "Restored.", patch: (on) => ({ inTrash: on }) },
+  favorite: {
+    has: (m) => m.isFavorite,
+    done: (w) => `${w} added to favorites.`,
+    already: "in your favorites",
+    undone: "Taken out of favorites again.",
+    off: { done: (w) => `${w} removed from favorites.`, already: "not a favorite", undone: "Back in favorites." },
+    patch: (on) => ({ isFavorite: on }),
+  },
+  archive: {
+    has: (m) => m.isArchived,
+    done: (w) => `${w} archived.`,
+    already: "archived",
+    undone: "Back out of the archive.",
+    off: { done: (w) => `${w} moved out of the archive.`, already: "out of the archive", undone: "Back in the archive." },
+    patch: (on) => ({ isArchived: on }),
+  },
+  vault: {
+    has: (m) => m.isVaulted,
+    done: (w) => `${w} moved to the vault.`,
+    already: "in the vault",
+    undone: "Taken back out of the vault.",
+    off: { done: (w) => `${w} taken out of the vault.`, already: "out of the vault", undone: "Back in the vault." },
+    patch: (on) => ({ isVaulted: on }),
+  },
+  trash: {
+    has: (m) => m.inTrash,
+    done: (w) => `${w} moved to Trash.`,
+    already: "in Trash",
+    undone: "Restored.",
+    off: { done: (w) => `${w} restored.`, already: "out of Trash", undone: "Back in Trash." },
+    patch: (on) => ({ inTrash: on }),
+  },
 };
 
 /** Undoing out of the vault needs it unlocked, which moving in doesn't. */
 const friendlier = (err: unknown) =>
   err instanceof Error && /vault is locked/i.test(err.message) ? new Error("Unlock your vault to take them back out.") : err;
 
-/** Favorite, archive, vault or trash dropped memories, with Undo; the same plan rules as filing into a collection. */
-function useShelve() {
+/**
+ * Favorite, archive, vault or trash memories (or, with `on` false, the
+ * reverse), with Undo; the same plan rules as filing into a collection. Used
+ * by the sidebar's drop targets and the list keys.
+ */
+export function useShelve() {
   const queryClient = useQueryClient();
   const update = useUpdateMemoryMutation();
   const status = useBatchUpdateStatusMutation();
@@ -158,15 +198,20 @@ function useShelve() {
   const bulk = usePlanFeature("batchOperations");
   const vault = usePlanFeature("vault");
 
-  return async (ids: string[], shelf: Shelf) => {
+  return async (ids: string[], shelf: Shelf, on = true) => {
     const rules = SHELVES[shelf];
+    const words = on ? rules : { ...rules, ...rules.off };
     const known = cachedMemories(queryClient, ids);
-    const todo = ids.filter((id) => !(known.get(id) && rules.has(known.get(id)!)));
+    // Only the ones this changes; one the cache doesn't know is assumed to need it.
+    const todo = ids.filter((id) => {
+      const m = known.get(id);
+      return !m || rules.has(m) !== on;
+    });
     if (todo.length === 0) {
-      toast.add({ title: `${ids.length === 1 ? "Already" : `All ${ids.length} are already`} ${rules.already}.`, type: "info" });
+      toast.add({ title: `${ids.length === 1 ? "Already" : `All ${ids.length} are already`} ${words.already}.`, type: "info" });
       return;
     }
-    if ((shelf === "vault" && !vault.allowed) || (todo.length > 1 && !bulk.allowed)) {
+    if ((shelf === "vault" && on && !vault.allowed) || (todo.length > 1 && !bulk.allowed)) {
       openUpgradeDialog();
       return;
     }
@@ -192,14 +237,14 @@ function useShelve() {
     };
 
     try {
-      const changed = await apply(todo, true);
+      const changed = await apply(todo, on);
       announceOutcome({
-        message: rules.done(what(changed.length)),
+        message: words.done(what(changed.length)),
         undo: async () => {
-          await apply(changed, false).catch((err) => {
+          await apply(changed, !on).catch((err) => {
             throw friendlier(err);
           });
-          return rules.undone;
+          return words.undone;
         },
       });
     } catch (err) {
