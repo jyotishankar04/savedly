@@ -6,6 +6,7 @@ import {
   convertCollectionToUser,
   createCollection,
   deleteCollection,
+  getCollection,
   listCollections,
   updateCollection,
   type CreateCollectionInput,
@@ -39,9 +40,21 @@ export const tagsQueryKey = () => ["tags"] as const;
 export const memoryQueryKey = (id: string) => ["memory", id] as const;
 
 export function useMemoriesQuery(params: ListMemoriesParams = {}) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: memoriesQueryKey(params),
-    queryFn: () => listMemories(params),
+    queryFn: async () => {
+      const before = queryClient.getQueryData<Awaited<ReturnType<typeof listMemories>>>(memoriesQueryKey(params));
+      const next = await listMemories(params);
+      // A save just finished being read: the AI may have filed it into a new
+      // collection or given it new tags, which the sidebar and pickers should show now.
+      const wasPending = new Set((before?.items ?? []).filter((item) => item.resourceCategory === null).map((item) => item.id));
+      if (next.items.some((item) => wasPending.has(item.id) && item.resourceCategory !== null)) {
+        void queryClient.invalidateQueries({ queryKey: collectionsQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: tagsQueryKey() });
+      }
+      return next;
+    },
     // Self-limiting: only keeps polling while something on the current page
     // is still mid-ingestion (see MemoryThumbnail's "Processing" badge) —
     // stops once everything's been enriched, so this never becomes constant
@@ -55,6 +68,29 @@ export function useMemoriesQuery(params: ListMemoriesParams = {}) {
 
 export function useCollectionsQuery(includeSystem = false) {
   return useQuery({ queryKey: collectionsQueryKey(includeSystem), queryFn: () => listCollections(includeSystem) });
+}
+
+/**
+ * One collection by id, for its page. Starts from the collections list when
+ * it's already cached, and asks the server when it isn't, so a collection the
+ * AI made a moment ago (after the list was loaded) still opens. Its key sits
+ * under ["collections"], so whatever refreshes the list refreshes this too.
+ */
+export function useCollectionQuery(id: string) {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: ["collections", "one", id] as const,
+    queryFn: () => getCollection(id),
+    enabled: Boolean(id),
+    retry: false,
+    initialData: () => {
+      for (const [, list] of queryClient.getQueriesData<Collection[]>({ queryKey: ["collections"] })) {
+        const found = Array.isArray(list) ? list.find((c) => c.id === id) : undefined;
+        if (found) return found;
+      }
+      return undefined;
+    },
+  });
 }
 
 export function useTagsQuery() {

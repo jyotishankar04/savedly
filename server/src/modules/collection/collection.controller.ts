@@ -5,6 +5,7 @@ import {
   convertToUser,
   createCollection,
   deleteCollection,
+  getCollection,
   listCollections,
   updateCollection,
 } from "./collection.service";
@@ -14,6 +15,10 @@ export class CollectionController {
     const query = req.query as unknown as ListCollectionsQuery;
     const collections = await listCollections(req.user!.id, query);
     res.status(200).json(ApiResponse.success(collections));
+  }
+
+  static async get(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await getCollection(req.user!.id, req.params.id as string)));
   }
 
   static async create(req: Request, res: Response) {
