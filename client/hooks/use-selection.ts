@@ -22,13 +22,17 @@ export interface Selection {
   has: (id: string) => boolean;
   toggle: (id: string, event?: { shiftKey?: boolean }) => void;
   selectAll: () => void;
+  /** Ends selecting: clears, and leaves the mode started by start(). */
   clear: () => void;
+  /** Starts selecting with nothing picked yet (the header's Select button). */
+  start: () => void;
   /** How many items the page shows, for "Select all". */
   total: number;
 }
 
 export function useSelection(visibleIds: string[]): Selection {
   const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const [started, setStarted] = useState(false);
   const anchor = useRef<string | null>(null);
   const visibleKey = visibleIds.join("|");
 
@@ -37,10 +41,11 @@ export function useSelection(visibleIds: string[]): Selection {
 
   const toggle = useCallback(
     (id: string, event?: { shiftKey?: boolean }) => {
+      // Read the anchor now: the updater below runs later, after it moves.
+      const from = anchor.current ? visibleIds.indexOf(anchor.current) : -1;
+      const to = visibleIds.indexOf(id);
       setPicked((prev) => {
         const next = new Set(prev);
-        const from = anchor.current ? visibleIds.indexOf(anchor.current) : -1;
-        const to = visibleIds.indexOf(id);
         if (event?.shiftKey && from !== -1 && to !== -1) {
           const [start, end] = from < to ? [from, to] : [to, from];
           for (const rangeId of visibleIds.slice(start, end + 1)) next.add(rangeId);
@@ -59,10 +64,12 @@ export function useSelection(visibleIds: string[]): Selection {
   const selectAll = useCallback(() => setPicked(new Set(visibleIds)), [visibleKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const clear = useCallback(() => {
     setPicked(new Set());
+    setStarted(false);
     anchor.current = null;
   }, []);
+  const start = useCallback(() => setStarted(true), []);
 
-  const isSelecting = ids.length > 0;
+  const isSelecting = ids.length > 0 || started;
 
   useEffect(() => {
     if (!isSelecting) return;
@@ -81,5 +88,5 @@ export function useSelection(visibleIds: string[]): Selection {
   }, [isSelecting, clear, selectAll]);
 
   const pickedIds = useMemo(() => new Set(ids), [ids]);
-  return { ids, count: ids.length, isSelecting, has: (id) => pickedIds.has(id), toggle, selectAll, clear, total: visibleIds.length };
+  return { ids, count: ids.length, isSelecting, has: (id) => pickedIds.has(id), toggle, selectAll, clear, start, total: visibleIds.length };
 }

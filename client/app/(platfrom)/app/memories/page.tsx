@@ -13,6 +13,10 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
 import { MemoryGridCard } from "@/components/memory/memory-grid-card";
+import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
+import { SelectButton } from "@/components/selection/selection-bar";
+import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
+import { useSelection } from "@/hooks/use-selection";
 import type { Memory, MemoryType } from "@/types/memory";
 import { useMemoriesQuery, useToggleFavoriteMutation } from "@/context/MemoryContext";
 import { timeAgo, timelineGroup } from "@/lib/time";
@@ -47,6 +51,8 @@ export default function MemoriesPage() {
   });
   const memories = data?.items ?? [];
   const memoryLimit = usePlanLimit("memory_count");
+  // Bulk selection: in the order the page shows them, for Shift+click ranges.
+  const selection = useSelection(memories.map((m) => m.id));
   // Derived from the live (auto-refetching) list rather than a frozen
   // snapshot, so the drawer picks up enrichment as soon as it lands instead
   // of staying stuck on "Still processing" until it's closed and reopened.
@@ -145,6 +151,8 @@ export default function MemoriesPage() {
               ))}
             </div>
 
+            <div className="flex items-center gap-2 shrink-0">
+            <SelectButton selection={selection} />
             {/* View selectors */}
             <div className="flex items-center border border-border rounded-lg bg-card overflow-hidden shrink-0">
               <button
@@ -163,6 +171,7 @@ export default function MemoriesPage() {
               >
                 <HugeiconsIcon icon={List} strokeWidth={2} className="h-4 w-4" />
               </button>
+            </div>
             </div>
             </div>
           </div>
@@ -203,7 +212,14 @@ export default function MemoriesPage() {
                 {viewMode === "grid" ? (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {groupItems.map((item) => (
-                      <MemoryGridCard key={item.id} item={item} onClick={() => setSelectedMemoryId(item.id)} />
+                      <MemoryGridCard
+                        key={item.id}
+                        item={item}
+                        onClick={() => setSelectedMemoryId(item.id)}
+                        selected={selection.has(item.id)}
+                        selecting={selection.isSelecting}
+                        onSelect={(e) => selection.toggle(item.id, e)}
+                      />
                     ))}
                   </div>
                 ) : (
@@ -222,10 +238,21 @@ export default function MemoriesPage() {
                                 setSelectedMemoryId(item.id);
                               }
                             }}
-                            className="group flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
+                            className={cn(
+                              "group flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                              selection.has(item.id) && "bg-primary/10 hover:bg-primary/10",
+                            )}
                           >
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                              <HugeiconsIcon icon={TypeIcon} strokeWidth={2} className="h-4.5 w-4.5" />
+                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                              <HugeiconsIcon icon={TypeIcon} strokeWidth={2} className={cn("h-4.5 w-4.5 transition-opacity", (selection.isSelecting || selection.has(item.id)) && "opacity-0")} />
+                              <SelectCheckbox
+                                checked={selection.has(item.id)}
+                                selecting={selection.isSelecting}
+                                onToggle={(e) => selection.toggle(item.id, e)}
+                                label={`Select ${item.title}`}
+                                className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                              />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{item.title}</p>
@@ -379,6 +406,7 @@ export default function MemoriesPage() {
         }
       `}</style>
 
+      <MemorySelectionBar selection={selection} memories={memories} context="library" />
     </div>
   );
 }

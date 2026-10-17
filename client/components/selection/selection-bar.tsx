@@ -70,7 +70,7 @@ export function SelectionBar({ selection, noun, actions }: { selection: Selectio
     else void start(action);
   };
 
-  const label = `${selection.count} ${selection.count === 1 ? noun[0] : noun[1]} selected`;
+  const label = selection.count === 0 ? `Select ${noun[1]}` : `${selection.count} ${selection.count === 1 ? noun[0] : noun[1]} selected`;
 
   if (typeof document === "undefined") return null;
   return createPortal(
@@ -100,7 +100,7 @@ export function SelectionBar({ selection, noun, actions }: { selection: Selectio
                 <button
                   key={action.key}
                   type="button"
-                  disabled={running !== null}
+                  disabled={running !== null || selection.count === 0}
                   onClick={() => onAction(action)}
                   title={action.label}
                   className={cn(
@@ -150,5 +150,23 @@ export function SelectionBar({ selection, noun, actions }: { selection: Selectio
       </AlertDialog>
     </>,
     document.body,
+  );
+}
+
+/** The header button that starts selecting (and ends it again). */
+export function SelectButton({ selection, className }: { selection: Selection; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={selection.isSelecting ? selection.clear : selection.start}
+      aria-pressed={selection.isSelecting}
+      className={cn(
+        "inline-flex h-8 shrink-0 items-center rounded-lg px-3 text-[13px] font-medium ring-1 transition-colors",
+        selection.isSelecting ? "bg-primary/10 text-primary ring-primary/25" : "text-muted-foreground ring-border hover:bg-[var(--hover)] hover:text-foreground",
+        className,
+      )}
+    >
+      {selection.isSelecting ? "Done" : "Select"}
+    </button>
   );
 }
