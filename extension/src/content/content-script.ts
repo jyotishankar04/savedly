@@ -13,6 +13,8 @@
 // hand. __WEB_APP_URL__ is filled in by the build (vite.config.ts).
 const SIGNED_IN_STORAGE_KEY = "savedly_signed_in";
 const SHOW_FLOATING_ICON_STORAGE_KEY = "savedly_show_floating_icon";
+// Where the floating button was dragged to, the same on every site: which edge, and how far down (0 top … 1 bottom).
+const FLOATING_POSITION_STORAGE_KEY = "savedly_floating_position";
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "GET_METADATA") {
@@ -293,18 +295,125 @@ async function refreshFloatingButtonVisibility(): Promise<void> {
   }
 }
 
+// --- Position: draggable, snapping to the nearer side edge -----------------
+
+const BUTTON_SIZE = 44;
+const EDGE_GAP = 20;
+// A press that moves less than this is a click (opens the menu), not a drag.
+const DRAG_THRESHOLD = 5;
+
+interface FloatingPosition {
+  side: "left" | "right";
+  /** Share of the free height, so it lands in the same place on any window size. */
+  y: number;
+}
+
+let floatingPosition: FloatingPosition = { side: "right", y: 1 };
+
+function maxTop(): number {
+  return Math.max(EDGE_GAP, window.innerHeight - BUTTON_SIZE - EDGE_GAP);
+}
+
+/** Puts the button where `floatingPosition` says, against its edge. */
+function placeFloatingButton(animate: boolean): void {
+  if (!floatingButtonEl) return;
+  const top = EDGE_GAP + floatingPosition.y * (maxTop() - EDGE_GAP);
+  const left = floatingPosition.side === "left" ? EDGE_GAP : window.innerWidth - BUTTON_SIZE - EDGE_GAP;
+  floatingButtonEl.style.transition = animate ? "left 0.22s cubic-bezier(.2,.8,.2,1), top 0.22s cubic-bezier(.2,.8,.2,1), transform 0.15s ease" : "transform 0.15s ease";
+  floatingButtonEl.style.left = `${left}px`;
+  floatingButtonEl.style.top = `${top}px`;
+}
+
+function loadFloatingPosition(): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([FLOATING_POSITION_STORAGE_KEY], (result) => {
+      const saved = result[FLOATING_POSITION_STORAGE_KEY] as FloatingPosition | undefined;
+      if (saved && (saved.side === "left" || saved.side === "right") && typeof saved.y === "number") {
+        floatingPosition = { side: saved.side, y: Math.min(1, Math.max(0, saved.y)) };
+      }
+      resolve();
+    });
+  });
+}
+
+/** Drag with mouse, pen or finger; on release it snaps to the nearer edge and is remembered. */
+function makeDraggable(button: HTMLButtonElement): void {
+  let start: { x: number; y: number; left: number; top: number } | null = null;
+  let dragging = false;
+  let swallowClick = false;
+
+  button.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const rect = button.getBoundingClientRect();
+    start = { x: e.clientX, y: e.clientY, left: rect.left, top: rect.top };
+    dragging = false;
+    button.setPointerCapture(e.pointerId);
+  });
+
+  button.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (!dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    if (!dragging) {
+      dragging = true;
+      closeFloatingMenu();
+      button.style.cursor = "grabbing";
+      button.style.transition = "transform 0.15s ease";
+      button.style.transform = "scale(1.08)";
+    }
+    const left = Math.min(window.innerWidth - BUTTON_SIZE - 4, Math.max(4, start.left + dx));
+    const top = Math.min(window.innerHeight - BUTTON_SIZE - 4, Math.max(4, start.top + dy));
+    button.style.left = `${left}px`;
+    button.style.top = `${top}px`;
+  });
+
+  const finish = (e: PointerEvent) => {
+    if (!start) return;
+    if (button.hasPointerCapture(e.pointerId)) button.releasePointerCapture(e.pointerId);
+    start = null;
+    if (!dragging) return;
+    dragging = false;
+    // The click that ends a drag must not open the menu.
+    swallowClick = true;
+    button.style.cursor = "grab";
+    button.style.transform = "scale(1)";
+    const rect = button.getBoundingClientRect();
+    const range = maxTop() - EDGE_GAP;
+    floatingPosition = {
+      side: rect.left + BUTTON_SIZE / 2 < window.innerWidth / 2 ? "left" : "right",
+      y: range > 0 ? Math.min(1, Math.max(0, (rect.top - EDGE_GAP) / range)) : 1,
+    };
+    placeFloatingButton(true);
+    chrome.storage.local.set({ [FLOATING_POSITION_STORAGE_KEY]: floatingPosition });
+  };
+  button.addEventListener("pointerup", finish);
+  button.addEventListener("pointercancel", finish);
+
+  button.addEventListener(
+    "click",
+    (e) => {
+      if (!swallowClick) return;
+      swallowClick = false;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    },
+    true,
+  );
+}
+
 function createFloatingButton(): void {
   if (floatingButtonEl || !document.body) return;
 
   const button = document.createElement("button");
   button.id = FLOATING_BUTTON_ID;
   button.type = "button";
-  button.setAttribute("aria-label", "Savedly quick actions");
-  button.title = "Savedly quick actions";
+  button.setAttribute("aria-label", "Savedly quick actions (drag to move)");
+  button.title = "Savedly quick actions. Drag to move it";
   button.innerHTML = LOGO_SVG;
   button.style.cssText =
-    "position:fixed;right:20px;bottom:20px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(15,17,21,0.08);" +
-    "background:#fff;cursor:pointer;z-index:2147483646;box-shadow:0 4px 14px rgba(15,17,21,0.18);" +
+    `position:fixed;width:${BUTTON_SIZE}px;height:${BUTTON_SIZE}px;border-radius:50%;border:1px solid rgba(15,17,21,0.08);` +
+    "background:#fff;cursor:grab;z-index:2147483646;box-shadow:0 4px 14px rgba(15,17,21,0.18);touch-action:none;user-select:none;" +
     "display:flex;align-items:center;justify-content:center;padding:0;transition:transform 0.15s ease;";
   button.addEventListener("mouseenter", () => (button.style.transform = "scale(1.08)"));
   button.addEventListener("mouseleave", () => (button.style.transform = "scale(1)"));
@@ -313,10 +422,16 @@ function createFloatingButton(): void {
     if (floatingMenuEl) closeFloatingMenu();
     else openFloatingMenu();
   });
+  makeDraggable(button);
 
   document.documentElement.appendChild(button);
   floatingButtonEl = button;
+  placeFloatingButton(false);
+  // The saved spot, once storage answers (a beat after the button appears in the default corner).
+  void loadFloatingPosition().then(() => placeFloatingButton(false));
 }
+
+window.addEventListener("resize", () => placeFloatingButton(false));
 
 function removeFloatingButton(): void {
   closeFloatingMenu();
@@ -325,12 +440,18 @@ function removeFloatingButton(): void {
 }
 
 function openFloatingMenu(): void {
-  if (floatingMenuEl) return;
+  if (floatingMenuEl || !floatingButtonEl) return;
+
+  // Beside the button, on its side: above it in the lower half of the screen, below it in the upper half.
+  const rect = floatingButtonEl.getBoundingClientRect();
+  const horizontal = floatingPosition.side === "left" ? `left:${EDGE_GAP}px;` : `right:${EDGE_GAP}px;`;
+  const vertical =
+    rect.top > window.innerHeight / 2 ? `bottom:${window.innerHeight - rect.top + 8}px;` : `top:${rect.bottom + 8}px;`;
 
   const menu = document.createElement("div");
   menu.id = FLOATING_MENU_ID;
   menu.style.cssText =
-    "position:fixed;right:20px;bottom:72px;z-index:2147483646;display:flex;flex-direction:column;gap:2px;" +
+    `position:fixed;${horizontal}${vertical}z-index:2147483646;display:flex;flex-direction:column;gap:2px;` +
     "background:#1c1c1e;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:180px;";
 
   const actions: { label: string; onClick: () => void }[] = [
@@ -393,6 +514,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
   if (SIGNED_IN_STORAGE_KEY in changes || SHOW_FLOATING_ICON_STORAGE_KEY in changes) {
     refreshFloatingButtonVisibility();
+  }
+  // Dragged on another tab: follow, so it's in the same place everywhere.
+  const moved = changes[FLOATING_POSITION_STORAGE_KEY]?.newValue as FloatingPosition | undefined;
+  if (moved && (moved.side !== floatingPosition.side || moved.y !== floatingPosition.y)) {
+    floatingPosition = moved;
+    placeFloatingButton(true);
   }
 });
 
