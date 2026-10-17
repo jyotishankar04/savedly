@@ -1,5 +1,5 @@
 // Background service worker for the Savedly Chrome extension
-import { apiFetch, ApiError, checkSignedIn } from "../lib/api";
+import { apiFetch, ApiError, checkAuth, checkSignedIn } from "../lib/api";
 import { SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
 import { forgetSaved, isSaved, rememberSaved, savedKeys } from "../lib/saved-pages";
 
@@ -12,7 +12,7 @@ import { forgetSaved, isSaved, rememberSaved, savedKeys } from "../lib/saved-pag
 // before the answer is ready.
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request.action === "SYNC_AUTH") {
-    checkSignedIn().then((signedIn) => sendResponse({ ok: true, signedIn }));
+    checkAuth().then(({ signedIn, problem }) => sendResponse({ ok: true, signedIn, problem }));
     return true;
   }
   return undefined;

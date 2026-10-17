@@ -3,8 +3,13 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import fs from "fs";
 
-/** Generates host_permissions in the built manifest based on the target server origin. */
-function generateManifestPlugin(apiOrigin: string): Plugin {
+/**
+ * Generates host_permissions in the built manifest based on the target server
+ * origin. A local build is also named "Savedly (local)", so it can't be
+ * mistaken for the Web Store one installed beside it (same icon, different
+ * server: clicking the wrong one shows "Sign in").
+ */
+function generateManifestPlugin(apiOrigin: string, local: boolean): Plugin {
   return {
     name: "vite-plugin-generate-manifest",
     writeBundle(options) {
@@ -13,6 +18,11 @@ function generateManifestPlugin(apiOrigin: string): Plugin {
       if (fs.existsSync(manifestPath)) {
         const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
         manifest.host_permissions = [`${apiOrigin.replace(/\/+$/, "")}/*`];
+        if (local) {
+          manifest.name = "Savedly (local)";
+          manifest.short_name = "Savedly local";
+          manifest.action.default_title = "Save to Savedly (local)";
+        }
         fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
       }
     },
@@ -42,7 +52,7 @@ export default defineConfig(({ mode }) => {
   ).replace(/\/+$/, "");
 
   return {
-    plugins: [react(), generateManifestPlugin(apiOrigin)],
+    plugins: [react(), generateManifestPlugin(apiOrigin, local)],
     // Replaced in the source as plain text, so the content script (which
     // can't import anything, see content-script.ts) can use them too.
     define: {

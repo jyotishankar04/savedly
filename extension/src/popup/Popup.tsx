@@ -6,9 +6,9 @@ import { SavedPanel } from "./SavedPanel";
 import { SearchPanel } from "./SearchPanel";
 import { timeAgo } from "../lib/remind";
 import { apiFetch, ApiError } from "../lib/api";
-import { SHOW_FLOATING_ICON_STORAGE_KEY, SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
+import { API_BASE, SHOW_FLOATING_ICON_STORAGE_KEY, SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
 
-type ExtensionState = "checking" | "unauthorized" | "ready" | "saving" | "saved" | "error";
+type ExtensionState = "checking" | "unauthorized" | "unreachable" | "ready" | "saving" | "saved" | "error";
 
 interface PageInfo {
   url: string;
@@ -134,28 +134,36 @@ export default function Popup() {
     // Savedly (it checks with the server, renewing the sign-in if it has
     // run out; see lib/api.ts).
     let settled = false;
-    const proceed = (signedIn: boolean) => {
+    const proceed = (signedIn: boolean, problem: string | null = null) => {
       if (settled) return;
       settled = true;
       if (signedIn) loadPageInfo();
-      else setState("unauthorized");
+      // Not a sign-in question at all: the server couldn't be asked. Say so, instead of asking them to sign in again.
+      else if (problem) {
+        setErrorMessage(problem);
+        setState("unreachable");
+      } else setState("unauthorized");
     };
 
-    // If the background worker doesn't answer in time (e.g. it's still
-    // waking up, the server is slow, or it's busy with an in-flight
-    // screenshot upload), go by the last known answer rather than leaving
-    // the popup stuck on this spinner — a slow check shouldn't look like
-    // the popup didn't open at all.
-    const timeout = setTimeout(() => {
-      chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => proceed(!!result[SIGNED_IN_STORAGE_KEY]));
+    // If the background worker is slow to answer (waking up, a slow server,
+    // a screenshot upload in flight) and the last answer was "signed in", go
+    // with that rather than keep the spinner up. A last answer of "no" waits
+    // for the real one: guessing "signed out" sent people to sign in again
+    // when the real trouble was reaching the server.
+    const quick = setTimeout(() => {
+      chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => {
+        if (result[SIGNED_IN_STORAGE_KEY]) proceed(true);
+      });
     }, 2500);
-    chrome.runtime.sendMessage({ action: "SYNC_AUTH" }, (response?: { signedIn?: boolean }) => {
-      clearTimeout(timeout);
+    const giveUp = setTimeout(() => proceed(false, "Savedly didn't answer in time. Check that the server is running, then try again."), 15000);
+    chrome.runtime.sendMessage({ action: "SYNC_AUTH" }, (response?: { signedIn?: boolean; problem?: string | null }) => {
+      clearTimeout(quick);
+      clearTimeout(giveUp);
       if (chrome.runtime.lastError || !response) {
-        chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => proceed(!!result[SIGNED_IN_STORAGE_KEY]));
+        proceed(false, `The extension's background didn't answer (${chrome.runtime.lastError?.message ?? "no response"}). Try reloading the extension.`);
         return;
       }
-      proceed(!!response.signedIn);
+      proceed(!!response.signedIn, response.problem ?? null);
     });
   }, []);
 
@@ -366,6 +374,24 @@ export default function Popup() {
         <div style={styles.centerContainer}>
           <RefreshCw size={24} color="#1447E6" className="animate-spin" />
           <p style={styles.statusLabel}>Connecting to Savedly...</p>
+        </div>
+      )}
+
+      {!searching && state === "unreachable" && (
+        <div style={styles.centerContainer}>
+          <AlertCircle size={28} color="#ff3b30" />
+          <p style={styles.errorLabel}>Can't reach Savedly</p>
+          <p style={styles.errorSub}>{errorMessage}</p>
+          <p style={{ ...styles.errorSub, fontFamily: "monospace", fontSize: "10px" }}>{API_BASE}</p>
+          {/^https?:\/\/(localhost|127\.0\.0\.1)/.test(API_BASE) && (
+            <p style={styles.errorSub}>
+              This build uses a server on this computer. Make sure it's running, and if Chrome asked whether Savedly may access devices on your local
+              network, allow it.
+            </p>
+          )}
+          <button style={styles.secondaryButton} onClick={() => window.location.reload()}>
+            Try again
+          </button>
         </div>
       )}
 
