@@ -11,6 +11,7 @@ import {
   Copy01Icon as Copy,
   Delete02Icon as Trash,
   RefreshIcon as Refresh,
+  Share08Icon as Send,
 } from "@hugeicons/core-free-icons";
 import {
   Dialog,
@@ -26,6 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { ProBadge } from "@/components/plan-limit-notice";
 import { ShareAnalytics } from "@/components/share/share-analytics";
+import { ShareSheet } from "@/components/ui/share-sheet";
 import { cn } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { usePlanFeature, usePlanLimit } from "@/hooks/use-plan-limit";
@@ -78,30 +80,49 @@ export function ShareDialog({ resourceType, resourceId, resourceName, open, onOp
     return createShare.mutateAsync({ type: resourceType, id: resourceId });
   }, [share, createShare, resourceType, resourceId]);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-6 gap-5 max-h-[calc(100vh-2rem)] overflow-y-auto">
-        <DialogHeader className="border-b border-border/20 pb-3">
-          <DialogTitle className="text-xs font-bold">Share</DialogTitle>
-          <DialogDescription className="text-[11px] text-muted-foreground truncate">{resourceName}</DialogDescription>
-        </DialogHeader>
+  // "Send" hands over to the share sheet (WhatsApp, email, a QR code…): this
+  // dialog closes first, so the sheet never stacks on top of it.
+  const [sendUrl, setSendUrl] = React.useState<string | null>(null);
+  const send = (url: string) => {
+    onOpenChange(false);
+    setSendUrl(url);
+  };
 
-        {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-8 w-full rounded-full" />
-            <Skeleton className="h-24 w-full rounded-xl" />
-            <Skeleton className="h-8 w-full rounded-full" />
-          </div>
-        ) : (
-          <ShareBody
-            share={share ?? null}
-            ensureShare={ensureShare}
-            resourceType={resourceType}
-            onClose={() => onOpenChange(false)}
-          />
-        )}
-      </DialogContent>
-    </Dialog>
+  return (
+    <>
+      <ShareSheet
+        url={sendUrl ?? ""}
+        title={resourceName}
+        variant="message"
+        open={sendUrl !== null}
+        onOpenChange={(next) => !next && setSendUrl(null)}
+        trigger={false}
+      />
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md p-6 gap-5 max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <DialogHeader className="border-b border-border/20 pb-3">
+            <DialogTitle className="text-xs font-bold">Share</DialogTitle>
+            <DialogDescription className="text-[11px] text-muted-foreground truncate">{resourceName}</DialogDescription>
+          </DialogHeader>
+
+          {isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-full rounded-full" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+              <Skeleton className="h-8 w-full rounded-full" />
+            </div>
+          ) : (
+            <ShareBody
+              share={share ?? null}
+              ensureShare={ensureShare}
+              resourceType={resourceType}
+              onClose={() => onOpenChange(false)}
+              onSend={send}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -110,11 +131,13 @@ function ShareBody({
   ensureShare,
   resourceType,
   onClose,
+  onSend,
 }: {
   share: Share | null;
   ensureShare: () => Promise<Share>;
   resourceType: ShareResourceType;
   onClose: () => void;
+  onSend: (url: string) => void;
 }) {
   const directShares = usePlanFeature("directShares");
   // Hoisted, not read inside the LINK_MODES map below: a hook call in a
@@ -204,7 +227,7 @@ function ShareBody({
       {linkAccess === "password" && <PasswordSection share={share} onSet={(pw) => setMode("password", pw)} />}
       {saved === "public" && share && <IndexingToggle share={share} />}
       {share && saved === "request" && <RequestsSection shareId={share.id} />}
-      {share && saved !== "disabled" && <LinkRow share={share} />}
+      {share && saved !== "disabled" && <LinkRow share={share} onSend={onSend} />}
       {share && <DangerRow share={share} onClose={onClose} resourceType={resourceType} />}
     </div>
   );
@@ -485,7 +508,7 @@ function RequestsSection({ shareId }: { shareId: string }) {
   );
 }
 
-function LinkRow({ share }: { share: Share }) {
+function LinkRow({ share, onSend }: { share: Share; onSend: (url: string) => void }) {
   const rotate = useRotateSlugMutation();
   const url = typeof window !== "undefined" ? `${window.location.origin}/s/${share.slug}` : "";
 
@@ -508,6 +531,9 @@ function LinkRow({ share }: { share: Share }) {
           <HugeiconsIcon icon={Refresh} strokeWidth={2.25} className="h-3.5 w-3.5" />
         </Button>
       </div>
+      <Button size="sm" onClick={() => onSend(url)} className="h-8 w-full rounded-full text-[11px] font-semibold">
+        <HugeiconsIcon icon={Send} strokeWidth={2.25} className="h-3.5 w-3.5" /> Send the link
+      </Button>
       <ShareAnalytics shareId={share.id} totalViews={share.viewCount} detailsHref={`/app/shared/${share.id}`} />
     </section>
   );
