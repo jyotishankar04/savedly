@@ -39,6 +39,7 @@ import { Textarea as ArcTextarea } from "@/components/arc/textarea/textarea";
 import { Input as ArcInput } from "@/components/arc/input/input";
 import { Button as ArcButton } from "@/components/arc/button/button";
 import { useCollectionDrop, useMemoryDragging } from "@/components/memory/collection-drop";
+import { isEditableTarget, useQuickSave } from "@/components/capture/quick-save";
 import { Badge as ArcBadge } from "@/components/arc/badge/badge";
 import { FileDropzone, type FileDropzoneUpload } from "@/components/arc/file-dropzone/file-dropzone";
 import { ShortcutList, formatShortcut, usePlatform, type ShortcutListGroup } from "@/components/arc/shortcut-recorder/shortcut-recorder";
@@ -295,6 +296,7 @@ const KEYBOARD_SHORTCUTS: ShortcutListGroup[] = [
     items: [
       { label: "Open search", shortcut: "mod+k", keywords: "find command palette" },
       { label: "Quick capture", shortcut: "mod+q", keywords: "save new add memory" },
+      { label: "Save what you copied (outside a text box)", shortcut: "mod+v", keywords: "paste link screenshot note clipboard" },
       { label: "Show keyboard shortcuts", shortcut: "mod+/", keywords: "help keys" },
       { label: "Close an open menu", shortcut: "escape", keywords: "esc dismiss cancel" },
     ],
@@ -643,6 +645,27 @@ function AppShell({ children }: { children: React.ReactNode }) {
     }
   };
 
+
+  // Paste anywhere to save: a link, some text or a screenshot pasted while no
+  // text box has focus (and nothing is open on top) is saved straight away.
+  const quickSave = useQuickSave();
+  const quickSaveRef = useRef(quickSave);
+  useEffect(() => {
+    quickSaveRef.current = quickSave;
+  });
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (e.defaultPrevented || isEditableTarget(e.target) || isEditableTarget(document.activeElement)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      const file = Array.from(e.clipboardData?.files ?? [])[0];
+      const text = e.clipboardData?.getData("text/plain") ?? "";
+      if (!file && !text.trim()) return;
+      e.preventDefault();
+      void quickSaveRef.current(file ? { file } : { text });
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, []);
 
   // Global keyboard shortcuts. Note: Ctrl/Cmd+N and Ctrl/Cmd+P are reserved
   // by the browser itself (new window / print) in Chrome and Firefox — their
