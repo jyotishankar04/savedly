@@ -38,6 +38,10 @@ import { PaletteDialog, type PaletteItem } from "@/components/ui/palette-dialog"
 import { Textarea as ArcTextarea } from "@/components/arc/textarea/textarea";
 import { Input as ArcInput } from "@/components/arc/input/input";
 import { Button as ArcButton } from "@/components/arc/button/button";
+import { type Shelf, useCollectionDrop, useMemoryDragging, useShelfDrop } from "@/components/memory/collection-drop";
+import { isEditableTarget, useQuickSave } from "@/components/capture/quick-save";
+import { DropToSave } from "@/components/capture/drop-to-save";
+import { useMemoryListKeys } from "@/components/memory/list-keys";
 import { Badge as ArcBadge } from "@/components/arc/badge/badge";
 import { FileDropzone, type FileDropzoneUpload } from "@/components/arc/file-dropzone/file-dropzone";
 import { ShortcutList, formatShortcut, usePlatform, type ShortcutListGroup } from "@/components/arc/shortcut-recorder/shortcut-recorder";
@@ -75,6 +79,37 @@ function readClosedSections(): string[] {
 
 const SIDEBAR_ROW =
   "relative z-[1] flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+
+/**
+ * A collection in the sidebar, which memories can also be dragged onto. While
+ * a drag is on, every row shows a dashed edge to say it takes drops; the one
+ * under the pointer fills with the accent and says Add.
+ */
+function SidebarCollectionRow({ collection, active, dragging }: { collection: Collection; active: boolean; dragging: boolean }) {
+  const drop = useCollectionDrop(collection);
+  return (
+    <Link
+      href={`/app/collections/${collection.id}`}
+      aria-current={active ? "page" : undefined}
+      data-nav-row=""
+      {...drop.props}
+      className={cn(
+        SIDEBAR_ROW,
+        active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+        dragging && "outline-1 -outline-offset-1 outline-dashed outline-foreground/15",
+        drop.over && "bg-primary/15 text-primary outline-primary/60",
+      )}
+    >
+      <span aria-hidden className="flex w-[18px] shrink-0 justify-center text-sm leading-none">{collection.icon}</span>
+      <span className="min-w-0 flex-1 truncate">{collection.name}</span>
+      {drop.over ? (
+        <span className="text-[11px] font-semibold text-primary">Add</span>
+      ) : (
+        collection.memoryCount > 0 && <span className="text-[11px] tabular-nums text-muted-foreground/70">{collection.memoryCount}</span>
+      )}
+    </Link>
+  );
+}
 
 // The phone menu's rows: taller than the sidebar's, for a thumb.
 const MOBILE_MENU_ROW =
@@ -128,6 +163,33 @@ function SidebarLink({ item, active, ...rest }: { item: NavItem; active: boolean
           {item.badge > 99 ? "99+" : item.badge}
         </span>
       ) : null}
+    </Link>
+  );
+}
+
+/** The sidebar links that memories can be dropped on, and what dropping there does. */
+const SHELF_HREFS: Record<string, Shelf> = { "/app/favorites": "favorite", "/app/vault": "vault", "/app/archive": "archive", "/app/trash": "trash" };
+const SHELF_VERB: Record<Shelf, string> = { favorite: "Add", vault: "Lock", archive: "Archive", trash: "Trash" };
+
+/** Favorites, Vault, Archive or Trash in the sidebar, which also take dropped memories (see SidebarCollectionRow). */
+function SidebarShelfLink({ item, active, shelf, dragging }: { item: NavItem; active: boolean; shelf: Shelf; dragging: boolean }) {
+  const drop = useShelfDrop(shelf);
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      data-nav-row=""
+      {...drop.props}
+      className={cn(
+        SIDEBAR_ROW,
+        active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+        dragging && "outline-1 -outline-offset-1 outline-dashed outline-foreground/15",
+        drop.over && (shelf === "trash" ? "bg-destructive/12 text-destructive outline-destructive/60" : "bg-primary/15 text-primary outline-primary/60"),
+      )}
+    >
+      <HugeiconsIcon icon={item.icon} strokeWidth={2} className="h-[18px] w-[18px] shrink-0" />
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      {drop.over && <span className="text-[11px] font-semibold">{SHELF_VERB[shelf]}</span>}
     </Link>
   );
 }
@@ -263,8 +325,20 @@ const KEYBOARD_SHORTCUTS: ShortcutListGroup[] = [
     items: [
       { label: "Open search", shortcut: "mod+k", keywords: "find command palette" },
       { label: "Quick capture", shortcut: "mod+q", keywords: "save new add memory" },
+      { label: "Save what you copied (outside a text box)", shortcut: "mod+v", keywords: "paste link screenshot note clipboard" },
       { label: "Show keyboard shortcuts", shortcut: "mod+/", keywords: "help keys" },
       { label: "Close an open menu", shortcut: "escape", keywords: "esc dismiss cancel" },
+    ],
+  },
+  {
+    label: "In a list of memories",
+    items: [
+      { label: "Next or previous memory", shortcut: "j", keywords: "down up arrow move k" },
+      { label: "Open it", shortcut: "enter", keywords: "view" },
+      { label: "Select it", shortcut: "x", keywords: "check pick" },
+      { label: "Favorite or unfavorite", shortcut: "f", keywords: "star" },
+      { label: "Archive, or take out of the archive", shortcut: "e", keywords: "done" },
+      { label: "Move to Trash", shortcut: "delete", keywords: "remove # hash" },
     ],
   },
   {
@@ -612,6 +686,28 @@ function AppShell({ children }: { children: React.ReactNode }) {
   };
 
 
+  // Paste anywhere to save: a link, some text or a screenshot pasted while no
+  // text box has focus (and nothing is open on top) is saved straight away.
+  useMemoryListKeys();
+  const quickSave = useQuickSave();
+  const quickSaveRef = useRef(quickSave);
+  useEffect(() => {
+    quickSaveRef.current = quickSave;
+  });
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      if (e.defaultPrevented || isEditableTarget(e.target) || isEditableTarget(document.activeElement)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      const file = Array.from(e.clipboardData?.files ?? [])[0];
+      const text = e.clipboardData?.getData("text/plain") ?? "";
+      if (!file && !text.trim()) return;
+      e.preventDefault();
+      void quickSaveRef.current(file ? { file } : { text });
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, []);
+
   // Global keyboard shortcuts. Note: Ctrl/Cmd+N and Ctrl/Cmd+P are reserved
   // by the browser itself (new window / print) in Chrome and Firefox — their
   // preventDefault() is a no-op there, so these two only actually fire in
@@ -805,19 +901,26 @@ function AppShell({ children }: { children: React.ReactNode }) {
     shortcuts: () => setShortcutsOpen(true),
     ...Object.fromEntries(pageItems.map((item) => [`go:${item.href}`, () => router.push(item.href)])),
   };
+  // While memories are dragged, every collection (and Favorites, Archive, Vault, Trash) is a place to drop them: show them all, with their sections open.
+  const dragging = useMemoryDragging();
   const renderSection = (section: (typeof navSections)[number]) => (
     <SidebarSection
       key={section.id}
       label={section.label}
-      open={!closedSections.includes(section.id)}
+      // A section with places to drop memories opens while they're dragged.
+      open={(dragging && section.items.some((item) => SHELF_HREFS[item.href])) || !closedSections.includes(section.id)}
       onToggle={() => toggleSection(section.id)}
     >
-      {section.items.map((item) => (
-        <SidebarLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} />
-      ))}
+      {section.items.map((item) =>
+        SHELF_HREFS[item.href] ? (
+          <SidebarShelfLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} shelf={SHELF_HREFS[item.href]!} dragging={dragging} />
+        ) : (
+          <SidebarLink key={item.href} item={item} active={isNavItemActive(pathname, item.href)} />
+        ),
+      )}
     </SidebarSection>
   );
-  const visibleCollections = collectionsShowAll ? collections : collections.slice(0, COLLECTIONS_PREVIEW_COUNT);
+  const visibleCollections = collectionsShowAll || dragging ? collections : collections.slice(0, COLLECTIONS_PREVIEW_COUNT);
 
   return (
     <NextStepProvider>
@@ -918,7 +1021,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
           <SidebarSection
             label="Collections"
-            open={!closedSections.includes("collections")}
+            open={dragging || !closedSections.includes("collections")}
             onToggle={() => toggleSection("collections")}
             action={
               <Link
@@ -938,28 +1041,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
               </p>
             ) : (
               <>
-                {visibleCollections.map((col) => {
-                  const href = `/app/collections/${col.id}`;
-                  const active = isNavItemActive(pathname, href);
-                  return (
-                    <Link
-                      key={col.id}
-                      href={href}
-                      aria-current={active ? "page" : undefined}
-                      data-nav-row=""
-                      className={cn(
-                        SIDEBAR_ROW,
-                        active ? "bg-sidebar-accent text-foreground" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      <span aria-hidden className="flex w-[18px] shrink-0 justify-center text-sm leading-none">{col.icon}</span>
-                      <span className="min-w-0 flex-1 truncate">{col.name}</span>
-                      {col.memoryCount > 0 && (
-                        <span className="text-[11px] tabular-nums text-muted-foreground/70">{col.memoryCount}</span>
-                      )}
-                    </Link>
-                  );
-                })}
+                {visibleCollections.map((col) => (
+                  <SidebarCollectionRow key={col.id} collection={col} active={isNavItemActive(pathname, `/app/collections/${col.id}`)} dragging={dragging} />
+                ))}
                 {collections.length > COLLECTIONS_PREVIEW_COUNT && (
                   <button
                     type="button"
@@ -1556,6 +1640,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <AskWidget />
       <ExtensionInstallPrompt />
       <UpgradeDialog />
+      <DropToSave />
 
       {/* Global CSS animations styles */}
       <style>{`

@@ -10,6 +10,7 @@ import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
 import { collectionNameKey } from "./organize-collection";
+import { collectionIcon } from "../../../collection/collection.service";
 
 async function assignCollection(tx: Tx, state: IngestionStateType): Promise<string | null> {
   if ((state.collectionAction !== "existing" && state.collectionAction !== "new") || !state.collectionName) return null;
@@ -31,7 +32,7 @@ async function assignCollection(tx: Tx, state: IngestionStateType): Promise<stri
       .values({
         userId: state.userId,
         name: state.collectionName,
-        icon: state.collectionIcon || "📁",
+        icon: collectionIcon(state.collectionIcon),
         description: state.collectionDescription,
         // A normal, visible collection: nothing is paid or limited any more, so
         // there is no reason to hide what the AI files things into.

@@ -8,6 +8,7 @@ import { toast } from "@/components/ui/toast";
 import { timeAgo } from "@/lib/time";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
 import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
+import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
 import { useToggleFavoriteMutation } from "@/context/MemoryContext";
 import type { Memory } from "@/types/memory";
 
@@ -19,6 +20,10 @@ interface MemoryGridCardProps {
   onClick?: () => void;
   /** Passed through to MemoryActionsMenu — where to navigate after archive/vault/trash succeeds. */
   redirectTo?: string;
+  /** Bulk selection (hooks/use-selection.ts): this card is selected / something on the page is. */
+  selected?: boolean;
+  selecting?: boolean;
+  onSelect?: (event: { shiftKey?: boolean }) => void;
 }
 
 const TYPE_LABEL: Record<Memory["type"], string> = {
@@ -33,16 +38,18 @@ const TYPE_LABEL: Record<Memory["type"], string> = {
 /** The memory grid card used on the memories list — also reused on Explore
  * and inside the vault, so vaulted memories look and behave exactly like
  * regular ones. */
-export function MemoryGridCard({ item, href, onClick, redirectTo }: MemoryGridCardProps) {
+export function MemoryGridCard({ item, href, onClick, redirectTo, selected = false, selecting = false, onSelect }: MemoryGridCardProps) {
   const toggleFavoriteMutation = useToggleFavoriteMutation();
 
   const className = cn(
-    "group relative flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/30",
+    "group relative flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-3 transition-[border-color,box-shadow] hover:border-primary/30",
+    selected && "border-primary/60 ring-2 ring-primary/40",
     (href || onClick) && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
   );
 
   const content = (
     <>
+      {onSelect && <SelectCheckbox checked={selected} selecting={selecting} onToggle={(e) => onSelect({ shiftKey: e.shiftKey })} label={`Select ${item.title}`} />}
       {item.type !== "note" ? (
         <MemoryThumbnail item={item} className="rounded-xl" />
       ) : (
@@ -125,7 +132,7 @@ export function MemoryGridCard({ item, href, onClick, redirectTo }: MemoryGridCa
 
   if (href) {
     return (
-      <Link href={href} className={className}>
+      <Link href={href} className={className} {...selectableProps(selecting, onSelect, { id: item.id, title: item.title, selected })}>
         {content}
       </Link>
     );
@@ -146,6 +153,7 @@ export function MemoryGridCard({ item, href, onClick, redirectTo }: MemoryGridCa
           : undefined
       }
       className={className}
+      {...selectableProps(selecting, onSelect, { id: item.id, title: item.title, selected })}
     >
       {content}
     </div>

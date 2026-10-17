@@ -275,7 +275,7 @@ Represents folder partitions.
 | `id` | UUID | Yes | `gen_random_uuid()` | Primary Key | Unique collection identifier |
 | `user_id` | UUID | Yes | None | Foreign Key (`users.id`) ON DELETE CASCADE | Creator reference |
 | `name` | VARCHAR(100) | Yes | None | | Folder title |
-| `icon` | VARCHAR(50) | Yes | "folder-outline"| Lucide/Ionicons string identifier | Display icon name |
+| `icon` | VARCHAR(50) | Yes | "📁" | A single emoji; anything else is stored as 📁 | Display icon |
 | `description` | TEXT | No | Null | | Brief purpose of folder |
 | `created_at` | TIMESTAMPTZ | Yes | `NOW()` | | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | Yes | `NOW()` | | Last update timestamp |
