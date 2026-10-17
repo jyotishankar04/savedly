@@ -48,8 +48,21 @@ export function CollectionSelectionBar({ selection, collections, vaulted = false
       key: "vault",
       label: vaulted ? "Out of vault" : "Move to vault",
       icon: vaulted ? SquareUnlock01Icon : SquareLock01Icon,
-      run: async () =>
-        report(await vault.mutateAsync({ collectionIds: ids, isVaulted: !vaulted }), (c) => `${n(c)} ${vaulted ? "taken out of the vault" : "moved to the vault, with their memories"}.`),
+      run: async () => {
+        const result = await vault.mutateAsync({ collectionIds: ids, isVaulted: !vaulted });
+        const failed = new Set((result.errors ?? []).map((e) => e.id));
+        const done = ids.filter((id) => !failed.has(id));
+        return {
+          message: report(result, (c) => `${n(c)} ${vaulted ? "taken out of the vault" : "moved to the vault, with their memories"}.`),
+          undo: async () => {
+            await vault.mutateAsync({ collectionIds: done, isVaulted: vaulted }).catch((err) => {
+              // Taking things out of the vault needs it unlocked; putting them in doesn't.
+              throw err instanceof Error && /vault is locked/i.test(err.message) ? new Error("Unlock your vault to take them back out.") : err;
+            });
+            return vaulted ? "Back in the vault." : "Taken back out of the vault.";
+          },
+        };
+      },
     },
     {
       key: "delete-keep",

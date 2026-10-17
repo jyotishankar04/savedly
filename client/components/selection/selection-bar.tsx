@@ -24,12 +24,46 @@ import type { Selection } from "@/hooks/use-selection";
 import { Cancelled } from "@/components/selection/pickers";
 import { cn } from "@/lib/utils";
 
+/** What an action did: the toast's text, and how to take it back, when it can be. */
+export interface ActionOutcome {
+  message: string;
+  /** Reverses exactly what the action changed; resolves to the toast's new text. */
+  undo?: () => Promise<string>;
+}
+
+/** How long a toast with Undo stays, so there is time to reach for it. */
+const UNDO_WINDOW_MS = 8000;
+
+/** The toast after an action: with an Undo button that turns it into "Undoing…" and then the result, in place. */
+function announce(outcome: string | ActionOutcome) {
+  const { message, undo } = typeof outcome === "string" ? { message: outcome, undo: undefined } : outcome;
+  if (!undo) {
+    toast.add({ title: message, type: "success" });
+    return;
+  }
+  toast.add({
+    title: message,
+    type: "success",
+    duration: UNDO_WINDOW_MS,
+    action: {
+      label: "Undo",
+      onClick: (id) => {
+        toast.update(id, { title: "Undoing…", type: "loading", action: undefined });
+        undo().then(
+          (done) => toast.update(id, { title: done, type: "success" }),
+          (err) => toast.update(id, { title: err instanceof Error ? err.message : "Couldn't undo that.", type: "error" }),
+        );
+      },
+    },
+  });
+}
+
 export interface SelectionAction {
   key: string;
   label: string;
   icon: IconSvgElement;
-  /** Runs the action. Resolve to the toast's text; throw to show the error. */
-  run: () => Promise<string | void>;
+  /** Runs the action. Resolve to the toast's text, with an undo when it can be reversed; throw to show the error. */
+  run: () => Promise<string | ActionOutcome | void>;
   destructive?: boolean;
   /** Ask first, with this wording. */
   confirm?: { title: string; description: string; confirmLabel: string };
@@ -59,8 +93,8 @@ export function SelectionBar({ selection, noun, actions }: { selection: Selectio
     }
     setRunning(action.key);
     try {
-      const message = await action.run();
-      if (message) toast.add({ title: message, type: "success" });
+      const outcome = await action.run();
+      if (outcome) announce(outcome);
       selection.clear();
     } catch (err) {
       // A picker dismissed: nothing happened, and the selection stays.
