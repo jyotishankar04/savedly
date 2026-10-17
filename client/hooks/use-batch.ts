@@ -5,6 +5,10 @@ import {
   batchDeleteMemories,
   batchRestoreMemories,
   batchUpdateStatus,
+  batchUncollectMemories,
+  batchDeleteCollections,
+  batchMergeCollections,
+  batchVaultCollections,
   type BatchTagInput,
   type BatchMoveInput,
   type BatchDeleteInput,
@@ -63,6 +67,35 @@ export function useBatchUpdateStatusMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["memories"] });
       queryClient.invalidateQueries({ queryKey: ["favorites"] });
+      queryClient.invalidateQueries({ queryKey: ["collections"] });
     },
   });
+}
+
+/** Everything a collection change can touch: lists, counts and the trash. */
+function useInvalidateLibrary() {
+  const queryClient = useQueryClient();
+  return () => {
+    for (const key of ["memories", "collections", "tags", "trash", "favorites"]) queryClient.invalidateQueries({ queryKey: [key] });
+  };
+}
+
+export function useBatchUncollectMutation() {
+  const invalidate = useInvalidateLibrary();
+  return useMutation({ mutationFn: batchUncollectMemories, onSuccess: invalidate });
+}
+
+export function useBatchDeleteCollectionsMutation() {
+  const invalidate = useInvalidateLibrary();
+  return useMutation({ mutationFn: batchDeleteCollections, onSuccess: invalidate });
+}
+
+export function useBatchMergeCollectionsMutation() {
+  const invalidate = useInvalidateLibrary();
+  return useMutation({ mutationFn: batchMergeCollections, onSuccess: invalidate });
+}
+
+export function useBatchVaultCollectionsMutation() {
+  const invalidate = useInvalidateLibrary();
+  return useMutation({ mutationFn: batchVaultCollections, onSuccess: invalidate });
 }
