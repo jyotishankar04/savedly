@@ -22,6 +22,7 @@ router.get("/inbox/count", authenticate, MemoryController.inboxCount);
 router.post("/inbox/read-all", authenticate, MemoryController.inboxReadAll);
 // The extension: is this page already saved?
 router.get("/lookup", authenticate, MemoryController.lookup);
+router.get("/url-keys", authenticate, MemoryController.urlKeys);
 router.get("/:id", authenticate, MemoryController.get);
 router.patch("/:id", authenticate, validateUpdateMemory, requireUnlockToUnvault, MemoryController.update);
 router.delete("/:id", authenticate, MemoryController.remove);

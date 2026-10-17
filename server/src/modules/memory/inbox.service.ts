@@ -1,4 +1,5 @@
-import { and, count, eq, gt, isNull, lte, or } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import { and, count, eq, gt, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { db } from "../../db";
 import { collectionMemories, collections, memories } from "../../db/schema";
 import { normalizeUrl } from "./normalize-url";
@@ -59,4 +60,20 @@ export async function lookupByUrl(userId: string, url: string): Promise<SavedPag
     .innerJoin(collections, eq(collections.id, collectionMemories.collectionId))
     .where(and(eq(collectionMemories.memoryId, row.id), eq(collections.isVaulted, false)));
   return { ...row, collections: inCollections };
+}
+
+/** The first 16 hex characters of SHA-256 over a normalized URL. The extension computes the same. */
+export const urlKey = (normalizedUrl: string) => createHash("sha256").update(normalizedUrl).digest("hex").slice(0, 16);
+
+/**
+ * Short hashes of every saved page's address, so the extension can tell a
+ * page is saved without sending the server each page the person visits: it
+ * hashes the page itself and compares. The addresses never leave in plain.
+ */
+export async function savedUrlKeys(userId: string): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ url: memories.normalizedUrl })
+    .from(memories)
+    .where(and(eq(memories.userId, userId), eq(memories.inTrash, false), isNotNull(memories.normalizedUrl)));
+  return rows.map((r) => urlKey(r.url!));
 }

@@ -422,3 +422,20 @@ if (location.origin === __WEB_APP_URL__) {
 }
 
 refreshFloatingButtonVisibility();
+
+// Tells the background which page this is, so the toolbar icon can show a
+// check mark when it's already saved. The check itself happens in the
+// extension (lib/saved-pages.ts); the address isn't sent to Savedly.
+// Single-page apps change the address without reloading, hence the poll.
+let reportedUrl = "";
+function reportPage(): void {
+  if (location.href === reportedUrl) return;
+  reportedUrl = location.href;
+  try {
+    chrome.runtime.sendMessage({ action: "PAGE_SEEN", url: location.href }, () => void chrome.runtime.lastError);
+  } catch {
+    // The extension was reloaded or updated: this page's script is orphaned until it reloads.
+  }
+}
+reportPage();
+setInterval(reportPage, 1500);

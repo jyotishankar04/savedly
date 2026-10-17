@@ -1,5 +1,7 @@
 // Background service worker for the Savedly Chrome extension
 import { apiFetch, ApiError, checkSignedIn } from "../lib/api";
+import { SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
+import { forgetSaved, isSaved, rememberSaved, savedKeys } from "../lib/saved-pages";
 
 // Sign-in is the browser's own Savedly session (see lib/api.ts). This file
 // only keeps the yes/no "signed in" flag fresh for the popup and the on-page
@@ -16,12 +18,16 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   return undefined;
 });
 
-chrome.runtime.onStartup.addListener(() => void checkSignedIn());
+chrome.runtime.onStartup.addListener(() => {
+  void checkSignedIn();
+  startTicking();
+});
 
 chrome.runtime.onInstalled.addListener(() => {
   // Earlier builds kept a copy of the access token here. Nothing reads it now.
   chrome.storage.local.remove("savedly_token");
   void checkSignedIn();
+  startTicking();
 
   // Root menu for Savedly actions
   chrome.contextMenus.create({
@@ -434,6 +440,7 @@ async function createMemory(payload: MemoryCreatePayload): Promise<void> {
   });
 
   notify("Saved to Savedly", memory.title || payload.title);
+  if (payload.url) await rememberSaved(payload.url);
 }
 
 function notifySignInRequired(): void {
@@ -449,3 +456,146 @@ function notifySaveError(err: unknown): void {
   const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Something went wrong.";
   notify("Couldn't save to Savedly", message);
 }
+
+// --- Already saved? -------------------------------------------------------
+//
+// The content script reports each page it runs on (PAGE_SEEN); the check is
+// local (lib/saved-pages.ts), and a saved page gets a check mark on the
+// toolbar icon. The popup reports its own saves (PAGE_SAVED).
+
+async function signedIn(): Promise<boolean> {
+  const result = await chrome.storage.local.get(SIGNED_IN_STORAGE_KEY);
+  return !!result[SIGNED_IN_STORAGE_KEY];
+}
+
+async function showSavedBadge(tabId: number, url: string): Promise<void> {
+  const saved = (await signedIn()) && (await isSaved(url));
+  await chrome.action.setBadgeText({ tabId, text: saved ? "✓" : "" });
+  if (saved) {
+    await chrome.action.setBadgeBackgroundColor({ tabId, color: "#1447E6" });
+    await chrome.action.setBadgeTextColor?.({ tabId, color: "#ffffff" });
+  }
+  await chrome.action.setTitle({ tabId, title: saved ? "Saved to Savedly. Click to see it" : "Save to Savedly" });
+}
+
+chrome.runtime.onMessage.addListener((request, sender) => {
+  if (request.action === "PAGE_SEEN" && sender.tab?.id != null && typeof request.url === "string") {
+    void showSavedBadge(sender.tab.id, request.url).catch(() => undefined);
+  }
+  if (request.action === "PAGE_SAVED" && typeof request.url === "string") {
+    void rememberSaved(request.url).then(() => (typeof request.tabId === "number" ? showSavedBadge(request.tabId, request.url) : undefined));
+  }
+  return undefined;
+});
+
+// Signed out on the website: nothing of that library stays in the extension.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes[SIGNED_IN_STORAGE_KEY]?.newValue === false) void forgetSaved();
+});
+
+// --- Reminders --------------------------------------------------------------
+//
+// Once a minute: any reminder that came due since the last look becomes a
+// desktop notification, even with no Savedly tab open. Clicking it opens
+// the memory and marks the notification read.
+
+const TICK = "savedly-tick";
+const LAST_REMINDER_KEY = "savedly_last_reminder_at";
+const REMINDER_LINKS_KEY = "savedly_reminder_links";
+
+function startTicking(): void {
+  // Idempotent: an alarm with the same name replaces the old one.
+  chrome.alarms.create(TICK, { periodInMinutes: 1 });
+}
+
+interface ReminderNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  actionUrl: string | null;
+  createdAt: string;
+}
+
+async function checkReminders(): Promise<void> {
+  if (!(await signedIn())) return;
+  const stored = await chrome.storage.local.get([LAST_REMINDER_KEY, REMINDER_LINKS_KEY]);
+  const since = stored[LAST_REMINDER_KEY] as string | undefined;
+  // First run: start from now, rather than replaying every old reminder.
+  if (!since) {
+    await chrome.storage.local.set({ [LAST_REMINDER_KEY]: new Date().toISOString() });
+    return;
+  }
+  const unread = await apiFetch<ReminderNotification[]>("/notifications?status=unread&limit=20");
+  const due = unread.filter((n) => n.type === "memory_reminder" && n.createdAt > since).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  if (due.length === 0) return;
+  const links = { ...((stored[REMINDER_LINKS_KEY] as Record<string, string> | undefined) ?? {}) };
+  for (const n of due) {
+    const id = `reminder:${n.id}`;
+    links[id] = n.actionUrl ?? "/app/inbox";
+    chrome.notifications.create(id, {
+      type: "basic",
+      iconUrl: "icon-128.png",
+      title: n.title,
+      message: n.body ?? "You asked to come back to this.",
+      priority: 2,
+      buttons: [{ title: "Open" }],
+    });
+  }
+  // Only the latest few are worth keeping a link for.
+  const recent = Object.fromEntries(Object.entries(links).slice(-30));
+  await chrome.storage.local.set({ [LAST_REMINDER_KEY]: due[due.length - 1]!.createdAt, [REMINDER_LINKS_KEY]: recent });
+}
+
+async function openReminder(notificationId: string): Promise<void> {
+  if (!notificationId.startsWith("reminder:")) return;
+  const stored = await chrome.storage.local.get(REMINDER_LINKS_KEY);
+  const path = ((stored[REMINDER_LINKS_KEY] as Record<string, string> | undefined) ?? {})[notificationId] ?? "/app/inbox";
+  await chrome.tabs.create({ url: `${WEB_APP_URL}${path}` });
+  chrome.notifications.clear(notificationId);
+  void apiFetch(`/notifications/${notificationId.slice("reminder:".length)}/read`, { method: "PATCH" }).catch(() => undefined);
+}
+
+chrome.notifications.onClicked.addListener((id) => void openReminder(id));
+chrome.notifications.onButtonClicked.addListener((id) => void openReminder(id));
+
+let ticks = 0;
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== TICK) return;
+  void checkReminders().catch(() => undefined);
+  // The saved-page hashes refresh themselves when old; this keeps them warm.
+  if (++ticks % 10 === 0) void savedKeys().catch(() => undefined);
+});
+
+// --- Search from the address bar: "sv" then a space -------------------------
+
+const escapeXml = (text: string) => text.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[c]!);
+
+chrome.omnibox.setDefaultSuggestion({ description: "Search your Savedly library for <match>%s</match>" });
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+chrome.omnibox.onInputChanged.addListener((text, suggest) => {
+  if (searchTimer) clearTimeout(searchTimer);
+  const query = text.trim();
+  if (query.length < 2) return;
+  searchTimer = setTimeout(() => {
+    apiFetch<{ id: string; title: string; url: string | null; source: string | null }[]>(`/memories?q=${encodeURIComponent(query)}&limit=6`)
+      .then((items) =>
+        suggest(
+          items.map((m) => ({
+            content: m.url ?? `${WEB_APP_URL}/app/memories/${m.id}`,
+            description: `${escapeXml(m.title)}${m.source ? ` <dim>${escapeXml(m.source)}</dim>` : ""}`,
+          })),
+        ),
+      )
+      .catch(() => undefined);
+  }, 200);
+});
+
+chrome.omnibox.onInputEntered.addListener((text, disposition) => {
+  const url = /^https?:\/\//.test(text) ? text : `${WEB_APP_URL}/app/search?q=${encodeURIComponent(text.trim())}`;
+  if (disposition === "currentTab") void chrome.tabs.update({ url });
+  else void chrome.tabs.create({ url, active: disposition === "newForegroundTab" });
+});
+
+startTicking();

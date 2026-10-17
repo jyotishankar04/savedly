@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff
+  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff, Search
 } from "lucide-react";
+import { SavedPanel } from "./SavedPanel";
+import { SearchPanel } from "./SearchPanel";
+import { timeAgo } from "../lib/remind";
 import { apiFetch, ApiError } from "../lib/api";
 import { SHOW_FLOATING_ICON_STORAGE_KEY, SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
 
@@ -20,6 +23,14 @@ interface CreatedMemory {
   id: string;
   title: string;
   duplicateOf: { id: string; title: string } | null;
+}
+
+/** GET /memories/lookup: this page, when it's already in the library. */
+interface SavedPage {
+  id: string;
+  title: string;
+  createdAt: string;
+  collections: { id: string; name: string }[];
 }
 
 interface Collection {
@@ -49,6 +60,11 @@ export default function Popup() {
   // window is focused at that exact moment) that this sidesteps entirely.
   const activeTabIdRef = useRef<number | null>(null);
   const [showFloatingIcon, setShowFloatingIcon] = useState(true);
+  // Search instead of saving, from the header's search button.
+  const [searching, setSearching] = useState(false);
+  // This page is already saved: show it, unless they choose to save it again.
+  const [existing, setExisting] = useState<SavedPage | null>(null);
+  const [saveAgain, setSaveAgain] = useState(false);
 
   // The floating on-page button defaults to shown, so it only needs
   // reading here (not writing) unless the user actually toggles it —
@@ -169,7 +185,10 @@ export default function Popup() {
     }
 
     activeTabIdRef.current = activeTab.id;
+    // Opening the popup is asking about this page, so this one address goes to Savedly (browsing elsewhere never does).
+    const lookup = apiFetch<SavedPage | null>(`/memories/lookup?url=${encodeURIComponent(activeTab.url)}`).catch(() => null);
     const metadata = await getPageMetadata(activeTab.id);
+    setExisting(await lookup);
     setPageInfo({
       url: activeTab.url,
       title: activeTab.title || "Untitled Webpage",
@@ -223,6 +242,8 @@ export default function Popup() {
 
       setSavedMemory(memory);
       setState("saved");
+      // The toolbar icon shows the check mark straight away.
+      chrome.runtime.sendMessage({ action: "PAGE_SAVED", url: pageInfo.url, tabId: activeTabIdRef.current ?? undefined }, () => void chrome.runtime.lastError);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setState("unauthorized");
@@ -296,6 +317,17 @@ export default function Popup() {
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           {state !== "checking" && state !== "unauthorized" && (
             <button
+              style={{ ...styles.iconButton, ...(searching ? { color: "#1447E6" } : {}) }}
+              onClick={() => setSearching((on) => !on)}
+              title={searching ? "Back to saving this page" : "Search your library"}
+              aria-label={searching ? "Back to saving this page" : "Search your library"}
+              aria-pressed={searching}
+            >
+              {searching ? <X size={14} color="#1447E6" /> : <Search size={14} color="#8e8e93" />}
+            </button>
+          )}
+          {state !== "checking" && state !== "unauthorized" && (
+            <button
               style={styles.iconButton}
               onClick={toggleFloatingIcon}
               title={showFloatingIcon ? "Hide the floating quick-actions button on pages" : "Show the floating quick-actions button on pages"}
@@ -311,7 +343,26 @@ export default function Popup() {
 
       {/* State Renderers */}
 
-      {state === "checking" && (
+      {searching && state !== "checking" && state !== "unauthorized" && <SearchPanel />}
+
+      {/* Already saved: what Savedly made of it, the Inbox, Remind me. */}
+      {!searching && state === "ready" && existing && !saveAgain && (
+        <div style={styles.savedForm}>
+          <div style={styles.statusHeader}>
+            <Check size={16} color="#1447E6" />
+            <span style={styles.statusText}>Saved {timeAgo(existing.createdAt)}</span>
+          </div>
+          <SavedPanel memoryId={existing.id} />
+          <button style={styles.primaryButton} onClick={() => handleOpenSavedly(`/app/memories/${existing.id}`)}>
+            Open in Savedly
+          </button>
+          <button style={styles.linkButton} onClick={() => setSaveAgain(true)}>
+            Save it again anyway
+          </button>
+        </div>
+      )}
+
+      {!searching && state === "checking" && (
         <div style={styles.centerContainer}>
           <RefreshCw size={24} color="#1447E6" className="animate-spin" />
           <p style={styles.statusLabel}>Connecting to Savedly...</p>
@@ -331,7 +382,7 @@ export default function Popup() {
         </div>
       )}
 
-      {state === "saving" && (
+      {!searching && state === "saving" && (
         <div style={styles.centerContainer}>
           <p style={styles.savingLabel}>Saving to Savedly...</p>
           <div style={styles.progressTrack}>
@@ -340,7 +391,7 @@ export default function Popup() {
         </div>
       )}
 
-      {state === "error" && (
+      {!searching && state === "error" && (
         <div style={styles.centerContainer}>
           <AlertCircle size={28} color="#ff3b30" />
           <p style={styles.errorLabel}>Couldn't save page</p>
@@ -356,7 +407,7 @@ export default function Popup() {
           not that's what the user actually wanted (e.g. reaching for
           "Take Screenshot" instead). Now this is just a preview; "Save to
           Savedly" below is the only thing that writes anything. */}
-      {state === "ready" && (
+      {!searching && state === "ready" && (!existing || saveAgain) && (
         <div style={styles.savedForm}>
           {/* Quick capture-mode buttons — "Page" saves the tab as-is;
               "Region" hands off to the drag-select overlay on the page
@@ -496,7 +547,7 @@ export default function Popup() {
         </div>
       )}
 
-      {state === "saved" && (
+      {!searching && state === "saved" && (
         <div style={styles.savedForm}>
           <div style={styles.statusHeader}>
             <Check size={16} color="#1447E6" />
@@ -520,10 +571,14 @@ export default function Popup() {
             </div>
           )}
 
-          <div style={styles.previewBox}>
-            <TextTruncate text={pageInfo?.title || "Untitled"} lines={2} style={styles.previewTitle} />
-            <span style={styles.previewDomain}>{getDomain(pageInfo?.url)}</span>
-          </div>
+          {savedMemory ? (
+            <SavedPanel memoryId={savedMemory.id} />
+          ) : (
+            <div style={styles.previewBox}>
+              <TextTruncate text={pageInfo?.title || "Untitled"} lines={2} style={styles.previewTitle} />
+              <span style={styles.previewDomain}>{getDomain(pageInfo?.url)}</span>
+            </div>
+          )}
 
           <button style={styles.primaryButton} onClick={() => window.close()}>
             Done
