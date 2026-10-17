@@ -52,7 +52,12 @@ export default function PrivacySettingsPage() {
       setClearOpen(false);
       toast.add({
         title: mode === "trash" ? "Moved to trash" : "Deleted permanently",
-        description: mode === "trash" ? `${result.count ?? 0} memories moved to trash.` : `${result.deleted ?? 0} memories deleted.`,
+        description:
+          mode === "trash"
+            ? `${result.count ?? 0} memories moved to trash.`
+            : result.failed
+              ? `${result.deleted ?? 0} memories deleted; ${result.failed} couldn't be. Try again to finish.`
+              : `${result.deleted ?? 0} memories, ${result.collections ?? 0} collections and ${result.tags ?? 0} tags deleted, files included.`,
         type: "success",
       });
     } catch (err) {
@@ -180,7 +185,8 @@ export default function PrivacySettingsPage() {
             </AlertDialogMedia>
             <AlertDialogTitle>Clear all memories?</AlertDialogTitle>
             <AlertDialogDescription>
-              Choose whether to move everything to Trash (recoverable for 15 days) or delete it all right now, permanently.
+              Move to Trash keeps everything recoverable for 15 days. Delete permanently removes it all now: every memory with its files,
+              your collections and your tags. That can&apos;t be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

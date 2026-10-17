@@ -3,7 +3,9 @@ import { apiFetch } from "@/lib/auth";
 export type ClearMemoriesMode = "trash" | "delete";
 export type DeleteAccountMode = "soft" | "hard";
 
-export async function clearMemories(mode: ClearMemoriesMode): Promise<{ mode: string; count?: number; deleted?: number; failed?: number }> {
+export async function clearMemories(
+  mode: ClearMemoriesMode,
+): Promise<{ mode: string; count?: number; deleted?: number; failed?: number; collections?: number; tags?: number }> {
   return apiFetch("/account/clear-memories", { method: "POST", body: { mode } });
 }
 

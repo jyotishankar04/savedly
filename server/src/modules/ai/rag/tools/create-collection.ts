@@ -1,6 +1,6 @@
 import { tool, type ToolRuntime } from "@langchain/core/tools";
 import { z } from "zod";
-import { createCollection, listCollections } from "../../../collection/collection.service";
+import { createCollection, DEFAULT_COLLECTION_ICON, listCollections } from "../../../collection/collection.service";
 import { collectionNameKey } from "../../ingestion/nodes/organize-collection";
 import { ragToolContextSchema } from "./search-memories";
 
@@ -27,7 +27,7 @@ export const createCollectionTool = tool(
     );
     if (existing) return resultSchema.parse({ id: existing.id, name: existing.name, alreadyExisted: true });
 
-    const created = await createCollection(userId, { name, icon: icon ?? "folder-outline", description });
+    const created = await createCollection(userId, { name, icon: icon ?? DEFAULT_COLLECTION_ICON, description });
     return resultSchema.parse({ id: created.id, name: created.name, alreadyExisted: false });
   },
   {

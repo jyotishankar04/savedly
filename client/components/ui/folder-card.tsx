@@ -16,34 +16,49 @@ interface FolderCardProps {
   badge: React.ReactNode;
   badgeClassName?: string;
   className?: string;
+  /** Picked in a bulk selection: the folder stays open, and its tab and lid take the accent colour. */
+  selected?: boolean;
 }
 
-function FolderCardFace({ count, label, badge, badgeClassName }: Pick<FolderCardProps, "count" | "label" | "badge" | "badgeClassName">) {
+// The lid's own fill with a little of the accent mixed in, opaque so the papers behind it stay hidden.
+const SELECTED_FILL =
+  "border-primary/70 bg-[color-mix(in_oklab,var(--primary)_12%,var(--muted))] dark:bg-[color-mix(in_oklab,var(--primary)_14%,var(--card))]";
+
+function FolderCardFace({ count, label, badge, badgeClassName, selected }: Pick<FolderCardProps, "count" | "label" | "badge" | "badgeClassName" | "selected">) {
   return (
     <>
       {/* Papers peeking out from behind the folder */}
       <motion.div
-        variants={{ closed: { y: 0, opacity: 0.55 }, open: { y: -16, opacity: 0.9 } }}
+        variants={{ closed: { y: 0, opacity: 0.55 }, open: { y: -16, opacity: 0.9 }, picked: { y: -16, opacity: 0.9 } }}
         transition={{ type: "spring", stiffness: 260, damping: 22 }}
         className="absolute inset-x-7 top-1 h-28 -rotate-2 rounded-lg border border-border/60 bg-muted-foreground/15"
       />
       <motion.div
-        variants={{ closed: { y: 0, opacity: 0.4 }, open: { y: -10, opacity: 0.75 } }}
+        variants={{ closed: { y: 0, opacity: 0.4 }, open: { y: -10, opacity: 0.75 }, picked: { y: -10, opacity: 0.75 } }}
         transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.02 }}
         className="absolute inset-x-6 top-2 h-28 rotate-2 rounded-lg border border-border/60 bg-muted-foreground/15"
       />
 
       {/* Folder tab — flush with the lid's left edge, mostly hidden behind it */}
-      <div className="absolute left-0 top-3 h-8 w-[42%] rounded-t-2xl border border-b-0 border-border/60 bg-muted dark:bg-card" />
+      <div
+        className={cn(
+          "absolute left-0 top-3 h-8 w-[42%] rounded-t-2xl border border-b-0 border-border/60 bg-muted transition-colors dark:bg-card",
+          selected && SELECTED_FILL,
+        )}
+      />
 
       {/* Folder lid — tilts open around its bottom edge on hover */}
       <motion.div
-        variants={{ closed: { rotateX: 0, y: 0 }, open: { rotateX: -14, y: 3 } }}
+        // Picked keeps the lid flat: a held tilt would leave its text soft.
+        variants={{ closed: { rotateX: 0, y: 0 }, open: { rotateX: -14, y: 3 }, picked: { rotateX: 0, y: 0 } }}
         transition={{ type: "spring", stiffness: 220, damping: 18 }}
         style={{ transformOrigin: "bottom", transformStyle: "preserve-3d" }}
-        className="absolute inset-x-0 bottom-0 top-7 flex flex-col justify-between rounded-2xl rounded-tl-none border border-border/60 bg-muted p-5 shadow-lg shadow-black/10 transition-shadow duration-300 group-hover:shadow-2xl group-hover:shadow-black/20 dark:bg-card dark:shadow-black/40 dark:group-hover:shadow-black/60"
+        className={cn(
+          "absolute inset-x-0 bottom-0 top-7 flex flex-col justify-between rounded-2xl rounded-tl-none border border-border/60 bg-muted p-5 shadow-lg shadow-black/10 transition-[box-shadow,background-color,border-color] duration-300 group-hover:shadow-2xl group-hover:shadow-black/20 dark:bg-card dark:shadow-black/40 dark:group-hover:shadow-black/60",
+          selected && SELECTED_FILL,
+        )}
       >
-        <span className="text-5xl font-bold text-foreground/70">{count}</span>
+        <span className={cn("text-5xl font-bold transition-colors", selected ? "text-primary" : "text-foreground/70")}>{count}</span>
         <div className="flex items-end justify-between gap-3">
           <span className="truncate text-sm font-medium text-foreground">{label}</span>
           <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-lg shadow-black/20 ring-1 ring-white/10", badgeClassName)}>
@@ -62,14 +77,17 @@ function FolderCardFace({ count, label, badge, badgeClassName }: Pick<FolderCard
  * `whileTap` and every child (papers, lid) animates off the same "open"
  * state.
  */
-export function FolderCard({ href, onClick, count, label, badge, badgeClassName, className }: FolderCardProps) {
-  const face = <FolderCardFace count={count} label={label} badge={badge} badgeClassName={badgeClassName} />;
+export function FolderCard({ href, onClick, count, label, badge, badgeClassName, className, selected }: FolderCardProps) {
+  const face = <FolderCardFace count={count} label={label} badge={badge} badgeClassName={badgeClassName} selected={selected} />;
+  // Picked: the papers stay lifted out of the folder.
+  const state = selected ? "picked" : "closed";
 
   if (href) {
     return (
       <MotionLink
         href={href}
         initial="closed"
+        animate={state}
         whileHover="open"
         whileTap="open"
         className={cn("group relative block h-44 select-none [perspective:1000px]", className)}
@@ -91,6 +109,7 @@ export function FolderCard({ href, onClick, count, label, badge, badgeClassName,
         }
       }}
       initial="closed"
+      animate={state}
       whileHover="open"
       whileTap="open"
       className={cn("group relative block h-44 cursor-pointer select-none [perspective:1000px]", className)}

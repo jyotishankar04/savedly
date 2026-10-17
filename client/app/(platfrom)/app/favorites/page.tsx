@@ -6,14 +6,18 @@ import { useMemoriesQuery } from "@/context/MemoryContext";
 import { MemoryGridCard } from "@/components/memory/memory-grid-card";
 import { QueryErrorState } from "@/components/query-error-state";
 import { PageHeader, EmptyState } from "@/components/app-page";
+import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
+import { SelectButton } from "@/components/selection/selection-bar";
+import { useSelection } from "@/hooks/use-selection";
 
 export default function FavoritesPage() {
   const { data, isLoading, isError, refetch } = useMemoriesQuery({ isFavorite: true, limit: 100 });
   const favorites = data?.items ?? [];
+  const selection = useSelection(favorites.map((m) => m.id));
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6 md:py-10">
-      <PageHeader title="Favorites" description="Memories you've starred, all in one place." />
+      <PageHeader title="Favorites" description="Memories you've starred, all in one place." action={favorites.length > 0 ? <SelectButton selection={selection} /> : undefined} />
 
       {isError ? (
         <QueryErrorState onRetry={() => refetch()} />
@@ -32,10 +36,19 @@ export default function FavoritesPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {favorites.map((item) => (
-            <MemoryGridCard key={item.id} item={item} href={`/app/memories/${item.id}`} />
+            <MemoryGridCard
+              key={item.id}
+              item={item}
+              href={`/app/memories/${item.id}`}
+              selected={selection.has(item.id)}
+              selecting={selection.isSelecting}
+              onSelect={(e) => selection.toggle(item.id, e)}
+            />
           ))}
         </div>
       )}
+
+      <MemorySelectionBar selection={selection} memories={favorites} context="library" />
     </div>
   );
 }

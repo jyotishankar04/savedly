@@ -20,6 +20,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDeleteMemoryMutation, useMemoriesQuery, useUpdateMemoryMutation } from "@/context/MemoryContext";
 import { QueryErrorState } from "@/components/query-error-state";
+import { cn } from "@/lib/utils";
+import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
+import { SelectButton } from "@/components/selection/selection-bar";
+import { RowSelect, selectableProps } from "@/components/selection/select-checkbox";
+import { useSelection, type Selection } from "@/hooks/use-selection";
 import { PageHeader, EmptyState } from "@/components/app-page";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
 import type { Memory } from "@/types/memory";
@@ -38,6 +43,7 @@ function daysUntilPurge(trashedAt: string | null): number | null {
 export default function TrashPage() {
   const { data, isLoading, isError, refetch } = useMemoriesQuery({ inTrash: true, limit: 100 });
   const trashedItems = data?.items ?? [];
+  const selection = useSelection(trashedItems.map((m) => m.id));
 
   const updateMutation = useUpdateMemoryMutation();
   const deleteMutation = useDeleteMemoryMutation();
@@ -75,6 +81,8 @@ export default function TrashPage() {
         description={`Deleted memories stay here for ${TRASH_RETENTION_DAYS} days before they're gone for good, unless you restore them first.`}
         action={
           trashedItems.length > 0 && (
+            <div className="flex items-center gap-2">
+            <SelectButton selection={selection} className="h-10 rounded-full px-4" />
             <AlertDialog>
               <AlertDialogTrigger render={<Button variant="outline" className="h-10 rounded-full border-destructive/25 px-4 text-destructive hover:bg-destructive/10">Empty trash</Button>} />
               <AlertDialogContent>
@@ -95,6 +103,7 @@ export default function TrashPage() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            </div>
           )
         }
       />
@@ -118,10 +127,12 @@ export default function TrashPage() {
       ) : (
         <ul className="space-y-2">
           {trashedItems.map((item) => (
-            <TrashRow key={item.id} item={item} onRestore={handleRestore} onDelete={handleDeletePermanently} />
+            <TrashRow key={item.id} item={item} onRestore={handleRestore} onDelete={handleDeletePermanently} selection={selection} />
           ))}
         </ul>
       )}
+
+      <MemorySelectionBar selection={selection} memories={trashedItems} context="trash" />
     </div>
   );
 }
@@ -130,17 +141,25 @@ function TrashRow({
   item,
   onRestore,
   onDelete,
+  selection,
 }: {
   item: Memory;
   onRestore: (id: string, title: string) => void;
   onDelete: (id: string, title: string) => void;
+  selection: Selection;
 }) {
   const daysLeft = daysUntilPurge(item.trashedAt);
+  const selected = selection.has(item.id);
   return (
-    <li className="flex items-center gap-4 rounded-2xl border border-border bg-card p-3">
-      <div className="w-16 shrink-0 opacity-70">
-        <MemoryThumbnail item={item} className="rounded-xl grayscale" />
-      </div>
+    <li
+      {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
+      className={cn("group flex items-center gap-4 rounded-2xl border border-border bg-card p-3 transition-colors", selection.isSelecting && "cursor-pointer", selected && "border-primary/60 bg-primary/5")}
+    >
+      <RowSelect checked={selected} selecting={selection.isSelecting} onToggle={(e) => selection.toggle(item.id, e)} label={`Select ${item.title}`} className="w-16 shrink-0">
+        <div className="w-16 opacity-70">
+          <MemoryThumbnail item={item} className="rounded-xl grayscale" />
+        </div>
+      </RowSelect>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">

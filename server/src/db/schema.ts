@@ -662,7 +662,7 @@ export const collections = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 100 }).notNull(),
-    icon: varchar("icon", { length: 50 }).notNull().default("folder-outline"),
+    icon: varchar("icon", { length: 50 }).notNull().default("📁"),
     description: text("description"),
     // "system" collections (onboarding defaults, AI-suggested groupings) stay
     // hidden in the UI behind a toggle and never count against the
