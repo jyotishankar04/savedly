@@ -40,6 +40,7 @@ import { Input as ArcInput } from "@/components/arc/input/input";
 import { Button as ArcButton } from "@/components/arc/button/button";
 import { useCollectionDrop, useMemoryDragging } from "@/components/memory/collection-drop";
 import { isEditableTarget, useQuickSave } from "@/components/capture/quick-save";
+import { DropToSave } from "@/components/capture/drop-to-save";
 import { Badge as ArcBadge } from "@/components/arc/badge/badge";
 import { FileDropzone, type FileDropzoneUpload } from "@/components/arc/file-dropzone/file-dropzone";
 import { ShortcutList, formatShortcut, usePlatform, type ShortcutListGroup } from "@/components/arc/shortcut-recorder/shortcut-recorder";
@@ -1594,6 +1595,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <AskWidget />
       <ExtensionInstallPrompt />
       <UpgradeDialog />
+      <DropToSave />
 
       {/* Global CSS animations styles */}
       <style>{`

@@ -4,10 +4,14 @@ import { toast } from "@/components/ui/toast";
 import { DuplicateSkippedError, useCreateMemoryMutation, useDeleteMemoryMutation } from "@/context/MemoryContext";
 import { usePlanLimit } from "@/hooks/use-plan-limit";
 import { deriveTitle, detectMemoryType, splitLinkAndCaption } from "@/lib/detect-memory-type";
-import { uploadFile } from "@/lib/uploads";
+import { UPLOADABLE_TYPES, uploadFile } from "@/lib/uploads";
 
 /** Something to save without opening Quick Capture: copied text (a link or a note), or a file. */
 export type QuickSaveInput = { text: string } | { file: File };
+
+/** Text files are read in and saved as notes; up to this size, which is already a long document. */
+const MAX_TEXT_FILE_BYTES = 200 * 1024;
+const isTextFile = (file: File) => file.type.startsWith("text/") || /\.(txt|md|markdown)$/i.test(file.name);
 
 /** A pasted screenshot arrives as "image.png"; name it by when it was saved instead (the AI retitles it anyway). */
 function fileTitle(file: File) {
@@ -32,7 +36,13 @@ export function useQuickSave() {
     try {
       if (memoryLimit.isAtLimit) throw new Error(memoryLimit.message ?? "You've reached your memory limit.");
       let payload;
-      if ("file" in input) {
+      if ("file" in input && isTextFile(input.file)) {
+        if (input.file.size > MAX_TEXT_FILE_BYTES) throw new Error(`“${input.file.name}” is too long to save as a note.`);
+        const text = (await input.file.text()).trim();
+        if (!text) throw new Error(`“${input.file.name}” is empty.`);
+        payload = { type: "note" as const, title: deriveTitle("note", "", input.file.name), content: text };
+      } else if ("file" in input) {
+        if (!UPLOADABLE_TYPES.has(input.file.type)) throw new Error(`“${input.file.name}” wasn't saved. Savedly keeps pictures, PDFs and text files.`);
         if (storageLimit.isAtLimit) throw new Error(storageLimit.message ?? "You've reached your storage limit.");
         const attachment = await uploadFile(input.file);
         payload = { type: detectMemoryType({ text: "", attachmentMimeType: input.file.type }), title: fileTitle(input.file), attachments: [attachment] };
