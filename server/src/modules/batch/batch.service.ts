@@ -3,7 +3,20 @@ import { deleteMemory } from "../memory/memory.service";
 import { db } from "../../db";
 import { collections, collectionMemories, memories, memoryTags, tags, users } from "../../db/schema";
 import { MemoryStatus } from "../../db/enums";
-import type { BatchDeleteInput, BatchMoveToCollectionInput, BatchRestoreInput, BatchResult, BatchTagInput, BatchUpdateStatusInput } from "./batch.schema";
+import { assertFeature } from "../plans/plans.service";
+import { updateCollection } from "../collection/collection.service";
+import type {
+  BatchDeleteCollectionsInput,
+  BatchDeleteInput,
+  BatchMergeCollectionsInput,
+  BatchMoveToCollectionInput,
+  BatchRestoreInput,
+  BatchResult,
+  BatchTagInput,
+  BatchUncollectInput,
+  BatchUpdateStatusInput,
+  BatchVaultCollectionsInput,
+} from "./batch.schema";
 
 /**
  * Add or remove tags from multiple memories. Mode:
@@ -224,6 +237,8 @@ export async function batchRestoreMemories(userId: string, input: BatchRestoreIn
  */
 export async function batchUpdateMemoryStatus(userId: string, input: BatchUpdateStatusInput): Promise<BatchResult> {
   const result: BatchResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
+  // Same rule as one at a time (memory.service updateMemory): the vault is a plan feature.
+  if (input.vaulted === true) await assertFeature(userId, "vault");
 
   const owned = await db
     .select({ id: memories.id })
@@ -238,10 +253,13 @@ export async function batchUpdateMemoryStatus(userId: string, input: BatchUpdate
 
   try {
     await db.transaction(async (tx) => {
-      const updates: Record<string, unknown> = {};
-      if (input.archived !== undefined) updates.archived = input.archived;
-      if (input.favorite !== undefined) updates.favorite = input.favorite;
-      if (input.vaulted !== undefined) updates.vaulted = input.vaulted;
+      // The columns are isArchived / isFavorite / isVaulted. These used to be
+      // written as archived / favorite / vaulted, which Drizzle drops without
+      // a word, so bulk favourite, archive and vault never did anything.
+      const updates: Partial<typeof memories.$inferInsert> = {};
+      if (input.archived !== undefined) updates.isArchived = input.archived;
+      if (input.favorite !== undefined) updates.isFavorite = input.favorite;
+      if (input.vaulted !== undefined) updates.isVaulted = input.vaulted;
 
       if (Object.keys(updates).length > 0) {
         await tx.update(memories).set(updates).where(inArray(memories.id, input.memoryIds));
@@ -254,5 +272,135 @@ export async function batchUpdateMemoryStatus(userId: string, input: BatchUpdate
     result.errors = [{ id: "all", error: err instanceof Error ? err.message : "Unknown error" }];
   }
 
+  return result;
+}
+
+// --- Collections, and taking memories out of one ------------------------------
+
+/** All-or-nothing ownership, like the memory batches: one stranger's id and nothing happens. */
+async function ownsAllCollections(userId: string, ids: string[]): Promise<boolean> {
+  const owned = await db
+    .select({ id: collections.id })
+    .from(collections)
+    .where(and(eq(collections.userId, userId), inArray(collections.id, ids)));
+  return owned.length === new Set(ids).size;
+}
+
+const failAll = (count: number, err: unknown): BatchResult => ({
+  processed: count,
+  succeeded: 0,
+  failed: count,
+  errors: [{ id: "all", error: err instanceof Error ? err.message : "Unknown error" }],
+});
+
+/** Takes memories out of one collection. The memories themselves stay. */
+export async function batchUncollectMemories(userId: string, input: BatchUncollectInput): Promise<BatchResult> {
+  const count = input.memoryIds.length;
+  const owned = await db
+    .select({ id: memories.id })
+    .from(memories)
+    .where(and(eq(memories.userId, userId), inArray(memories.id, input.memoryIds)));
+  if (owned.length !== count || !(await ownsAllCollections(userId, [input.collectionId]))) {
+    return { processed: count, succeeded: 0, failed: count };
+  }
+  try {
+    await db
+      .delete(collectionMemories)
+      .where(and(eq(collectionMemories.collectionId, input.collectionId), inArray(collectionMemories.memoryId, input.memoryIds)));
+    return { processed: count, succeeded: count, failed: 0, errors: [] };
+  } catch (err) {
+    return failAll(count, err);
+  }
+}
+
+/**
+ * Deletes collections. With memories: "trash" their memories go to Trash
+ * first (recoverable for 15 days, like any trashed memory); with "keep" they
+ * stay in the library, just no longer in these collections. Share links for
+ * the collections go with them (cascade).
+ */
+export async function batchDeleteCollections(userId: string, input: BatchDeleteCollectionsInput): Promise<BatchResult> {
+  const count = input.collectionIds.length;
+  if (!(await ownsAllCollections(userId, input.collectionIds))) return { processed: count, succeeded: 0, failed: count };
+  try {
+    await db.transaction(async (tx) => {
+      if (input.memories === "trash") {
+        const members = await tx
+          .select({ id: collectionMemories.memoryId })
+          .from(collectionMemories)
+          .where(inArray(collectionMemories.collectionId, input.collectionIds));
+        const memberIds = [...new Set(members.map((m) => m.id))];
+        if (memberIds.length > 0) {
+          await tx
+            .update(memories)
+            .set({ inTrash: true, trashedAt: new Date() })
+            .where(and(eq(memories.userId, userId), inArray(memories.id, memberIds), eq(memories.inTrash, false)));
+        }
+      }
+      await tx.delete(collections).where(and(eq(collections.userId, userId), inArray(collections.id, input.collectionIds)));
+    });
+    return { processed: count, succeeded: count, failed: 0, errors: [] };
+  } catch (err) {
+    return failAll(count, err);
+  }
+}
+
+/**
+ * Merges collections into targetId: every memory in the others becomes a
+ * member of the target (no duplicates), then the others are deleted, in one
+ * transaction. If the target is in the vault, the memories it gains are
+ * vaulted too, so the vault rule (a vaulted collection's memories are
+ * vaulted) still holds.
+ */
+export async function batchMergeCollections(userId: string, input: BatchMergeCollectionsInput): Promise<BatchResult> {
+  const ids = [...new Set(input.collectionIds)];
+  const count = ids.length;
+  if (!(await ownsAllCollections(userId, ids))) return { processed: count, succeeded: 0, failed: count };
+  const sources = ids.filter((id) => id !== input.targetId);
+  try {
+    await db.transaction(async (tx) => {
+      const [target] = await tx.select({ isVaulted: collections.isVaulted }).from(collections).where(eq(collections.id, input.targetId));
+      const members = await tx
+        .select({ id: collectionMemories.memoryId })
+        .from(collectionMemories)
+        .where(inArray(collectionMemories.collectionId, sources));
+      const memberIds = [...new Set(members.map((m) => m.id))];
+      if (memberIds.length > 0) {
+        await tx
+          .insert(collectionMemories)
+          .values(memberIds.map((memoryId) => ({ collectionId: input.targetId, memoryId })))
+          .onConflictDoNothing();
+        if (target?.isVaulted) {
+          await tx.update(memories).set({ isVaulted: true }).where(and(eq(memories.userId, userId), inArray(memories.id, memberIds)));
+        }
+      }
+      await tx.delete(collections).where(and(eq(collections.userId, userId), inArray(collections.id, sources)));
+    });
+    return { processed: count, succeeded: count, failed: 0, errors: [] };
+  } catch (err) {
+    return failAll(count, err);
+  }
+}
+
+/**
+ * Moves collections into or out of the vault, one at a time through
+ * updateCollection, so each one's memories follow it exactly as when it's
+ * done by hand. Taking them out needs an unlocked vault (enforced at the
+ * route); putting them in needs the vault plan feature.
+ */
+export async function batchVaultCollections(userId: string, input: BatchVaultCollectionsInput): Promise<BatchResult> {
+  const ids = [...new Set(input.collectionIds)];
+  if (!(await ownsAllCollections(userId, ids))) return { processed: ids.length, succeeded: 0, failed: ids.length };
+  if (input.isVaulted) await assertFeature(userId, "vault");
+  const result: BatchResult = { processed: ids.length, succeeded: 0, failed: 0, errors: [] };
+  for (const id of ids) {
+    try {
+      await updateCollection(userId, id, { isVaulted: input.isVaulted });
+      result.succeeded++;
+    } catch (err) {
+      result.failed++;
+      result.errors!.push({ id, error: err instanceof Error ? err.message : "Unknown error" });
+    }
+  }
   return result;
 }

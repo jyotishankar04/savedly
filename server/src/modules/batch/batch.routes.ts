@@ -1,6 +1,7 @@
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { authenticate } from "../../shared/middlewares/authenticate";
 import { requireFeature } from "../plans/require-feature";
+import { requireVaultUnlocked } from "../vault";
 import { BatchController } from "./batch.controller";
 import {
   validateBatchTag,
@@ -8,6 +9,10 @@ import {
   validateBatchDelete,
   validateBatchRestore,
   validateBatchUpdateStatus,
+  validateBatchUncollect,
+  validateBatchDeleteCollections,
+  validateBatchMergeCollections,
+  validateBatchVaultCollections,
 } from "./batch.validator";
 
 const router = Router();
@@ -20,6 +25,17 @@ router.post("/memories/tag", authenticate, bulk, validateBatchTag, BatchControll
 router.post("/memories/move", authenticate, bulk, validateBatchMove, BatchController.moveToCollection);
 router.post("/memories/delete", authenticate, bulk, validateBatchDelete, BatchController.deleteMemories);
 router.post("/memories/restore", authenticate, bulk, validateBatchRestore, BatchController.restoreMemories);
-router.post("/memories/status", authenticate, bulk, validateBatchUpdateStatus, BatchController.updateStatus);
+// Taking things out of the vault needs it unlocked, as it does one at a time
+// (requireUnlockToUnvault on the single routes); putting them in doesn't.
+const unlockedToUnvault = (field: "vaulted" | "isVaulted") => (req: Request, res: Response, next: NextFunction) =>
+  req.body?.[field] === false ? requireVaultUnlocked(req, res, next) : next();
+
+router.post("/memories/status", authenticate, bulk, validateBatchUpdateStatus, unlockedToUnvault("vaulted"), BatchController.updateStatus);
+router.post("/memories/uncollect", authenticate, bulk, validateBatchUncollect, BatchController.uncollectMemories);
+
+// /api/v1/batch/collections/...
+router.post("/collections/delete", authenticate, bulk, validateBatchDeleteCollections, BatchController.deleteCollections);
+router.post("/collections/merge", authenticate, bulk, validateBatchMergeCollections, BatchController.mergeCollections);
+router.post("/collections/vault", authenticate, bulk, validateBatchVaultCollections, unlockedToUnvault("isVaulted"), BatchController.vaultCollections);
 
 export default router;

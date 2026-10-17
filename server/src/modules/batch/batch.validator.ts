@@ -5,6 +5,10 @@ import {
   batchDeleteInputSchema,
   batchRestoreInputSchema,
   batchUpdateStatusInputSchema,
+  batchUncollectInputSchema,
+  batchDeleteCollectionsInputSchema,
+  batchMergeCollectionsInputSchema,
+  batchVaultCollectionsInputSchema,
 } from "./batch.schema";
 
 export const validateBatchTag = validate(batchTagInputSchema);
@@ -12,3 +16,7 @@ export const validateBatchMove = validate(batchMoveToCollectionInputSchema);
 export const validateBatchDelete = validate(batchDeleteInputSchema);
 export const validateBatchRestore = validate(batchRestoreInputSchema);
 export const validateBatchUpdateStatus = validate(batchUpdateStatusInputSchema);
+export const validateBatchUncollect = validate(batchUncollectInputSchema);
+export const validateBatchDeleteCollections = validate(batchDeleteCollectionsInputSchema);
+export const validateBatchMergeCollections = validate(batchMergeCollectionsInputSchema);
+export const validateBatchVaultCollections = validate(batchVaultCollectionsInputSchema);
