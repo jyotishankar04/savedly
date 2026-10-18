@@ -94,3 +94,10 @@ export type BrowserCaptureInput = z.infer<typeof browserCaptureInputSchema>;
 export type CreateMemoryInput = z.infer<typeof createMemorySchema>;
 export type UpdateMemoryInput = z.infer<typeof updateMemorySchema>;
 export type ListMemoriesQuery = z.infer<typeof listMemoriesQuerySchema>;
+
+// The extension, before saving: which collection and tags fit this page.
+export const suggestForPageSchema = z.object({
+  url: z.string().url(),
+  title: z.string().max(500).optional(),
+  description: z.string().max(2000).optional(),
+});

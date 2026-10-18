@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authenticate } from "../../shared/middlewares/authenticate";
 import { MemoryController } from "./memory.controller";
+import { HighlightController } from "../highlight/highlight.controller";
 import { requireUnlockToUnvault, requireVaultUnlockedForQuery } from "../vault";
 import { CalendarController, validatePushEvent, validateUpdateEvent } from "../integrations/calendar";
 import { requireFeature } from "../plans/require-feature";
@@ -8,7 +9,7 @@ import {
   validateBrowserCapture,
   validateCreateMemory,
   validateListMemories,
-  validateUpdateMemory, validateResolveDuplicate } from "./memory.validator";
+  validateUpdateMemory, validateResolveDuplicate, validateSuggestForPage } from "./memory.validator";
 
 const router = Router();
 
@@ -23,7 +24,9 @@ router.post("/inbox/read-all", authenticate, MemoryController.inboxReadAll);
 // The extension: is this page already saved?
 router.get("/lookup", authenticate, MemoryController.lookup);
 router.get("/url-keys", authenticate, MemoryController.urlKeys);
+router.post("/suggest", authenticate, validateSuggestForPage, MemoryController.suggest);
 router.get("/:id", authenticate, MemoryController.get);
+router.get("/:id/highlights", authenticate, HighlightController.forMemory);
 router.patch("/:id", authenticate, validateUpdateMemory, requireUnlockToUnvault, MemoryController.update);
 router.delete("/:id", authenticate, MemoryController.remove);
 

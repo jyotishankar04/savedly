@@ -49,6 +49,7 @@ import {
   ShareLinkAccess,
   ShareResourceType,
   UserStatus,
+  HighlightColor,
 } from "./enums";
 
 export const userStatusEnum = pgEnum("user_status", [
@@ -808,6 +809,9 @@ export const memories = pgTable(
     // What the research step looked up on the web to understand this memory
     // (a bare name like a film or a book): the query, what it found, and the
     // pages, shown under "What Savedly understood". Null when it didn't search.
+    // Every highlight's passage and note, kept by the highlights service, so the
+    // keyword search (fts_tokens' trigger) finds a memory by what was highlighted.
+    highlightsText: text("highlights_text"),
     webResearch: jsonb("web_research").$type<{ query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string }>(),
   },
   (table) => [
@@ -840,6 +844,40 @@ export const collectionMemories = pgTable(
     primaryKey({ columns: [table.collectionId, table.memoryId] }),
     index("idx_collection_memories_memory_id").on(table.memoryId),
   ]
+);
+
+// -----------------------------------------------------------------------------
+// Highlights: passages marked on a saved page (the extension's highlighter).
+// prefix/suffix are a few dozen characters on either side, so the passage can
+// be found again on the page when it's revisited, even if it repeats.
+// -----------------------------------------------------------------------------
+export const highlightColorEnum = pgEnum("highlight_color", [
+  HighlightColor.YELLOW,
+  HighlightColor.GREEN,
+  HighlightColor.BLUE,
+  HighlightColor.PINK,
+  HighlightColor.PURPLE,
+]);
+
+export const memoryHighlights = pgTable(
+  "memory_highlights",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memoryId: uuid("memory_id")
+      .notNull()
+      .references(() => memories.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    prefix: text("prefix").notNull().default(""),
+    suffix: text("suffix").notNull().default(""),
+    color: highlightColorEnum("color").notNull().default(HighlightColor.YELLOW),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_memory_highlights_memory").on(table.memoryId), index("idx_memory_highlights_user").on(table.userId)],
 );
 
 // -----------------------------------------------------------------------------

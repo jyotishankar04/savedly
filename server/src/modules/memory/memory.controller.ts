@@ -16,6 +16,7 @@ import {
 import type { ListMemoriesQuery } from "./memory.schema";
 import { settleDuplicate } from "./duplicates";
 import { inboxCounts, lookupByUrl, markInboxRead, savedUrlKeys } from "./inbox.service";
+import { suggestForPage } from "./suggest.service";
 
 export class MemoryController {
   static async list(req: Request, res: Response) {
@@ -94,6 +95,15 @@ export class MemoryController {
 
   static async urlKeys(req: Request, res: Response) {
     res.status(200).json(ApiResponse.success({ keys: await savedUrlKeys(req.user!.id) }));
+  }
+
+  static async suggest(req: Request, res: Response) {
+    try {
+      res.status(200).json(ApiResponse.success(await suggestForPage(req.user!.id, req.body)));
+    } catch {
+      // A suggestion is a nicety: a model error means no chips, never a failed popup.
+      res.status(200).json(ApiResponse.success({ collection: null, tags: [] }));
+    }
   }
 
   static async exportAll(req: Request, res: Response) {

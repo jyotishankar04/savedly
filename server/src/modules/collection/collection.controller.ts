@@ -7,6 +7,7 @@ import {
   deleteCollection,
   getCollection,
   listCollections,
+  recentCollections,
   updateCollection,
 } from "./collection.service";
 
@@ -15,6 +16,10 @@ export class CollectionController {
     const query = req.query as unknown as ListCollectionsQuery;
     const collections = await listCollections(req.user!.id, query);
     res.status(200).json(ApiResponse.success(collections));
+  }
+
+  static async recent(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await recentCollections(req.user!.id)));
   }
 
   static async get(req: Request, res: Response) {

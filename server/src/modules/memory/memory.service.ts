@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db";
-import { attachments, collectionMemories, collections, memories, memoryTags, tags } from "../../db/schema";
+import { attachments, collectionMemories, collections, memories, memoryHighlights, memoryTags, tags } from "../../db/schema";
 import { MemoryStatus, PlanLimitType, type MemoryType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
@@ -43,6 +43,8 @@ export interface MemoryListItem {
   remindAt: Date | null;
   /** When a reminder last brought it back. */
   remindedAt: Date | null;
+  /** Whether passages on it were highlighted (the extension's highlighter). */
+  hasHighlights: boolean;
   eventAt: Date | null;
   /** How long the event runs, in minutes; null means 1 hour. */
   eventDurationMinutes: number | null;
@@ -79,6 +81,8 @@ export interface AttachmentResponse {
 }
 
 export interface MemoryDetail extends MemoryListItem {
+  /** Passages highlighted on the page, oldest first. */
+  highlights: { id: string; text: string; color: string; note: string | null; createdAt: Date }[];
   content: string | null;
   keywords: string[] | null;
   attachments: AttachmentResponse[];
@@ -162,6 +166,7 @@ function toListItem(
     readAt: row.readAt,
     remindAt: row.remindAt,
     remindedAt: row.remindedAt,
+    hasHighlights: !!row.highlightsText,
     eventAt: row.eventAt,
     eventDurationMinutes: row.eventDurationMinutes,
     tags: memoryTagsList,
@@ -364,6 +369,14 @@ export async function getMemoryById(userId: string, id: string): Promise<MemoryD
     attachCollections([row.id]),
   ]);
 
+  const highlightRows = row.highlightsText
+    ? await db
+        .select({ id: memoryHighlights.id, text: memoryHighlights.text, color: memoryHighlights.color, note: memoryHighlights.note, createdAt: memoryHighlights.createdAt })
+        .from(memoryHighlights)
+        .where(eq(memoryHighlights.memoryId, row.id))
+        .orderBy(asc(memoryHighlights.createdAt))
+    : [];
+
   const attachmentRows = await db
     .select({
       id: attachments.id,
@@ -377,6 +390,7 @@ export async function getMemoryById(userId: string, id: string): Promise<MemoryD
 
   return {
     ...toListItem(row, tagsByMemory.get(row.id) ?? [], collectionsByMemory.get(row.id) ?? []),
+    highlights: highlightRows,
     content: row.content,
     keywords: row.keywords,
     attachments: attachmentRows,
@@ -407,6 +421,19 @@ async function attachAttachments(memoryIds: string[]): Promise<Map<string, Attac
   return map;
 }
 
+/** Highlights for many memories at once, oldest first, for the export. */
+async function attachHighlights(memoryIds: string[]): Promise<Map<string, MemoryDetail["highlights"]>> {
+  const map = new Map<string, MemoryDetail["highlights"]>();
+  if (memoryIds.length === 0) return map;
+  const rows = await db
+    .select({ memoryId: memoryHighlights.memoryId, id: memoryHighlights.id, text: memoryHighlights.text, color: memoryHighlights.color, note: memoryHighlights.note, createdAt: memoryHighlights.createdAt })
+    .from(memoryHighlights)
+    .where(inArray(memoryHighlights.memoryId, memoryIds))
+    .orderBy(asc(memoryHighlights.createdAt));
+  for (const { memoryId, ...highlight } of rows) map.set(memoryId, [...(map.get(memoryId) ?? []), highlight]);
+  return map;
+}
+
 /**
  * Every non-trashed memory, full detail (content/keywords/attachments
  * included) — unlike listMemories, no pagination, since this backs a
@@ -424,14 +451,16 @@ export async function exportAllMemories(userId: string): Promise<MemoryDetail[]>
     .orderBy(desc(memories.createdAt));
 
   const memoryIds = rows.map((row) => row.id);
-  const [tagsByMemory, collectionsByMemory, attachmentsByMemory] = await Promise.all([
+  const [tagsByMemory, collectionsByMemory, attachmentsByMemory, highlightsByMemory] = await Promise.all([
     attachTags(memoryIds),
     attachCollections(memoryIds),
     attachAttachments(memoryIds),
+    attachHighlights(memoryIds),
   ]);
 
   return rows.map((row) => ({
     ...toListItem(row, tagsByMemory.get(row.id) ?? [], collectionsByMemory.get(row.id) ?? []),
+    highlights: highlightsByMemory.get(row.id) ?? [],
     content: row.content,
     keywords: row.keywords,
     attachments: attachmentsByMemory.get(row.id) ?? [],

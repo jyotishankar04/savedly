@@ -294,3 +294,11 @@ export enum ReportStatus {
   RESOLVED = "resolved",
   DECLINED = "declined",
 }
+// The colours a highlight on a saved page can have.
+export enum HighlightColor {
+  YELLOW = "yellow",
+  GREEN = "green",
+  BLUE = "blue",
+  PINK = "pink",
+  PURPLE = "purple",
+}
