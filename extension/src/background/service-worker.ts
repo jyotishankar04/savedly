@@ -23,7 +23,12 @@ chrome.runtime.onStartup.addListener(() => {
   startTicking();
 });
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
+  // A first install opens the tour of what the extension does (src/welcome); updates don't.
+  if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) openWelcome();
+  // On the Savedly icon's own right-click menu, to see the tour again.
+  chrome.contextMenus.create({ id: "take-the-tour", title: "Take the tour", contexts: ["action"] }, () => void chrome.runtime.lastError);
+
   // Earlier builds kept a copy of the access token here. Nothing reads it now.
   chrome.storage.local.remove("savedly_token");
   void checkSignedIn();
@@ -749,4 +754,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       ? createMemory({ type: "web", url: tab.url, title: tab.title || "Saved Page", collectionIds })
       : Promise.resolve();
   save.catch(notifySaveError);
+});
+
+// --- Welcome tour -------------------------------------------------------------
+
+function openWelcome(): void {
+  void chrome.tabs.create({ url: chrome.runtime.getURL("src/welcome/welcome.html") });
+}
+
+chrome.contextMenus.onClicked.addListener((info) => {
+  if (info.menuItemId === "take-the-tour") openWelcome();
 });
