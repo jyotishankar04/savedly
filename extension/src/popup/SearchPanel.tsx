@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { ExternalLink, RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
+import { MemoryRow } from "../ui/MemoryRow";
 import { apiFetch } from "../lib/api";
 import { WEB_APP_URL } from "../lib/config";
 
@@ -70,20 +71,9 @@ export function SearchPanel() {
       ) : results.length === 0 ? (
         <span style={s.muted}>Nothing matches “{query.trim()}”.</span>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
           {results.map((r) => (
-            <div key={r.id} style={s.result}>
-              <button style={s.resultMain} onClick={() => void open(r.url ?? `${WEB_APP_URL}/app/memories/${r.id}`)} title={r.url ?? "Open in Savedly"}>
-                {r.faviconUrl ? <img src={r.faviconUrl} alt="" width={14} height={14} style={{ borderRadius: 3, flexShrink: 0 }} /> : <span style={s.dot} />}
-                <span style={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
-                  <span style={s.title}>{r.title}</span>
-                  <span style={s.muted}>{r.source ?? r.description ?? ""}</span>
-                </span>
-              </button>
-              <button style={s.iconButton} title="Open in Savedly" aria-label={`Open ${r.title} in Savedly`} onClick={() => void open(`${WEB_APP_URL}/app/memories/${r.id}`)}>
-                <ExternalLink size={12} color="#8e8e93" />
-              </button>
-            </div>
+            <MemoryRow key={r.id} memory={r} />
           ))}
         </div>
       )}
@@ -101,10 +91,5 @@ const s: Record<string, React.CSSProperties> = {
   field: { display: "flex", alignItems: "center", gap: 8, border: "1px solid #e5e5ea", borderRadius: 12, padding: "9px 12px", backgroundColor: "#f9f9f9" },
   input: { flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 12, color: "#1c1c1e" },
   muted: { fontSize: 11, color: "#8e8e93", lineHeight: "15px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  result: { display: "flex", alignItems: "center", gap: 4, borderRadius: 10 },
-  resultMain: { flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: "7px 6px", cursor: "pointer", textAlign: "left", borderRadius: 10 },
-  title: { fontSize: 12, fontWeight: 600, color: "#1c1c1e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  dot: { width: 14, height: 14, borderRadius: 4, backgroundColor: "#e8eefc", flexShrink: 0 },
-  iconButton: { background: "transparent", border: "none", padding: 6, cursor: "pointer", borderRadius: 8 },
   footer: { background: "transparent", border: "none", color: "#1447E6", fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 4 },
 };

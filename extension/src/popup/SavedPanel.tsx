@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlarmClock, Check, Inbox, RefreshCw, Sparkles, X } from "lucide-react";
+import { AlarmClock, Check, Highlighter, Inbox, RefreshCw, Sparkles, X } from "lucide-react";
 import { apiFetch } from "../lib/api";
 import { formatRemindAt, remindChoices } from "../lib/remind";
 
@@ -12,7 +12,10 @@ interface MemoryState {
   collections: { id: string; name: string }[];
   readAt?: string | null;
   remindAt?: string | null;
+  highlights?: { id: string; text: string; color: string; note: string | null }[];
 }
+
+const HIGHLIGHT_COLORS: Record<string, string> = { yellow: "#fde68a", green: "#bbf7d0", blue: "#bfdbfe", pink: "#fbcfe8", purple: "#ddd6fe" };
 
 // How long the popup keeps checking for the AI's result while it's open.
 const POLL_MS = 2500;
@@ -23,7 +26,7 @@ const POLL_TRIES = 24;
  * has read it), whether it's in the Inbox, and Remind me. Shown right after
  * saving, and when the popup opens on a page that's already saved.
  */
-export function SavedPanel({ memoryId }: { memoryId: string }) {
+export function SavedPanel({ memoryId, tabId }: { memoryId: string; /** The tab showing the page, to scroll to a highlight on it. */ tabId?: number }) {
   const [memory, setMemory] = useState<MemoryState | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +143,29 @@ export function SavedPanel({ memoryId }: { memoryId: string }) {
         )}
       </div>
 
+      {memory.highlights && memory.highlights.length > 0 && (
+        <div style={{ ...s.card, backgroundColor: "#ffffff" }}>
+          <div style={s.cardHead}>
+            <Highlighter size={13} color="#1447E6" />
+            <span style={s.cardTitle}>Highlights ({memory.highlights.length})</span>
+          </div>
+          {memory.highlights.map((h) => (
+            <button
+              key={h.id}
+              style={s.highlight}
+              title={tabId != null ? "Show it on the page" : undefined}
+              onClick={() => tabId != null && chrome.tabs.sendMessage(tabId, { action: "SCROLL_TO_HIGHLIGHT", id: h.id }, () => void chrome.runtime.lastError)}
+            >
+              <span style={{ ...s.highlightBar, backgroundColor: HIGHLIGHT_COLORS[h.color] ?? HIGHLIGHT_COLORS.yellow }} />
+              <span style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                <span style={s.highlightText}>{h.text}</span>
+                {h.note && <span style={s.muted}>{h.note}</span>}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {error && <span style={{ ...s.muted, color: "#ff3b30" }}>{error}</span>}
     </div>
   );
@@ -165,6 +191,9 @@ const s: Record<string, React.CSSProperties> = {
   row: { display: "flex", alignItems: "center", gap: 8, border: "1px solid #e5e5ea", borderRadius: 12, padding: "9px 12px" },
   rowText: { flex: 1, fontSize: 12, fontWeight: 600, color: "#1c1c1e" },
   textButton: { background: "transparent", border: "none", color: "#1447E6", fontSize: 11, fontWeight: 700, cursor: "pointer", padding: 0, whiteSpace: "nowrap" },
+  highlight: { display: "flex", gap: 8, alignItems: "stretch", background: "transparent", border: "none", padding: "4px 0", cursor: "pointer", textAlign: "left" },
+  highlightBar: { width: 3, borderRadius: 2, flexShrink: 0 },
+  highlightText: { fontSize: 11, color: "#1c1c1e", lineHeight: "15px", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" },
   chip: {
     display: "inline-flex",
     alignItems: "center",

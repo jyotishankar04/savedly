@@ -461,6 +461,10 @@ function openFloatingMenu(): void {
       label: "Screenshot visible page",
       onClick: () => captureFullViewport({}),
     },
+    {
+      label: "Open Savedly side panel",
+      onClick: () => chrome.runtime.sendMessage({ action: "OPEN_SIDE_PANEL" }, () => void chrome.runtime.lastError),
+    },
   ];
 
   for (const action of actions) {
@@ -559,7 +563,7 @@ function reportPage(): void {
   if (location.href === reportedUrl) return;
   reportedUrl = location.href;
   try {
-    chrome.runtime.sendMessage({ action: "PAGE_SEEN", url: location.href }, () => void chrome.runtime.lastError);
+    chrome.runtime.sendMessage({ action: "PAGE_SEEN", url: location.href, title: document.title }, () => void chrome.runtime.lastError);
   } catch {
     // The extension was reloaded or updated: this page's script is orphaned until it reloads.
   }
@@ -970,5 +974,16 @@ chrome.runtime.onMessage.addListener((request) => {
   const missing = restoreHighlights(request.highlights as StoredHighlight[]);
   // A page still loading its content (a single-page app): try the rest once more shortly.
   if (missing.length) setTimeout(() => restoreHighlights(missing), 2500);
+  return undefined;
+});
+
+// The side panel's highlight list: scroll to one on the page.
+chrome.runtime.onMessage.addListener((request) => {
+  if (request.action !== "SCROLL_TO_HIGHLIGHT") return undefined;
+  const mark = marksFor(String(request.id))[0];
+  if (!mark) return undefined;
+  mark.scrollIntoView({ block: "center", behavior: "smooth" });
+  const marks = marksFor(String(request.id));
+  for (const m of marks) m.animate([{ outline: "3px solid #1447E6" }, { outline: "3px solid transparent" }], { duration: 1400 });
   return undefined;
 });

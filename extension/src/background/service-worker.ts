@@ -36,6 +36,13 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ["page", "selection", "image", "link"]
   });
 
+  chrome.contextMenus.create({
+    id: "open-side-panel",
+    parentId: "savedly-root",
+    title: "Open Savedly side panel",
+    contexts: ["page", "selection", "image", "link"]
+  });
+
   // Save page option
   chrome.contextMenus.create({
     id: "save-page",
@@ -149,7 +156,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 // Keyboard Commands listener
-chrome.commands.onCommand.addListener(async (command) => {
+chrome.commands.onCommand.addListener(async (command, tab) => {
+  // Opened straight away: the side panel only opens in direct answer to the person's action.
+  if (command === "open-side-panel") {
+    if (tab?.windowId != null) void chrome.sidePanel.open({ windowId: tab.windowId });
+    return;
+  }
   if (command !== "quick-save-page") return;
 
 
@@ -659,3 +671,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   return undefined;
 });
+
+// --- Side panel -------------------------------------------------------------
+//
+// Savedly beside the page (src/sidepanel). It opens from the keyboard
+// command, the right-click menu, the popup and the on-page button. It shows
+// the page in the current tab, which this worker knows from the content
+// script's PAGE_SEEN reports (no "tabs" permission needed), kept in session
+// storage so a sleeping worker doesn't forget them.
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "open-side-panel" && tab?.windowId != null) void chrome.sidePanel.open({ windowId: tab.windowId });
+});
+
+const tabPageKey = (tabId: number) => `tab-page:${tabId}`;
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "PAGE_SEEN" && sender.tab?.id != null && typeof request.url === "string") {
+    const page = { url: request.url, title: typeof request.title === "string" ? request.title : "" };
+    void chrome.storage.session.set({ [tabPageKey(sender.tab.id)]: page });
+    // The panel, if it's open, follows navigation in the tab it shows.
+    chrome.runtime.sendMessage({ action: "TAB_PAGE", tabId: sender.tab.id, ...page }, () => void chrome.runtime.lastError);
+    return undefined;
+  }
+  if (request.action === "GET_TAB_PAGE" && typeof request.tabId === "number") {
+    chrome.storage.session.get(tabPageKey(request.tabId)).then((result) => sendResponse(result[tabPageKey(request.tabId)] ?? null));
+    return true;
+  }
+  if (request.action === "OPEN_SIDE_PANEL" && sender.tab?.id != null) {
+    chrome.sidePanel.open({ tabId: sender.tab.id }).catch(() => undefined);
+    return undefined;
+  }
+  return undefined;
+});
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  chrome.runtime.sendMessage({ action: "ACTIVE_TAB", tabId }, () => void chrome.runtime.lastError);
+});
+chrome.tabs.onRemoved.addListener((tabId) => void chrome.storage.session.remove(tabPageKey(tabId)));

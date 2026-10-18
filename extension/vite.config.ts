@@ -65,6 +65,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           popup: resolve(__dirname, "src/popup/popup.html"),
+          sidepanel: resolve(__dirname, "src/sidepanel/sidepanel.html"),
           background: resolve(__dirname, "src/background/service-worker.ts"),
           content: resolve(__dirname, "src/content/content-script.ts"),
         },

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff, Search
+  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff, Search, PanelRight
 } from "lucide-react";
 import { SavedPanel } from "./SavedPanel";
 import { SearchPanel } from "./SearchPanel";
@@ -323,6 +323,19 @@ export default function Popup() {
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <button
+            style={styles.iconButton}
+            title="Open Savedly in the side panel"
+            aria-label="Open Savedly in the side panel"
+            onClick={() => {
+              // Straight from the click: the side panel opens only in direct answer to one.
+              chrome.windows.getCurrent((win) => {
+                if (win.id != null) void chrome.sidePanel.open({ windowId: win.id }).then(() => window.close());
+              });
+            }}
+          >
+            <PanelRight size={14} color="#8e8e93" />
+          </button>
           {state !== "checking" && state !== "unauthorized" && (
             <button
               style={{ ...styles.iconButton, ...(searching ? { color: "#1447E6" } : {}) }}
