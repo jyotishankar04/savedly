@@ -90,6 +90,14 @@ const FEATURES: ShowcaseFeature[] = [
   },
 ];
 
+/** Short looping recordings of the real extension (like the What's new cards), each with a still for reduced motion. */
+const LOOPS: { src: string; title: string; text: string }[] = [
+  { src: "save", title: "Save a page", text: "Click the Savedly icon, take a suggestion, add a note, and save." },
+  { src: "highlight", title: "Highlight a passage", text: "Select text, pick a colour, add a note. It's there when you come back." },
+  { src: "panel", title: "Open the side panel", text: "Ctrl+Shift+E puts this page, search and your collections beside what you're reading." },
+  { src: "find", title: "Find it again", text: "Search your library from the popup; results appear as you type." },
+];
+
 const SEES: { what: string; when: string; detail: string }[] = [
   {
     what: "The pages you browse",
@@ -188,7 +196,34 @@ export default function ChromeExtensionPage() {
           </div>
         </section>
 
-        {/* 2. Quick ways in */}
+        {/* 2. See it work */}
+        <section id="watch" className="scroll-mt-24 px-5 pb-20 sm:px-8 md:pb-28">
+          <div className="mx-auto max-w-6xl">
+            <Reveal>
+              <h2 className={H2}>See it work</h2>
+              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">The extension in use, a few seconds each.</p>
+            </Reveal>
+            <RevealList className="mt-12 grid gap-x-6 gap-y-10 md:grid-cols-2" gap={0.08}>
+              {LOOPS.map((loop) => (
+                <figure key={loop.src}>
+                  <div className="overflow-hidden rounded-2xl bg-muted ring-1 ring-foreground/[0.08]">
+                    <picture>
+                      <source media="(prefers-reduced-motion: reduce)" srcSet={`/extension/loops/${loop.src}-still.webp`} />
+                      {/* A plain img: an animated WebP, which the image optimizer would flatten to one frame. */}
+                      <img src={`/extension/loops/${loop.src}.webp`} alt={`${loop.title}: ${loop.text}`} width={1280} height={720} loading="lazy" decoding="async" className="block aspect-video h-auto w-full" />
+                    </picture>
+                  </div>
+                  <figcaption className="mt-4">
+                    <span className="block text-base font-medium text-foreground">{loop.title}</span>
+                    <span className="mt-1 block text-[15px] leading-relaxed text-muted-foreground">{loop.text}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </RevealList>
+          </div>
+        </section>
+
+        {/* 3. Quick ways in */}
         <section id="shortcuts" className="scroll-mt-24 px-3 py-10 sm:px-5 md:py-16">
           <div className="mx-auto max-w-[1400px] rounded-[2rem] bg-muted/60 px-5 py-16 sm:px-8 md:rounded-[2.5rem] md:py-24">
             <div className="mx-auto max-w-6xl">
@@ -250,7 +285,7 @@ export default function ChromeExtensionPage() {
           </div>
         </section>
 
-        {/* 3. What it can see */}
+        {/* 4. What it can see */}
         <section id="privacy" className="scroll-mt-24 px-5 py-20 sm:px-8 md:py-28">
           <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1fr] lg:gap-20">
             <Reveal className="max-w-md">
@@ -277,7 +312,7 @@ export default function ChromeExtensionPage() {
           </div>
         </section>
 
-        {/* 4. Requirements and self-hosting */}
+        {/* 5. Requirements and self-hosting */}
         <section id="details" className="scroll-mt-24 px-5 pb-20 sm:px-8 md:pb-28">
           <Reveal className="mx-auto grid max-w-6xl gap-10 border-t border-foreground/15 pt-16 md:grid-cols-3 md:gap-12 md:pt-20">
             <div>
