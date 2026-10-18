@@ -25,7 +25,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({
       description,
       previewImage,
-      keywords
+      keywords,
+      images: coverCandidates(previewImage),
     });
   }
 
@@ -51,6 +52,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   return true;
 });
+
+/**
+ * Pictures that could be the saved page's cover, best first: the page's own
+ * og:image and twitter:image, then the largest images on it (at least 200×120,
+ * decoded, http(s)). Up to six.
+ */
+function coverCandidates(ogImage: string): string[] {
+  const absolute = (src: string) => {
+    try {
+      const url = new URL(src, location.href);
+      return /^https?:$/.test(url.protocol) ? url.href : "";
+    } catch {
+      return "";
+    }
+  };
+  const picks = [ogImage, getMetaTag("twitter:image") || ""].map(absolute);
+  const imgs = Array.from(document.images)
+    .filter((img) => img.complete && img.naturalWidth >= 200 && img.naturalHeight >= 120)
+    .sort((a, b) => b.naturalWidth * b.naturalHeight - a.naturalWidth * a.naturalHeight)
+    .map((img) => absolute(img.currentSrc || img.src));
+  return [...new Set([...picks, ...imgs].filter(Boolean))].slice(0, 6);
+}
 
 function getMetaTag(nameOrProperty: string): string | null {
   const meta = document.querySelector(

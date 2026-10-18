@@ -19,7 +19,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  void checkSignedIn();
+  void checkSignedIn().then(() => refreshSaveToMenu());
   startTicking();
 });
 
@@ -100,6 +100,7 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 
   console.log("Savedly Extension context menus initialized.");
+  void refreshSaveToMenu();
 });
 
 // Context Menus Click Handler
@@ -453,6 +454,7 @@ async function createMemory(payload: MemoryCreatePayload): Promise<void> {
 
   notify("Saved to Savedly", memory.title || payload.title);
   if (payload.url) await rememberSaved(payload.url);
+  void refreshSaveToMenu();
 }
 
 function notifySignInRequired(): void {
@@ -577,7 +579,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== TICK) return;
   void checkReminders().catch(() => undefined);
   // The saved-page hashes refresh themselves when old; this keeps them warm.
-  if (++ticks % 10 === 0) void savedKeys().catch(() => undefined);
+  if (++ticks % 10 === 0) {
+    void savedKeys().catch(() => undefined);
+    void refreshSaveToMenu();
+  }
 });
 
 // --- Search from the address bar: "sv" then a space -------------------------
@@ -709,3 +714,39 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
   chrome.runtime.sendMessage({ action: "ACTIVE_TAB", tabId }, () => void chrome.runtime.lastError);
 });
 chrome.tabs.onRemoved.addListener((tabId) => void chrome.storage.session.remove(tabPageKey(tabId)));
+
+// --- Right-click "Save to collection ▸" ----------------------------------------
+// The five collections filed into most recently, one click away for the page
+// or a link. Rebuilt after saves and every ten minutes.
+
+const SAVE_TO = "save-to";
+
+async function refreshSaveToMenu(): Promise<void> {
+  if (!(await signedIn())) return;
+  let recent: { id: string; name: string; icon: string }[];
+  try {
+    recent = await apiFetch<{ id: string; name: string; icon: string }[]>("/collections/recent");
+  } catch {
+    return;
+  }
+  // Removing the parent removes its items too.
+  await new Promise<void>((resolve) => chrome.contextMenus.remove(SAVE_TO, () => resolve(void chrome.runtime.lastError)));
+  if (recent.length === 0) return;
+  chrome.contextMenus.create({ id: SAVE_TO, parentId: "savedly-root", title: "Save to collection", contexts: ["page", "link"] }, () => void chrome.runtime.lastError);
+  for (const c of recent.slice(0, 5)) {
+    const icon = /^\p{Extended_Pictographic}/u.test(c.icon) ? c.icon : "📁";
+    chrome.contextMenus.create({ id: `${SAVE_TO}:${c.id}`, parentId: SAVE_TO, title: `${icon} ${c.name}`, contexts: ["page", "link"] }, () => void chrome.runtime.lastError);
+  }
+}
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  const id = String(info.menuItemId);
+  if (!id.startsWith(`${SAVE_TO}:`)) return;
+  const collectionIds = [id.slice(SAVE_TO.length + 1)];
+  const save = info.linkUrl
+    ? createMemory({ type: "web", url: info.linkUrl, title: info.selectionText || new URL(info.linkUrl).hostname, description: `Saved from: ${tab?.title || "Webpage"}`, collectionIds })
+    : tab?.url
+      ? createMemory({ type: "web", url: tab.url, title: tab.title || "Saved Page", collectionIds })
+      : Promise.resolve();
+  save.catch(notifySaveError);
+});

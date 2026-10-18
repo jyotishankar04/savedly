@@ -17,6 +17,14 @@ interface PageInfo {
   description?: string;
   previewImage?: string;
   keywords?: string;
+  /** Pictures on the page that could be the cover, best first. */
+  images?: string[];
+}
+
+/** POST /memories/suggest: where this page could go, before it's saved. */
+interface Suggestion {
+  collection: { id: string | null; name: string; isNew: boolean } | null;
+  tags: string[];
 }
 
 interface CreatedMemory {
@@ -65,6 +73,10 @@ export default function Popup() {
   // This page is already saved: show it, unless they choose to save it again.
   const [existing, setExisting] = useState<SavedPage | null>(null);
   const [saveAgain, setSaveAgain] = useState(false);
+  // The smarter save form: one-tap recent collections, AI suggestions, a cover picture.
+  const [recentCollections, setRecentCollections] = useState<Collection[]>([]);
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [cover, setCover] = useState<string | null>(null);
 
   // The floating on-page button defaults to shown, so it only needs
   // reading here (not writing) unless the user actually toggles it —
@@ -167,7 +179,37 @@ export default function Popup() {
     });
   }, []);
 
-  const getPageMetadata = (tabId: number): Promise<{ description?: string; previewImage?: string; keywords?: string }> => {
+  // Only for a page about to be saved: recent collections and what the AI suggests (no chips if either fails).
+  useEffect(() => {
+    if (state !== "ready" || !pageInfo || (existing && !saveAgain)) return;
+    apiFetch<Collection[]>("/collections/recent").then(setRecentCollections).catch(() => undefined);
+    apiFetch<Suggestion>("/memories/suggest", {
+      method: "POST",
+      body: JSON.stringify({ url: pageInfo.url, title: pageInfo.title.slice(0, 500), description: pageInfo.description?.slice(0, 2000) }),
+    })
+      .then(setSuggestion)
+      .catch(() => undefined);
+  }, [state, pageInfo, existing, saveAgain]);
+
+  // A suggested collection that doesn't exist yet is made when it's tapped.
+  const applySuggestedCollection = async () => {
+    const pick = suggestion?.collection;
+    if (!pick) return;
+    if (pick.id) {
+      if (!selectedCollectionIds.includes(pick.id)) setSelectedCollectionIds((ids) => [...ids, pick.id!]);
+      return;
+    }
+    try {
+      const created = await apiFetch<Collection>("/collections", { method: "POST", body: JSON.stringify({ name: pick.name }) });
+      setCollections((list) => [...list, created]);
+      setSelectedCollectionIds((ids) => [...ids, created.id]);
+      setSuggestion((current) => (current ? { ...current, collection: { id: created.id, name: created.name, isNew: false } } : current));
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Couldn't create that collection.");
+    }
+  };
+
+  const getPageMetadata = (tabId: number): Promise<{ description?: string; previewImage?: string; keywords?: string; images?: string[] }> => {
     return new Promise((resolve) => {
       chrome.tabs.sendMessage(tabId, { action: "GET_METADATA" }, (response) => {
         // Content script may not be injected on this page (e.g. chrome:// URLs).
@@ -204,6 +246,7 @@ export default function Popup() {
       description: metadata.description,
       previewImage: metadata.previewImage,
       keywords: metadata.keywords,
+      images: metadata.images,
     });
     setState("ready");
   };
@@ -239,7 +282,7 @@ export default function Popup() {
           title: pageInfo.title.slice(0, 500),
           description: pageInfo.description || undefined,
           faviconUrl: isValidUrl(pageInfo.favIconUrl) ? pageInfo.favIconUrl : undefined,
-          previewImageUrl: isValidUrl(pageInfo.previewImage) ? pageInfo.previewImage : undefined,
+          previewImageUrl: isValidUrl(cover ?? pageInfo.previewImage) ? (cover ?? pageInfo.previewImage) : undefined,
           keywords: keywords.length > 0 ? keywords : undefined,
           content: note.trim() || undefined,
           tags: tags.length > 0 ? tags : undefined,
@@ -493,6 +536,48 @@ export default function Popup() {
             )}
           </div>
 
+          {/* The cover: which picture shows on the card. The page's own is first. */}
+          {captureMode === "page" && (pageInfo?.images?.length ?? 0) > 1 && (
+            <div style={styles.fieldGroup}>
+              <label style={styles.fieldLabel}>COVER</label>
+              <div style={styles.coverStrip}>
+                {pageInfo!.images!.map((src, i) => {
+                  const chosen = (cover ?? pageInfo!.images![0]) === src;
+                  return (
+                    <button key={src} type="button" title={i === 0 ? "The page's own picture" : "Use this picture"} aria-pressed={chosen} style={{ ...styles.coverThumb, ...(chosen ? styles.coverThumbChosen : {}) }} onClick={() => setCover(src)}>
+                      <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* What the AI suggests for this page: tap to use, never applied by itself. */}
+          {suggestion && (suggestion.collection || suggestion.tags.length > 0) && (
+            <div style={styles.fieldGroup}>
+              <label style={styles.fieldLabel}>SUGGESTED</label>
+              <div style={styles.tagsContainer}>
+                {suggestion.collection && (
+                  <button
+                    type="button"
+                    style={suggestion.collection.id && selectedCollectionIds.includes(suggestion.collection.id) ? styles.chipActive : styles.chip}
+                    onClick={() => void applySuggestedCollection()}
+                    title={suggestion.collection.isNew ? "Creates this collection" : "Add to this collection"}
+                  >
+                    📁 {suggestion.collection.name}
+                    {suggestion.collection.isNew ? " (new)" : ""}
+                  </button>
+                )}
+                {suggestion.tags.map((tag) => (
+                  <button key={tag} type="button" style={tags.includes(tag) ? styles.chipActive : styles.chip} onClick={() => setTags((list) => (list.includes(tag) ? list.filter((t) => t !== tag) : [...list, tag]))}>
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={styles.fieldGroup}>
             <label style={styles.fieldLabel}>ADD A NOTE</label>
             <textarea
@@ -545,6 +630,15 @@ export default function Popup() {
               doesn't grow with the user's collection count. */}
           <div style={styles.fieldGroup} ref={collectionsRef}>
             <label style={styles.fieldLabel}>ADD TO COLLECTION</label>
+            {recentCollections.length > 0 && (
+              <div style={{ ...styles.tagsContainer, marginBottom: 6 }}>
+                {recentCollections.map((c) => (
+                  <button key={c.id} type="button" style={selectedCollectionIds.includes(c.id) ? styles.chipActive : styles.chip} onClick={() => toggleCollection(c.id)}>
+                    {/^\p{Extended_Pictographic}/u.test(c.icon) ? c.icon : "📁"} {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
             <div style={{ position: "relative" }}>
               <button type="button" style={styles.dropdownTrigger} onClick={() => setCollectionsOpen((open) => !open)}>
                 <span style={styles.dropdownTriggerText}>
@@ -963,6 +1057,52 @@ const styles = {
     fontSize: "11px",
     color: "#8e8e93",
     padding: "6px 8px",
+  },
+  chip: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    fontSize: "11px",
+    fontWeight: 600,
+    color: "#1c1c1e",
+    backgroundColor: "#ffffff",
+    border: "1px solid #e5e5ea",
+    borderRadius: "999px",
+    padding: "4px 10px",
+    cursor: "pointer",
+  },
+  chipActive: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#1447E6",
+    backgroundColor: "#e8eefc",
+    border: "1px solid #1447E6",
+    borderRadius: "999px",
+    padding: "4px 10px",
+    cursor: "pointer",
+  },
+  coverStrip: {
+    display: "flex",
+    gap: "6px",
+    overflowX: "auto" as const,
+    paddingBottom: "2px",
+  },
+  coverThumb: {
+    flex: "none",
+    width: "64px",
+    height: "44px",
+    padding: 0,
+    borderRadius: "8px",
+    overflow: "hidden",
+    border: "2px solid transparent",
+    backgroundColor: "#f2f2f5",
+    cursor: "pointer",
+  },
+  coverThumbChosen: {
+    border: "2px solid #1447E6",
   },
   primaryButton: {
     backgroundColor: "#1447E6",
