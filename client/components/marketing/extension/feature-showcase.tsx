@@ -1,20 +1,30 @@
 "use client";
 
 import Image from "next/image";
-import { useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 
 // Adapted from @glint-ui/feature-showcase: a list of features where the open one
-// shows its description and a filling bar, and its picture crossfades in beside
-// it. The bar is a CSS animation whose `animationend` moves to the next feature,
-// so pausing (pointer or keyboard focus inside) is just animation-play-state.
-// Reduced motion stops the bar, and with it the advancing.
+// shows its description, and its picture crossfades in beside it. The timer is
+// a ring around the open feature's icon, a CSS animation whose `animationend`
+// moves to the next feature, so pausing is just animation-play-state: with the
+// pause button, or while the pointer or keyboard focus (not a click's) is in the
+// list, reading a description. With reduced motion it starts paused; play starts it.
 const css = `
-@keyframes fs-fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-.fs-bar{transform-origin:left;animation:fs-fill var(--fs-dur) linear forwards}
-.fs-root:is(:hover,:focus-within) .fs-bar{animation-play-state:paused}
-@media (prefers-reduced-motion:reduce){.fs-bar{animation:none;transform:scaleX(1)}.fs-visual{transition:none!important}}
+@keyframes fs-ring{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+.fs-ring{animation:fs-ring var(--fs-dur) linear forwards}
+.fs-root[data-playing="false"] .fs-ring,.fs-list:hover .fs-ring,.fs-list:has(:focus-visible) .fs-ring{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){.fs-visual{transition:none!important}}
 `;
+
+const REDUCED = "(prefers-reduced-motion: reduce)";
+const subscribeReduced = (onChange: () => void) => {
+  const query = window.matchMedia(REDUCED);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
 
 export interface ShowcaseFeature {
   title: string;
@@ -26,7 +36,11 @@ export interface ShowcaseFeature {
 
 export function FeatureShowcase({ features, interval = 6500 }: { features: ShowcaseFeature[]; interval?: number }) {
   const [active, setActive] = useState(0);
-  const [cycle, setCycle] = useState(0); // restarts the bar when the same one is picked again
+  const [cycle, setCycle] = useState(0); // restarts the timer when the same one is picked again
+  const reducedMotion = useSyncExternalStore(subscribeReduced, () => window.matchMedia(REDUCED).matches, () => false);
+  // null until the person presses pause or play; until then, reduced motion decides.
+  const [paused, setPaused] = useState<boolean | null>(null);
+  const playing = paused === null ? !reducedMotion : !paused;
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const id = useId();
   const n = features.length;
@@ -47,12 +61,12 @@ export function FeatureShowcase({ features, interval = 6500 }: { features: Showc
   };
 
   return (
-    <div className="fs-root grid w-full items-start gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14" style={{ "--fs-dur": `${interval}ms` } as CSSProperties}>
+    <div data-playing={playing} className="fs-root grid w-full items-start gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14" style={{ "--fs-dur": `${interval}ms` } as CSSProperties}>
       <style href="extension-feature-showcase" precedence="default">
         {css}
       </style>
 
-      <div role="tablist" aria-orientation="vertical" aria-label="What the extension does" onKeyDown={onKey} className="grid gap-1.5">
+      <div role="tablist" aria-orientation="vertical" aria-label="What the extension does" onKeyDown={onKey} className="fs-list grid gap-1.5">
         {features.map((f, i) => {
           const on = i === active;
           return (
@@ -74,13 +88,34 @@ export function FeatureShowcase({ features, interval = 6500 }: { features: Showc
               )}
             >
               <span className="flex items-center gap-3">
-                <span
-                  className={cn(
-                    "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-300 [&_svg]:size-4",
-                    on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:text-foreground",
+                <span className="relative grid size-8 shrink-0 place-items-center">
+                  <span
+                    className={cn(
+                      "grid size-8 place-items-center rounded-full transition-colors duration-300 [&_svg]:size-4",
+                      on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:text-foreground",
+                    )}
+                  >
+                    {f.icon}
+                  </span>
+                  {/* The timer: fills around the icon, then the next feature opens. */}
+                  {on && (
+                    <svg aria-hidden viewBox="0 0 44 44" className="pointer-events-none absolute -inset-2 size-12 -rotate-90">
+                      <circle cx="22" cy="22" r="20" fill="none" strokeWidth="2.25" className="stroke-foreground/15" />
+                      <circle
+                        key={cycle}
+                        cx="22"
+                        cy="22"
+                        r="20"
+                        fill="none"
+                        strokeWidth="2.25"
+                        strokeLinecap="round"
+                        pathLength={100}
+                        strokeDasharray="100"
+                        className="fs-ring stroke-primary"
+                        onAnimationEnd={() => select(active + 1)}
+                      />
+                    </svg>
                   )}
-                >
-                  {f.icon}
                 </span>
                 <span className={cn("text-[15px] font-medium transition-colors", on ? "text-foreground" : "text-muted-foreground group-hover:text-foreground")}>{f.title}</span>
               </span>
@@ -90,11 +125,6 @@ export function FeatureShowcase({ features, interval = 6500 }: { features: Showc
                   <span className="block pt-1.5">{f.description}</span>
                 </span>
               </span>
-              {on && (
-                <span aria-hidden className="absolute inset-x-4 bottom-0 h-0.5 overflow-hidden rounded-full bg-muted">
-                  <span key={cycle} className="fs-bar block h-full bg-primary" onAnimationEnd={() => select(active + 1)} />
-                </span>
-              )}
             </button>
           );
         })}
@@ -120,6 +150,15 @@ export function FeatureShowcase({ features, interval = 6500 }: { features: Showc
             {f.visual}
           </div>
         ))}
+        <button
+          type="button"
+          onClick={() => setPaused(playing)}
+          aria-label={playing ? "Pause the slideshow" : "Play the slideshow"}
+          title={playing ? "Pause" : "Play"}
+          className="absolute right-4 bottom-4 z-10 grid size-9 place-items-center rounded-full bg-background/85 text-foreground shadow-sm ring-1 ring-foreground/10 backdrop-blur transition-colors hover:bg-background focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
+        >
+          <HugeiconsIcon icon={playing ? PauseIcon : PlayIcon} strokeWidth={2} className="size-4" />
+        </button>
       </div>
     </div>
   );
