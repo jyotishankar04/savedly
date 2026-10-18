@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
 import { useRemindMe } from "@/components/memory/remind-me";
+import { MemoryHighlights } from "@/components/memory/memory-highlights";
 import { formatRemindAt } from "@/lib/remind";
 import { useMemoryQuery, useToggleFavoriteMutation, useUpdateMemoryMutation } from "@/context/MemoryContext";
 import { timeAgo } from "@/lib/time";
@@ -424,6 +425,8 @@ export default function MemoryDetailPage() {
               </AttachmentGroup>
             </section>
           )}
+
+          <MemoryHighlights memoryId={memory.id} highlights={memory.highlights ?? []} />
         </div>
 
         {/* Right: what Savedly made of it */}

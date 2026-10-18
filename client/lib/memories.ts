@@ -122,6 +122,12 @@ export async function markInboxRead(): Promise<{ marked: number }> {
   return apiFetch<{ marked: number }>("/memories/inbox/read-all", { method: "POST" });
 }
 
+export type MemoryHighlight = NonNullable<MemoryDetail["highlights"]>[number];
+
+export async function deleteHighlight(id: string): Promise<void> {
+  await apiFetch<void>(`/highlights/${id}`, { method: "DELETE" });
+}
+
 export async function deleteMemory(id: string): Promise<void> {
   await apiFetch<void>(`/memories/${id}`, { method: "DELETE" });
 }

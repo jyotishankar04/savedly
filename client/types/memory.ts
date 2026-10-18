@@ -21,6 +21,8 @@ export interface Memory {
   remindAt?: string | null;
   /** When a reminder last brought it back. */
   remindedAt?: string | null;
+  /** Passages on it were highlighted with the browser extension. */
+  hasHighlights?: boolean;
   /** User-set date/time this memory relates to — null means no event attached. Powers "Add to calendar". */
   eventAt: string | null;
   tags: string[];
@@ -58,6 +60,8 @@ export interface MemoryDetail extends Memory {
   content: string | null;
   keywords: string[] | null;
   attachments: Attachment[];
+  /** Highlighted passages, oldest first. */
+  highlights?: { id: string; text: string; color: string; note: string | null; createdAt: string }[];
 }
 
 export interface Collection {
