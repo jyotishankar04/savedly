@@ -1,7 +1,7 @@
 // Background service worker for the Savedly Chrome extension
 import { apiFetch, ApiError, checkAuth, checkSignedIn } from "../lib/api";
 import { SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
-import { forgetSaved, isSaved, rememberSaved, savedKeys } from "../lib/saved-pages";
+import { forgetSaved, hasHighlights, isSaved, refreshHighlighted, rememberHighlighted, rememberSaved, savedKeys } from "../lib/saved-pages";
 
 // Sign-in is the browser's own Savedly session (see lib/api.ts). This file
 // only keeps the yes/no "signed in" flag fresh for the popup and the on-page
@@ -481,6 +481,7 @@ async function showSavedBadge(tabId: number, url: string): Promise<void> {
 chrome.runtime.onMessage.addListener((request, sender) => {
   if (request.action === "PAGE_SEEN" && sender.tab?.id != null && typeof request.url === "string") {
     void showSavedBadge(sender.tab.id, request.url).catch(() => undefined);
+    void sendPageHighlights(sender.tab.id, request.url).catch(() => undefined);
   }
   if (request.action === "PAGE_SAVED" && typeof request.url === "string") {
     void rememberSaved(request.url).then(() => (typeof request.tabId === "number" ? showSavedBadge(request.tabId, request.url) : undefined));
@@ -599,3 +600,62 @@ chrome.omnibox.onInputEntered.addListener((text, disposition) => {
 });
 
 startTicking();
+
+// --- Highlights ---------------------------------------------------------------
+//
+// The content script draws them; this worker talks to the server. A page's
+// highlights are fetched only when its hash is among the highlighted pages'.
+
+interface PageHighlight {
+  id: string;
+  text: string;
+  prefix: string;
+  suffix: string;
+  color: string;
+  note: string | null;
+}
+
+async function sendPageHighlights(tabId: number, url: string): Promise<void> {
+  if (!(await signedIn()) || !(await hasHighlights(url))) return;
+  const { highlights } = await apiFetch<{ memoryId: string | null; highlights: PageHighlight[] }>(`/highlights/page?url=${encodeURIComponent(url)}`);
+  if (highlights.length) chrome.tabs.sendMessage(tabId, { action: "SHOW_HIGHLIGHTS", url, highlights }, () => void chrome.runtime.lastError);
+}
+
+function failure(err: unknown) {
+  if (err instanceof ApiError && err.status === 401) return { ok: false, signedOut: true, error: "Sign in to Savedly to keep highlights." };
+  return { ok: false, error: err instanceof Error ? err.message : "Couldn't save the highlight." };
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "ADD_HIGHLIGHT") {
+    const { url, title, text, prefix, suffix, color, note } = request;
+    apiFetch<{ highlight: PageHighlight; memoryId: string; savedPage: boolean }>("/highlights", {
+      method: "POST",
+      body: JSON.stringify({ url, title, text, prefix, suffix, color, note }),
+    })
+      .then(async (result) => {
+        await Promise.all([rememberSaved(url), rememberHighlighted(url)]);
+        if (sender.tab?.id != null) void showSavedBadge(sender.tab.id, url);
+        sendResponse({ ok: true, ...result });
+      })
+      .catch((err) => sendResponse(failure(err)));
+    return true;
+  }
+  if (request.action === "UPDATE_HIGHLIGHT") {
+    apiFetch<PageHighlight>(`/highlights/${request.id}`, { method: "PATCH", body: JSON.stringify({ color: request.color, note: request.note }) })
+      .then((highlight) => sendResponse({ ok: true, highlight }))
+      .catch((err) => sendResponse(failure(err)));
+    return true;
+  }
+  if (request.action === "DELETE_HIGHLIGHT") {
+    apiFetch(`/highlights/${request.id}`, { method: "DELETE" })
+      .then(() => {
+        // That may have been the page's last one.
+        refreshHighlighted();
+        sendResponse({ ok: true });
+      })
+      .catch((err) => sendResponse(failure(err)));
+    return true;
+  }
+  return undefined;
+});

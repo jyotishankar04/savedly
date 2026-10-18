@@ -102,5 +102,58 @@ export async function rememberSaved(rawUrl: string): Promise<void> {
 /** On sign-out: nothing of the last account's library is kept. */
 export async function forgetSaved(): Promise<void> {
   memo = null;
-  await chrome.storage.local.remove(STORAGE_KEY);
+  highlightedMemo = null;
+  await chrome.storage.local.remove([STORAGE_KEY, HIGHLIGHTED_STORAGE_KEY]);
+}
+
+// --- Pages with highlights ----------------------------------------------------
+// The same idea for highlights: the hashes of pages that have some, so a page's
+// highlights are fetched only when there are any to show.
+
+const HIGHLIGHTED_STORAGE_KEY = "savedly_highlighted_url_keys";
+let highlightedMemo: { keys: Set<string>; at: number } | null = null;
+let highlightedLoading: Promise<Set<string>> | null = null;
+
+async function highlightedKeys(force = false): Promise<Set<string>> {
+  if (!force && highlightedMemo && Date.now() - highlightedMemo.at < MAX_AGE_MS) return highlightedMemo.keys;
+  if (!force && !highlightedMemo) {
+    const stored = (await chrome.storage.local.get(HIGHLIGHTED_STORAGE_KEY))[HIGHLIGHTED_STORAGE_KEY] as Stored | undefined;
+    if (stored && Date.now() - stored.at < MAX_AGE_MS) {
+      highlightedMemo = { keys: new Set(stored.keys), at: stored.at };
+      return highlightedMemo.keys;
+    }
+  }
+  highlightedLoading ??= apiFetch<{ keys: string[] }>("/highlights/url-keys")
+    .then(async ({ keys }) => {
+      const set = new Set(keys);
+      highlightedMemo = { keys: set, at: Date.now() };
+      await chrome.storage.local.set({ [HIGHLIGHTED_STORAGE_KEY]: { keys, at: highlightedMemo.at } satisfies Stored });
+      return set;
+    })
+    .catch(() => highlightedMemo?.keys ?? new Set<string>())
+    .finally(() => {
+      highlightedLoading = null;
+    });
+  return highlightedLoading;
+}
+
+export async function hasHighlights(rawUrl: string): Promise<boolean> {
+  const key = await urlKey(rawUrl);
+  return !!key && (await highlightedKeys()).has(key);
+}
+
+/** After highlighting a page: it counts at once, and the next refresh confirms it. */
+export async function rememberHighlighted(rawUrl: string): Promise<void> {
+  const key = await urlKey(rawUrl);
+  if (!key) return;
+  const keys = new Set(await highlightedKeys());
+  keys.add(key);
+  highlightedMemo = { keys, at: Date.now() };
+  await chrome.storage.local.set({ [HIGHLIGHTED_STORAGE_KEY]: { keys: [...keys], at: highlightedMemo.at } satisfies Stored });
+}
+
+/** Forces the next check to ask the server (e.g. after the last highlight on a page is deleted). */
+export function refreshHighlighted(): void {
+  highlightedMemo = null;
+  void chrome.storage.local.remove(HIGHLIGHTED_STORAGE_KEY);
 }
