@@ -6,7 +6,6 @@ import { useTheme } from "next-themes";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { GlidingHighlight } from "@/components/ui/gliding-highlight";
-import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 import { DISCORD_URL, GITHUB_URL } from "@/lib/open-source";
 import {
   NavigationMenu,
@@ -42,6 +41,7 @@ import {
   UserIcon,
   HeartIcon,
   Mail01Icon,
+  ChromeIcon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 import { useCurrentUserQuery } from "@/context/UserContext";
@@ -79,6 +79,12 @@ const productLinks: MenuEntry[] = [
     icon: Layers01Icon,
     description: "One save followed step by step, and what runs where.",
     href: "/how-it-works",
+  },
+  {
+    title: "Chrome extension",
+    icon: ChromeIcon,
+    description: "Save, highlight and search without leaving the page.",
+    href: "/chrome-extension",
   },
   {
     title: "Changelog",
@@ -211,7 +217,7 @@ const PRODUCT_MENU: MegaMenuProps = {
     {
       label: "Get Savedly",
       links: [
-        { title: "Chrome extension", href: CHROME_WEB_STORE_URL, external: true },
+        { title: "Chrome extension", href: "/chrome-extension" },
         { title: "Self-host it", href: "/help/docs/self-host/self-host" },
         { title: "Changelog", href: "/changelog" },
       ],
