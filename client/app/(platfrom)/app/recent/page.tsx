@@ -2,11 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemoriesQuery } from "@/context/MemoryContext";
 import { timeAgo, timelineGroup } from "@/lib/time";
 import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
+import { SiteIcon } from "@/components/memory/site-icon";
 import type { Memory } from "@/types/memory";
 import { QueryErrorState } from "@/components/query-error-state";
 import { cn } from "@/lib/utils";
@@ -75,12 +75,7 @@ export default function RecentPage() {
                       >
                         <RowSelect checked={selection.has(item.id)} selecting={selection.isSelecting} onToggle={(e) => selection.toggle(item.id, e)} label={`Select ${item.title}`} className="shrink-0">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-primary">
-                          {item.faviconUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element -- external, unpredictable-domain favicon
-                            <img src={item.faviconUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
-                          ) : (
-                            <HugeiconsIcon icon={TypeIcon} strokeWidth={2} className="h-4.5 w-4.5" />
-                          )}
+                          <SiteIcon src={item.faviconUrl} fallback={TypeIcon} />
                         </div>
                         </RowSelect>
                         <div className="min-w-0 flex-1">

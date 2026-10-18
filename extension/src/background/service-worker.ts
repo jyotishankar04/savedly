@@ -452,6 +452,11 @@ interface MemoryCreatePayload {
 }
 
 async function createMemory(payload: MemoryCreatePayload): Promise<void> {
+  // Chrome's own pages and extension pages (this tour included) aren't web pages Savedly can open again or read.
+  if (payload.type === "web" && payload.url && !/^https?:\/\//.test(payload.url)) {
+    notify("This page can't be saved", "Savedly saves web pages. Open one and save it from there.");
+    return;
+  }
   const memory = await apiFetch<{ id: string; title: string }>("/memories", {
     method: "POST",
     body: JSON.stringify({ ...payload, captureMethod: "extension" }),

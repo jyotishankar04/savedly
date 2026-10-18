@@ -8,7 +8,7 @@ import { timeAgo } from "../lib/remind";
 import { apiFetch, ApiError } from "../lib/api";
 import { API_BASE, SHOW_FLOATING_ICON_STORAGE_KEY, SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
 
-type ExtensionState = "checking" | "unauthorized" | "unreachable" | "ready" | "saving" | "saved" | "error";
+type ExtensionState = "checking" | "unauthorized" | "unreachable" | "notWebPage" | "ready" | "saving" | "saved" | "error";
 
 interface PageInfo {
   url: string;
@@ -240,6 +240,11 @@ export default function Popup() {
     }
 
     activeTabIdRef.current = activeTab.id;
+    // Chrome's own pages, other extensions' pages, files: nothing Savedly could open again or read.
+    if (!/^https?:\/\//.test(activeTab.url)) {
+      setState("notWebPage");
+      return;
+    }
     // Opening the popup is asking about this page, so this one address goes to Savedly (browsing elsewhere never does).
     const lookup = apiFetch<SavedPage | null>(`/memories/lookup?url=${encodeURIComponent(activeTab.url)}`).catch(() => null);
     const metadata = await getPageMetadata(activeTab.id);
@@ -475,6 +480,17 @@ export default function Popup() {
           <div style={styles.progressTrack}>
             <div style={styles.progressBar} />
           </div>
+        </div>
+      )}
+
+      {!searching && state === "notWebPage" && (
+        <div style={styles.centerContainer}>
+          <FileText size={28} color="#8e8e93" />
+          <p style={{ ...styles.errorLabel, color: "#1c1c1e" }}>This page can't be saved</p>
+          <p style={styles.errorSub}>Savedly saves web pages. Open one and click the Savedly icon there, or search what you've saved.</p>
+          <button style={styles.secondaryButton} onClick={() => setSearching(true)}>
+            Search your library
+          </button>
         </div>
       )}
 

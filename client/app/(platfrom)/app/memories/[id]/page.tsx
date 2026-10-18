@@ -118,6 +118,8 @@ export default function MemoryDetailPage() {
   const [draftNote, setDraftNote] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+  // A preview picture that doesn't load (gone, blocked) falls back to the no-preview tile.
+  const [previewFailed, setPreviewFailed] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -314,9 +316,9 @@ export default function MemoryDetailPage() {
                     <div className="absolute inset-y-0 left-0 w-1/3 animate-shine-sweep bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                   </div>
                 )}
-                {memory.previewImageUrl ? (
+                {memory.previewImageUrl && previewFailed !== memory.previewImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- external, unpredictable-domain preview image
-                  <img src={memory.previewImageUrl} alt={memory.title} className="w-full aspect-video object-cover" />
+                  <img src={memory.previewImageUrl} alt={memory.title} onError={() => setPreviewFailed(memory.previewImageUrl)} className="w-full aspect-video object-cover" />
                 ) : memory.platform && (memory.type === "web" || memory.type === "video") ? (
                   (() => {
                     const fallback = getPlatformFallback(memory.platform);
