@@ -77,6 +77,11 @@ export default function Popup() {
   const [recentCollections, setRecentCollections] = useState<Collection[]>([]);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [cover, setCover] = useState<string | null>(null);
+  // Pictures that failed to load (blocked, gone, not an image): never offered, never saved as the cover.
+  const [brokenImages, setBrokenImages] = useState<string[]>([]);
+  const coverChoices = (pageInfo?.images ?? []).filter((src) => !brokenImages.includes(src)).slice(0, 4);
+  const chosenCover = cover && coverChoices.includes(cover) ? cover : (coverChoices[0] ?? null);
+  const coverUrl = chosenCover ?? (pageInfo?.previewImage && !brokenImages.includes(pageInfo.previewImage) ? pageInfo.previewImage : undefined);
 
   // The floating on-page button defaults to shown, so it only needs
   // reading here (not writing) unless the user actually toggles it —
@@ -282,7 +287,7 @@ export default function Popup() {
           title: pageInfo.title.slice(0, 500),
           description: pageInfo.description || undefined,
           faviconUrl: isValidUrl(pageInfo.favIconUrl) ? pageInfo.favIconUrl : undefined,
-          previewImageUrl: isValidUrl(cover ?? pageInfo.previewImage) ? (cover ?? pageInfo.previewImage) : undefined,
+          previewImageUrl: isValidUrl(coverUrl) ? coverUrl : undefined,
           keywords: keywords.length > 0 ? keywords : undefined,
           content: note.trim() || undefined,
           tags: tags.length > 0 ? tags : undefined,
@@ -537,15 +542,22 @@ export default function Popup() {
           </div>
 
           {/* The cover: which picture shows on the card. The page's own is first. */}
-          {captureMode === "page" && (pageInfo?.images?.length ?? 0) > 1 && (
-            <div style={styles.fieldGroup}>
+          {/* Hidden while there's no real choice; a picture that fails to load drops out. */}
+          {captureMode === "page" && coverChoices.length > 0 && (
+            <div style={{ ...styles.fieldGroup, ...(coverChoices.length < 2 ? { display: "none" } : {}) }}>
               <label style={styles.fieldLabel}>COVER</label>
-              <div style={styles.coverStrip}>
-                {pageInfo!.images!.map((src, i) => {
-                  const chosen = (cover ?? pageInfo!.images![0]) === src;
+              <div style={styles.coverGrid}>
+                {coverChoices.map((src) => {
+                  const chosen = chosenCover === src;
                   return (
-                    <button key={src} type="button" title={i === 0 ? "The page's own picture" : "Use this picture"} aria-pressed={chosen} style={{ ...styles.coverThumb, ...(chosen ? styles.coverThumbChosen : {}) }} onClick={() => setCover(src)}>
-                      <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    <button key={src} type="button" title={src === pageInfo?.previewImage ? "The page's own picture" : "Use this picture"} aria-label={chosen ? "Cover picture (chosen)" : "Use this picture as the cover"} aria-pressed={chosen} style={{ ...styles.coverThumb, ...(chosen ? styles.coverThumbChosen : {}) }} onClick={() => setCover(src)}>
+                      <img
+                        src={src}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        onError={() => setBrokenImages((list) => (list.includes(src) ? list : [...list, src]))}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      />
                     </button>
                   );
                 })}
@@ -764,7 +776,7 @@ const TextTruncate = ({ text, lines, style }: { text: string; lines: number; sty
 // inline Styles
 const styles = {
   container: {
-    width: "320px",
+    width: "100%",
     backgroundColor: "#ffffff",
     padding: "16px",
     boxSizing: "border-box" as const,
@@ -914,6 +926,8 @@ const styles = {
     display: "flex",
     flexDirection: "column" as const,
     gap: "6px",
+    // Never wider than the popup, whatever is inside.
+    minWidth: 0,
   },
   fieldLabel: {
     fontSize: "9px",
@@ -1084,16 +1098,14 @@ const styles = {
     padding: "4px 10px",
     cursor: "pointer",
   },
-  coverStrip: {
-    display: "flex",
+  coverGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
     gap: "6px",
-    overflowX: "auto" as const,
-    paddingBottom: "2px",
   },
   coverThumb: {
-    flex: "none",
-    width: "64px",
-    height: "44px",
+    aspectRatio: "16 / 10",
+    width: "100%",
     padding: 0,
     borderRadius: "8px",
     overflow: "hidden",
