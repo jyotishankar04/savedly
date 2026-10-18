@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AlarmClock, AlertCircle, ArrowLeft, Check, Clock, Folder, Inbox, RefreshCw, Search as SearchIcon, ExternalLink } from "lucide-react";
 import { apiFetch, ApiError } from "../lib/api";
 import { WEB_APP_URL } from "../lib/config";
@@ -57,8 +57,11 @@ export default function SidePanel() {
   }, []);
 
   // The page in the current tab, from what the content script told the background.
+  // The tab the panel follows, so a page it reports after the panel opened (still loading then) is picked up.
+  const followedTab = useRef<number | null>(null);
   const loadPage = useCallback(async (tabId?: number) => {
     const id = tabId ?? (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id;
+    followedTab.current = id ?? null;
     if (id == null) return setPage(null);
     chrome.runtime.sendMessage({ action: "GET_TAB_PAGE", tabId: id }, (found?: { url: string; title: string } | null) => {
       void chrome.runtime.lastError;
@@ -70,7 +73,7 @@ export default function SidePanel() {
     void loadPage();
     const onMessage = (request: { action?: string; tabId?: number; url?: string; title?: string }) => {
       if (request.action === "ACTIVE_TAB") void loadPage(request.tabId);
-      if (request.action === "TAB_PAGE") setPage((current) => (current && current.tabId === request.tabId ? { tabId: current.tabId, url: request.url!, title: request.title ?? "" } : current));
+      if (request.action === "TAB_PAGE" && request.tabId === followedTab.current) setPage({ tabId: request.tabId, url: request.url!, title: request.title ?? "" });
     };
     chrome.runtime.onMessage.addListener(onMessage);
     // Back from another window: things may have changed in the app.
