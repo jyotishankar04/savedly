@@ -20,6 +20,7 @@ import { FinalCtaSection } from "@/components/marketing/landing/final-cta-sectio
 import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
 import { Reveal, RevealList } from "@/components/marketing/motion/reveal";
 import { BrowserShot, FeatureShowcase, Shot, type ShowcaseFeature } from "@/components/marketing/extension/feature-showcase";
+import { LoopGallery, type Loop } from "@/components/marketing/extension/loop-gallery";
 import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 import { GITHUB_URL } from "@/lib/open-source";
 
@@ -91,7 +92,7 @@ const FEATURES: ShowcaseFeature[] = [
 ];
 
 /** Short looping recordings of the real extension (like the What's new cards), each with a still for reduced motion. */
-const LOOPS: { src: string; title: string; text: string }[] = [
+const LOOPS: Loop[] = [
   { src: "save", title: "Save a page", text: "Click the Savedly icon, take a suggestion, add a note, and save." },
   { src: "highlight", title: "Highlight a passage", text: "Select text, pick a colour, add a note. It's there when you come back." },
   { src: "panel", title: "Open the side panel", text: "Ctrl+Shift+E puts this page, search and your collections beside what you're reading." },
@@ -201,25 +202,11 @@ export default function ChromeExtensionPage() {
           <div className="mx-auto max-w-6xl">
             <Reveal>
               <h2 className={H2}>See it work</h2>
-              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">The extension in use, a few seconds each.</p>
+              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">The extension in use, a few seconds each. Click one to watch it large.</p>
             </Reveal>
-            <RevealList className="mt-12 grid gap-x-6 gap-y-10 md:grid-cols-2" gap={0.08}>
-              {LOOPS.map((loop) => (
-                <figure key={loop.src}>
-                  <div className="overflow-hidden rounded-2xl bg-muted ring-1 ring-foreground/[0.08]">
-                    <picture>
-                      <source media="(prefers-reduced-motion: reduce)" srcSet={`/extension/loops/${loop.src}-still.webp`} />
-                      {/* A plain img: an animated WebP, which the image optimizer would flatten to one frame. */}
-                      <img src={`/extension/loops/${loop.src}.webp`} alt={`${loop.title}: ${loop.text}`} width={1280} height={720} loading="lazy" decoding="async" className="block aspect-video h-auto w-full" />
-                    </picture>
-                  </div>
-                  <figcaption className="mt-4">
-                    <span className="block text-base font-medium text-foreground">{loop.title}</span>
-                    <span className="mt-1 block text-[15px] leading-relaxed text-muted-foreground">{loop.text}</span>
-                  </figcaption>
-                </figure>
-              ))}
-            </RevealList>
+            <Reveal className="mt-12" delay={0.1}>
+              <LoopGallery loops={LOOPS} />
+            </Reveal>
           </div>
         </section>
 
