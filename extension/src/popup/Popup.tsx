@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff, Search, PanelRight
+  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff, Search, PanelRight, Sparkles
 } from "lucide-react";
 import { SavedPanel } from "./SavedPanel";
 import { SearchPanel } from "./SearchPanel";
@@ -77,6 +77,7 @@ export default function Popup() {
   const [recentCollections, setRecentCollections] = useState<Collection[]>([]);
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [cover, setCover] = useState<string | null>(null);
+  const [coverOpen, setCoverOpen] = useState(false);
   // Pictures that failed to load (blocked, gone, not an image): never offered, never saved as the cover.
   const [brokenImages, setBrokenImages] = useState<string[]>([]);
   const coverChoices = (pageInfo?.images ?? []).filter((src) => !brokenImages.includes(src)).slice(0, 4);
@@ -511,199 +512,188 @@ export default function Popup() {
           "Take Screenshot" instead). Now this is just a preview; "Save to
           Savedly" below is the only thing that writes anything. */}
       {!searching && state === "ready" && (!existing || saveAgain) && (
-        <div style={styles.savedForm}>
-          {/* Quick capture-mode buttons — "Page" saves the tab as-is;
-              "Region" hands off to the drag-select overlay on the page
-              itself; "Full Shot" screenshots the whole current viewport
-              (not the whole scrollable page — see content-script.ts's
-              captureFullViewport). Room for more modes here later without
-              touching anything below, since note/tags/collections apply
-              regardless of which mode is picked. */}
-          <div style={styles.modeRow}>
-            <button
-              type="button"
-              title="Save this page as a link"
-              style={captureMode === "page" ? styles.modeButtonActive : styles.modeButton}
-              onClick={() => setCaptureMode("page")}
-            >
-              <FileText size={13} />
-              Page
-            </button>
-            <button
-              type="button"
-              title="Drag to screenshot part of the page"
-              style={captureMode === "screenshot" ? styles.modeButtonActive : styles.modeButton}
-              onClick={() => setCaptureMode("screenshot")}
-            >
-              <Camera size={13} />
-              Region
-            </button>
-            <button
-              type="button"
-              title="Screenshot the entire visible page"
-              style={captureMode === "fullscreenshot" ? styles.modeButtonActive : styles.modeButton}
-              onClick={() => setCaptureMode("fullscreenshot")}
-            >
-              <Maximize size={13} />
-              Visible
-            </button>
+        <div style={styles.form}>
+          {/* Page saves the tab as a link; Region hands off to the drag-select
+              overlay on the page; Visible screenshots the current viewport.
+              Note, tags and collections apply to all three. */}
+          <div style={styles.segmented} role="tablist" aria-label="What to save">
+            {(
+              [
+                ["page", "Page", FileText, "Save this page as a link"],
+                ["screenshot", "Region", Camera, "Drag to screenshot part of the page"],
+                ["fullscreenshot", "Visible", Maximize, "Screenshot what you can see"],
+              ] as const
+            ).map(([mode, label, Icon, title]) => (
+              <button key={mode} type="button" role="tab" aria-selected={captureMode === mode} title={title} style={captureMode === mode ? styles.segmentActive : styles.segment} onClick={() => setCaptureMode(mode)}>
+                <Icon size={13} />
+                {label}
+              </button>
+            ))}
           </div>
 
-          <div style={styles.previewBox}>
-            <TextTruncate text={pageInfo?.title || "Untitled"} lines={2} style={styles.previewTitle} />
-            <span style={styles.previewDomain}>{getDomain(pageInfo?.url)}</span>
-            {pageInfo?.description && (
-              <TextTruncate text={pageInfo.description} lines={2} style={styles.previewDescription} />
-            )}
-          </div>
-
-          {/* The cover: which picture shows on the card. The page's own is first. */}
-          {/* Hidden while there's no real choice; a picture that fails to load drops out. */}
-          {captureMode === "page" && coverChoices.length > 0 && (
-            <div style={{ ...styles.fieldGroup, ...(coverChoices.length < 2 ? { display: "none" } : {}) }}>
-              <label style={styles.fieldLabel}>COVER</label>
-              <div style={styles.coverGrid}>
-                {coverChoices.map((src) => {
-                  const chosen = chosenCover === src;
-                  return (
-                    <button key={src} type="button" title={src === pageInfo?.previewImage ? "The page's own picture" : "Use this picture"} aria-label={chosen ? "Cover picture (chosen)" : "Use this picture as the cover"} aria-pressed={chosen} style={{ ...styles.coverThumb, ...(chosen ? styles.coverThumbChosen : {}) }} onClick={() => setCover(src)}>
-                      <img
-                        src={src}
-                        alt=""
-                        referrerPolicy="no-referrer"
-                        onError={() => setBrokenImages((list) => (list.includes(src) ? list : [...list, src]))}
-                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
+          {/* The page, with the picture its card will show. */}
+          <div style={styles.pageCard}>
+            <div style={styles.pageThumb}>
+              {captureMode === "page" && chosenCover ? (
+                <img src={chosenCover} alt="" referrerPolicy="no-referrer" onError={() => setBrokenImages((list) => (list.includes(chosenCover) ? list : [...list, chosenCover]))} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              ) : captureMode !== "page" ? (
+                captureMode === "screenshot" ? <Camera size={18} color="#1447E6" /> : <Maximize size={18} color="#1447E6" />
+              ) : pageInfo?.favIconUrl ? (
+                <img src={pageInfo.favIconUrl} alt="" width={20} height={20} />
+              ) : (
+                <FileText size={18} color="#1447E6" />
+              )}
             </div>
-          )}
-
-          {/* What the AI suggests for this page: tap to use, never applied by itself. */}
-          {suggestion && (suggestion.collection || suggestion.tags.length > 0) && (
-            <div style={styles.fieldGroup}>
-              <label style={styles.fieldLabel}>SUGGESTED</label>
-              <div style={styles.tagsContainer}>
-                {suggestion.collection && (
-                  <button
-                    type="button"
-                    style={suggestion.collection.id && selectedCollectionIds.includes(suggestion.collection.id) ? styles.chipActive : styles.chip}
-                    onClick={() => void applySuggestedCollection()}
-                    title={suggestion.collection.isNew ? "Creates this collection" : "Add to this collection"}
-                  >
-                    📁 {suggestion.collection.name}
-                    {suggestion.collection.isNew ? " (new)" : ""}
+            <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+              <TextTruncate text={pageInfo?.title || "Untitled"} lines={2} style={styles.pageTitle} />
+              <div style={styles.pageMeta}>
+                {pageInfo?.favIconUrl && <img src={pageInfo.favIconUrl} alt="" width={12} height={12} style={{ borderRadius: 2, flexShrink: 0 }} />}
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {captureMode === "page" ? getDomain(pageInfo?.url) : captureMode === "screenshot" ? "Drag over the part you want" : "What you can see on the page"}
+                </span>
+                {captureMode === "page" && coverChoices.length > 1 && (
+                  <button type="button" style={styles.textLink} aria-expanded={coverOpen} onClick={() => setCoverOpen((open) => !open)}>
+                    {coverOpen ? "Done" : "Change cover"}
                   </button>
                 )}
-                {suggestion.tags.map((tag) => (
-                  <button key={tag} type="button" style={tags.includes(tag) ? styles.chipActive : styles.chip} onClick={() => setTags((list) => (list.includes(tag) ? list.filter((t) => t !== tag) : [...list, tag]))}>
-                    #{tag}
-                  </button>
-                ))}
               </div>
+            </div>
+          </div>
+
+          {/* The cover choices, the page's own picture first; one that fails to load drops out. */}
+          {captureMode === "page" && coverOpen && coverChoices.length > 1 && (
+            <div style={styles.coverGrid}>
+              {coverChoices.map((src) => {
+                const chosen = chosenCover === src;
+                return (
+                  <button key={src} type="button" title={src === pageInfo?.previewImage ? "The page's own picture" : "Use this picture"} aria-label={chosen ? "Cover picture (chosen)" : "Use this picture as the cover"} aria-pressed={chosen} style={{ ...styles.coverThumb, ...(chosen ? styles.coverThumbChosen : {}) }} onClick={() => setCover(src)}>
+                    <img
+                      src={src}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      onError={() => setBrokenImages((list) => (list.includes(src) ? list : [...list, src]))}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.fieldLabel}>ADD A NOTE</label>
-            <textarea
-              style={styles.textarea}
-              placeholder="Why are you saving this? (Add context to search later)"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+          <div style={styles.field}>
+            <label style={styles.label} htmlFor="savedly-note">
+              Note
+            </label>
+            <textarea id="savedly-note" style={styles.noteInput} rows={2} placeholder="Why are you saving this? It helps you find it later." value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
 
-          <button
-            style={styles.primaryButton}
-            onClick={
-              captureMode === "page" ? handleSave : captureMode === "screenshot" ? handleTakeScreenshot : handleFullPageScreenshot
-            }
-          >
-            {captureMode === "page"
-              ? "Save to Savedly"
-              : captureMode === "screenshot"
-                ? "Select Area & Save"
-                : "Capture Visible Screenshot"}
-          </button>
+          {/* Collections: the AI's suggestion first (never applied by itself), then the ones used most recently, then everything else under More. */}
+          <div style={{ ...styles.field, position: "relative" }} ref={collectionsRef}>
+            <span style={styles.label}>Collection</span>
+            <div style={styles.chipRow}>
+              {suggestion?.collection && (() => {
+                const pick = suggestion.collection;
+                const active = !!pick.id && selectedCollectionIds.includes(pick.id);
+                return (
+                  <button type="button" style={active ? styles.chipActive : styles.chipSuggested} onClick={() => (active ? toggleCollection(pick.id!) : void applySuggestedCollection())} title={pick.isNew ? "Suggested. Creates this collection" : "Suggested for this page"}>
+                    <Sparkles size={11} />
+                    {pick.name}
+                    {pick.isNew && <span style={{ opacity: 0.7, fontWeight: 600 }}>new</span>}
+                  </button>
+                );
+              })()}
+              {recentCollections
+                .filter((c) => c.id !== suggestion?.collection?.id)
+                .map((c) => (
+                  <button key={c.id} type="button" style={selectedCollectionIds.includes(c.id) ? styles.chipActive : styles.chip} onClick={() => toggleCollection(c.id)}>
+                    <span>{/^\p{Extended_Pictographic}/u.test(c.icon) ? c.icon : "📁"}</span>
+                    {c.name}
+                  </button>
+                ))}
+              {/* Picked from More but not shown above. */}
+              {collections
+                .filter((c) => selectedCollectionIds.includes(c.id) && c.id !== suggestion?.collection?.id && !recentCollections.some((r) => r.id === c.id))
+                .map((c) => (
+                  <button key={c.id} type="button" style={styles.chipActive} onClick={() => toggleCollection(c.id)}>
+                    <span>{/^\p{Extended_Pictographic}/u.test(c.icon) ? c.icon : "📁"}</span>
+                    {c.name}
+                  </button>
+                ))}
+              <button type="button" style={styles.chipGhost} aria-expanded={collectionsOpen} onClick={() => setCollectionsOpen((open) => !open)}>
+                All collections
+                <ChevronDown size={11} />
+              </button>
+            </div>
+                {collectionsOpen && (
+                  <div style={styles.dropdownMenu}>
+                    {collections.length === 0 ? (
+                      <div style={styles.dropdownEmpty}>No collections yet</div>
+                    ) : (
+                      [...collections]
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((collection) => {
+                          const isActive = selectedCollectionIds.includes(collection.id);
+                          return (
+                            <button type="button" key={collection.id} style={styles.dropdownItem} onClick={() => toggleCollection(collection.id)}>
+                              <Check size={12} color="#1447E6" style={{ visibility: isActive ? "visible" : "hidden", flexShrink: 0 }} />
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {/^\p{Extended_Pictographic}/u.test(collection.icon) ? collection.icon : "📁"} {collection.name}
+                              </span>
+                            </button>
+                          );
+                        })
+                    )}
+                  </div>
+                )}
+          </div>
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.fieldLabel}>TAGS</label>
-            <div style={styles.tagsContainer}>
+          {/* Tags: typed ones, plus the AI's suggestions to tap. */}
+          <div style={styles.field}>
+            <label style={styles.label} htmlFor="savedly-tags">
+              Tags
+            </label>
+            <div style={styles.tagField} onClick={() => document.getElementById("savedly-tags")?.focus()}>
               {tags.map((tag) => (
-                <button key={tag} style={styles.tagBadgeActive} onClick={() => removeTag(tag)}>
-                  {tag}
-                  <X size={10} style={{ marginLeft: 4 }} />
+                <button key={tag} type="button" style={styles.tagChip} onClick={() => removeTag(tag)} aria-label={`Remove tag ${tag}`}>
+                  #{tag}
+                  <X size={10} />
                 </button>
               ))}
               <input
-                style={styles.tagInput}
-                placeholder={tags.length === 0 ? "Add a tag, press Enter" : "Add another..."}
+                id="savedly-tags"
+                style={styles.tagFieldInput}
+                placeholder={tags.length === 0 ? "Add a tag and press Enter" : "Add another"}
                 value={tagDraft}
                 onChange={(e) => setTagDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === "Enter" || e.key === ",") {
                     e.preventDefault();
                     addTagFromDraft();
+                  } else if (e.key === "Backspace" && !tagDraft && tags.length > 0) {
+                    removeTag(tags[tags.length - 1]);
                   }
                 }}
                 onBlur={addTagFromDraft}
               />
             </div>
-          </div>
-
-          {/* Collection selection — a dropdown instead of a chip row, so it
-              doesn't grow with the user's collection count. */}
-          <div style={styles.fieldGroup} ref={collectionsRef}>
-            <label style={styles.fieldLabel}>ADD TO COLLECTION</label>
-            {recentCollections.length > 0 && (
-              <div style={{ ...styles.tagsContainer, marginBottom: 6 }}>
-                {recentCollections.map((c) => (
-                  <button key={c.id} type="button" style={selectedCollectionIds.includes(c.id) ? styles.chipActive : styles.chip} onClick={() => toggleCollection(c.id)}>
-                    {/^\p{Extended_Pictographic}/u.test(c.icon) ? c.icon : "📁"} {c.name}
-                  </button>
-                ))}
+            {suggestion && suggestion.tags.some((t) => !tags.includes(t)) && (
+              <div style={styles.chipRow}>
+                {suggestion.tags
+                  .filter((t) => !tags.includes(t))
+                  .map((tag) => (
+                    <button key={tag} type="button" style={styles.chipSuggestTag} onClick={() => setTags((list) => [...list, tag])} title="Suggested for this page">
+                      + {tag}
+                    </button>
+                  ))}
               </div>
             )}
-            <div style={{ position: "relative" }}>
-              <button type="button" style={styles.dropdownTrigger} onClick={() => setCollectionsOpen((open) => !open)}>
-                <span style={styles.dropdownTriggerText}>
-                  {selectedCollectionIds.length === 0
-                    ? "None"
-                    : collections
-                        .filter((c) => selectedCollectionIds.includes(c.id))
-                        .map((c) => c.name)
-                        .join(", ")}
-                </span>
-                <ChevronDown size={12} color="#8e8e93" />
-              </button>
-              {collectionsOpen && (
-                <div style={styles.dropdownMenu}>
-                  {collections.length === 0 ? (
-                    <div style={styles.dropdownEmpty}>No collections yet</div>
-                  ) : (
-                    collections.map((collection) => {
-                      const isActive = selectedCollectionIds.includes(collection.id);
-                      return (
-                        <button
-                          type="button"
-                          key={collection.id}
-                          style={styles.dropdownItem}
-                          onClick={() => toggleCollection(collection.id)}
-                        >
-                          <Check size={12} color="#1447E6" style={{ visibility: isActive ? "visible" : "hidden" }} />
-                          <span>
-                            {collection.icon} {collection.name}
-                          </span>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
+          </div>
+
+          {/* Always in reach, however long the form gets. */}
+          <div style={styles.footer}>
+            <button style={{ ...styles.primaryButton, width: "100%", height: "40px", fontSize: "13px" }} onClick={captureMode === "page" ? handleSave : captureMode === "screenshot" ? handleTakeScreenshot : handleFullPageScreenshot}>
+              {captureMode === "page" ? "Save to Savedly" : captureMode === "screenshot" ? "Select an area to save" : "Save what's visible"}
+            </button>
           </div>
         </div>
       )}
@@ -1062,12 +1052,12 @@ const styles = {
     zIndex: 10,
     display: "flex",
     flexDirection: "column" as const,
-    maxHeight: "140px",
+    maxHeight: "180px",
     overflowY: "auto" as const,
     border: "1px solid #e5e5ea",
-    borderRadius: "8px",
+    borderRadius: "12px",
     backgroundColor: "#ffffff",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
     padding: "4px",
   },
   dropdownItem: {
@@ -1088,30 +1078,237 @@ const styles = {
     color: "#8e8e93",
     padding: "6px 8px",
   },
+  form: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "14px",
+  },
+  segmented: {
+    display: "flex",
+    gap: "3px",
+    padding: "3px",
+    borderRadius: "11px",
+    backgroundColor: "#f2f2f5",
+  },
+  segment: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+    height: "30px",
+    border: "none",
+    borderRadius: "8px",
+    background: "transparent",
+    color: "#6b6b70",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  segmentActive: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+    height: "30px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#ffffff",
+    color: "#1c1c1e",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04)",
+  },
+  pageCard: {
+    display: "flex",
+    gap: "12px",
+    alignItems: "center",
+    padding: "10px",
+    borderRadius: "14px",
+    border: "1px solid #ececf0",
+    backgroundColor: "#fafafb",
+  },
+  pageThumb: {
+    width: "56px",
+    height: "56px",
+    flexShrink: 0,
+    borderRadius: "10px",
+    overflow: "hidden",
+    backgroundColor: "#e8eefc",
+    display: "grid",
+    placeItems: "center",
+  },
+  pageTitle: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#1c1c1e",
+    lineHeight: "17px",
+  },
+  pageMeta: {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+    fontSize: "11px",
+    color: "#8e8e93",
+    minWidth: 0,
+  },
+  textLink: {
+    marginLeft: "auto",
+    flexShrink: 0,
+    background: "none",
+    border: "none",
+    padding: 0,
+    color: "#1447E6",
+    fontSize: "11px",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  field: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "6px",
+    minWidth: 0,
+  },
+  label: {
+    fontSize: "11.5px",
+    fontWeight: 650,
+    color: "#3a3a3c",
+  },
+  noteInput: {
+    width: "100%",
+    boxSizing: "border-box" as const,
+    resize: "vertical" as const,
+    minHeight: "54px",
+    border: "1px solid #e5e5ea",
+    borderRadius: "10px",
+    backgroundColor: "#fafafb",
+    padding: "8px 10px",
+    fontSize: "12px",
+    lineHeight: "17px",
+    color: "#1c1c1e",
+    fontFamily: "inherit",
+    outline: "none",
+  },
+  chipRow: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    gap: "6px",
+  },
+  chipSuggested: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    height: "26px",
+    fontSize: "11.5px",
+    fontWeight: 600,
+    color: "#1447E6",
+    backgroundColor: "#ffffff",
+    border: "1px dashed #9db4f5",
+    borderRadius: "999px",
+    padding: "0 10px",
+    cursor: "pointer",
+  },
+  chipGhost: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    height: "26px",
+    fontSize: "11.5px",
+    fontWeight: 600,
+    color: "#6b6b70",
+    backgroundColor: "#f2f2f5",
+    border: "1px solid transparent",
+    borderRadius: "999px",
+    padding: "0 10px",
+    cursor: "pointer",
+  },
+  chipSuggestTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    height: "24px",
+    fontSize: "11px",
+    fontWeight: 600,
+    color: "#6b6b70",
+    backgroundColor: "transparent",
+    border: "1px dashed #d1d1d6",
+    borderRadius: "999px",
+    padding: "0 9px",
+    cursor: "pointer",
+  },
+  tagField: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    alignItems: "center",
+    gap: "5px",
+    minHeight: "36px",
+    boxSizing: "border-box" as const,
+    padding: "5px 8px",
+    border: "1px solid #e5e5ea",
+    borderRadius: "10px",
+    backgroundColor: "#fafafb",
+    cursor: "text",
+  },
+  tagChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    height: "22px",
+    padding: "0 7px",
+    border: "none",
+    borderRadius: "6px",
+    backgroundColor: "#e8eefc",
+    color: "#1447E6",
+    fontSize: "11px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  tagFieldInput: {
+    flex: 1,
+    minWidth: "90px",
+    border: "none",
+    outline: "none",
+    background: "transparent",
+    fontSize: "12px",
+    color: "#1c1c1e",
+    padding: "3px 2px",
+  },
+  footer: {
+    position: "sticky" as const,
+    bottom: 0,
+    margin: "0 -16px -16px",
+    padding: "12px 16px 16px",
+    backgroundColor: "#ffffff",
+    borderTop: "1px solid #f0f0f3",
+    zIndex: 2,
+  },
   chip: {
     display: "inline-flex",
     alignItems: "center",
     gap: "4px",
-    fontSize: "11px",
+    height: "26px",
+    fontSize: "11.5px",
     fontWeight: 600,
     color: "#1c1c1e",
     backgroundColor: "#ffffff",
     border: "1px solid #e5e5ea",
     borderRadius: "999px",
-    padding: "4px 10px",
+    padding: "0 10px",
     cursor: "pointer",
   },
   chipActive: {
     display: "inline-flex",
     alignItems: "center",
     gap: "4px",
-    fontSize: "11px",
+    height: "26px",
+    fontSize: "11.5px",
     fontWeight: 700,
     color: "#1447E6",
     backgroundColor: "#e8eefc",
-    border: "1px solid #1447E6",
+    border: "1px solid #9db4f5",
     borderRadius: "999px",
-    padding: "4px 10px",
+    padding: "0 10px",
     cursor: "pointer",
   },
   coverGrid: {
