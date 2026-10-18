@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
+import { memoryDragProps } from "@/lib/memory-drag";
 import { QueryErrorState } from "@/components/query-error-state";
 import type { Memory } from "@/types/memory";
 
@@ -301,6 +302,8 @@ function MemoryCard({ item }: { item: Memory }) {
   return (
     <Link
       href={`/app/memories/${item.id}`}
+      // Drag onto a collection in the sidebar, and J/K and the other list keys, as on the Memories page.
+      {...memoryDragProps({ id: item.id, title: item.title, selected: false })}
       className="group flex flex-col rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
       <MemoryThumbnail item={item} className="rounded-xl" />
@@ -370,6 +373,7 @@ function RediscoverCard({ item }: { item: Memory }) {
       </h2>
       <Link
         href={`/app/memories/${item.id}`}
+        {...memoryDragProps({ id: item.id, title: item.title, selected: false })}
         className="group mt-3 flex flex-1 gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <div className="w-32 shrink-0 sm:w-36">
