@@ -21,6 +21,7 @@ import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
 import { Reveal, RevealList } from "@/components/marketing/motion/reveal";
 import { BrowserShot, FeatureShowcase, Shot, type ShowcaseFeature } from "@/components/marketing/extension/feature-showcase";
 import { LoopGallery, type Loop } from "@/components/marketing/extension/loop-gallery";
+import { QuickWays } from "@/components/marketing/extension/quick-ways";
 import { CHROME_WEB_STORE_URL } from "@/lib/extension";
 import { GITHUB_URL } from "@/lib/open-source";
 
@@ -36,7 +37,6 @@ export const metadata: Metadata = {
 // defaults from extension/public/manifest.json; people can change them.
 
 const H2 = "font-serif text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.08] tracking-[-0.025em] text-balance text-foreground";
-const KBD = "inline-grid h-7 min-w-7 place-items-center rounded-md border border-b-2 border-foreground/15 bg-card px-2 font-mono text-[12px] font-semibold text-foreground";
 
 const icon = (svg: typeof ChromeIcon) => <HugeiconsIcon icon={svg} strokeWidth={2} />;
 
@@ -218,56 +218,9 @@ export default function ChromeExtensionPage() {
                 <h2 className={H2}>Quicker ways in</h2>
                 <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">For when even opening the popup is one step too many.</p>
               </Reveal>
-              <RevealList className="mt-12 grid gap-3 sm:grid-cols-2" gap={0.08}>
-                <div className="h-full rounded-2xl bg-card p-6 ring-1 ring-foreground/[0.07]">
-                  <h3 className="text-base font-medium text-foreground">The right-click menu</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">Right-click anywhere and choose Save to Savedly:</p>
-                  <ul className="mt-4 grid gap-2 text-[15px] text-foreground">
-                    {["Save this page, a link, an image, or the text you selected", "Save to collection: your five most recent, one click away", "Capture a screenshot of an area or the whole page", "Open the Savedly side panel"].map((item) => (
-                      <li key={item} className="flex gap-2.5">
-                        <span aria-hidden className="mt-2.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="h-full rounded-2xl bg-card p-6 ring-1 ring-foreground/[0.07]">
-                  <h3 className="text-base font-medium text-foreground">Keyboard shortcuts</h3>
-                  <dl className="mt-4 grid gap-3 text-[15px]">
-                    {(
-                      [
-                        ["Save the page", ["Ctrl", "Shift", "S"]],
-                        ["Open the side panel", ["Ctrl", "Shift", "E"]],
-                        ["Highlight the selection", ["Alt", "H"]],
-                      ] as const
-                    ).map(([label, keys]) => (
-                      <div key={label} className="flex items-center justify-between gap-4 border-b border-foreground/10 pb-3 last:border-b-0 last:pb-0">
-                        <dt className="text-foreground">{label}</dt>
-                        <dd className="flex gap-1">
-                          {keys.map((k) => (
-                            <kbd key={k} className={KBD}>
-                              {k}
-                            </kbd>
-                          ))}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">On a Mac, ⌘ instead of Ctrl and ⌥ instead of Alt. Change them in Chrome&apos;s extension shortcuts.</p>
-                </div>
-                <div className="h-full rounded-2xl bg-card p-6 ring-1 ring-foreground/[0.07]">
-                  <h3 className="text-base font-medium text-foreground">From the address bar</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-                    Type <kbd className={KBD}>sv</kbd> and a space, then what you remember. Matches from your library appear as you type; pick one to open it, or press Enter to see every result in Savedly.
-                  </p>
-                </div>
-                <div className="h-full rounded-2xl bg-card p-6 ring-1 ring-foreground/[0.07]">
-                  <h3 className="text-base font-medium text-foreground">Already saved?</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-                    A ✓ on the Savedly icon means the page you&apos;re on is in your library. Click it to see what Savedly made of it, put it in your Inbox, or set a reminder.
-                  </p>
-                </div>
-              </RevealList>
+              <Reveal className="mt-12" delay={0.1}>
+                <QuickWays />
+              </Reveal>
             </div>
           </div>
         </section>
