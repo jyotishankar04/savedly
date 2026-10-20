@@ -700,13 +700,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 const tabPageKey = (tabId: number) => `tab-page:${tabId}`;
+const tabLoadKey = (tabId: number) => `tab-load:${tabId}`;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "PAGE_SEEN" && sender.tab?.id != null && typeof request.url === "string") {
-    const page = { url: request.url, title: typeof request.title === "string" ? request.title : "" };
+  if ((request.action === "PAGE_SEEN" || request.action === "PAGE_TITLE") && sender.tab?.id != null && typeof request.url === "string") {
+    const page = { url: request.url, title: typeof request.title === "string" ? request.title : "", at: Date.now() };
     void chrome.storage.session.set({ [tabPageKey(sender.tab.id)]: page });
     // The panel, if it's open, follows navigation in the tab it shows.
-    chrome.runtime.sendMessage({ action: "TAB_PAGE", tabId: sender.tab.id, ...page }, () => void chrome.runtime.lastError);
+    chrome.runtime.sendMessage({ action: "TAB_PAGE", tabId: sender.tab.id, windowId: sender.tab.windowId, url: page.url, title: page.title }, () => void chrome.runtime.lastError);
     return undefined;
   }
   if (request.action === "GET_TAB_PAGE" && typeof request.tabId === "number") {
@@ -720,10 +721,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return undefined;
 });
 
-chrome.tabs.onActivated.addListener(({ tabId }) => {
-  chrome.runtime.sendMessage({ action: "ACTIVE_TAB", tabId }, () => void chrome.runtime.lastError);
+chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
+  chrome.runtime.sendMessage({ action: "ACTIVE_TAB", tabId, windowId }, () => void chrome.runtime.lastError);
 });
-chrome.tabs.onRemoved.addListener((tabId) => void chrome.storage.session.remove(tabPageKey(tabId)));
+chrome.tabs.onRemoved.addListener((tabId) => void chrome.storage.session.remove([tabPageKey(tabId), tabLoadKey(tabId)]));
+
+// Pages the content script can't run on (the new tab page, chrome://, the Web
+// Store) never report themselves, so the panel would keep showing the page
+// before. When a tab finishes loading and nothing reported since it started,
+// the tab is asked which page it's on: the content script answers; no answer
+// means there's no web page in it. (A "loading" status also comes when a page
+// only rewrites its own address, as Next.js does on every load, hence asking
+// rather than assuming. Status changes arrive without the "tabs" permission;
+// only the address and title are withheld.)
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
+  if (info.status === "loading") void chrome.storage.session.set({ [tabLoadKey(tabId)]: Date.now() });
+  if (info.status !== "complete") return;
+  setTimeout(async () => {
+    const stored = await chrome.storage.session.get([tabPageKey(tabId), tabLoadKey(tabId)]);
+    const page = stored[tabPageKey(tabId)] as { at?: number } | undefined;
+    const loadedAt = stored[tabLoadKey(tabId)] as number | undefined;
+    if (loadedAt == null || (page?.at ?? 0) >= loadedAt) return;
+    chrome.tabs.sendMessage(tabId, { action: "WHICH_PAGE" }, { frameId: 0 }, (reply?: { url?: string; title?: string }) => {
+      const url = !chrome.runtime.lastError && typeof reply?.url === "string" ? reply.url : null;
+      if (url) void chrome.storage.session.set({ [tabPageKey(tabId)]: { url, title: reply?.title ?? "", at: Date.now() } });
+      else void chrome.storage.session.remove(tabPageKey(tabId));
+      chrome.runtime.sendMessage({ action: "TAB_PAGE", tabId, windowId: tab.windowId, url, title: url ? (reply?.title ?? "") : null }, () => void chrome.runtime.lastError);
+    });
+  }, 1200);
+});
 
 // --- Right-click "Save to collection ▸" ----------------------------------------
 // The five collections filed into most recently, one click away for the page

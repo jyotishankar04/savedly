@@ -578,21 +578,45 @@ if (location.origin === __WEB_APP_URL__) {
 refreshFloatingButtonVisibility();
 
 // Tells the background which page this is, so the toolbar icon can show a
-// check mark when it's already saved. The check itself happens in the
-// extension (lib/saved-pages.ts); the address isn't sent to Savedly.
-// Single-page apps change the address without reloading, hence the poll.
+// check mark when it's already saved and the side panel can follow along.
+// The check itself happens in the extension (lib/saved-pages.ts); the
+// address isn't sent to Savedly. A new address is PAGE_SEEN; the same
+// address with a new title (single-page apps often set it a moment after
+// the address) is PAGE_TITLE, which only the side panel cares about.
 let reportedUrl = "";
-function reportPage(): void {
-  if (location.href === reportedUrl) return;
-  reportedUrl = location.href;
+let reportedTitle = "";
+function reportPage(force = false): void {
+  const url = location.href;
+  const title = document.title;
+  const action = force || url !== reportedUrl ? "PAGE_SEEN" : title !== reportedTitle ? "PAGE_TITLE" : null;
+  if (!action) return;
+  reportedUrl = url;
+  reportedTitle = title;
   try {
-    chrome.runtime.sendMessage({ action: "PAGE_SEEN", url: location.href, title: document.title }, () => void chrome.runtime.lastError);
+    chrome.runtime.sendMessage({ action, url, title }, () => void chrome.runtime.lastError);
   } catch {
     // The extension was reloaded or updated: this page's script is orphaned until it reloads.
   }
 }
 reportPage();
-setInterval(reportPage, 1500);
+// Single-page apps change the address without reloading: straight away where
+// the Navigation API says so, with the poll as the fallback (and for titles).
+setInterval(reportPage, 1000);
+(window as unknown as { navigation?: EventTarget }).navigation?.addEventListener("navigatesuccess", () => reportPage());
+window.addEventListener("popstate", () => reportPage());
+// A new title (often set just after the address changes) shows in the side panel straight away.
+if (document.head) new MutationObserver(() => document.title !== reportedTitle && reportPage()).observe(document.head, { childList: true, subtree: true, characterData: true });
+// Back or Forward brought this page back from the cache: its script didn't
+// run again, and the tab has been showing another page since.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) reportPage(true);
+});
+// The background asking which page this is (after a load it heard nothing about).
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  if (request.action !== "WHICH_PAGE") return undefined;
+  sendResponse({ url: location.href, title: document.title });
+  return undefined;
+});
 
 // --- Highlights ---------------------------------------------------------------
 //

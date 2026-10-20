@@ -59,6 +59,8 @@ export default function SidePanel() {
   // The page in the current tab, from what the content script told the background.
   // The tab the panel follows, so a page it reports after the panel opened (still loading then) is picked up.
   const followedTab = useRef<number | null>(null);
+  // The panel belongs to one window; tab changes in other windows aren't its business.
+  const ownWindow = useRef<number | null>(null);
   const loadPage = useCallback(async (tabId?: number) => {
     const id = tabId ?? (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id;
     followedTab.current = id ?? null;
@@ -71,9 +73,16 @@ export default function SidePanel() {
 
   useEffect(() => {
     void loadPage();
-    const onMessage = (request: { action?: string; tabId?: number; url?: string; title?: string }) => {
-      if (request.action === "ACTIVE_TAB") void loadPage(request.tabId);
-      if (request.action === "TAB_PAGE" && request.tabId === followedTab.current) setPage({ tabId: request.tabId, url: request.url!, title: request.title ?? "" });
+    chrome.windows.getCurrent((win) => {
+      ownWindow.current = win?.id ?? null;
+    });
+    const mine = (windowId?: number) => windowId == null || ownWindow.current == null || windowId === ownWindow.current;
+    const onMessage = (request: { action?: string; tabId?: number; windowId?: number; url?: string | null; title?: string | null }) => {
+      if (request.action === "ACTIVE_TAB" && mine(request.windowId)) void loadPage(request.tabId);
+      if (request.action === "TAB_PAGE" && request.tabId === followedTab.current) {
+        // No address: the tab moved to a page the extension can't see (a new tab, chrome://).
+        setPage(request.url ? { tabId: request.tabId, url: request.url, title: request.title ?? "" } : null);
+      }
     };
     chrome.runtime.onMessage.addListener(onMessage);
     // Back from another window: things may have changed in the app.
