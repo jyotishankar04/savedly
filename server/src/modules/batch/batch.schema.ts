@@ -52,6 +52,20 @@ export const batchUncollectInputSchema = z.object({
 
 export type BatchUncollectInput = z.infer<typeof batchUncollectInputSchema>;
 
+// The Inbox: mark read (or unread again).
+export const batchReadInputSchema = z.object({
+  memoryIds: z.array(z.string().uuid()).min(1),
+  read: z.boolean(),
+});
+export type BatchReadInput = z.infer<typeof batchReadInputSchema>;
+
+// "Remind me": when they come back, with an offset; null cancels the reminders.
+export const batchRemindInputSchema = z.object({
+  memoryIds: z.array(z.string().uuid()).min(1),
+  remindAt: z.string().datetime({ offset: true }).nullable(),
+});
+export type BatchRemindInput = z.infer<typeof batchRemindInputSchema>;
+
 export const batchDeleteCollectionsInputSchema = z.object({
   collectionIds: z.array(z.string().uuid()).min(1),
   // "keep": the memories stay in the library. "trash": they go to Trash too.

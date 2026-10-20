@@ -5,6 +5,7 @@ import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
+import { researchForPrompt } from "./research-context";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 
 interface Insights {
@@ -37,6 +38,9 @@ Content:
 
 Context (title / domain / URL / caption — use this to ground your answer, especially if the content above is empty or minimal):
 {context}
+
+What a web search found it to be (when the saved text is just a name or the page couldn't be read; build the title, summary and tags on this, not on a guess from the words):
+{research}
 
 Inferred intent: {inferredIntent} (category: {resourceCategory})
 Content type: {contentType}
@@ -73,6 +77,7 @@ export async function generateAiInsights(state: IngestionStateType): Promise<Ing
     {
       content: wrapUntrusted((state.rawContent || "(none captured)").slice(0, 4000), "saved content"),
       context: wrapUntrusted(context, "title and address"),
+      research: researchForPrompt(state),
       inferredIntent: state.inferredIntent ?? "",
       resourceCategory: state.resourceCategory ?? "",
       contentType: state.contentType ?? "",

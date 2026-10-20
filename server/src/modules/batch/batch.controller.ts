@@ -8,6 +8,8 @@ import {
   batchRestoreMemories,
   batchUpdateMemoryStatus,
   batchUncollectMemories,
+  batchSetRead,
+  batchSetReminder,
   batchDeleteCollections,
   batchMergeCollections,
   batchVaultCollections,
@@ -44,6 +46,8 @@ export class BatchController {
   static restoreMemories = batchHandler(memoryIds, batchRestoreMemories);
   static updateStatus = batchHandler(memoryIds, batchUpdateMemoryStatus);
   static uncollectMemories = batchHandler(memoryIds, batchUncollectMemories);
+  static readMemories = batchHandler(memoryIds, batchSetRead);
+  static remindMemories = batchHandler(memoryIds, batchSetReminder);
   static deleteCollections = batchHandler(collectionIds, batchDeleteCollections);
   static mergeCollections = batchHandler(collectionIds, batchMergeCollections);
   static vaultCollections = batchHandler(collectionIds, batchVaultCollections);

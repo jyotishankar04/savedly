@@ -16,6 +16,8 @@ import { updateManyMemoriesTool } from "./update-many-memories";
 import { listUpcomingEventsTool } from "./list-upcoming-events";
 import { updateEventTool } from "./update-event";
 import { removeEventTool } from "./remove-event";
+import { searchWebTool } from "./search-web";
+import { setReminderTool } from "./set-reminder";
 
 // Adding a future tool is a new file + one entry here — no graph changes
 // needed (see nodes/agent.ts).
@@ -41,6 +43,10 @@ export const tools = [
   listUpcomingEventsTool,
   updateEventTool,
   removeEventTool,
+  // Reminders ("Remind me")
+  setReminderTool,
+  // The web, for what saved memories don't hold
+  searchWebTool,
 ];
 
 export { ragToolContextSchema, type RAGToolContext } from "./search-memories";

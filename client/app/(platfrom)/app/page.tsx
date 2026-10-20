@@ -15,15 +15,17 @@ import {
   PuzzleIcon as Puzzle,
   HistoryIcon as History,
   PlusSignIcon as Plus,
+  InboxIcon,
 } from "@hugeicons/core-free-icons";
 import { useUser } from "@/context/UserContext";
-import { useMemoriesQuery, useCollectionsQuery } from "@/context/MemoryContext";
+import { useMemoriesQuery, useCollectionsQuery, useInboxCountQuery } from "@/context/MemoryContext";
 import { useInsightsQuery } from "@/hooks/use-insights";
 import { humanizeLabel } from "@/lib/insights";
 import { Skeleton } from "@/components/ui/skeleton";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
+import { memoryDragProps } from "@/lib/memory-drag";
 import { QueryErrorState } from "@/components/query-error-state";
 import type { Memory } from "@/types/memory";
 
@@ -169,6 +171,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <InboxCard />
+
       {/* Quick save */}
       <section aria-labelledby="home-save" className="space-y-3">
         <h2 id="home-save" className="text-sm font-medium text-muted-foreground">Save something</h2>
@@ -298,6 +302,8 @@ function MemoryCard({ item }: { item: Memory }) {
   return (
     <Link
       href={`/app/memories/${item.id}`}
+      // Drag onto a collection in the sidebar, and J/K and the other list keys, as on the Memories page.
+      {...memoryDragProps({ id: item.id, title: item.title, selected: false })}
       className="group flex flex-col rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
       <MemoryThumbnail item={item} className="rounded-xl" />
@@ -367,6 +373,7 @@ function RediscoverCard({ item }: { item: Memory }) {
       </h2>
       <Link
         href={`/app/memories/${item.id}`}
+        {...memoryDragProps({ id: item.id, title: item.title, selected: false })}
         className="group mt-3 flex flex-1 gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <div className="w-32 shrink-0 sm:w-36">
@@ -379,5 +386,33 @@ function RediscoverCard({ item }: { item: Memory }) {
         </div>
       </Link>
     </div>
+  );
+}
+
+/** What's waiting to be read: the count, and the first few, linking to the Inbox. Hidden when there's nothing. */
+function InboxCard() {
+  const unread = useInboxCountQuery().data?.unread ?? 0;
+  const { data } = useMemoriesQuery({ inbox: true, limit: 3 });
+  const first = data?.items ?? [];
+  if (unread === 0 || first.length === 0) return null;
+  return (
+    <section aria-labelledby="home-inbox" className="space-y-3">
+      <SectionHeader id="home-inbox" title="To read or watch" href="/app/inbox" />
+      <Link
+        href="/app/inbox"
+        className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <HugeiconsIcon icon={InboxIcon} strokeWidth={2} className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-foreground">
+            {unread} unread in your Inbox
+          </span>
+          <span className="block truncate text-[13px] text-muted-foreground">{first.map((m) => m.title).join(" · ")}</span>
+        </span>
+        <span className="shrink-0 text-xs font-medium text-primary group-hover:underline">Open Inbox</span>
+      </Link>
+    </section>
   );
 }

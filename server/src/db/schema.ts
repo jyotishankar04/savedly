@@ -49,6 +49,7 @@ import {
   ShareLinkAccess,
   ShareResourceType,
   UserStatus,
+  HighlightColor,
 } from "./enums";
 
 export const userStatusEnum = pgEnum("user_status", [
@@ -150,6 +151,7 @@ export const planLimitTypeEnum = pgEnum("plan_limit_type", [
   PlanLimitType.AI_MONTHLY_SAVES,
   PlanLimitType.MAX_FILE_MB,
   PlanLimitType.IMPORT_MONTHLY_COUNT,
+  PlanLimitType.WEB_SEARCH_MONTHLY,
 ]);
 
 // SEMI_ANNUAL was missing here even though it's a real PlanBillingInterval
@@ -204,6 +206,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   NotificationType.SHARE_REVOKED,
   NotificationType.EVENT_DETECTED,
   NotificationType.DUPLICATE_DETECTED,
+  NotificationType.MEMORY_REMINDER,
 ]);
 
 export const planAssignmentStatusEnum = pgEnum("plan_assignment_status", [
@@ -239,6 +242,7 @@ export const emailTemplateKeyEnum = pgEnum("email_template_key", [
   EmailTemplateKey.SHARE_ACCESS_DENIED,
   EmailTemplateKey.ADMIN_CUSTOM,
   EmailTemplateKey.EVENT_DETECTED,
+  EmailTemplateKey.MEMORY_REMINDER,
 ]);
 
 export const emailStatusEnum = pgEnum("email_status", [
@@ -634,6 +638,8 @@ export const userSettings = pgTable("user_settings", {
   captureSuggestTags: boolean("capture_suggest_tags").notNull().default(true),
   notifyWeeklySummary: boolean("notify_weekly_summary").notNull().default(true),
   notifyForgottenMemories: boolean("notify_forgotten_memories").notNull().default(true),
+  // Emails for reminders set with "Remind me" (the in-app notification always comes).
+  notifyReminderEmails: boolean("notify_reminder_emails").notNull().default(true),
   notifyProductUpdates: boolean("notify_product_updates").notNull().default(false),
   // Set when the user opts out of announcement emails (the link in the email,
   // or Settings > Notifications). Null means they get them. Account emails,
@@ -743,6 +749,15 @@ export const memories = pgTable(
     // restored). Drives the 15-day safety window before the purge job hard-
     // deletes it — see modules/memory/trash-purge.job.ts.
     trashedAt: timestamp("trashed_at", { withTimezone: true }),
+    // The Inbox (read later). Null = unread: links, videos, documents and
+    // pictures start unread; notes and voice memos (written by the user) start
+    // read. Opening it, or "Mark as read", sets it; a due reminder clears it.
+    readAt: timestamp("read_at", { withTimezone: true }),
+    // "Remind me": when it should come back. Until then it's snoozed (hidden
+    // from the Inbox); at that time the reminder job makes it unread again,
+    // notifies, records remindedAt and clears this.
+    remindAt: timestamp("remind_at", { withTimezone: true }),
+    remindedAt: timestamp("reminded_at", { withTimezone: true }),
     // Hidden from every normal read path (list/search/graph/insights/share)
     // until the vault PIN is unlocked — see modules/vault/. Also set true
     // automatically when the memory belongs to a vaulted collection (see
@@ -791,11 +806,21 @@ export const memories = pgTable(
     // text for that type (e.g. a recipe's ingredients, a task's due date).
     contentType: text("content_type"),
     extractedFields: jsonb("extracted_fields"),
+    // What the research step looked up on the web to understand this memory
+    // (a bare name like a film or a book): the query, what it found, and the
+    // pages, shown under "What Savedly understood". Null when it didn't search.
+    // Every highlight's passage and note, kept by the highlights service, so the
+    // keyword search (fts_tokens' trigger) finds a memory by what was highlighted.
+    highlightsText: text("highlights_text"),
+    webResearch: jsonb("web_research").$type<{ query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string }>(),
   },
   (table) => [
     index("idx_memories_user_id").on(table.userId),
     index("idx_memories_user_created").on(table.userId, table.createdAt),
     index("idx_memories_user_normalized_url").on(table.userId, table.normalizedUrl),
+    // The reminder job's sweep, and the Inbox's unread list.
+    index("idx_memories_remind_at").on(table.remindAt).where(sql`${table.remindAt} IS NOT NULL`),
+    index("idx_memories_user_unread").on(table.userId, table.createdAt).where(sql`${table.readAt} IS NULL`),
     // The purge job's whole query is "trashed items older than the cutoff" —
     // partial so it stays tiny (almost every memory has in_trash = false).
     index("idx_memories_trashed_at").on(table.trashedAt).where(sql`${table.inTrash} = true`),
@@ -819,6 +844,40 @@ export const collectionMemories = pgTable(
     primaryKey({ columns: [table.collectionId, table.memoryId] }),
     index("idx_collection_memories_memory_id").on(table.memoryId),
   ]
+);
+
+// -----------------------------------------------------------------------------
+// Highlights: passages marked on a saved page (the extension's highlighter).
+// prefix/suffix are a few dozen characters on either side, so the passage can
+// be found again on the page when it's revisited, even if it repeats.
+// -----------------------------------------------------------------------------
+export const highlightColorEnum = pgEnum("highlight_color", [
+  HighlightColor.YELLOW,
+  HighlightColor.GREEN,
+  HighlightColor.BLUE,
+  HighlightColor.PINK,
+  HighlightColor.PURPLE,
+]);
+
+export const memoryHighlights = pgTable(
+  "memory_highlights",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    memoryId: uuid("memory_id")
+      .notNull()
+      .references(() => memories.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    text: text("text").notNull(),
+    prefix: text("prefix").notNull().default(""),
+    suffix: text("suffix").notNull().default(""),
+    color: highlightColorEnum("color").notNull().default(HighlightColor.YELLOW),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_memory_highlights_memory").on(table.memoryId), index("idx_memory_highlights_user").on(table.userId)],
 );
 
 // -----------------------------------------------------------------------------

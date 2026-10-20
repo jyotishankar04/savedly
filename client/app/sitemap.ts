@@ -24,6 +24,7 @@ const MARKETING_PAGES: { path: string; priority: number }[] = [
   { path: "", priority: 1 },
   { path: "/features", priority: 0.9 },
   { path: "/how-it-works", priority: 0.9 },
+  { path: "/chrome-extension", priority: 0.8 },
   { path: "/pricing", priority: 0.9 },
   { path: "/vs", priority: 0.8 },
   { path: "/blog", priority: 0.8 },

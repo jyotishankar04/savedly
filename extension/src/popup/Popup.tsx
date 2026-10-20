@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff
+  Check, AlertCircle, RefreshCw, Settings, ExternalLink, X, Camera, FileText, ChevronDown, Maximize, Eye, EyeOff, Search, PanelRight, Sparkles
 } from "lucide-react";
+import { SavedPanel } from "./SavedPanel";
+import { SearchPanel } from "./SearchPanel";
+import { timeAgo } from "../lib/remind";
 import { apiFetch, ApiError } from "../lib/api";
-import { SHOW_FLOATING_ICON_STORAGE_KEY, SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
+import { API_BASE, SHOW_FLOATING_ICON_STORAGE_KEY, SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
 
-type ExtensionState = "checking" | "unauthorized" | "ready" | "saving" | "saved" | "error";
+type ExtensionState = "checking" | "unauthorized" | "unreachable" | "notWebPage" | "ready" | "saving" | "saved" | "error";
 
 interface PageInfo {
   url: string;
@@ -14,12 +17,28 @@ interface PageInfo {
   description?: string;
   previewImage?: string;
   keywords?: string;
+  /** Pictures on the page that could be the cover, best first. */
+  images?: string[];
+}
+
+/** POST /memories/suggest: where this page could go, before it's saved. */
+interface Suggestion {
+  collection: { id: string | null; name: string; isNew: boolean } | null;
+  tags: string[];
 }
 
 interface CreatedMemory {
   id: string;
   title: string;
   duplicateOf: { id: string; title: string } | null;
+}
+
+/** GET /memories/lookup: this page, when it's already in the library. */
+interface SavedPage {
+  id: string;
+  title: string;
+  createdAt: string;
+  collections: { id: string; name: string }[];
 }
 
 interface Collection {
@@ -49,6 +68,21 @@ export default function Popup() {
   // window is focused at that exact moment) that this sidesteps entirely.
   const activeTabIdRef = useRef<number | null>(null);
   const [showFloatingIcon, setShowFloatingIcon] = useState(true);
+  // Search instead of saving, from the header's search button.
+  const [searching, setSearching] = useState(false);
+  // This page is already saved: show it, unless they choose to save it again.
+  const [existing, setExisting] = useState<SavedPage | null>(null);
+  const [saveAgain, setSaveAgain] = useState(false);
+  // The smarter save form: one-tap recent collections, AI suggestions, a cover picture.
+  const [recentCollections, setRecentCollections] = useState<Collection[]>([]);
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [cover, setCover] = useState<string | null>(null);
+  const [coverOpen, setCoverOpen] = useState(false);
+  // Pictures that failed to load (blocked, gone, not an image): never offered, never saved as the cover.
+  const [brokenImages, setBrokenImages] = useState<string[]>([]);
+  const coverChoices = (pageInfo?.images ?? []).filter((src) => !brokenImages.includes(src)).slice(0, 4);
+  const chosenCover = cover && coverChoices.includes(cover) ? cover : (coverChoices[0] ?? null);
+  const coverUrl = chosenCover ?? (pageInfo?.previewImage && !brokenImages.includes(pageInfo.previewImage) ? pageInfo.previewImage : undefined);
 
   // The floating on-page button defaults to shown, so it only needs
   // reading here (not writing) unless the user actually toggles it —
@@ -118,32 +152,70 @@ export default function Popup() {
     // Savedly (it checks with the server, renewing the sign-in if it has
     // run out; see lib/api.ts).
     let settled = false;
-    const proceed = (signedIn: boolean) => {
+    const proceed = (signedIn: boolean, problem: string | null = null) => {
       if (settled) return;
       settled = true;
       if (signedIn) loadPageInfo();
-      else setState("unauthorized");
+      // Not a sign-in question at all: the server couldn't be asked. Say so, instead of asking them to sign in again.
+      else if (problem) {
+        setErrorMessage(problem);
+        setState("unreachable");
+      } else setState("unauthorized");
     };
 
-    // If the background worker doesn't answer in time (e.g. it's still
-    // waking up, the server is slow, or it's busy with an in-flight
-    // screenshot upload), go by the last known answer rather than leaving
-    // the popup stuck on this spinner — a slow check shouldn't look like
-    // the popup didn't open at all.
-    const timeout = setTimeout(() => {
-      chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => proceed(!!result[SIGNED_IN_STORAGE_KEY]));
+    // If the background worker is slow to answer (waking up, a slow server,
+    // a screenshot upload in flight) and the last answer was "signed in", go
+    // with that rather than keep the spinner up. A last answer of "no" waits
+    // for the real one: guessing "signed out" sent people to sign in again
+    // when the real trouble was reaching the server.
+    const quick = setTimeout(() => {
+      chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => {
+        if (result[SIGNED_IN_STORAGE_KEY]) proceed(true);
+      });
     }, 2500);
-    chrome.runtime.sendMessage({ action: "SYNC_AUTH" }, (response?: { signedIn?: boolean }) => {
-      clearTimeout(timeout);
+    const giveUp = setTimeout(() => proceed(false, "Savedly didn't answer in time. Check that the server is running, then try again."), 15000);
+    chrome.runtime.sendMessage({ action: "SYNC_AUTH" }, (response?: { signedIn?: boolean; problem?: string | null }) => {
+      clearTimeout(quick);
+      clearTimeout(giveUp);
       if (chrome.runtime.lastError || !response) {
-        chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => proceed(!!result[SIGNED_IN_STORAGE_KEY]));
+        proceed(false, `The extension's background didn't answer (${chrome.runtime.lastError?.message ?? "no response"}). Try reloading the extension.`);
         return;
       }
-      proceed(!!response.signedIn);
+      proceed(!!response.signedIn, response.problem ?? null);
     });
   }, []);
 
-  const getPageMetadata = (tabId: number): Promise<{ description?: string; previewImage?: string; keywords?: string }> => {
+  // Only for a page about to be saved: recent collections and what the AI suggests (no chips if either fails).
+  useEffect(() => {
+    if (state !== "ready" || !pageInfo || (existing && !saveAgain)) return;
+    apiFetch<Collection[]>("/collections/recent").then(setRecentCollections).catch(() => undefined);
+    apiFetch<Suggestion>("/memories/suggest", {
+      method: "POST",
+      body: JSON.stringify({ url: pageInfo.url, title: pageInfo.title.slice(0, 500), description: pageInfo.description?.slice(0, 2000) }),
+    })
+      .then(setSuggestion)
+      .catch(() => undefined);
+  }, [state, pageInfo, existing, saveAgain]);
+
+  // A suggested collection that doesn't exist yet is made when it's tapped.
+  const applySuggestedCollection = async () => {
+    const pick = suggestion?.collection;
+    if (!pick) return;
+    if (pick.id) {
+      if (!selectedCollectionIds.includes(pick.id)) setSelectedCollectionIds((ids) => [...ids, pick.id!]);
+      return;
+    }
+    try {
+      const created = await apiFetch<Collection>("/collections", { method: "POST", body: JSON.stringify({ name: pick.name }) });
+      setCollections((list) => [...list, created]);
+      setSelectedCollectionIds((ids) => [...ids, created.id]);
+      setSuggestion((current) => (current ? { ...current, collection: { id: created.id, name: created.name, isNew: false } } : current));
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Couldn't create that collection.");
+    }
+  };
+
+  const getPageMetadata = (tabId: number): Promise<{ description?: string; previewImage?: string; keywords?: string; images?: string[] }> => {
     return new Promise((resolve) => {
       chrome.tabs.sendMessage(tabId, { action: "GET_METADATA" }, (response) => {
         // Content script may not be injected on this page (e.g. chrome:// URLs).
@@ -169,7 +241,15 @@ export default function Popup() {
     }
 
     activeTabIdRef.current = activeTab.id;
+    // Chrome's own pages, other extensions' pages, files: nothing Savedly could open again or read.
+    if (!/^https?:\/\//.test(activeTab.url)) {
+      setState("notWebPage");
+      return;
+    }
+    // Opening the popup is asking about this page, so this one address goes to Savedly (browsing elsewhere never does).
+    const lookup = apiFetch<SavedPage | null>(`/memories/lookup?url=${encodeURIComponent(activeTab.url)}`).catch(() => null);
     const metadata = await getPageMetadata(activeTab.id);
+    setExisting(await lookup);
     setPageInfo({
       url: activeTab.url,
       title: activeTab.title || "Untitled Webpage",
@@ -177,6 +257,7 @@ export default function Popup() {
       description: metadata.description,
       previewImage: metadata.previewImage,
       keywords: metadata.keywords,
+      images: metadata.images,
     });
     setState("ready");
   };
@@ -212,7 +293,7 @@ export default function Popup() {
           title: pageInfo.title.slice(0, 500),
           description: pageInfo.description || undefined,
           faviconUrl: isValidUrl(pageInfo.favIconUrl) ? pageInfo.favIconUrl : undefined,
-          previewImageUrl: isValidUrl(pageInfo.previewImage) ? pageInfo.previewImage : undefined,
+          previewImageUrl: isValidUrl(coverUrl) ? coverUrl : undefined,
           keywords: keywords.length > 0 ? keywords : undefined,
           content: note.trim() || undefined,
           tags: tags.length > 0 ? tags : undefined,
@@ -223,6 +304,8 @@ export default function Popup() {
 
       setSavedMemory(memory);
       setState("saved");
+      // The toolbar icon shows the check mark straight away.
+      chrome.runtime.sendMessage({ action: "PAGE_SAVED", url: pageInfo.url, tabId: activeTabIdRef.current ?? undefined }, () => void chrome.runtime.lastError);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setState("unauthorized");
@@ -294,6 +377,30 @@ export default function Popup() {
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <button
+            style={styles.iconButton}
+            title="Open Savedly in the side panel"
+            aria-label="Open Savedly in the side panel"
+            onClick={() => {
+              // Straight from the click: the side panel opens only in direct answer to one.
+              chrome.windows.getCurrent((win) => {
+                if (win.id != null) void chrome.sidePanel.open({ windowId: win.id }).then(() => window.close());
+              });
+            }}
+          >
+            <PanelRight size={14} color="#8e8e93" />
+          </button>
+          {state !== "checking" && state !== "unauthorized" && (
+            <button
+              style={{ ...styles.iconButton, ...(searching ? { color: "#1447E6" } : {}) }}
+              onClick={() => setSearching((on) => !on)}
+              title={searching ? "Back to saving this page" : "Search your library"}
+              aria-label={searching ? "Back to saving this page" : "Search your library"}
+              aria-pressed={searching}
+            >
+              {searching ? <X size={14} color="#1447E6" /> : <Search size={14} color="#8e8e93" />}
+            </button>
+          )}
           {state !== "checking" && state !== "unauthorized" && (
             <button
               style={styles.iconButton}
@@ -311,10 +418,47 @@ export default function Popup() {
 
       {/* State Renderers */}
 
-      {state === "checking" && (
+      {searching && state !== "checking" && state !== "unauthorized" && <SearchPanel />}
+
+      {/* Already saved: what Savedly made of it, the Inbox, Remind me. */}
+      {!searching && state === "ready" && existing && !saveAgain && (
+        <div style={styles.savedForm}>
+          <div style={styles.statusHeader}>
+            <Check size={16} color="#1447E6" />
+            <span style={styles.statusText}>Saved {timeAgo(existing.createdAt)}</span>
+          </div>
+          <SavedPanel memoryId={existing.id} />
+          <button style={styles.primaryButton} onClick={() => handleOpenSavedly(`/app/memories/${existing.id}`)}>
+            Open in Savedly
+          </button>
+          <button style={styles.linkButton} onClick={() => setSaveAgain(true)}>
+            Save it again anyway
+          </button>
+        </div>
+      )}
+
+      {!searching && state === "checking" && (
         <div style={styles.centerContainer}>
           <RefreshCw size={24} color="#1447E6" className="animate-spin" />
           <p style={styles.statusLabel}>Connecting to Savedly...</p>
+        </div>
+      )}
+
+      {!searching && state === "unreachable" && (
+        <div style={styles.centerContainer}>
+          <AlertCircle size={28} color="#ff3b30" />
+          <p style={styles.errorLabel}>Can't reach Savedly</p>
+          <p style={styles.errorSub}>{errorMessage}</p>
+          <p style={{ ...styles.errorSub, fontFamily: "monospace", fontSize: "10px" }}>{API_BASE}</p>
+          {/^https?:\/\/(localhost|127\.0\.0\.1)/.test(API_BASE) && (
+            <p style={styles.errorSub}>
+              This build uses a server on this computer. Make sure it's running, and if Chrome asked whether Savedly may access devices on your local
+              network, allow it.
+            </p>
+          )}
+          <button style={styles.secondaryButton} onClick={() => window.location.reload()}>
+            Try again
+          </button>
         </div>
       )}
 
@@ -331,7 +475,7 @@ export default function Popup() {
         </div>
       )}
 
-      {state === "saving" && (
+      {!searching && state === "saving" && (
         <div style={styles.centerContainer}>
           <p style={styles.savingLabel}>Saving to Savedly...</p>
           <div style={styles.progressTrack}>
@@ -340,7 +484,18 @@ export default function Popup() {
         </div>
       )}
 
-      {state === "error" && (
+      {!searching && state === "notWebPage" && (
+        <div style={styles.centerContainer}>
+          <FileText size={28} color="#8e8e93" />
+          <p style={{ ...styles.errorLabel, color: "#1c1c1e" }}>This page can't be saved</p>
+          <p style={styles.errorSub}>Savedly saves web pages. Open one and click the Savedly icon there, or search what you've saved.</p>
+          <button style={styles.secondaryButton} onClick={() => setSearching(true)}>
+            Search your library
+          </button>
+        </div>
+      )}
+
+      {!searching && state === "error" && (
         <div style={styles.centerContainer}>
           <AlertCircle size={28} color="#ff3b30" />
           <p style={styles.errorLabel}>Couldn't save page</p>
@@ -356,147 +511,194 @@ export default function Popup() {
           not that's what the user actually wanted (e.g. reaching for
           "Take Screenshot" instead). Now this is just a preview; "Save to
           Savedly" below is the only thing that writes anything. */}
-      {state === "ready" && (
-        <div style={styles.savedForm}>
-          {/* Quick capture-mode buttons — "Page" saves the tab as-is;
-              "Region" hands off to the drag-select overlay on the page
-              itself; "Full Shot" screenshots the whole current viewport
-              (not the whole scrollable page — see content-script.ts's
-              captureFullViewport). Room for more modes here later without
-              touching anything below, since note/tags/collections apply
-              regardless of which mode is picked. */}
-          <div style={styles.modeRow}>
-            <button
-              type="button"
-              title="Save this page as a link"
-              style={captureMode === "page" ? styles.modeButtonActive : styles.modeButton}
-              onClick={() => setCaptureMode("page")}
-            >
-              <FileText size={13} />
-              Page
-            </button>
-            <button
-              type="button"
-              title="Drag to screenshot part of the page"
-              style={captureMode === "screenshot" ? styles.modeButtonActive : styles.modeButton}
-              onClick={() => setCaptureMode("screenshot")}
-            >
-              <Camera size={13} />
-              Region
-            </button>
-            <button
-              type="button"
-              title="Screenshot the entire visible page"
-              style={captureMode === "fullscreenshot" ? styles.modeButtonActive : styles.modeButton}
-              onClick={() => setCaptureMode("fullscreenshot")}
-            >
-              <Maximize size={13} />
-              Visible
-            </button>
+      {!searching && state === "ready" && (!existing || saveAgain) && (
+        <div style={styles.form}>
+          {/* Page saves the tab as a link; Region hands off to the drag-select
+              overlay on the page; Visible screenshots the current viewport.
+              Note, tags and collections apply to all three. */}
+          <div style={styles.segmented} role="tablist" aria-label="What to save">
+            {(
+              [
+                ["page", "Page", FileText, "Save this page as a link"],
+                ["screenshot", "Region", Camera, "Drag to screenshot part of the page"],
+                ["fullscreenshot", "Visible", Maximize, "Screenshot what you can see"],
+              ] as const
+            ).map(([mode, label, Icon, title]) => (
+              <button key={mode} type="button" role="tab" aria-selected={captureMode === mode} title={title} style={captureMode === mode ? styles.segmentActive : styles.segment} onClick={() => setCaptureMode(mode)}>
+                <Icon size={13} />
+                {label}
+              </button>
+            ))}
           </div>
 
-          <div style={styles.previewBox}>
-            <TextTruncate text={pageInfo?.title || "Untitled"} lines={2} style={styles.previewTitle} />
-            <span style={styles.previewDomain}>{getDomain(pageInfo?.url)}</span>
-            {pageInfo?.description && (
-              <TextTruncate text={pageInfo.description} lines={2} style={styles.previewDescription} />
-            )}
+          {/* The page, with the picture its card will show. */}
+          <div style={styles.pageCard}>
+            <div style={styles.pageThumb}>
+              {captureMode === "page" && chosenCover ? (
+                <img src={chosenCover} alt="" referrerPolicy="no-referrer" onError={() => setBrokenImages((list) => (list.includes(chosenCover) ? list : [...list, chosenCover]))} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              ) : captureMode !== "page" ? (
+                captureMode === "screenshot" ? <Camera size={18} color="#1447E6" /> : <Maximize size={18} color="#1447E6" />
+              ) : pageInfo?.favIconUrl ? (
+                <img src={pageInfo.favIconUrl} alt="" width={20} height={20} />
+              ) : (
+                <FileText size={18} color="#1447E6" />
+              )}
+            </div>
+            <div style={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+              <TextTruncate text={pageInfo?.title || "Untitled"} lines={2} style={styles.pageTitle} />
+              <div style={styles.pageMeta}>
+                {pageInfo?.favIconUrl && <img src={pageInfo.favIconUrl} alt="" width={12} height={12} style={{ borderRadius: 2, flexShrink: 0 }} />}
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {captureMode === "page" ? getDomain(pageInfo?.url) : captureMode === "screenshot" ? "Drag over the part you want" : "What you can see on the page"}
+                </span>
+                {captureMode === "page" && coverChoices.length > 1 && (
+                  <button type="button" style={styles.textLink} aria-expanded={coverOpen} onClick={() => setCoverOpen((open) => !open)}>
+                    {coverOpen ? "Done" : "Change cover"}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.fieldLabel}>ADD A NOTE</label>
-            <textarea
-              style={styles.textarea}
-              placeholder="Why are you saving this? (Add context to search later)"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+          {/* The cover choices, the page's own picture first; one that fails to load drops out. */}
+          {captureMode === "page" && coverOpen && coverChoices.length > 1 && (
+            <div style={styles.coverGrid}>
+              {coverChoices.map((src) => {
+                const chosen = chosenCover === src;
+                return (
+                  <button key={src} type="button" title={src === pageInfo?.previewImage ? "The page's own picture" : "Use this picture"} aria-label={chosen ? "Cover picture (chosen)" : "Use this picture as the cover"} aria-pressed={chosen} style={{ ...styles.coverThumb, ...(chosen ? styles.coverThumbChosen : {}) }} onClick={() => setCover(src)}>
+                    <img
+                      src={src}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      onError={() => setBrokenImages((list) => (list.includes(src) ? list : [...list, src]))}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={styles.field}>
+            <label style={styles.label} htmlFor="savedly-note">
+              Note
+            </label>
+            <textarea id="savedly-note" style={styles.noteInput} rows={2} placeholder="Why are you saving this? It helps you find it later." value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
 
-          <button
-            style={styles.primaryButton}
-            onClick={
-              captureMode === "page" ? handleSave : captureMode === "screenshot" ? handleTakeScreenshot : handleFullPageScreenshot
-            }
-          >
-            {captureMode === "page"
-              ? "Save to Savedly"
-              : captureMode === "screenshot"
-                ? "Select Area & Save"
-                : "Capture Visible Screenshot"}
-          </button>
+          {/* Collections: the AI's suggestion first (never applied by itself), then the ones used most recently, then everything else under More. */}
+          <div style={{ ...styles.field, position: "relative" }} ref={collectionsRef}>
+            <span style={styles.label}>Collection</span>
+            <div style={styles.chipRow}>
+              {suggestion?.collection && (() => {
+                const pick = suggestion.collection;
+                const active = !!pick.id && selectedCollectionIds.includes(pick.id);
+                return (
+                  <button type="button" style={active ? styles.chipActive : styles.chipSuggested} onClick={() => (active ? toggleCollection(pick.id!) : void applySuggestedCollection())} title={pick.isNew ? "Suggested. Creates this collection" : "Suggested for this page"}>
+                    <Sparkles size={11} />
+                    {pick.name}
+                    {pick.isNew && <span style={{ opacity: 0.7, fontWeight: 600 }}>new</span>}
+                  </button>
+                );
+              })()}
+              {recentCollections
+                .filter((c) => c.id !== suggestion?.collection?.id)
+                .map((c) => (
+                  <button key={c.id} type="button" style={selectedCollectionIds.includes(c.id) ? styles.chipActive : styles.chip} onClick={() => toggleCollection(c.id)}>
+                    <span>{/^\p{Extended_Pictographic}/u.test(c.icon) ? c.icon : "📁"}</span>
+                    {c.name}
+                  </button>
+                ))}
+              {/* Picked from More but not shown above. */}
+              {collections
+                .filter((c) => selectedCollectionIds.includes(c.id) && c.id !== suggestion?.collection?.id && !recentCollections.some((r) => r.id === c.id))
+                .map((c) => (
+                  <button key={c.id} type="button" style={styles.chipActive} onClick={() => toggleCollection(c.id)}>
+                    <span>{/^\p{Extended_Pictographic}/u.test(c.icon) ? c.icon : "📁"}</span>
+                    {c.name}
+                  </button>
+                ))}
+              <button type="button" style={styles.chipGhost} aria-expanded={collectionsOpen} onClick={() => setCollectionsOpen((open) => !open)}>
+                All collections
+                <ChevronDown size={11} />
+              </button>
+            </div>
+                {collectionsOpen && (
+                  <div style={styles.dropdownMenu}>
+                    {collections.length === 0 ? (
+                      <div style={styles.dropdownEmpty}>No collections yet</div>
+                    ) : (
+                      [...collections]
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((collection) => {
+                          const isActive = selectedCollectionIds.includes(collection.id);
+                          return (
+                            <button type="button" key={collection.id} style={styles.dropdownItem} onClick={() => toggleCollection(collection.id)}>
+                              <Check size={12} color="#1447E6" style={{ visibility: isActive ? "visible" : "hidden", flexShrink: 0 }} />
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {/^\p{Extended_Pictographic}/u.test(collection.icon) ? collection.icon : "📁"} {collection.name}
+                              </span>
+                            </button>
+                          );
+                        })
+                    )}
+                  </div>
+                )}
+          </div>
 
-          <div style={styles.fieldGroup}>
-            <label style={styles.fieldLabel}>TAGS</label>
-            <div style={styles.tagsContainer}>
+          {/* Tags: typed ones, plus the AI's suggestions to tap. */}
+          <div style={styles.field}>
+            <label style={styles.label} htmlFor="savedly-tags">
+              Tags
+            </label>
+            <div style={styles.tagField} onClick={() => document.getElementById("savedly-tags")?.focus()}>
               {tags.map((tag) => (
-                <button key={tag} style={styles.tagBadgeActive} onClick={() => removeTag(tag)}>
-                  {tag}
-                  <X size={10} style={{ marginLeft: 4 }} />
+                <button key={tag} type="button" style={styles.tagChip} onClick={() => removeTag(tag)} aria-label={`Remove tag ${tag}`}>
+                  #{tag}
+                  <X size={10} />
                 </button>
               ))}
               <input
-                style={styles.tagInput}
-                placeholder={tags.length === 0 ? "Add a tag, press Enter" : "Add another..."}
+                id="savedly-tags"
+                style={styles.tagFieldInput}
+                placeholder={tags.length === 0 ? "Add a tag and press Enter" : "Add another"}
                 value={tagDraft}
                 onChange={(e) => setTagDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === "Enter" || e.key === ",") {
                     e.preventDefault();
                     addTagFromDraft();
+                  } else if (e.key === "Backspace" && !tagDraft && tags.length > 0) {
+                    removeTag(tags[tags.length - 1]);
                   }
                 }}
                 onBlur={addTagFromDraft}
               />
             </div>
+            {suggestion && suggestion.tags.some((t) => !tags.includes(t)) && (
+              <div style={styles.chipRow}>
+                {suggestion.tags
+                  .filter((t) => !tags.includes(t))
+                  .map((tag) => (
+                    <button key={tag} type="button" style={styles.chipSuggestTag} onClick={() => setTags((list) => [...list, tag])} title="Suggested for this page">
+                      + {tag}
+                    </button>
+                  ))}
+              </div>
+            )}
           </div>
 
-          {/* Collection selection — a dropdown instead of a chip row, so it
-              doesn't grow with the user's collection count. */}
-          <div style={styles.fieldGroup} ref={collectionsRef}>
-            <label style={styles.fieldLabel}>ADD TO COLLECTION</label>
-            <div style={{ position: "relative" }}>
-              <button type="button" style={styles.dropdownTrigger} onClick={() => setCollectionsOpen((open) => !open)}>
-                <span style={styles.dropdownTriggerText}>
-                  {selectedCollectionIds.length === 0
-                    ? "None"
-                    : collections
-                        .filter((c) => selectedCollectionIds.includes(c.id))
-                        .map((c) => c.name)
-                        .join(", ")}
-                </span>
-                <ChevronDown size={12} color="#8e8e93" />
-              </button>
-              {collectionsOpen && (
-                <div style={styles.dropdownMenu}>
-                  {collections.length === 0 ? (
-                    <div style={styles.dropdownEmpty}>No collections yet</div>
-                  ) : (
-                    collections.map((collection) => {
-                      const isActive = selectedCollectionIds.includes(collection.id);
-                      return (
-                        <button
-                          type="button"
-                          key={collection.id}
-                          style={styles.dropdownItem}
-                          onClick={() => toggleCollection(collection.id)}
-                        >
-                          <Check size={12} color="#1447E6" style={{ visibility: isActive ? "visible" : "hidden" }} />
-                          <span>
-                            {collection.icon} {collection.name}
-                          </span>
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
+          {/* Always in reach, however long the form gets. */}
+          <div style={styles.footer}>
+            <button style={{ ...styles.primaryButton, width: "100%", height: "40px", fontSize: "13px" }} onClick={captureMode === "page" ? handleSave : captureMode === "screenshot" ? handleTakeScreenshot : handleFullPageScreenshot}>
+              {captureMode === "page" ? "Save to Savedly" : captureMode === "screenshot" ? "Select an area to save" : "Save what's visible"}
+            </button>
           </div>
         </div>
       )}
 
-      {state === "saved" && (
+      {!searching && state === "saved" && (
         <div style={styles.savedForm}>
           <div style={styles.statusHeader}>
             <Check size={16} color="#1447E6" />
@@ -520,10 +722,14 @@ export default function Popup() {
             </div>
           )}
 
-          <div style={styles.previewBox}>
-            <TextTruncate text={pageInfo?.title || "Untitled"} lines={2} style={styles.previewTitle} />
-            <span style={styles.previewDomain}>{getDomain(pageInfo?.url)}</span>
-          </div>
+          {savedMemory ? (
+            <SavedPanel memoryId={savedMemory.id} />
+          ) : (
+            <div style={styles.previewBox}>
+              <TextTruncate text={pageInfo?.title || "Untitled"} lines={2} style={styles.previewTitle} />
+              <span style={styles.previewDomain}>{getDomain(pageInfo?.url)}</span>
+            </div>
+          )}
 
           <button style={styles.primaryButton} onClick={() => window.close()}>
             Done
@@ -576,7 +782,7 @@ const TextTruncate = ({ text, lines, style }: { text: string; lines: number; sty
 // inline Styles
 const styles = {
   container: {
-    width: "320px",
+    width: "100%",
     backgroundColor: "#ffffff",
     padding: "16px",
     boxSizing: "border-box" as const,
@@ -726,6 +932,8 @@ const styles = {
     display: "flex",
     flexDirection: "column" as const,
     gap: "6px",
+    // Never wider than the popup, whatever is inside.
+    minWidth: 0,
   },
   fieldLabel: {
     fontSize: "9px",
@@ -844,12 +1052,12 @@ const styles = {
     zIndex: 10,
     display: "flex",
     flexDirection: "column" as const,
-    maxHeight: "140px",
+    maxHeight: "180px",
     overflowY: "auto" as const,
     border: "1px solid #e5e5ea",
-    borderRadius: "8px",
+    borderRadius: "12px",
     backgroundColor: "#ffffff",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.12)",
     padding: "4px",
   },
   dropdownItem: {
@@ -869,6 +1077,257 @@ const styles = {
     fontSize: "11px",
     color: "#8e8e93",
     padding: "6px 8px",
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "14px",
+  },
+  segmented: {
+    display: "flex",
+    gap: "3px",
+    padding: "3px",
+    borderRadius: "11px",
+    backgroundColor: "#f2f2f5",
+  },
+  segment: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+    height: "30px",
+    border: "none",
+    borderRadius: "8px",
+    background: "transparent",
+    color: "#6b6b70",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  segmentActive: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "5px",
+    height: "30px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#ffffff",
+    color: "#1c1c1e",
+    fontSize: "12px",
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.04)",
+  },
+  pageCard: {
+    display: "flex",
+    gap: "12px",
+    alignItems: "center",
+    padding: "10px",
+    borderRadius: "14px",
+    border: "1px solid #ececf0",
+    backgroundColor: "#fafafb",
+  },
+  pageThumb: {
+    width: "56px",
+    height: "56px",
+    flexShrink: 0,
+    borderRadius: "10px",
+    overflow: "hidden",
+    backgroundColor: "#e8eefc",
+    display: "grid",
+    placeItems: "center",
+  },
+  pageTitle: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#1c1c1e",
+    lineHeight: "17px",
+  },
+  pageMeta: {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+    fontSize: "11px",
+    color: "#8e8e93",
+    minWidth: 0,
+  },
+  textLink: {
+    marginLeft: "auto",
+    flexShrink: 0,
+    background: "none",
+    border: "none",
+    padding: 0,
+    color: "#1447E6",
+    fontSize: "11px",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  field: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "6px",
+    minWidth: 0,
+  },
+  label: {
+    fontSize: "11.5px",
+    fontWeight: 650,
+    color: "#3a3a3c",
+  },
+  noteInput: {
+    width: "100%",
+    boxSizing: "border-box" as const,
+    resize: "vertical" as const,
+    minHeight: "54px",
+    border: "1px solid #e5e5ea",
+    borderRadius: "10px",
+    backgroundColor: "#fafafb",
+    padding: "8px 10px",
+    fontSize: "12px",
+    lineHeight: "17px",
+    color: "#1c1c1e",
+    fontFamily: "inherit",
+    outline: "none",
+  },
+  chipRow: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    gap: "6px",
+  },
+  chipSuggested: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    height: "26px",
+    fontSize: "11.5px",
+    fontWeight: 600,
+    color: "#1447E6",
+    backgroundColor: "#ffffff",
+    border: "1px dashed #9db4f5",
+    borderRadius: "999px",
+    padding: "0 10px",
+    cursor: "pointer",
+  },
+  chipGhost: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "3px",
+    height: "26px",
+    fontSize: "11.5px",
+    fontWeight: 600,
+    color: "#6b6b70",
+    backgroundColor: "#f2f2f5",
+    border: "1px solid transparent",
+    borderRadius: "999px",
+    padding: "0 10px",
+    cursor: "pointer",
+  },
+  chipSuggestTag: {
+    display: "inline-flex",
+    alignItems: "center",
+    height: "24px",
+    fontSize: "11px",
+    fontWeight: 600,
+    color: "#6b6b70",
+    backgroundColor: "transparent",
+    border: "1px dashed #d1d1d6",
+    borderRadius: "999px",
+    padding: "0 9px",
+    cursor: "pointer",
+  },
+  tagField: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    alignItems: "center",
+    gap: "5px",
+    minHeight: "36px",
+    boxSizing: "border-box" as const,
+    padding: "5px 8px",
+    border: "1px solid #e5e5ea",
+    borderRadius: "10px",
+    backgroundColor: "#fafafb",
+    cursor: "text",
+  },
+  tagChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    height: "22px",
+    padding: "0 7px",
+    border: "none",
+    borderRadius: "6px",
+    backgroundColor: "#e8eefc",
+    color: "#1447E6",
+    fontSize: "11px",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  tagFieldInput: {
+    flex: 1,
+    minWidth: "90px",
+    border: "none",
+    outline: "none",
+    background: "transparent",
+    fontSize: "12px",
+    color: "#1c1c1e",
+    padding: "3px 2px",
+  },
+  footer: {
+    position: "sticky" as const,
+    bottom: 0,
+    margin: "0 -16px -16px",
+    padding: "12px 16px 16px",
+    backgroundColor: "#ffffff",
+    borderTop: "1px solid #f0f0f3",
+    zIndex: 2,
+  },
+  chip: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    height: "26px",
+    fontSize: "11.5px",
+    fontWeight: 600,
+    color: "#1c1c1e",
+    backgroundColor: "#ffffff",
+    border: "1px solid #e5e5ea",
+    borderRadius: "999px",
+    padding: "0 10px",
+    cursor: "pointer",
+  },
+  chipActive: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    height: "26px",
+    fontSize: "11.5px",
+    fontWeight: 700,
+    color: "#1447E6",
+    backgroundColor: "#e8eefc",
+    border: "1px solid #9db4f5",
+    borderRadius: "999px",
+    padding: "0 10px",
+    cursor: "pointer",
+  },
+  coverGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: "6px",
+  },
+  coverThumb: {
+    aspectRatio: "16 / 10",
+    width: "100%",
+    padding: 0,
+    borderRadius: "8px",
+    overflow: "hidden",
+    border: "2px solid transparent",
+    backgroundColor: "#f2f2f5",
+    cursor: "pointer",
+  },
+  coverThumbChosen: {
+    border: "2px solid #1447E6",
   },
   primaryButton: {
     backgroundColor: "#1447E6",

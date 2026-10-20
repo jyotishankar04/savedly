@@ -8,6 +8,7 @@ export type PlanLimitType =
   | "collection_count"
   | "ai_monthly_saves"
   | "ai_monthly_queries"
+  | "web_search_monthly"
   | "import_monthly_count";
 
 export interface Plan {
@@ -72,6 +73,8 @@ export const PLAN_LIMIT_LABEL: Record<PlanLimitType, string> = {
   // One per saved item, every step of reading and filing it (images included).
   ai_monthly_saves: "AI processing (saves) / month",
   ai_monthly_queries: "Ask questions / month",
+  // Looking things up on the web: the research step on saves, and Ask.
+  web_search_monthly: "Web lookups / month",
   import_monthly_count: "Imports / month",
 };
 
@@ -130,6 +133,7 @@ export const LIMIT_ORDER: PlanLimitType[] = [
   "collection_count",
   "ai_monthly_saves",
   "ai_monthly_queries",
+  "web_search_monthly",
   "import_monthly_count",
 ];
 

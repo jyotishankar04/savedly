@@ -14,6 +14,8 @@ import type {
   BatchResult,
   BatchTagInput,
   BatchUncollectInput,
+  BatchReadInput,
+  BatchRemindInput,
   BatchUpdateStatusInput,
   BatchVaultCollectionsInput,
 } from "./batch.schema";
@@ -308,6 +310,36 @@ export async function batchUncollectMemories(userId: string, input: BatchUncolle
       .delete(collectionMemories)
       .where(and(eq(collectionMemories.collectionId, input.collectionId), inArray(collectionMemories.memoryId, input.memoryIds)));
     return { processed: count, succeeded: count, failed: 0, errors: [] };
+  } catch (err) {
+    return failAll(count, err);
+  }
+}
+
+/** The Inbox: marks memories read, or unread again. */
+export async function batchSetRead(userId: string, input: BatchReadInput): Promise<BatchResult> {
+  const count = input.memoryIds.length;
+  try {
+    const rows = await db
+      .update(memories)
+      .set({ readAt: input.read ? new Date() : null })
+      .where(and(eq(memories.userId, userId), inArray(memories.id, input.memoryIds)))
+      .returning({ id: memories.id });
+    return rows.length === count ? { processed: count, succeeded: count, failed: 0, errors: [] } : { processed: count, succeeded: rows.length, failed: count - rows.length };
+  } catch (err) {
+    return failAll(count, err);
+  }
+}
+
+/** "Remind me" on several at once: each is snoozed until then (or the reminders cancelled). */
+export async function batchSetReminder(userId: string, input: BatchRemindInput): Promise<BatchResult> {
+  const count = input.memoryIds.length;
+  try {
+    const rows = await db
+      .update(memories)
+      .set({ remindAt: input.remindAt ? new Date(input.remindAt) : null })
+      .where(and(eq(memories.userId, userId), inArray(memories.id, input.memoryIds)))
+      .returning({ id: memories.id });
+    return rows.length === count ? { processed: count, succeeded: count, failed: 0, errors: [] } : { processed: count, succeeded: rows.length, failed: count - rows.length };
   } catch (err) {
     return failAll(count, err);
   }

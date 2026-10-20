@@ -15,6 +15,14 @@ export interface Memory {
   /** When this was trashed. Null unless inTrash is true — see the server's 15-day purge job. */
   trashedAt: string | null;
   isVaulted: boolean;
+  /** Null = unread, in the Inbox. */
+  readAt?: string | null;
+  /** When "Remind me" brings it back; in the future means snoozed. */
+  remindAt?: string | null;
+  /** When a reminder last brought it back. */
+  remindedAt?: string | null;
+  /** Passages on it were highlighted with the browser extension. */
+  hasHighlights?: boolean;
   /** User-set date/time this memory relates to — null means no event attached. Powers "Add to calendar". */
   eventAt: string | null;
   tags: string[];
@@ -25,6 +33,8 @@ export interface Memory {
   inferredIntent: string | null;
   contentType: string | null;
   extractedFields: Record<string, string> | null;
+  /** What the AI looked up on the web to understand this (a bare film or book name), with the pages it used. Null when it didn't. */
+  webResearch?: { query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string } | null;
   // URL capture & preview system — status is always set ("processing" at
   // creation); the preview.* fields stay null for non-link memories or until
   // ingestion runs. See docs/URL_CAPTURE_AND_PREVIEW.md.
@@ -50,6 +60,8 @@ export interface MemoryDetail extends Memory {
   content: string | null;
   keywords: string[] | null;
   attachments: Attachment[];
+  /** Highlighted passages, oldest first. */
+  highlights?: { id: string; text: string; color: string; note: string | null; createdAt: string }[];
 }
 
 export interface Collection {

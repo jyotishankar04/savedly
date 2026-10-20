@@ -579,3 +579,39 @@ export function eventDetectedEmailTemplate({
     ),
   };
 }
+
+/** "Remind me": a memory the user asked to come back to. */
+export function memoryReminderEmailTemplate({
+  title,
+  summary,
+  link,
+  url,
+  settingsUrl,
+}: {
+  title: string;
+  /** What Savedly understood it to be, when it has a summary. */
+  summary?: string | null;
+  /** The page itself, for a saved link. */
+  link?: string | null;
+  /** The memory in Savedly. */
+  url: string;
+  /** Where to turn these emails off. */
+  settingsUrl: string;
+}): EmailContent {
+  const about = summary ? (summary.length > 220 ? `${summary.slice(0, 220).trimEnd()}…` : summary) : null;
+  return {
+    subject: `Reminder: ${title}`,
+    html: layout(
+      `${eyebrow("Reminder")}
+      ${heading("You asked to come back to this")}
+      ${panel(
+        `<p style="margin:0;font-size:15px;line-height:1.35;font-weight:600;color:${COLOR.text};">${escapeHtml(title)}</p>
+         ${about ? `<p style="margin:6px 0 0;font-size:13px;line-height:1.5;color:${COLOR.body};">${escapeHtml(about)}</p>` : ""}
+         ${link ? `<p style="margin:8px 0 0;font-size:12px;line-height:1.4;color:${COLOR.body};word-break:break-all;">${escapeHtml(link)}</p>` : ""}`,
+      )}
+      ${button("Open in Savedly", url)}
+      ${paragraph(`It's back at the top of your Inbox. <a href="${escapeHtml(settingsUrl)}" style="color:${COLOR.body};">Turn off reminder emails</a>`, { muted: true, top: 14 })}`,
+      { preheader: about ?? title },
+    ),
+  };
+}

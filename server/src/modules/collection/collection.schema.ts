@@ -27,3 +27,5 @@ export const listCollectionsQuerySchema = z.object({
 export type CreateCollectionInput = z.infer<typeof createCollectionSchema>;
 export type UpdateCollectionInput = z.infer<typeof updateCollectionSchema>;
 export type ListCollectionsQuery = z.infer<typeof listCollectionsQuerySchema>;
+
+export const collectionIdParamsSchema = z.object({ id: z.string().uuid() });

@@ -11,6 +11,7 @@ import {
   CommandLineIcon,
   Database01Icon,
   Download04Icon,
+  Globe02Icon,
   FileUploadIcon,
   FlashIcon,
   FolderLibraryIcon,
@@ -66,6 +67,7 @@ export const ROWS: { type: PlanLimitType; label: string; icon: IconSvgElement; t
   { type: "max_file_mb", label: "Largest file", icon: FileUploadIcon, tint: "text-pink-500" },
   { type: "collection_count", label: "Collections", icon: Layers01Icon, tint: "text-teal-500" },
   { type: "public_share_count", label: "Public share links", icon: Share08Icon, tint: "text-indigo-500" },
+  { type: "web_search_monthly", label: "Web lookups / month", icon: Globe02Icon, tint: "text-cyan-500" },
   { type: "import_monthly_count", label: "Imports / month", icon: Download04Icon, tint: "text-orange-500" },
 ];
 

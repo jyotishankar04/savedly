@@ -52,7 +52,7 @@ export interface SectionDef {
   hostedEditable?: boolean;
 }
 
-export type SectionId = "storage" | "vector" | "email" | "embeddings" | "includedAi" | "googleAuth" | "githubAuth";
+export type SectionId = "storage" | "vector" | "email" | "embeddings" | "includedAi" | "webSearch" | "googleAuth" | "githubAuth";
 
 const env = (name: string) => {
   const value = process.env[name];
@@ -428,6 +428,48 @@ export const SECTIONS: SectionDef[] = [
     fields: includedAiFields(),
     defaults: {},
     schema: includedAiSchema,
+  },
+  {
+    id: "webSearch",
+    title: "Web search",
+    description:
+      "Lets the AI look things up when it can't tell what something is: a bare name saved as a note (a film, a book, a place), or a question in Ask your saved memories can't answer. Tavily needs an API key (1,000 free searches a month); SearXNG is free and runs on your own server, with JSON output switched on. On hosted plans, lookups count toward a monthly allowance.",
+    testable: true,
+    hostedEditable: true,
+    fields: [
+      {
+        name: "provider",
+        label: "Provider",
+        kind: "select",
+        options: [
+          { value: "off", label: "Off" },
+          { value: "tavily", label: "Tavily" },
+          { value: "searxng", label: "SearXNG (self-hosted)" },
+        ],
+        fromEnv: () => env("WEB_SEARCH_PROVIDER"),
+      },
+      {
+        name: "apiKey",
+        label: "Tavily API key",
+        kind: "password",
+        secret: true,
+        showWhen: { field: "provider", equals: ["tavily"] },
+        fromEnv: () => env("TAVILY_API_KEY"),
+      },
+      {
+        name: "baseUrl",
+        label: "SearXNG URL",
+        kind: "text",
+        placeholder: "http://searxng:8080",
+        showWhen: { field: "provider", equals: ["searxng"] },
+        fromEnv: () => env("SEARXNG_URL"),
+      },
+    ],
+    defaults: { provider: "off" },
+    schema: z
+      .object({ provider: z.enum(["off", "tavily", "searxng"]), apiKey: z.string().optional(), baseUrl: z.string().url().optional() })
+      .passthrough()
+      .refine((v) => v.provider !== "searxng" || !!v.baseUrl, { message: "SearXNG needs its URL", path: ["baseUrl"] }),
   },
   {
     id: "googleAuth",
