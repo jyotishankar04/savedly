@@ -1315,6 +1315,25 @@ export const blogPosts = pgTable(
 );
 
 // -----------------------------------------------------------------------------
+// Roadmap votes: a signed-in person's vote for an item on the public roadmap
+// (/roadmap). The items themselves are a list in the website's code
+// (client/lib/roadmap.ts), so a vote is keyed by the item's slug; the server
+// only accepts slugs it knows (modules/roadmap/roadmap.items.ts). One vote per
+// person per item.
+// -----------------------------------------------------------------------------
+export const roadmapVotes = pgTable(
+  "roadmap_votes",
+  {
+    itemSlug: varchar("item_slug", { length: 60 }).notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.itemSlug, table.userId] }), index("idx_roadmap_votes_user_id").on(table.userId)]
+);
+
+// -----------------------------------------------------------------------------
 // 21b. What's New Items Table (the cards in the landing page's "What's new"
 //      popup: features that shipped and ones that are coming. Unlike
 //      announcements, any number can be active at once; they show as a
