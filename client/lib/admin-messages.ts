@@ -53,14 +53,37 @@ const query = (params: Record<string, string | number | undefined>) => {
   return text ? `?${text}` : "";
 };
 
-export const getMessageCounts = () => apiFetch<{ newContact: number; openReports: number }>("/admin/messages/counts");
+export interface MessageCounts {
+  contact: Partial<Record<ContactStatus, number>>;
+  reports: Record<ReportType, Partial<Record<ReportStatus, number>>>;
+  newContact: number;
+  openReports: number;
+  /** Replies can be emailed from here (Infrastructure › Email). */
+  emailEnabled: boolean;
+}
 
-export const listContactMessages = (params: { status?: ContactStatus; q?: string; page?: number }) =>
-  apiFetch<Page<ContactMessage, ContactStatus>>(`/admin/messages/contact${query(params)}`);
+export interface Reply {
+  id: string;
+  body: string;
+  toEmail: string;
+  createdAt: string;
+  adminName: string | null;
+  adminEmail: string | null;
+}
+
+export type ReplyKind = "contact" | "report";
+
+export const getMessageCounts = () => apiFetch<MessageCounts>("/admin/messages/counts");
+
+export const listContactMessages = (params: { statuses?: ContactStatus[]; q?: string; page?: number }) =>
+  apiFetch<Page<ContactMessage, ContactStatus>>(`/admin/messages/contact${query({ ...params, statuses: params.statuses?.join(",") })}`);
 export const setContactStatus = (id: string, status: ContactStatus) => apiFetch<ContactMessage>(`/admin/messages/contact/${id}`, { method: "PATCH", body: { status } });
 export const deleteContactMessage = (id: string) => apiFetch<{ id: string }>(`/admin/messages/contact/${id}`, { method: "DELETE" });
 
-export const listReports = (params: { status?: ReportStatus; type?: ReportType; q?: string; page?: number }) =>
-  apiFetch<Page<Report, ReportStatus>>(`/admin/messages/reports${query(params)}`);
+export const listReports = (params: { statuses?: ReportStatus[]; type?: ReportType; q?: string; page?: number }) =>
+  apiFetch<Page<Report, ReportStatus>>(`/admin/messages/reports${query({ ...params, statuses: params.statuses?.join(",") })}`);
 export const setReportStatus = (id: string, status: ReportStatus) => apiFetch<Report>(`/admin/messages/reports/${id}`, { method: "PATCH", body: { status } });
 export const deleteReport = (id: string) => apiFetch<{ id: string }>(`/admin/messages/reports/${id}`, { method: "DELETE" });
+
+export const listReplies = (kind: ReplyKind, id: string) => apiFetch<Reply[]>(`/admin/messages/${kind}/${id}/replies`);
+export const sendReply = (kind: ReplyKind, id: string, body: string) => apiFetch<Reply>(`/admin/messages/${kind}/${id}/replies`, { method: "POST", body: { body } });

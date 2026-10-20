@@ -1680,6 +1680,23 @@ export const contactMessages = pgTable(
   (table) => [index("idx_contact_messages_status_created").on(table.status, table.createdAt)]
 );
 
+// Replies sent from Admin > Messages to someone who wrote in: a contact
+// message or a report ("kind" says which, "targetId" which one). Kept so the
+// conversation shows in the reading pane; the email itself goes to them.
+export const messageReplies = pgTable(
+  "message_replies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    targetId: uuid("target_id").notNull(),
+    adminUserId: uuid("admin_user_id").references(() => users.id, { onDelete: "set null" }),
+    toEmail: varchar("to_email", { length: 255 }).notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_message_replies_target").on(table.kind, table.targetId, table.createdAt)]
+);
+
 // -----------------------------------------------------------------------------
 // 38. Reports Table (bug reports and feature requests submitted from the
 //     public /report page — no auth required, but userId is captured when

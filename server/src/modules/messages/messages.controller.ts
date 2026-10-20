@@ -6,8 +6,11 @@ import {
   deleteContactMessage,
   deleteReport,
   listContactMessages,
+  listReplies,
   listReports,
   messageCounts,
+  sendReply,
+  type ReplyKind,
   updateContactMessage,
   updateReport,
 } from "./messages.service";
@@ -49,5 +52,16 @@ export class MessagesController {
     const row = await deleteReport(req.params.id as string);
     await logAdminAction({ adminUserId: req.user!.id, action: "report.deleted", targetType: "report", targetId: row.id, ipAddress: req.ip });
     res.status(200).json(ApiResponse.success({ id: row.id }));
+  }
+
+  static async replies(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await listReplies(req.params.kind as ReplyKind, req.params.id as string)));
+  }
+
+  static async reply(req: Request, res: Response) {
+    const kind = req.params.kind as ReplyKind;
+    const reply = await sendReply(kind, req.params.id as string, req.body.body, req.user!.id);
+    await logAdminAction({ adminUserId: req.user!.id, action: `${kind === "contact" ? "contact_message" : "report"}.replied`, targetType: kind === "contact" ? "contact_message" : "report", targetId: req.params.id as string, afterValue: { replyId: reply.id, to: reply.toEmail }, ipAddress: req.ip });
+    res.status(201).json(ApiResponse.success(reply));
   }
 }
