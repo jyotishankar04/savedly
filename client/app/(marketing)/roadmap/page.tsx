@@ -7,7 +7,7 @@ import { HeroReveal } from "@/components/marketing/motion/hero-reveal";
 import { Reveal, RevealList } from "@/components/marketing/motion/reveal";
 import { NextList } from "@/components/marketing/roadmap/next-list";
 import { changelogEntries, changelogMonths } from "@/lib/changelog";
-import { roadmapNext, roadmapNow } from "@/lib/roadmap";
+import { getRoadmap } from "@/lib/roadmap";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -19,7 +19,8 @@ export const metadata: Metadata = {
 // The roadmap, after @shadcnstore/roadmap-1's idea of publishing order rather
 // than dates: Now is the only part marked, Next is roughly in order and takes
 // votes, and Shipped is the changelog grouped by month. Plans carry no dates.
-// Content: lib/roadmap.ts (now and next) and lib/changelog.ts (shipped).
+// Content: Admin > Roadmap (now and next, read from the API every minute) and
+// lib/changelog.ts (shipped).
 
 const H2 = "font-serif text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.08] tracking-[-0.025em] text-balance text-foreground";
 const KIND: Record<string, { label: string; className: string }> = {
@@ -29,7 +30,8 @@ const KIND: Record<string, { label: string; className: string }> = {
 };
 const LINK = "inline-flex border-b border-foreground/25 pb-0.5 text-sm font-medium text-foreground transition-colors hover:border-foreground";
 
-export default function RoadmapPage() {
+export default async function RoadmapPage() {
+  const { now: roadmapNow, next: roadmapNext } = await getRoadmap();
   const firstMonth = changelogMonths.at(-1)?.label;
   const stats = [
     { value: changelogEntries.length, label: firstMonth ? `updates shipped since ${firstMonth}` : "updates shipped" },
@@ -76,6 +78,7 @@ export default function RoadmapPage() {
             <Reveal>
               <h2 className={H2}>Working on now</h2>
               <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">In the works today. It lands in the changelog when it ships.</p>
+              {roadmapNow.length === 0 && <p className="mt-8 text-[15px] text-muted-foreground">Nothing in the works right now: the next thing comes from the list below.</p>}
             </Reveal>
             <RevealList className="mt-10 grid gap-3" gap={0.08}>
               {roadmapNow.map((item) => (
@@ -86,11 +89,11 @@ export default function RoadmapPage() {
                       <span className="size-1.5 animate-pulse rounded-full bg-primary motion-reduce:animate-none" />
                       In progress
                     </span>
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{item.area}</span>
+                    {item.area && <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{item.area}</span>}
                   </div>
                   <h3 className="mt-4 text-xl font-medium tracking-[-0.01em] text-foreground">{item.title}</h3>
                   <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">{item.description}</p>
-                  {item.points && (
+                  {item.points.length > 0 && (
                     <ul className="mt-5 flex flex-wrap gap-2">
                       {item.points.map((point) => (
                         <li key={point} className="rounded-full bg-muted px-3 py-1 text-sm text-foreground">
@@ -110,7 +113,26 @@ export default function RoadmapPage() {
           <div className="mx-auto max-w-6xl">
             <Reveal>
               <h2 className={H2}>Coming next</h2>
-              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">Roughly in this order. Vote for what you&apos;d use most; it moves things up.</p>
+              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+                What we plan to build, roughly in this order. None of it has a date: we&apos;d rather get each one right than ship it to a deadline. Each card says what you&apos;ll be able to do.
+              </p>
+            </Reveal>
+            <Reveal className="mt-8" delay={0.05}>
+              <ol className="grid gap-px overflow-hidden rounded-2xl bg-foreground/[0.07] ring-1 ring-foreground/[0.07] sm:grid-cols-3">
+                {[
+                  ["Vote for what you'd use", "Sign in and vote for as many as you like. Click again to take a vote back."],
+                  ["The most wanted move up", "Votes tell us what matters most, and can move an item ahead in the list."],
+                  ["Built, then shipped", "When work starts it moves to Working on now, and when it's done, to the changelog."],
+                ].map(([title, text], i) => (
+                  <li key={title} className="flex gap-3 bg-background p-5">
+                    <span className="grid size-6 shrink-0 place-items-center rounded-full bg-muted font-mono text-xs text-foreground">{i + 1}</span>
+                    <span>
+                      <span className="block text-[15px] font-medium text-foreground">{title}</span>
+                      <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{text}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </Reveal>
             <Reveal className="mt-10" delay={0.1}>
               <NextList items={roadmapNext} />

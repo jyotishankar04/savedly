@@ -1,66 +1,65 @@
-// The public roadmap (/roadmap): what's being built now, and what's next, in
-// order rather than with dates (a date is a promise a small team can't always
-// keep; an order it can). What has shipped comes from lib/changelog.ts, so the
-// two never disagree. Edit this file to change the roadmap; when an item is
-// added to `next`, add its slug to the server's list too
-// (server/src/modules/roadmap/roadmap.items.ts) so it can take votes.
+import { API_URL, apiFetch } from "@/lib/auth";
+
+// The public roadmap (/roadmap): what's being built now and what's planned
+// next, in order and without dates. Managed from Admin > Roadmap (server:
+// modules/roadmap). What has shipped comes from lib/changelog.ts.
+
+export type RoadmapStatus = "now" | "next";
 
 export interface RoadmapItem {
   slug: string;
+  status: RoadmapStatus;
   title: string;
   description: string;
   /** The part of Savedly it lands in. */
-  area: string;
-  points?: string[];
+  area: string | null;
+  points: string[];
 }
 
-/** Being built now. */
-export const roadmapNow: RoadmapItem[] = [
-  {
-    slug: "phone-gestures",
-    title: "Gestures on your phone",
-    description: "Faster on a phone: swipe a memory to archive it or mark it read, and rename one by tapping its title.",
-    area: "App",
-    points: ["Swipe left or right on any list", "Rename in place, no dialog", "Undo on every swipe"],
-  },
-];
+export interface Roadmap {
+  now: RoadmapItem[];
+  next: (RoadmapItem & { votes: number })[];
+}
 
-/** Next, roughly in order. People can vote for these. */
-export const roadmapNext: RoadmapItem[] = [
-  {
-    slug: "firefox-extension",
-    title: "Savedly for Firefox",
-    description: "The browser extension for Firefox: save, highlight and search without leaving the page.",
-    area: "Extension",
-  },
-  {
-    slug: "pdf-highlights",
-    title: "Highlights in PDFs",
-    description: "Highlight passages in PDFs you open in the browser, not just web pages.",
-    area: "Extension",
-  },
-  {
-    slug: "weekly-email",
-    title: "A weekly email of things to read",
-    description: "A short email once a week bringing back a few unread saves from your Inbox, so they get read instead of buried.",
-    area: "Inbox",
-  },
-  {
-    slug: "import-highlights",
-    title: "Import from Kindle and Readwise",
-    description: "Bring the highlights you've made elsewhere into Savedly, next to everything else.",
-    area: "Highlights",
-  },
-  {
-    slug: "more-integrations",
-    title: "Notion and more integrations",
-    description: "Connect Notion, and save from the places you already read: Reddit, YouTube, X, Instagram and LinkedIn.",
-    area: "Integrations",
-  },
-  {
-    slug: "audio",
-    title: "Audio, fully supported",
-    description: "Save voice notes, podcasts and audio files, transcribed so you can search and ask about what was said.",
-    area: "Saving",
-  },
-];
+/** How long the website keeps a copy before asking the API again: an edit in Admin > Roadmap shows within this. */
+const REVALIDATE_SECONDS = 60;
+
+/** Read on the website's server, so the roadmap is in the page itself. An unreachable API gives an empty roadmap, not an error page. */
+export async function getRoadmap(): Promise<Roadmap> {
+  try {
+    const res = await fetch(`${API_URL}/roadmap`, { next: { revalidate: REVALIDATE_SECONDS } });
+    if (!res.ok) return { now: [], next: [] };
+    const json = (await res.json()) as { success: boolean; data: Roadmap };
+    return json.success ? json.data : { now: [], next: [] };
+  } catch {
+    return { now: [], next: [] };
+  }
+}
+
+// ---- Admin
+
+export interface AdminRoadmapItem extends RoadmapItem {
+  id: string;
+  isActive: boolean;
+  sortOrder: number;
+  votes: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoadmapItemInput {
+  status: RoadmapStatus;
+  title: string;
+  description: string;
+  area: string | null;
+  points: string[];
+  isActive: boolean;
+}
+
+export const ROADMAP_STATUS_LABEL: Record<RoadmapStatus, string> = { now: "Working on now", next: "Coming next" };
+
+export const listRoadmapItems = () => apiFetch<AdminRoadmapItem[]>("/admin/roadmap");
+export const createRoadmapItem = (input: RoadmapItemInput) => apiFetch<AdminRoadmapItem>("/admin/roadmap", { method: "POST", body: input });
+export const updateRoadmapItem = (id: string, input: Partial<RoadmapItemInput>) => apiFetch<AdminRoadmapItem>(`/admin/roadmap/${id}`, { method: "PATCH", body: input });
+export const deleteRoadmapItem = (id: string) => apiFetch<AdminRoadmapItem>(`/admin/roadmap/${id}`, { method: "DELETE" });
+export const reorderRoadmap = (status: RoadmapStatus, ids: string[]) => apiFetch<AdminRoadmapItem[]>("/admin/roadmap/order", { method: "PUT", body: { status, ids } });

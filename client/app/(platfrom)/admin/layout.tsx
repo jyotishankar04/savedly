@@ -19,6 +19,7 @@ import {
   Layers01Icon as Layers,
   Mail01Icon as Mail,
   Megaphone01Icon as Megaphone,
+  Route01Icon as RouteIcon,
   QuillWrite01Icon as QuillWrite,
   SlideIcon as Sliders,
   CloudServerIcon as CloudServer,
@@ -66,6 +67,7 @@ const NAV_ENTRIES: NavEntry[] = [
   { label: "Emails", href: "/admin/emails", icon: Mail },
   { label: "AI Usage", href: "/admin/ai-usage", icon: Cpu },
   { label: "What's new", href: "/admin/whats-new", icon: Megaphone },
+  { label: "Roadmap", href: "/admin/roadmap", icon: RouteIcon },
   { label: "Blog", href: "/admin/blog", icon: QuillWrite },
   { label: "Features", href: "/admin/features", icon: Sliders },
   { label: "Configuration", href: "/admin/configuration", icon: Settings },
@@ -103,6 +105,8 @@ function useAdminNav() {
     hidden.add("/admin/whats-new");
     // The blog is part of the public website, which a self-hosted install doesn't have either.
     hidden.add("/admin/blog");
+    // So is the roadmap.
+    hidden.add("/admin/roadmap");
     if (!system?.services.email) hidden.add("/admin/emails");
   }
   const keep = (leaf: NavLeaf) => !hidden.has(leaf.href);

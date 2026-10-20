@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowUp01Icon } from "@hugeicons/core-free-icons";
+import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { apiFetch } from "@/lib/auth";
 import { useCurrentUserQuery } from "@/context/UserContext";
-import type { RoadmapItem } from "@/lib/roadmap";
+import type { Roadmap } from "@/lib/roadmap";
 import { cn } from "@/lib/utils";
 
 interface Votes {
@@ -17,15 +17,21 @@ interface Votes {
 const votesKey = ["roadmap-votes"] as const;
 
 /**
- * The "Coming next" items, each with a vote. Anyone sees the counts; voting
- * takes an account (one vote per person per item, server: modules/roadmap),
- * and a signed-out click goes to sign in. A vote shows at once and is undone
- * if saving it fails.
+ * The planned items, in order, each with what it will let you do and a vote.
+ * Anyone sees the counts; voting takes an account (one vote per person per
+ * item, server: modules/roadmap), and a signed-out click goes to sign in. A
+ * vote shows at once and is undone if saving it fails.
  */
-export function NextList({ items }: { items: RoadmapItem[] }) {
+export function NextList({ items }: { items: Roadmap["next"] }) {
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUserQuery();
-  const { data: votes } = useQuery({ queryKey: votesKey, queryFn: () => apiFetch<Votes>("/roadmap/votes"), staleTime: 30_000 });
+  const { data: votes } = useQuery({
+    queryKey: votesKey,
+    queryFn: () => apiFetch<Votes>("/roadmap/votes"),
+    // The counts the page was built with, until the live ones (and your own votes) arrive.
+    placeholderData: { counts: Object.fromEntries(items.map((item) => [item.slug, item.votes])), mine: [] },
+    staleTime: 30_000,
+  });
 
   const toggle = useMutation({
     mutationFn: ({ slug, voted }: { slug: string; voted: boolean }) => apiFetch<Votes>(`/roadmap/votes/${slug}`, { method: voted ? "DELETE" : "POST" }),
@@ -45,43 +51,69 @@ export function NextList({ items }: { items: RoadmapItem[] }) {
   });
 
   return (
-    <ul className="grid gap-3 md:grid-cols-2">
-      {items.map((item) => {
+    <ol className="grid gap-3 md:grid-cols-2">
+      {items.map((item, index) => {
         const voted = votes?.mine.includes(item.slug) ?? false;
-        const count = votes?.counts[item.slug];
-        const label = voted ? `Remove your vote for ${item.title}` : `Vote for ${item.title}`;
-        const button = cn(
-          "flex w-14 shrink-0 flex-col items-center justify-center gap-0.5 self-stretch rounded-xl text-sm font-medium tabular-nums transition-colors",
-          voted ? "bg-primary text-primary-foreground" : "bg-muted text-foreground hover:bg-foreground/10",
+        const count = votes?.counts[item.slug] ?? item.votes;
+        const want = count === 0 ? "Be the first to vote" : count === 1 ? "1 person wants this" : `${count} people want this`;
+        // The familiar upvote box: a solid triangle over the count. Bordered and
+        // calm until hovered; solid blue with a tick once it's your vote.
+        const box = cn(
+          "group/vote flex w-16 shrink-0 flex-col items-center justify-center gap-1 self-start rounded-xl border-2 py-2.5 transition-all duration-150 active:scale-95",
+          voted
+            ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/30"
+            : "border-foreground/15 bg-background text-foreground hover:-translate-y-0.5 hover:border-primary hover:text-primary",
         );
         const inner = (
           <>
-            <HugeiconsIcon icon={ArrowUp01Icon} strokeWidth={2.25} className="size-4" />
-            {/* Width held while the count loads, so nothing shifts. */}
-            <span className="min-w-[2ch] text-center">{count ?? "·"}</span>
+            {voted ? (
+              <HugeiconsIcon icon={Tick02Icon} strokeWidth={2.75} className="size-4" />
+            ) : (
+              <svg viewBox="0 0 12 10" aria-hidden className="h-2.5 w-3 fill-current transition-transform group-hover/vote:-translate-y-0.5">
+                <path d="M6 0 12 10H0z" />
+              </svg>
+            )}
+            <span className="text-base font-semibold leading-none tabular-nums">{count}</span>
+            <span className={cn("text-[10px] font-medium leading-none", voted ? "text-primary-foreground/80" : "text-muted-foreground group-hover/vote:text-primary")}>{voted ? "Voted" : "Upvote"}</span>
           </>
         );
+        const vote = user ? (
+          <button type="button" aria-pressed={voted} aria-label={voted ? `Remove your vote for ${item.title} (${count})` : `Upvote ${item.title} (${count})`} title={voted ? "Click to take your vote back" : "Upvote"} className={box} onClick={() => toggle.mutate({ slug: item.slug, voted })}>
+            {inner}
+          </button>
+        ) : (
+          <Link href="/auth/login" aria-label={`Sign in to upvote ${item.title} (${count})`} title="Sign in to vote" className={box}>
+            {inner}
+          </Link>
+        );
         return (
-          <li key={item.slug} className="flex gap-4 rounded-2xl bg-card p-4 ring-1 ring-foreground/[0.07]">
-            {user ? (
-              <button type="button" aria-label={label} aria-pressed={voted} title={label} className={button} onClick={() => toggle.mutate({ slug: item.slug, voted })}>
-                {inner}
-              </button>
-            ) : (
-              <Link href="/auth/login" aria-label={`Sign in to vote for ${item.title}`} title="Sign in to vote" className={button}>
-                {inner}
-              </Link>
-            )}
-            <div className="min-w-0 py-0.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-medium text-foreground">{item.title}</h3>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{item.area}</span>
+          <li key={item.slug} className="flex flex-col rounded-2xl bg-card p-6 ring-1 ring-foreground/[0.07]">
+            <div className="flex gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="font-mono tabular-nums">{String(index + 1).padStart(2, "0")}</span>
+                  {index === 0 && <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">Next up</span>}
+                  {item.area && <span className="rounded-full bg-muted px-2 py-0.5">{item.area}</span>}
+                </div>
+                <h3 className="mt-3 text-lg font-medium tracking-[-0.01em] text-foreground">{item.title}</h3>
               </div>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">{item.description}</p>
+              {vote}
             </div>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{item.description}</p>
+            {item.points.length > 0 && (
+              <ul className="mt-4 space-y-2">
+                {item.points.map((point) => (
+                  <li key={point} className="flex gap-2.5 text-[15px] leading-relaxed text-foreground">
+                    <HugeiconsIcon icon={Tick02Icon} strokeWidth={2.25} className="mt-1 size-4 shrink-0 text-primary" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-auto pt-5 text-sm text-muted-foreground">{want}</p>
           </li>
         );
       })}
-    </ul>
+    </ol>
   );
 }
