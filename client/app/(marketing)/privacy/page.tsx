@@ -180,14 +180,16 @@ export default function PrivacyPage() {
           <section id="browser-extension" className="space-y-3 scroll-mt-28">
             <h2 className="text-base font-bold text-foreground">7. The browser extension</h2>
             <p>
-              The Savedly browser extension saves things to your Savedly account when you ask it to. It sends nothing about a page until you choose to save.
+              The Savedly browser extension saves things to your Savedly account when you ask it to. It sends nothing about the pages you browse; a page&apos;s details go to Savedly only when you act on that page, as listed here.
             </p>
             <ul className="list-disc pl-5 space-y-2">
               <li><strong>What is sent when you save:</strong> the page&apos;s address, title, description and preview image address, plus whatever you add (a note, tags, collections). Saving selected text sends that text; saving an image sends the image&apos;s address; a screenshot sends the picture of the area you chose and the text visible inside it.</li>
-              <li><strong>What is not collected:</strong> your browsing history, pages you don&apos;t save, what you type on other sites, or your clipboard.</li>
-              <li><strong>Why it can run on every site:</strong> so it can show its on-page button, draw the screenshot selection, and read a page&apos;s description when you open the extension. That happens inside your browser.</li>
+              <li><strong>When you open the extension on a page:</strong> the page&apos;s address goes to Savedly to check whether you&apos;ve saved it. If you haven&apos;t, its address, title and description are also used to suggest a collection and tags, which means they go to the AI provider (as described in section 3) the same way a save does. Nothing is stored until you save.</li>
+              <li><strong>When you highlight:</strong> the text you highlighted, a few words on either side of it (so it can be found on the page again), its colour and any note, plus the page&apos;s address and title. Highlighting a page you haven&apos;t saved saves it. When you go back to a page you&apos;ve highlighted, the extension asks Savedly for that page&apos;s highlights so it can show them.</li>
+              <li><strong>What is not collected:</strong> your browsing history, pages you don&apos;t act on, what you type on other sites, or your clipboard. To show a ✓ on pages you&apos;ve already saved or highlighted, the extension downloads short fingerprints of those pages&apos; addresses and compares them on your device; the pages you visit aren&apos;t sent to do it.</li>
+              <li><strong>Why it can run on every site:</strong> so it can show its on-page button and your highlights, draw the screenshot selection, read a page&apos;s description when you open the extension, and show the current page in the side panel. That happens inside your browser.</li>
               <li><strong>Sign-in:</strong> the extension uses the sign-in you already have with Savedly in the same browser. It does not keep a copy of your password or sign-in token.</li>
-              <li><strong>Kept on your device:</strong> whether you are signed in, and whether you turned the on-page button off.</li>
+              <li><strong>Kept on your device:</strong> whether you are signed in, whether you turned the on-page button off and where you dragged it, and the fingerprints of saved and highlighted pages above.</li>
             </ul>
             <p>
               What you save through the extension is handled like everything else in your account, as described in the rest of this policy. Data is not sold, and is not used for advertising.

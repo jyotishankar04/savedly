@@ -8,6 +8,7 @@ import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
+import { researchForPrompt } from "./research-context";
 
 interface CollectionDecision {
   action: "existing" | "new" | "none";
@@ -49,6 +50,7 @@ Title: {title}
 Summary: {summary}
 Tags: {tags}
 Category: {resourceCategory}
+What a web search found it to be: {research}
 
 The user's existing collections:
 {existingCollections}
@@ -62,9 +64,12 @@ Having a date or a time does NOT make something a meeting or a scheduling item. 
 - "Dentist appointment at 4:30" → "Health"
 - "File taxes by the 15th" → "Taxes" or "Finances"
 - "Sprint planning with the team" → "Meetings" (this one really is a meeting)
+- "Hanuman Ansh" (a film) → "Movies"; "Project Hail Mary" (a novel) → "Books"; "Linear" (a web app) → "Tools" or "Apps"
+
+Never name a collection after the memory itself: not its title, and not the specific film, book, person, product or place it is about. A collection holds many memories of a kind or on a subject, so name the kind or the subject.
 
 Decide, in this order:
-1. If an existing collection is about the same subject, so the user would look for this memory there, respond with action "existing" and its exact name as written above. A collection that only shares the format (both have dates, both are notes, both are tasks) is NOT a fit.
+1. If an existing collection is about the same subject, so the user would look for this memory there, respond with action "existing" and its exact name: only the words inside the quotes, never the "about" part. A collection that only shares the format (both have dates, both are notes, both are tasks) is NOT a fit.
 2. If none is about the same subject, do NOT force it into an unrelated one. Respond with action "new" and propose a short name (1-3 words, plural where natural, like "Birthdays" or "Recipes"), a single emoji as the icon, and a one-sentence description. Keep it broad enough that future memories on the subject fit, but specific to the subject: "Birthdays", not "Events" or "Personal".
 3. Only if the memory is truly too generic to belong to any subject (a lone "remember this", a stray test note), respond with action "none".
 
@@ -99,7 +104,7 @@ export async function organizeCollection(state: IngestionStateType): Promise<Ing
     .where(and(eq(collections.userId, state.userId), eq(collections.isVaulted, false)));
 
   const existingCollectionsText =
-    existing.length > 0 ? existing.map((c) => `- ${c.name}${c.description ? `: ${c.description}` : ""}`).join("\n") : "(none yet)";
+    existing.length > 0 ? existing.map((c) => `- "${c.name}"${c.description ? ` (about: ${c.description})` : ""}`).join("\n") : "(none yet)";
 
   const chain = prompt.pipe(model).pipe(new JsonOutputParser<CollectionDecision>());
   const decision = await chain.invoke(
@@ -108,6 +113,7 @@ export async function organizeCollection(state: IngestionStateType): Promise<Ing
       summary: wrapUntrusted(state.aiSummary ?? "", "summary"),
       tags: state.suggestedTags.join(", ") || "(none)",
       resourceCategory: state.resourceCategory ?? "",
+      research: researchForPrompt(state),
       existingCollections: existingCollectionsText,
     },
     { callbacks: [createUsageCallback({ userId: state.userId, requestType: "ingestion:organize_collection", memoryId: state.memoryId })] },
@@ -122,7 +128,9 @@ export async function organizeCollection(state: IngestionStateType): Promise<Ing
   // The model's answer is only a name: match it to a real collection either
   // way, so "new: Birthday" reuses an existing "Birthdays", and an "existing"
   // name it misspelled still lands somewhere instead of nowhere.
-  const match = existing.find((c) => collectionNameKey(c.name) === collectionNameKey(name));
+  // A model that copied the whole listed line ("Movies (about: films I liked)", or "Movies: films…") still means "Movies".
+  const bare = [name, name.replace(/\s*\(about:.*$/i, ""), name.split(/\s*[:—–]\s+/)[0]!].map((n) => n.replace(/^["']|["']$/g, "").trim());
+  const match = existing.find((c) => bare.some((n) => collectionNameKey(c.name) === collectionNameKey(n)));
   const resolved: IngestionUpdate = match
     ? { collectionAction: "existing", collectionName: match.name, collectionIcon: null, collectionDescription: null }
     : { collectionAction: "new", collectionName: name.slice(0, 60), collectionIcon: decision.icon ?? null, collectionDescription: decision.description ?? null };

@@ -10,6 +10,8 @@ import {
   validateBatchRestore,
   validateBatchUpdateStatus,
   validateBatchUncollect,
+  validateBatchRead,
+  validateBatchRemind,
   validateBatchDeleteCollections,
   validateBatchMergeCollections,
   validateBatchVaultCollections,
@@ -32,6 +34,8 @@ const unlockedToUnvault = (field: "vaulted" | "isVaulted") => (req: Request, res
 
 router.post("/memories/status", authenticate, bulk, validateBatchUpdateStatus, unlockedToUnvault("vaulted"), BatchController.updateStatus);
 router.post("/memories/uncollect", authenticate, bulk, validateBatchUncollect, BatchController.uncollectMemories);
+router.post("/memories/read", authenticate, bulk, validateBatchRead, BatchController.readMemories);
+router.post("/memories/remind", authenticate, bulk, validateBatchRemind, BatchController.remindMemories);
 
 // /api/v1/batch/collections/...
 router.post("/collections/delete", authenticate, bulk, validateBatchDeleteCollections, BatchController.deleteCollections);

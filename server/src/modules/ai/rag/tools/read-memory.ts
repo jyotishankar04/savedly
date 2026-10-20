@@ -32,6 +32,8 @@ export const readMemoryTool = tool(
       savedAt: memory.createdAt.toISOString(),
       details: memory.extractedFields ?? {},
       attachments: memory.attachments.map((a) => ({ fileUrl: a.fileUrl, mimeType: a.mimeType })),
+      // Passages the user highlighted on the page, with their notes: what mattered to them in it.
+      highlights: memory.highlights.map((h) => (h.note ? { text: h.text, note: h.note } : { text: h.text })),
     };
   },
   {

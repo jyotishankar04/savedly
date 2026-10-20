@@ -1,6 +1,6 @@
-import { and, count, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db";
-import { attachments, collectionMemories, collections, memories, memoryTags, tags } from "../../db/schema";
+import { attachments, collectionMemories, collections, memories, memoryHighlights, memoryTags, tags } from "../../db/schema";
 import { MemoryStatus, PlanLimitType, type MemoryType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
@@ -20,6 +20,9 @@ import type {
 import { assertFeature, assertWithinLimit } from "../plans/plans.service";
 import { DuplicateStatus, findDuplicate } from "./duplicates";
 
+/** Saves meant to be read or watched later: they start unread, in the Inbox. Notes and voice memos are the user's own words. */
+export const READ_LATER_TYPES = new Set<string>(["web", "video", "document", "image"]);
+
 export interface MemoryListItem {
   id: string;
   type: string;
@@ -34,6 +37,14 @@ export interface MemoryListItem {
   inTrash: boolean;
   trashedAt: Date | null;
   isVaulted: boolean;
+  /** Null = unread, in the Inbox. */
+  readAt: Date | null;
+  /** When it comes back ("Remind me"); in the future = snoozed. */
+  remindAt: Date | null;
+  /** When a reminder last brought it back. */
+  remindedAt: Date | null;
+  /** Whether passages on it were highlighted (the extension's highlighter). */
+  hasHighlights: boolean;
   eventAt: Date | null;
   /** How long the event runs, in minutes; null means 1 hour. */
   eventDurationMinutes: number | null;
@@ -46,6 +57,8 @@ export interface MemoryListItem {
   inferredIntent: string | null;
   contentType: string | null;
   extractedFields: Record<string, string> | null;
+  /** What the AI looked up on the web to understand it, with the pages it used; null when it didn't. */
+  webResearch: { query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string } | null;
   // URL capture & preview system (docs/URL_CAPTURE_AND_PREVIEW.md) — status
   // is always set (defaults to "processing"); the preview.* fields stay null
   // until ingestion runs, or forever for non-link memories.
@@ -68,6 +81,8 @@ export interface AttachmentResponse {
 }
 
 export interface MemoryDetail extends MemoryListItem {
+  /** Passages highlighted on the page, oldest first. */
+  highlights: { id: string; text: string; color: string; note: string | null; createdAt: Date }[];
   content: string | null;
   keywords: string[] | null;
   attachments: AttachmentResponse[];
@@ -148,6 +163,10 @@ function toListItem(
     inTrash: row.inTrash,
     trashedAt: row.trashedAt,
     isVaulted: row.isVaulted,
+    readAt: row.readAt,
+    remindAt: row.remindAt,
+    remindedAt: row.remindedAt,
+    hasHighlights: !!row.highlightsText,
     eventAt: row.eventAt,
     eventDurationMinutes: row.eventDurationMinutes,
     tags: memoryTagsList,
@@ -157,6 +176,7 @@ function toListItem(
     inferredIntent: row.inferredIntent,
     contentType: row.contentType,
     extractedFields: row.extractedFields as Record<string, string> | null,
+    webResearch: row.webResearch ?? null,
     status: row.status,
     previewStatus: row.previewStatus,
     previewSource: row.previewSource,
@@ -179,7 +199,7 @@ function toListItem(
  */
 async function buildFilterConditions(
   userId: string,
-  query: Pick<ListMemoriesQuery, "type" | "isFavorite" | "isArchived" | "inTrash" | "isVaulted" | "collectionId" | "tag" | "site">,
+  query: Pick<ListMemoriesQuery, "type" | "isFavorite" | "isArchived" | "inTrash" | "isVaulted" | "collectionId" | "tag" | "site" | "inbox" | "snoozed">,
 ): Promise<SQL[] | null> {
   const conditions: SQL[] = [
     eq(memories.userId, userId),
@@ -193,6 +213,9 @@ async function buildFilterConditions(
   ];
 
   if (query.type) conditions.push(eq(memories.type, query.type as MemoryType));
+  // The Inbox: unread, and not snoozed by a reminder still to come.
+  if (query.inbox) conditions.push(isNull(memories.readAt), or(isNull(memories.remindAt), lte(memories.remindAt, new Date()))!);
+  if (query.snoozed) conditions.push(gt(memories.remindAt, new Date()));
   if (query.isFavorite !== undefined) conditions.push(eq(memories.isFavorite, query.isFavorite));
   if (query.site) {
     const pattern = `%${query.site.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
@@ -245,7 +268,15 @@ export async function listMemories(
     .select()
     .from(memories)
     .where(where)
-    .orderBy(desc(memories.createdAt))
+    // The Inbox and the snoozed list read in their own order: what came back
+    // (or arrived) most recently first, and the next reminder first.
+    .orderBy(
+      query.snoozed
+        ? asc(memories.remindAt)
+        : query.inbox
+          ? desc(sql`coalesce(${memories.remindedAt}, ${memories.createdAt})`)
+          : desc(memories.createdAt),
+    )
     .limit(query.limit)
     .offset((query.page - 1) * query.limit);
 
@@ -338,6 +369,14 @@ export async function getMemoryById(userId: string, id: string): Promise<MemoryD
     attachCollections([row.id]),
   ]);
 
+  const highlightRows = row.highlightsText
+    ? await db
+        .select({ id: memoryHighlights.id, text: memoryHighlights.text, color: memoryHighlights.color, note: memoryHighlights.note, createdAt: memoryHighlights.createdAt })
+        .from(memoryHighlights)
+        .where(eq(memoryHighlights.memoryId, row.id))
+        .orderBy(asc(memoryHighlights.createdAt))
+    : [];
+
   const attachmentRows = await db
     .select({
       id: attachments.id,
@@ -351,6 +390,7 @@ export async function getMemoryById(userId: string, id: string): Promise<MemoryD
 
   return {
     ...toListItem(row, tagsByMemory.get(row.id) ?? [], collectionsByMemory.get(row.id) ?? []),
+    highlights: highlightRows,
     content: row.content,
     keywords: row.keywords,
     attachments: attachmentRows,
@@ -381,6 +421,19 @@ async function attachAttachments(memoryIds: string[]): Promise<Map<string, Attac
   return map;
 }
 
+/** Highlights for many memories at once, oldest first, for the export. */
+async function attachHighlights(memoryIds: string[]): Promise<Map<string, MemoryDetail["highlights"]>> {
+  const map = new Map<string, MemoryDetail["highlights"]>();
+  if (memoryIds.length === 0) return map;
+  const rows = await db
+    .select({ memoryId: memoryHighlights.memoryId, id: memoryHighlights.id, text: memoryHighlights.text, color: memoryHighlights.color, note: memoryHighlights.note, createdAt: memoryHighlights.createdAt })
+    .from(memoryHighlights)
+    .where(inArray(memoryHighlights.memoryId, memoryIds))
+    .orderBy(asc(memoryHighlights.createdAt));
+  for (const { memoryId, ...highlight } of rows) map.set(memoryId, [...(map.get(memoryId) ?? []), highlight]);
+  return map;
+}
+
 /**
  * Every non-trashed memory, full detail (content/keywords/attachments
  * included) — unlike listMemories, no pagination, since this backs a
@@ -398,14 +451,16 @@ export async function exportAllMemories(userId: string): Promise<MemoryDetail[]>
     .orderBy(desc(memories.createdAt));
 
   const memoryIds = rows.map((row) => row.id);
-  const [tagsByMemory, collectionsByMemory, attachmentsByMemory] = await Promise.all([
+  const [tagsByMemory, collectionsByMemory, attachmentsByMemory, highlightsByMemory] = await Promise.all([
     attachTags(memoryIds),
     attachCollections(memoryIds),
     attachAttachments(memoryIds),
+    attachHighlights(memoryIds),
   ]);
 
   return rows.map((row) => ({
     ...toListItem(row, tagsByMemory.get(row.id) ?? [], collectionsByMemory.get(row.id) ?? []),
+    highlights: highlightsByMemory.get(row.id) ?? [],
     content: row.content,
     keywords: row.keywords,
     attachments: attachmentsByMemory.get(row.id) ?? [],
@@ -678,6 +733,8 @@ export async function createMemory(
       previewImageUrl,
       keywords: input.keywords,
       captureMethod: input.captureMethod ?? "manual",
+      // Things to read or watch go to the Inbox unread; what the user wrote themselves doesn't.
+      readAt: READ_LATER_TYPES.has(input.type) ? null : new Date(),
       duplicateStatus,
       duplicateOfId: input.onDuplicate && existing ? existing.id : null,
     };
@@ -754,6 +811,9 @@ export async function updateMemory(
     // is always safe to do.
     if (input.isVaulted !== undefined) columns.isVaulted = input.isVaulted;
     if (input.eventAt !== undefined) columns.eventAt = input.eventAt ? new Date(input.eventAt) : null;
+    if (input.isRead !== undefined) columns.readAt = input.isRead ? new Date() : null;
+    // A new reminder snoozes it until then; null cancels one.
+    if (input.remindAt !== undefined) columns.remindAt = input.remindAt ? new Date(input.remindAt) : null;
 
     const [updated] = await tx
       .update(memories)

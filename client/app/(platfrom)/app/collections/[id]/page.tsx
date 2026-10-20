@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { CollectionActionsMenu } from "@/components/collection/collection-actions-menu";
 import { EditCollectionDialog } from "@/components/collection/edit-collection-dialog";
-import { useCollectionsQuery, useMemoriesQuery } from "@/context/MemoryContext";
+import { useCollectionQuery, useMemoriesQuery } from "@/context/MemoryContext";
 import { timeAgo } from "@/lib/time";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
 import { QueryErrorState } from "@/components/query-error-state";
@@ -29,13 +29,27 @@ export default function CollectionDetailPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [editOpen, setEditOpen] = useState(false);
 
-  const { data: collections = [] } = useCollectionsQuery();
-  const collection = collections.find((c) => c.id === id);
+  // By id, not picked out of the list: a collection the AI made after the list loaded still opens.
+  const { data: collection, isLoading: collectionLoading } = useCollectionQuery(id);
 
   const { data, isLoading, isError, refetch } = useMemoriesQuery({ collectionId: id, q: searchQuery.trim() || undefined, limit: 100 });
   const memories = data?.items ?? [];
   // Above the early return below, so the hooks run in the same order every render.
   const selection = useSelection(memories.map((m) => m.id));
+
+  if (!collection && collectionLoading) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-10 space-y-6">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="h-9 w-64" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-[4/3] w-full rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!collection) {
     return (

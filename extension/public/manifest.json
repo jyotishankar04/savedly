@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Savedly",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "description": "Save pages, links, text, images and screenshots to Savedly, and find them again by describing what you remember.",
   "icons": {
     "16": "icon-16.png",
@@ -13,7 +13,10 @@
     "activeTab",
     "storage",
     "contextMenus",
-    "notifications"
+    "notifications",
+    "alarms",
+    "sidePanel",
+    "scripting"
   ],
   "host_permissions": [
     "http://localhost:4000/*"
@@ -41,6 +44,9 @@
       ]
     }
   ],
+  "omnibox": {
+    "keyword": "sv"
+  },
   "commands": {
     "quick-save-page": {
       "suggested_key": {
@@ -48,9 +54,19 @@
         "mac": "Command+Shift+S"
       },
       "description": "Quick save the current page to Savedly"
+    },
+    "open-side-panel": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "Open Savedly in the side panel"
     }
   },
   "short_name": "Savedly",
   "homepage_url": "https://savedly.app",
-  "minimum_chrome_version": "110"
+  "minimum_chrome_version": "116",
+  "side_panel": {
+    "default_path": "src/sidepanel/sidepanel.html"
+  }
 }

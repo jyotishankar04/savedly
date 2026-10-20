@@ -32,6 +32,7 @@ export const updateSettingsSchema = z.object({
   notifications: z
     .object({
       weeklySummary: z.boolean().optional(),
+      reminderEmails: z.boolean().optional(),
       forgottenMemories: z.boolean().optional(),
       productUpdates: z.boolean().optional(),
     })

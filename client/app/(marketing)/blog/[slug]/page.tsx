@@ -11,6 +11,7 @@ import { formatPostDate, getPublishedPost, getPublishedPosts } from "@/lib/blog"
 import { SITE_URL } from "@/lib/site-url";
 import { BLOG_AUTHORS, blogAuthor } from "@/lib/blog-authors";
 import { coverLoads } from "@/lib/blog-cover";
+import { SharePageButton } from "@/components/share/share-page-button";
 
 // One post. Read on the server, so its text, title and preview image are in
 // the page itself. A draft, or an address that never existed, is "not found".
@@ -103,6 +104,7 @@ export default async function BlogPostPage({ params }: Props) {
                   {post.readingMinutes} min read
                 </p>
               </div>
+              <SharePageButton title={post.title} className="ml-auto" />
             </div>
           </HeroReveal>
 

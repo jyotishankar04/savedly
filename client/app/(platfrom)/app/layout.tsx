@@ -9,12 +9,12 @@ import { MaintenanceFullPage } from "@/components/maintenance/maintenance-full-p
 import { getMaintenanceStatus } from "@/lib/maintenance";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, PlusIcon as Plus, Search01Icon as Search, Settings01Icon as Settings, HelpCircleIcon as HelpCircle, BellIcon as Bell, MoonIcon as Moon, Sun01Icon as Sun, FolderOpenIcon as FolderOpen, CompassIcon as Compass, CheckIcon as Check, ChevronDownIcon as ChevronDown, FolderPlusIcon as FolderPlus, HeartIcon as Heart, Clock01Icon as Clock, CompassIcon, BarChartIcon as BarChart2, CloudUploadIcon as UploadCloud, Layers01Icon as Layers, PanelLeftCloseIcon as PanelLeftClose, PanelLeftOpenIcon as PanelLeftOpen, Menu01Icon as Menu, Tag01Icon as Tag, KeyboardIcon as Keyboard, Archive01Icon as Archive, Delete02Icon as Trash2, TrendingUpIcon as TrendingUp, Plug01Icon as Plug, MessageSquarePlusIcon as MessageSquarePlus, HistoryIcon as History, ShieldUserIcon as ShieldUser, Share02Icon as Share2, LockPasswordIcon as VaultIcon, Calendar03Icon as CalendarIcon } from "@hugeicons/core-free-icons";
+import { SparklesIcon as Sparkles, PlusIcon as Plus, Search01Icon as Search, Settings01Icon as Settings, HelpCircleIcon as HelpCircle, BellIcon as Bell, MoonIcon as Moon, Sun01Icon as Sun, FolderOpenIcon as FolderOpen, CompassIcon as Compass, InboxIcon as InboxNav, CheckIcon as Check, ChevronDownIcon as ChevronDown, FolderPlusIcon as FolderPlus, HeartIcon as Heart, Clock01Icon as Clock, CompassIcon, BarChartIcon as BarChart2, CloudUploadIcon as UploadCloud, Layers01Icon as Layers, PanelLeftCloseIcon as PanelLeftClose, PanelLeftOpenIcon as PanelLeftOpen, Menu01Icon as Menu, Tag01Icon as Tag, KeyboardIcon as Keyboard, Archive01Icon as Archive, Delete02Icon as Trash2, TrendingUpIcon as TrendingUp, Plug01Icon as Plug, MessageSquarePlusIcon as MessageSquarePlus, HistoryIcon as History, ShieldUserIcon as ShieldUser, Share02Icon as Share2, LockPasswordIcon as VaultIcon, Calendar03Icon as CalendarIcon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/auth";
 import { UserAvatar, UserProvider, useUser, useCurrentUserQuery, useSetCurrentUser } from "@/context/UserContext";
 import { SetupPanel } from "@/components/setup/setup-panel";
-import { useMemories } from "@/context/MemoryContext";
+import { useInboxCountQuery, useMemories } from "@/context/MemoryContext";
 import { SidebarStateProvider } from "@/context/SidebarContext";
 import { uploadFile, type UploadedFile } from "@/lib/uploads";
 import { usePlanLabel, usePlanLimit } from "@/hooks/use-plan-limit";
@@ -339,6 +339,8 @@ const KEYBOARD_SHORTCUTS: ShortcutListGroup[] = [
       { label: "Favorite or unfavorite", shortcut: "f", keywords: "star" },
       { label: "Archive, or take out of the archive", shortcut: "e", keywords: "done" },
       { label: "Move to Trash", shortcut: "delete", keywords: "remove # hash" },
+      { label: "Mark as read or unread", shortcut: "m", keywords: "inbox done unread" },
+      { label: "Remind me", shortcut: "r", keywords: "snooze later reminder" },
     ],
   },
   {
@@ -688,7 +690,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   // Paste anywhere to save: a link, some text or a screenshot pasted while no
   // text box has focus (and nothing is open on top) is saved straight away.
-  useMemoryListKeys();
+  const listKeysDialog = useMemoryListKeys();
   const quickSave = useQuickSave();
   const quickSaveRef = useRef(quickSave);
   useEffect(() => {
@@ -830,9 +832,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   const planLabel = usePlanLabel();
   const unreadCount = useUnreadCountQuery().data?.count ?? 0;
+  const inboxUnread = useInboxCountQuery().data?.unread ?? 0;
 
   const primaryNavItems: NavItem[] = [
     { label: "Home", href: "/app", icon: Compass },
+    { label: "Inbox", href: "/app/inbox", icon: InboxNav, badge: inboxUnread },
     { label: "Search", href: "/app/search", icon: Search },
     { label: "Ask Savedly", href: "/app/ask", icon: Sparkles, logo: true },
     { label: "Memories", href: "/app/memories", icon: FolderOpen },
@@ -1641,6 +1645,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <ExtensionInstallPrompt />
       <UpgradeDialog />
       <DropToSave />
+      {listKeysDialog}
 
       {/* Global CSS animations styles */}
       <style>{`

@@ -4,6 +4,7 @@ import { getChatModel } from "../../ai.providers";
 import { createUsageCallback } from "../../../ai-usage/usage-logger";
 import { extractUrl } from "../extract-url";
 import { logNode } from "../log";
+import { researchForPrompt } from "./research-context";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 
@@ -37,6 +38,9 @@ meaningful can be extracted, return an empty object.
 Content:
 {content}
 
+What a web search found it to be (when the text alone is just a name; trust this over your own guess):
+{research}
+
 Respond as strict JSON: {{"contentType": "...", "extractedFields": {{...}}}}`,
 );
 
@@ -63,7 +67,7 @@ export async function detectContentType(state: IngestionStateType): Promise<Inge
 
   const chain = prompt.pipe(model).pipe(new JsonOutputParser<ContentTypeExtraction>());
   const result = await chain.invoke(
-    { content: wrapUntrusted(state.rawContent.slice(0, 4000), "saved content") },
+    { content: wrapUntrusted(state.rawContent.slice(0, 4000), "saved content"), research: researchForPrompt(state) },
     { callbacks: [createUsageCallback({ userId: state.userId, requestType: "ingestion:detect_content_type", memoryId: state.memoryId })] },
   );
 

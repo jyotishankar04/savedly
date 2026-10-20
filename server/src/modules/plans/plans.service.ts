@@ -141,6 +141,14 @@ export async function getCurrentUsage(userId: string, limitType: PlanLimitType, 
         );
       return row?.value ?? 0;
     }
+    case PlanLimitType.WEB_SEARCH_MONTHLY: {
+      // One "web:search" row per lookup (modules/ai/web-search), from saves and Ask alike.
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(*)::int` })
+        .from(aiUsageLogs)
+        .where(and(eq(aiUsageLogs.userId, userId), eq(aiUsageLogs.requestType, "web:search"), gte(aiUsageLogs.createdAt, startOfCurrentMonth())));
+      return row?.value ?? 0;
+    }
     case PlanLimitType.IMPORT_MONTHLY_COUNT: {
       const [row] = await dbClient
         .select({ value: sql<number>`count(*)::int` })
@@ -167,6 +175,14 @@ export async function getCurrentUsage(userId: string, limitType: PlanLimitType, 
   }
 }
 
+// Limits a plan without its own row gets, instead of unlimited: each web
+// lookup is a paid call, so a plan made before the limit existed (or a
+// retired one someone is still on) stays at the Free level until an admin
+// sets it.
+const LIMIT_WHEN_UNSET: Partial<Record<PlanLimitType, number>> = {
+  [PlanLimitType.WEB_SEARCH_MONTHLY]: 10,
+};
+
 interface LimitCheck {
   ok: boolean;
   planName: string;
@@ -179,7 +195,9 @@ async function checkLimit(userId: string, limitType: PlanLimitType, delta: numbe
   if (env.SELF_HOSTED) return { ok: true, planName: "Self-hosted", limitValue: null, current: 0 };
 
   const { plan } = await resolveEffectivePlan(userId, dbClient);
-  const limitValue = (await getPlanLimits(plan.id, dbClient))[limitType] ?? null;
+  const set = (await getPlanLimits(plan.id, dbClient))[limitType];
+  // A missing row normally means unlimited; for limits that cost us money per use, it means the Free amount instead.
+  const limitValue = set !== undefined ? set : (LIMIT_WHEN_UNSET[limitType] ?? null);
   if (limitValue === null) return { ok: true, planName: plan.name, limitValue: null, current: 0 }; // unlimited
 
   const current = await getCurrentUsage(userId, limitType, dbClient);
@@ -192,6 +210,8 @@ const LIMIT_MESSAGES: Partial<Record<PlanLimitType, (limit: number, plan: string
   [PlanLimitType.PUBLIC_SHARE_COUNT]: (n, p) =>
     `The ${p} plan includes ${n} public ${n === 1 ? "link" : "links"}. Make one private or upgrade for more.`,
   [PlanLimitType.COLLECTION_COUNT]: (n, p) => `The ${p} plan includes ${n} collections of your own. Upgrade for unlimited.`,
+  [PlanLimitType.WEB_SEARCH_MONTHLY]: (n, p) =>
+    `The ${p} plan includes ${n} web ${n === 1 ? "lookup" : "lookups"} a month. Upgrade for more, or they come back next month.`,
   [PlanLimitType.IMPORT_MONTHLY_COUNT]: (n, p) =>
     `The ${p} plan includes ${n} ${n === 1 ? "import" : "imports"} a month. Upgrade for unlimited imports, or try again next month.`,
 };

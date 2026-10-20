@@ -178,6 +178,13 @@ function cardBullets(plan: PublicPlan, base: Plan | null | undefined, baseName: 
         : `${limits.ai_monthly_queries.toLocaleString("en-US")} Ask questions a month`,
     );
   }
+  if (limits.web_search_monthly !== undefined) {
+    room.push(
+      limits.web_search_monthly === null
+        ? "Unlimited web lookups"
+        : `${limits.web_search_monthly.toLocaleString("en-US")} web lookups a month`,
+    );
+  }
   const all = [...room, ...planFeatureBullets(plan.features, base?.features)];
   return { shown: all.slice(0, MAX_BULLETS), more: Math.max(0, all.length - MAX_BULLETS) };
 }

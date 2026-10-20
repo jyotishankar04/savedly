@@ -68,8 +68,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
       await renewSession();
       response = await send(path, options);
     }
-  } catch {
-    throw new ApiError("Couldn't reach the Savedly server.", 0);
+  } catch (err) {
+    // Kept in the message: "Failed to fetch" vs a blocked or refused request is what tells the cases apart.
+    const why = err instanceof Error ? err.message : String(err);
+    console.warn(`Savedly: couldn't reach ${API_BASE}${path}:`, err);
+    throw new ApiError(`Couldn't reach the Savedly server (${why}).`, 0);
   }
 
   if (response.status === 401) {
@@ -89,6 +92,29 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   return body.data as T;
+}
+
+export interface AuthCheck {
+  signedIn: boolean;
+  /** Set when the server couldn't be asked at all: unreachable, blocked, or an error. Null for a plain yes or no. */
+  problem: string | null;
+}
+
+/**
+ * Whether this browser is signed in, telling "signed out" apart from "couldn't
+ * ask": the popup shows the second as what it is instead of a sign-in screen.
+ */
+export async function checkAuth(): Promise<AuthCheck> {
+  try {
+    await apiFetch("/auth/me");
+    return { signedIn: true, problem: null };
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) return { signedIn: false, problem: null };
+    const stored = await new Promise<boolean>((resolve) => {
+      chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => resolve(!!result[SIGNED_IN_STORAGE_KEY]));
+    });
+    return { signedIn: stored, problem: err instanceof Error ? err.message : "Couldn't reach the Savedly server." };
+  }
 }
 
 /**

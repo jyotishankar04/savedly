@@ -1,4 +1,4 @@
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { collectionMemories, collections, memories } from "../../db/schema";
 import { CollectionSource, PlanLimitType } from "../../db/enums";
@@ -50,6 +50,50 @@ export async function listCollections(userId: string, query: ListCollectionsQuer
     .leftJoin(collectionMemories, eq(collectionMemories.collectionId, collections.id))
     .where(and(...conditions))
     .groupBy(collections.id);
+}
+
+/**
+ * One collection, for its page. Fetched by id rather than picked out of the
+ * list, so a collection made a moment ago (by the AI filing a new save, or
+ * in another tab) opens straight away. Vaulted collections open only from the
+ * vault, so they read as not found here.
+ */
+export async function getCollection(userId: string, id: string): Promise<CollectionResponse> {
+  const [row] = await db
+    .select({
+      id: collections.id,
+      name: collections.name,
+      icon: collections.icon,
+      description: collections.description,
+      source: collections.source,
+      isVaulted: collections.isVaulted,
+      createdAt: collections.createdAt,
+      updatedAt: collections.updatedAt,
+      memoryCount: count(collectionMemories.memoryId),
+    })
+    .from(collections)
+    .leftJoin(collectionMemories, eq(collectionMemories.collectionId, collections.id))
+    .where(and(eq(collections.id, id), eq(collections.userId, userId), eq(collections.isVaulted, false)))
+    .groupBy(collections.id);
+  if (!row) throw new AppError("Collection not found", 404, "COLLECTION_NOT_FOUND");
+  return row;
+}
+
+/**
+ * The collections the user filed into most recently: those of their latest
+ * saves, newest first, without repeats. For one-tap filing in the extension.
+ */
+export async function recentCollections(userId: string, limit = 6): Promise<{ id: string; name: string; icon: string }[]> {
+  const rows = await db
+    .select({ id: collections.id, name: collections.name, icon: collections.icon })
+    .from(memories)
+    .innerJoin(collectionMemories, eq(collectionMemories.memoryId, memories.id))
+    .innerJoin(collections, eq(collections.id, collectionMemories.collectionId))
+    .where(and(eq(memories.userId, userId), eq(memories.inTrash, false), eq(collections.isVaulted, false)))
+    .orderBy(desc(memories.createdAt))
+    .limit(80);
+  const seen = new Set<string>();
+  return rows.filter((r) => !seen.has(r.id) && seen.add(r.id)).slice(0, limit);
 }
 
 export async function createCollection(

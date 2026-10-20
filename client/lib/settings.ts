@@ -21,6 +21,8 @@ export interface Settings {
   notifications: {
     weeklySummary: boolean;
     forgottenMemories: boolean;
+    /** Emails for reminders set with "Remind me" (the in-app notification always comes). */
+    reminderEmails: boolean;
     productUpdates: boolean;
   };
   appearance: {

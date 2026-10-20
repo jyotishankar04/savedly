@@ -145,6 +145,8 @@ export enum NotificationType {
   SHARE_REVOKED = "share_revoked",
   EVENT_DETECTED = "event_detected",
   DUPLICATE_DETECTED = "duplicate_detected",
+  // A reminder the user set on a memory ("Remind me tomorrow") is due.
+  MEMORY_REMINDER = "memory_reminder",
 }
 
 export enum PlanLimitType {
@@ -169,6 +171,9 @@ export enum PlanLimitType {
   // Counts shares whose link is set to "public". Free plans get a handful;
   // the other sharing modes are gated by plans.features instead.
   PUBLIC_SHARE_COUNT = "public_share_count",
+  // Web lookups this month: the research step on saves and Ask's web search.
+  // The search service is always the platform's, so every lookup counts.
+  WEB_SEARCH_MONTHLY = "web_search_monthly",
 }
 
 export enum PlanBillingInterval {
@@ -224,6 +229,7 @@ export enum EmailTemplateKey {
   SHARE_ACCESS_DENIED = "share_access_denied",
   ADMIN_CUSTOM = "admin_custom",
   EVENT_DETECTED = "event_detected",
+  MEMORY_REMINDER = "memory_reminder",
 }
 
 export enum EmailStatus {
@@ -287,4 +293,12 @@ export enum ReportStatus {
   REVIEWING = "reviewing",
   RESOLVED = "resolved",
   DECLINED = "declined",
+}
+// The colours a highlight on a saved page can have.
+export enum HighlightColor {
+  YELLOW = "yellow",
+  GREEN = "green",
+  BLUE = "blue",
+  PINK = "pink",
+  PURPLE = "purple",
 }
