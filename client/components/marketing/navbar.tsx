@@ -251,6 +251,7 @@ const RESOURCES_MENU: MegaMenuProps = {
       links: [
         { title: "Blog", href: "/blog" },
         { title: "Changelog", href: "/changelog" },
+        { title: "Roadmap", href: "/roadmap" },
       ],
     },
     {
@@ -301,6 +302,12 @@ const resourceLinks: MenuEntry[] = [
     icon: HelpCircleIcon,
     description: "Guides for every feature.",
     href: "/help",
+  },
+  {
+    title: "Roadmap",
+    icon: GitBranchIcon,
+    description: "What's being built now, and what's next.",
+    href: "/roadmap",
   },
   {
     title: "Community",
