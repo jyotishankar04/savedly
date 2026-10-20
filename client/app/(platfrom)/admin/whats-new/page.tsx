@@ -202,7 +202,7 @@ export default function AdminWhatsNewPage() {
     }
   };
 
-  // The launch tour: five cards that introduce the product, replacing whatever is here.
+  // The latest release's cards (server: whats-new.feature-tour.ts), replacing whatever is here.
   const [tourAsk, setTourAsk] = useState(false);
   const [tourBusy, setTourBusy] = useState(false);
   const confirmTour = async () => {
@@ -213,9 +213,9 @@ export default function AdminWhatsNewPage() {
       setEditing(null);
       refresh();
       queryClient.invalidateQueries({ queryKey: ["whats-new", "active"] });
-      toast.success("The feature tour is loaded", { description: "Visitors see it the next time they open the landing page." });
+      toast.success("The latest release is loaded", { description: "Visitors see it the next time they open the landing page." });
     } catch {
-      toast.error("Couldn't load the feature tour");
+      toast.error("Couldn't load the latest release");
     } finally {
       setTourBusy(false);
     }
@@ -250,7 +250,7 @@ export default function AdminWhatsNewPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" disabled={tourBusy} onClick={() => setTourAsk(true)}>
-            {tourBusy ? "Loading…" : "Load the feature tour"}
+            {tourBusy ? "Loading…" : "Load the latest release"}
           </Button>
           <Button variant="outline" size="sm" disabled={activeItems.length === 0} onClick={() => setPreviewOpen(true)}>
             <HugeiconsIcon icon={Eye} strokeWidth={2} className="h-4 w-4" />
@@ -468,15 +468,15 @@ export default function AdminWhatsNewPage() {
       <AlertDialog open={tourAsk} onOpenChange={setTourAsk}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Load the feature tour?</AlertDialogTitle>
+            <AlertDialogTitle>Load the latest release?</AlertDialogTitle>
             <AlertDialogDescription>
-              {items.length > 0 ? `This removes the ${items.length} card${items.length === 1 ? "" : "s"} here now and puts` : "This puts"} the feature tour in their place: one card for
-              each feature, with a short clip of it. You can edit, reorder or switch them off afterwards.
+              {items.length > 0 ? `This removes the ${items.length} card${items.length === 1 ? "" : "s"} here now and puts` : "This puts"} the latest release in their place: one card
+              for each new feature, most with a short clip of it. You can edit, reorder or switch them off afterwards.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Not now</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmTour}>{items.length > 0 ? "Replace the cards" : "Load the tour"}</AlertDialogAction>
+            <AlertDialogAction onClick={confirmTour}>{items.length > 0 ? "Replace the cards" : "Load the release"}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
