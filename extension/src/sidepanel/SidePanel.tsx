@@ -179,7 +179,13 @@ function CurrentPage({ page, refreshKey }: { page: Page | null; refreshKey: numb
   }, [page?.url, page?.tabId, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!page || !isWebPage(page.url)) {
-    return <div style={s.card}><span style={s.muted}>Open a web page to save it here.</span></div>;
+    return (
+      <div style={s.card}>
+        <span style={s.muted}>Open a web page to save it here.</span>
+        {/* A page open since before Savedly was installed or updated has no Savedly in it until it reloads. */}
+        <span style={{ ...s.muted, fontSize: 11 }}>On a web page already? Reload it, or click the Savedly icon there.</span>
+      </div>
+    );
   }
 
   const save = async () => {

@@ -711,7 +711,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return undefined;
   }
   if (request.action === "GET_TAB_PAGE" && typeof request.tabId === "number") {
-    chrome.storage.session.get(tabPageKey(request.tabId)).then((result) => sendResponse(result[tabPageKey(request.tabId)] ?? null));
+    resolveTabPage(request.tabId).then(sendResponse, () => sendResponse(null));
     return true;
   }
   if (request.action === "OPEN_SIDE_PANEL" && sender.tab?.id != null) {
@@ -720,6 +720,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   return undefined;
 });
+
+/**
+ * The page in a tab, for the side panel. From what the content script last
+ * reported; failing that (the extension was reloaded or updated since, which
+ * clears that record and disconnects the scripts already running in open
+ * tabs), by asking the tab's content script; failing that, from the tab
+ * itself, whose address Chrome shares while the person is using the
+ * extension on it (clicking its icon, its shortcut, its right-click menu).
+ */
+async function resolveTabPage(tabId: number): Promise<{ url: string; title: string } | null> {
+  const key = tabPageKey(tabId);
+  const stored = (await chrome.storage.session.get(key))[key] as { url: string; title: string } | undefined;
+  return stored ?? askTab(tabId);
+}
+
+/** Which page a tab shows, from its content script or, failing that, the tab; remembered when found. */
+async function askTab(tabId: number): Promise<{ url: string; title: string } | null> {
+  const key = tabPageKey(tabId);
+  const reply = await new Promise<{ url?: string; title?: string } | null>((resolve) =>
+    chrome.tabs.sendMessage(tabId, { action: "WHICH_PAGE" }, { frameId: 0 }, (r) => resolve(chrome.runtime.lastError ? null : (r ?? null))),
+  );
+  let page = typeof reply?.url === "string" ? { url: reply.url, title: reply.title ?? "" } : null;
+  if (!page) {
+    const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (tab?.url && /^https?:\/\//.test(tab.url)) page = { url: tab.url, title: tab.title ?? "" };
+  }
+  if (page) await chrome.storage.session.set({ [key]: { ...page, at: Date.now() } });
+  return page;
+}
 
 chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
   chrome.runtime.sendMessage({ action: "ACTIVE_TAB", tabId, windowId }, () => void chrome.runtime.lastError);
@@ -742,12 +771,9 @@ chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
     const page = stored[tabPageKey(tabId)] as { at?: number } | undefined;
     const loadedAt = stored[tabLoadKey(tabId)] as number | undefined;
     if (loadedAt == null || (page?.at ?? 0) >= loadedAt) return;
-    chrome.tabs.sendMessage(tabId, { action: "WHICH_PAGE" }, { frameId: 0 }, (reply?: { url?: string; title?: string }) => {
-      const url = !chrome.runtime.lastError && typeof reply?.url === "string" ? reply.url : null;
-      if (url) void chrome.storage.session.set({ [tabPageKey(tabId)]: { url, title: reply?.title ?? "", at: Date.now() } });
-      else void chrome.storage.session.remove(tabPageKey(tabId));
-      chrome.runtime.sendMessage({ action: "TAB_PAGE", tabId, windowId: tab.windowId, url, title: url ? (reply?.title ?? "") : null }, () => void chrome.runtime.lastError);
-    });
+    const found = await askTab(tabId);
+    if (!found) await chrome.storage.session.remove(tabPageKey(tabId));
+    chrome.runtime.sendMessage({ action: "TAB_PAGE", tabId, windowId: tab.windowId, url: found?.url ?? null, title: found?.title ?? null }, () => void chrome.runtime.lastError);
   }, 1200);
 });
 
