@@ -7,6 +7,7 @@ import { createS3Driver, localDriver, type S3Settings } from "../../shared/stora
 import { createTransport, type SmtpSettings } from "../../shared/mailer/mailer";
 import { pineconeClient } from "../ai/vector-store/pinecone-store";
 import { platformCredentialFrom, testEmbeddingsCredential, testRoleCredential } from "../ai/ai.providers";
+import { searchWith } from "../ai/web-search/web-search";
 import type { SectionId } from "./instance-settings.registry";
 import type { ResolvedSection } from "./instance-settings.service";
 
@@ -45,6 +46,11 @@ export async function testSection(id: SectionId, settings: ResolvedSection): Pro
       if (!settings.enabled) return "Email is off.";
       await createTransport(settings as unknown as SmtpSettings).verify();
       return "Connected to the SMTP server and signed in.";
+    }
+    case "webSearch": {
+      if (settings.provider === "off") return "Web search is off; nothing to test.";
+      const results = await searchWith(settings, "Savedly second brain app");
+      return `Searched the web: ${results.length} ${results.length === 1 ? "result" : "results"}.`;
     }
     case "embeddings": {
       if (!settings.apiKey) throw new Error("Add an API key first.");

@@ -1,4 +1,5 @@
 import { PublicMemoryCard } from "@/components/share/public-memory-card";
+import { SharePageButton } from "@/components/share/share-page-button";
 import type { SharedResourcePayload } from "@/lib/shares";
 
 /**
@@ -15,7 +16,9 @@ export function SharedResourceView({ payload }: { payload: SharedResourcePayload
 
   return (
     <>
-      <header className="mb-8 space-y-2 border-b border-border/20 pb-6">
+      <header className="relative mb-8 space-y-2 border-b border-border/20 pb-6">
+        {/* Visitors can pass the link on: WhatsApp, email, a QR code… */}
+        <SharePageButton title={collection?.name ?? single?.title ?? "Shared on Savedly"} className="absolute top-0 right-0" />
         {collection ? (
           <>
             <span className="text-3xl">{collection.icon}</span>

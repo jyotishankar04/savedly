@@ -99,6 +99,8 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
         eventDetectionConfidence: state.eventDetectionConfidence ?? undefined,
         contentType: state.contentType,
         extractedFields: Object.keys(state.extractedFields).length > 0 ? state.extractedFields : undefined,
+        // A re-run that didn't need to look anything up keeps the earlier lookup.
+        webResearch: state.webResearch ?? undefined,
         type: correctedType,
         url: reclassifiedAsLink ? (state.detectedUrl as string) : undefined,
         // Only ParseWebContent (web/video) ever populates these — leaves

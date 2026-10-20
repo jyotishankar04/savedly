@@ -5,6 +5,7 @@ import { AiRole } from "../../../../db/enums";
 import { planHasManagedAi } from "../../../plans/plans.service";
 import { withUsage } from "../../../ai-usage/usage-logger";
 import { tools } from "../tools";
+import { webSearchAvailable } from "../../web-search/web-search";
 import { isConfirmationRequest, turnConfirmation } from "../tools/confirm";
 import { wrapUntrusted } from "../../untrusted";
 import { AGENT_SYSTEM_PROMPT } from "../prompts";
@@ -104,7 +105,9 @@ export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
   // supports tool calling) — every concrete model getChatModel can return
   // (ChatOpenAI, ChatGroq, ChatAnthropic) does, so this is a safe non-null
   // assertion.
-  const modelWithTools = model.bindTools!(tools);
+  // search_web is only offered when this server has web search set up, so the model never reaches for a tool that can't work.
+  const webOn = await webSearchAvailable();
+  const modelWithTools = model.bindTools!(webOn ? tools : tools.filter((t) => t.name !== "search_web"));
 
   // Computed per-invocation (not baked into the static prompt string) so
   // "today" is always the actual day the turn runs on — search_memories_by_date

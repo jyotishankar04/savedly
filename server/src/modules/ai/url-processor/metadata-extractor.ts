@@ -36,10 +36,16 @@ function extractCanonical(html: string, pageUrl: string): string | null {
   return match ? resolveUrl(match[1], pageUrl) : null;
 }
 
-/** The `/favicon.ico`-at-the-origin guess every browser falls back to — needs only a valid URL, no HTML at all. */
+/**
+ * The `/favicon.ico`-at-the-origin guess every browser falls back to — needs
+ * only a valid URL, no HTML at all. Websites only: a chrome:// or
+ * chrome-extension:// page has no icon a web page could load.
+ */
 export function defaultFaviconUrl(pageUrl: string): string | null {
   try {
-    return new URL("/favicon.ico", pageUrl).href;
+    const url = new URL(pageUrl);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return new URL("/favicon.ico", url).href;
   } catch {
     return null;
   }

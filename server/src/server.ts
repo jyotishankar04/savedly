@@ -6,6 +6,7 @@ import { logger } from "./shared/utils/logger";
 import { flushSentry } from "./config/sentry";
 import { startIngestionWorker } from "./modules/ai";
 import { startTrashPurgeWorker } from "./modules/memory/trash-purge.job";
+import { startReminderWorker } from "./modules/memory/reminder.job";
 import { startEmailWorker } from "./modules/email";
 import { startAccountDeletionWorker } from "./modules/account";
 import { startGithubStarsWorker } from "./modules/integrations/github/github.job";
@@ -45,6 +46,15 @@ try {
 } catch (err) {
   logger.error({ err }, "Failed to start trash purge worker — trashed memories will not be auto-deleted");
 }
+
+startReminderWorker()
+  .then((reminderWorker) => {
+    workers.push(reminderWorker);
+    logger.info("Reminder worker started");
+  })
+  .catch((err) => {
+    logger.error({ err }, "Failed to start the reminder worker: reminders set with \"Remind me\" won't arrive");
+  });
 
 try {
   const emailWorker = startEmailWorker();

@@ -13,6 +13,27 @@
 // hand. __WEB_APP_URL__ is filled in by the build (vite.config.ts).
 const SIGNED_IN_STORAGE_KEY = "savedly_signed_in";
 const SHOW_FLOATING_ICON_STORAGE_KEY = "savedly_show_floating_icon";
+// Where the floating button was dragged to, the same on every site: which edge, and how far down (0 top … 1 bottom).
+const FLOATING_POSITION_STORAGE_KEY = "savedly_floating_position";
+
+// One live copy per page. When the extension is installed, updated or
+// reloaded, the background loads this script into tabs that were already
+// open; a copy from before is cut off from the extension by then. The newest
+// copy marks the page as its own, clears what an older copy left on it, and
+// an older copy stops reacting to the page (its DOM listeners would
+// otherwise keep running, showing toolbars whose buttons can't work).
+const INSTANCE = Math.random().toString(36).slice(2);
+document.documentElement.dataset.savedlyInstance = INSTANCE;
+for (const stale of document.querySelectorAll("#savedly-floating-button, #savedly-floating-menu, [data-savedly-ui]")) stale.remove();
+function alive(): boolean {
+  let connected = false;
+  try {
+    connected = !!chrome.runtime?.id;
+  } catch {
+    connected = false;
+  }
+  return connected && document.documentElement.dataset.savedlyInstance === INSTANCE;
+}
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "GET_METADATA") {
@@ -23,7 +44,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({
       description,
       previewImage,
-      keywords
+      keywords,
+      images: coverCandidates(previewImage),
     });
   }
 
@@ -49,6 +71,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   return true;
 });
+
+/**
+ * Pictures that could be the saved page's cover, best first: the page's own
+ * og:image and twitter:image, then the largest images on it (at least 200×120,
+ * decoded, http(s)). Up to six.
+ */
+function coverCandidates(ogImage: string): string[] {
+  const absolute = (src: string) => {
+    try {
+      const url = new URL(src, location.href);
+      return /^https?:$/.test(url.protocol) ? url.href : "";
+    } catch {
+      return "";
+    }
+  };
+  const picks = [ogImage, getMetaTag("twitter:image") || ""].map(absolute);
+  const imgs = Array.from(document.images)
+    .filter((img) => img.complete && img.naturalWidth >= 200 && img.naturalHeight >= 120)
+    .sort((a, b) => b.naturalWidth * b.naturalHeight - a.naturalWidth * a.naturalHeight)
+    .map((img) => absolute(img.currentSrc || img.src));
+  return [...new Set([...picks, ...imgs].filter(Boolean))].slice(0, 6);
+}
 
 function getMetaTag(nameOrProperty: string): string | null {
   const meta = document.querySelector(
@@ -293,18 +337,125 @@ async function refreshFloatingButtonVisibility(): Promise<void> {
   }
 }
 
+// --- Position: draggable, snapping to the nearer side edge -----------------
+
+const BUTTON_SIZE = 44;
+const EDGE_GAP = 20;
+// A press that moves less than this is a click (opens the menu), not a drag.
+const DRAG_THRESHOLD = 5;
+
+interface FloatingPosition {
+  side: "left" | "right";
+  /** Share of the free height, so it lands in the same place on any window size. */
+  y: number;
+}
+
+let floatingPosition: FloatingPosition = { side: "right", y: 1 };
+
+function maxTop(): number {
+  return Math.max(EDGE_GAP, window.innerHeight - BUTTON_SIZE - EDGE_GAP);
+}
+
+/** Puts the button where `floatingPosition` says, against its edge. */
+function placeFloatingButton(animate: boolean): void {
+  if (!floatingButtonEl) return;
+  const top = EDGE_GAP + floatingPosition.y * (maxTop() - EDGE_GAP);
+  const left = floatingPosition.side === "left" ? EDGE_GAP : window.innerWidth - BUTTON_SIZE - EDGE_GAP;
+  floatingButtonEl.style.transition = animate ? "left 0.22s cubic-bezier(.2,.8,.2,1), top 0.22s cubic-bezier(.2,.8,.2,1), transform 0.15s ease" : "transform 0.15s ease";
+  floatingButtonEl.style.left = `${left}px`;
+  floatingButtonEl.style.top = `${top}px`;
+}
+
+function loadFloatingPosition(): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([FLOATING_POSITION_STORAGE_KEY], (result) => {
+      const saved = result[FLOATING_POSITION_STORAGE_KEY] as FloatingPosition | undefined;
+      if (saved && (saved.side === "left" || saved.side === "right") && typeof saved.y === "number") {
+        floatingPosition = { side: saved.side, y: Math.min(1, Math.max(0, saved.y)) };
+      }
+      resolve();
+    });
+  });
+}
+
+/** Drag with mouse, pen or finger; on release it snaps to the nearer edge and is remembered. */
+function makeDraggable(button: HTMLButtonElement): void {
+  let start: { x: number; y: number; left: number; top: number } | null = null;
+  let dragging = false;
+  let swallowClick = false;
+
+  button.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const rect = button.getBoundingClientRect();
+    start = { x: e.clientX, y: e.clientY, left: rect.left, top: rect.top };
+    dragging = false;
+    button.setPointerCapture(e.pointerId);
+  });
+
+  button.addEventListener("pointermove", (e) => {
+    if (!start) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (!dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    if (!dragging) {
+      dragging = true;
+      closeFloatingMenu();
+      button.style.cursor = "grabbing";
+      button.style.transition = "transform 0.15s ease";
+      button.style.transform = "scale(1.08)";
+    }
+    const left = Math.min(window.innerWidth - BUTTON_SIZE - 4, Math.max(4, start.left + dx));
+    const top = Math.min(window.innerHeight - BUTTON_SIZE - 4, Math.max(4, start.top + dy));
+    button.style.left = `${left}px`;
+    button.style.top = `${top}px`;
+  });
+
+  const finish = (e: PointerEvent) => {
+    if (!start) return;
+    if (button.hasPointerCapture(e.pointerId)) button.releasePointerCapture(e.pointerId);
+    start = null;
+    if (!dragging) return;
+    dragging = false;
+    // The click that ends a drag must not open the menu.
+    swallowClick = true;
+    button.style.cursor = "grab";
+    button.style.transform = "scale(1)";
+    const rect = button.getBoundingClientRect();
+    const range = maxTop() - EDGE_GAP;
+    floatingPosition = {
+      side: rect.left + BUTTON_SIZE / 2 < window.innerWidth / 2 ? "left" : "right",
+      y: range > 0 ? Math.min(1, Math.max(0, (rect.top - EDGE_GAP) / range)) : 1,
+    };
+    placeFloatingButton(true);
+    chrome.storage.local.set({ [FLOATING_POSITION_STORAGE_KEY]: floatingPosition });
+  };
+  button.addEventListener("pointerup", finish);
+  button.addEventListener("pointercancel", finish);
+
+  button.addEventListener(
+    "click",
+    (e) => {
+      if (!swallowClick) return;
+      swallowClick = false;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    },
+    true,
+  );
+}
+
 function createFloatingButton(): void {
   if (floatingButtonEl || !document.body) return;
 
   const button = document.createElement("button");
   button.id = FLOATING_BUTTON_ID;
   button.type = "button";
-  button.setAttribute("aria-label", "Savedly quick actions");
-  button.title = "Savedly quick actions";
+  button.setAttribute("aria-label", "Savedly quick actions (drag to move)");
+  button.title = "Savedly quick actions. Drag to move it";
   button.innerHTML = LOGO_SVG;
   button.style.cssText =
-    "position:fixed;right:20px;bottom:20px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(15,17,21,0.08);" +
-    "background:#fff;cursor:pointer;z-index:2147483646;box-shadow:0 4px 14px rgba(15,17,21,0.18);" +
+    `position:fixed;width:${BUTTON_SIZE}px;height:${BUTTON_SIZE}px;border-radius:50%;border:1px solid rgba(15,17,21,0.08);` +
+    "background:#fff;cursor:grab;z-index:2147483646;box-shadow:0 4px 14px rgba(15,17,21,0.18);touch-action:none;user-select:none;" +
     "display:flex;align-items:center;justify-content:center;padding:0;transition:transform 0.15s ease;";
   button.addEventListener("mouseenter", () => (button.style.transform = "scale(1.08)"));
   button.addEventListener("mouseleave", () => (button.style.transform = "scale(1)"));
@@ -313,10 +464,16 @@ function createFloatingButton(): void {
     if (floatingMenuEl) closeFloatingMenu();
     else openFloatingMenu();
   });
+  makeDraggable(button);
 
   document.documentElement.appendChild(button);
   floatingButtonEl = button;
+  placeFloatingButton(false);
+  // The saved spot, once storage answers (a beat after the button appears in the default corner).
+  void loadFloatingPosition().then(() => placeFloatingButton(false));
 }
+
+window.addEventListener("resize", () => placeFloatingButton(false));
 
 function removeFloatingButton(): void {
   closeFloatingMenu();
@@ -325,12 +482,18 @@ function removeFloatingButton(): void {
 }
 
 function openFloatingMenu(): void {
-  if (floatingMenuEl) return;
+  if (floatingMenuEl || !floatingButtonEl) return;
+
+  // Beside the button, on its side: above it in the lower half of the screen, below it in the upper half.
+  const rect = floatingButtonEl.getBoundingClientRect();
+  const horizontal = floatingPosition.side === "left" ? `left:${EDGE_GAP}px;` : `right:${EDGE_GAP}px;`;
+  const vertical =
+    rect.top > window.innerHeight / 2 ? `bottom:${window.innerHeight - rect.top + 8}px;` : `top:${rect.bottom + 8}px;`;
 
   const menu = document.createElement("div");
   menu.id = FLOATING_MENU_ID;
   menu.style.cssText =
-    "position:fixed;right:20px;bottom:72px;z-index:2147483646;display:flex;flex-direction:column;gap:2px;" +
+    `position:fixed;${horizontal}${vertical}z-index:2147483646;display:flex;flex-direction:column;gap:2px;` +
     "background:#1c1c1e;border-radius:12px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,0.35);min-width:180px;";
 
   const actions: { label: string; onClick: () => void }[] = [
@@ -339,6 +502,10 @@ function openFloatingMenu(): void {
     {
       label: "Screenshot visible page",
       onClick: () => captureFullViewport({}),
+    },
+    {
+      label: "Open Savedly side panel",
+      onClick: () => chrome.runtime.sendMessage({ action: "OPEN_SIDE_PANEL" }, () => void chrome.runtime.lastError),
     },
   ];
 
@@ -394,6 +561,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (SIGNED_IN_STORAGE_KEY in changes || SHOW_FLOATING_ICON_STORAGE_KEY in changes) {
     refreshFloatingButtonVisibility();
   }
+  // Dragged on another tab: follow, so it's in the same place everywhere.
+  const moved = changes[FLOATING_POSITION_STORAGE_KEY]?.newValue as FloatingPosition | undefined;
+  if (moved && (moved.side !== floatingPosition.side || moved.y !== floatingPosition.y)) {
+    floatingPosition = moved;
+    placeFloatingButton(true);
+  }
 });
 
 // --- Keeping "signed in" current --------------------------------------
@@ -417,8 +590,468 @@ if (location.origin === __WEB_APP_URL__) {
   };
   syncSignIn();
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") syncSignIn();
+    if (document.visibilityState === "visible" && alive()) syncSignIn();
   });
 }
 
 refreshFloatingButtonVisibility();
+
+// Tells the background which page this is, so the toolbar icon can show a
+// check mark when it's already saved and the side panel can follow along.
+// The check itself happens in the extension (lib/saved-pages.ts); the
+// address isn't sent to Savedly. A new address is PAGE_SEEN; the same
+// address with a new title (single-page apps often set it a moment after
+// the address) is PAGE_TITLE, which only the side panel cares about.
+let reportedUrl = "";
+let reportedTitle = "";
+function reportPage(force = false): void {
+  if (!alive()) return;
+  const url = location.href;
+  const title = document.title;
+  const action = force || url !== reportedUrl ? "PAGE_SEEN" : title !== reportedTitle ? "PAGE_TITLE" : null;
+  if (!action) return;
+  reportedUrl = url;
+  reportedTitle = title;
+  try {
+    chrome.runtime.sendMessage({ action, url, title }, () => void chrome.runtime.lastError);
+  } catch {
+    // The extension was reloaded or updated: this page's script is orphaned until it reloads.
+  }
+}
+reportPage();
+// Single-page apps change the address without reloading: straight away where
+// the Navigation API says so, with the poll as the fallback (and for titles).
+setInterval(reportPage, 1000);
+(window as unknown as { navigation?: EventTarget }).navigation?.addEventListener("navigatesuccess", () => reportPage());
+window.addEventListener("popstate", () => reportPage());
+// A new title (often set just after the address changes) shows in the side panel straight away.
+if (document.head) new MutationObserver(() => document.title !== reportedTitle && reportPage()).observe(document.head, { childList: true, subtree: true, characterData: true });
+// Back or Forward brought this page back from the cache: its script didn't
+// run again, and the tab has been showing another page since.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) reportPage(true);
+});
+// The background asking which page this is (after a load it heard nothing about).
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  if (request.action !== "WHICH_PAGE") return undefined;
+  sendResponse({ url: location.href, title: document.title });
+  return undefined;
+});
+
+// --- Highlights ---------------------------------------------------------------
+//
+// Select text on any page and a small toolbar offers colours (and a note);
+// the passage is marked on the page and saved to Savedly with a little text
+// on either side, so it can be found again when the page is revisited.
+// Clicking a highlight changes its colour or note, or removes it. Alt+H
+// highlights the selection in yellow. Only while signed in.
+
+const HIGHLIGHT_COLORS: Record<string, string> = {
+  yellow: "#fde68a",
+  green: "#bbf7d0",
+  blue: "#bfdbfe",
+  pink: "#fbcfe8",
+  purple: "#ddd6fe",
+};
+const HL_ATTR = "data-savedly-highlight";
+const CONTEXT_CHARS = 32;
+const UI_ATTR = "data-savedly-ui";
+
+let highlighterSignedIn = false;
+chrome.storage.local.get([SIGNED_IN_STORAGE_KEY], (result) => (highlighterSignedIn = !!result[SIGNED_IN_STORAGE_KEY]));
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && SIGNED_IN_STORAGE_KEY in changes) highlighterSignedIn = !!changes[SIGNED_IN_STORAGE_KEY]!.newValue;
+});
+
+const collapse = (text: string) => text.replace(/\s+/g, " ");
+
+function inEditable(node: Node | null): boolean {
+  const el = node instanceof Element ? node : node?.parentElement;
+  return !!el?.closest(`input, textarea, select, [contenteditable=""], [contenteditable="true"], [${UI_ATTR}]`);
+}
+
+/** Text nodes of the page in order, skipping scripts, styles and Savedly's own UI. */
+function pageTextNodes(root: Node = document.body): Text[] {
+  const nodes: Text[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => {
+      const parent = node.parentElement;
+      if (!parent || parent.closest(`script, style, noscript, textarea, [${UI_ATTR}]`)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+  while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+  return nodes;
+}
+
+/** Up to CONTEXT_CHARS of page text before and after a range, for finding it again. */
+function contextAround(range: Range): { prefix: string; suffix: string } {
+  const nodes = pageTextNodes();
+  let before = "";
+  let after = "";
+  const startIndex = nodes.indexOf(range.startContainer as Text);
+  const endIndex = nodes.indexOf(range.endContainer as Text);
+  if (startIndex >= 0) {
+    before = nodes[startIndex]!.data.slice(0, range.startOffset);
+    for (let i = startIndex - 1; i >= 0 && before.length < CONTEXT_CHARS * 2; i--) before = nodes[i]!.data + before;
+  }
+  if (endIndex >= 0) {
+    after = nodes[endIndex]!.data.slice(range.endOffset);
+    for (let i = endIndex + 1; i < nodes.length && after.length < CONTEXT_CHARS * 2; i++) after += nodes[i]!.data;
+  }
+  return { prefix: collapse(before).slice(-CONTEXT_CHARS), suffix: collapse(after).slice(0, CONTEXT_CHARS) };
+}
+
+/** Wraps every text piece of a range in a <mark>, splitting text nodes at its edges. */
+function wrapRange(range: Range, id: string, color: string): HTMLElement[] {
+  const marks: HTMLElement[] = [];
+  const nodes = pageTextNodes(range.commonAncestorContainer.nodeType === Node.TEXT_NODE ? range.commonAncestorContainer.parentNode! : range.commonAncestorContainer);
+  for (const node of nodes) {
+    if (!range.intersectsNode(node)) continue;
+    let start = node === range.startContainer ? range.startOffset : 0;
+    let end = node === range.endContainer ? range.endOffset : node.data.length;
+    if (end <= start || !node.data.slice(start, end).trim()) continue;
+    let target = node;
+    if (start > 0) {
+      target = target.splitText(start);
+      end -= start;
+      start = 0;
+    }
+    if (end < target.data.length) target.splitText(end);
+    const mark = document.createElement("mark");
+    mark.setAttribute(HL_ATTR, id);
+    styleMark(mark, color);
+    target.parentNode!.insertBefore(mark, target);
+    mark.appendChild(target);
+    marks.push(mark);
+  }
+  return marks;
+}
+
+function styleMark(mark: HTMLElement, color: string): void {
+  mark.dataset.savedlyColor = color;
+  mark.style.cssText = `background:${HIGHLIGHT_COLORS[color] ?? HIGHLIGHT_COLORS.yellow};color:inherit;border-radius:2px;padding:0 1px;cursor:pointer;box-decoration-break:clone;-webkit-box-decoration-break:clone;`;
+}
+
+function marksFor(id: string): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>(`mark[${HL_ATTR}="${CSS.escape(id)}"]`));
+}
+
+function unwrap(id: string): void {
+  for (const mark of marksFor(id)) {
+    const parent = mark.parentNode;
+    if (!parent) continue;
+    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+    parent.removeChild(mark);
+    parent.normalize();
+  }
+}
+
+/** A small message at the bottom of the page. */
+function pageToast(text: string): void {
+  const toast = document.createElement("div");
+  toast.setAttribute(UI_ATTR, "");
+  toast.textContent = text;
+  toast.style.cssText =
+    "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483647;background:#1c1c1e;color:#fff;" +
+    "font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;padding:9px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.3);";
+  document.documentElement.appendChild(toast);
+  setTimeout(() => toast.remove(), 2600);
+}
+
+function send<T>(message: Record<string, unknown>): Promise<T> {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        void chrome.runtime.lastError;
+        resolve((response ?? { ok: false, error: "The extension didn't answer. Reload the page." }) as T);
+      });
+    } catch {
+      resolve({ ok: false, error: "Savedly was updated. Reload the page to highlight." } as T);
+    }
+  });
+}
+
+interface SaveResult {
+  ok: boolean;
+  error?: string;
+  savedPage?: boolean;
+  highlight?: { id: string };
+}
+
+async function highlightSelection(color: string, note?: string): Promise<void> {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !selection.rangeCount) return;
+  const range = selection.getRangeAt(0);
+  const text = collapse(selection.toString()).trim();
+  if (text.length < 2 || inEditable(range.commonAncestorContainer)) return;
+  const { prefix, suffix } = contextAround(range);
+  // Drawn now, saved behind it; taken off again if the save fails.
+  const tempId = `pending-${Date.now()}`;
+  wrapRange(range, tempId, color);
+  selection.removeAllRanges();
+  hideSelectionToolbar();
+  const result = await send<SaveResult>({ action: "ADD_HIGHLIGHT", url: location.href, title: document.title, text: text.slice(0, 5000), prefix, suffix, color, note });
+  if (!result.ok || !result.highlight) {
+    unwrap(tempId);
+    pageToast(result.error ?? "Couldn't save the highlight.");
+    return;
+  }
+  for (const mark of marksFor(tempId)) mark.setAttribute(HL_ATTR, result.highlight.id);
+  pageToast(result.savedPage ? "Highlighted, and the page is saved to Savedly" : "Highlighted");
+}
+
+// The toolbar over a selection.
+let selectionToolbar: HTMLDivElement | null = null;
+
+function hideSelectionToolbar(): void {
+  selectionToolbar?.remove();
+  selectionToolbar = null;
+}
+
+function colorDot(color: string, onClick: () => void, size = 18): HTMLButtonElement {
+  const dot = document.createElement("button");
+  dot.type = "button";
+  dot.title = `Highlight ${color}`;
+  dot.setAttribute("aria-label", `Highlight ${color}`);
+  dot.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;border:2px solid rgba(255,255,255,.9);background:${HIGHLIGHT_COLORS[color]};cursor:pointer;padding:0;flex:none;`;
+  dot.addEventListener("mousedown", (e) => e.preventDefault()); // keep the selection
+  dot.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return dot;
+}
+
+function showSelectionToolbar(range: Range): void {
+  hideSelectionToolbar();
+  const rect = range.getBoundingClientRect();
+  if (!rect.width && !rect.height) return;
+  const bar = document.createElement("div");
+  bar.setAttribute(UI_ATTR, "");
+  bar.style.cssText =
+    "position:fixed;z-index:2147483647;display:flex;align-items:center;gap:6px;background:#1c1c1e;border-radius:999px;padding:6px 8px;" +
+    "box-shadow:0 8px 24px rgba(0,0,0,.3);font:12px/1 -apple-system,BlinkMacSystemFont,sans-serif;";
+  const logo = document.createElement("span");
+  logo.textContent = "Savedly";
+  logo.style.cssText = "color:#9ca3af;font-weight:600;padding:0 4px 0 2px;";
+  bar.appendChild(logo);
+  for (const color of Object.keys(HIGHLIGHT_COLORS)) bar.appendChild(colorDot(color, () => void highlightSelection(color)));
+
+  const noteButton = document.createElement("button");
+  noteButton.type = "button";
+  noteButton.textContent = "Add a note";
+  noteButton.style.cssText = "background:transparent;border:none;color:#fff;font:inherit;cursor:pointer;padding:2px 6px 2px 4px;";
+  noteButton.addEventListener("mousedown", (e) => e.preventDefault());
+  noteButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const saved = range.cloneRange();
+    bar.innerHTML = "";
+    bar.style.borderRadius = "12px";
+    const input = document.createElement("input");
+    input.placeholder = "Your note, then Enter";
+    input.style.cssText = "width:220px;border:none;outline:none;border-radius:8px;padding:7px 9px;background:#2c2c2e;color:#fff;font:13px -apple-system,BlinkMacSystemFont,sans-serif;";
+    input.addEventListener("keydown", (ev) => {
+      ev.stopPropagation();
+      if (ev.key === "Escape") hideSelectionToolbar();
+      if (ev.key === "Enter") {
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(saved);
+        void highlightSelection("yellow", input.value.trim() || undefined);
+      }
+    });
+    bar.appendChild(input);
+    setTimeout(() => input.focus(), 0);
+  });
+  bar.appendChild(noteButton);
+
+  document.documentElement.appendChild(bar);
+  const width = bar.offsetWidth;
+  const top = rect.top > 48 ? rect.top - 44 : rect.bottom + 8;
+  const left = Math.min(window.innerWidth - width - 8, Math.max(8, rect.left + rect.width / 2 - width / 2));
+  bar.style.top = `${top}px`;
+  bar.style.left = `${left}px`;
+  selectionToolbar = bar;
+}
+
+document.addEventListener("mouseup", (e) => {
+  if (!alive() || !highlighterSignedIn || (e.target instanceof Element && e.target.closest(`[${UI_ATTR}]`))) return;
+  // After the browser has settled the selection.
+  setTimeout(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.rangeCount) return hideSelectionToolbar();
+    const range = selection.getRangeAt(0);
+    const text = selection.toString().trim();
+    if (text.length < 2 || text.length > 5000 || inEditable(range.commonAncestorContainer)) return hideSelectionToolbar();
+    showSelectionToolbar(range);
+  }, 10);
+});
+document.addEventListener("mousedown", (e) => {
+  if (e.target instanceof Element && e.target.closest(`[${UI_ATTR}]`)) return;
+  hideSelectionToolbar();
+  hideHighlightPopover();
+});
+window.addEventListener("scroll", () => hideSelectionToolbar(), { passive: true });
+document.addEventListener("keydown", (e) => {
+  if (!alive()) return;
+  if (e.key === "Escape") {
+    hideSelectionToolbar();
+    hideHighlightPopover();
+  }
+  // Alt+H: highlight the selection in yellow.
+  if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === "h" || e.key === "H" || e.code === "KeyH") && highlighterSignedIn) {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && !inEditable(selection.anchorNode)) {
+      e.preventDefault();
+      void highlightSelection("yellow");
+    }
+  }
+});
+
+// Clicking a highlight: colour, note, remove.
+let highlightPopover: HTMLDivElement | null = null;
+const highlightNotes = new Map<string, string | null>();
+
+function hideHighlightPopover(): void {
+  highlightPopover?.remove();
+  highlightPopover = null;
+}
+
+document.addEventListener("click", (e) => {
+  const mark = e.target instanceof Element ? e.target.closest<HTMLElement>(`mark[${HL_ATTR}]`) : null;
+  if (!mark || !highlighterSignedIn || !alive()) return;
+  const id = mark.getAttribute(HL_ATTR)!;
+  if (id.startsWith("pending-")) return;
+  e.preventDefault();
+  e.stopPropagation();
+  hideHighlightPopover();
+  const rect = mark.getBoundingClientRect();
+  const pop = document.createElement("div");
+  pop.setAttribute(UI_ATTR, "");
+  pop.style.cssText =
+    "position:fixed;z-index:2147483647;display:flex;flex-direction:column;gap:8px;background:#1c1c1e;color:#fff;border-radius:12px;padding:10px;width:240px;" +
+    "box-shadow:0 8px 24px rgba(0,0,0,.35);font:12px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;";
+  const dots = document.createElement("div");
+  dots.style.cssText = "display:flex;gap:8px;align-items:center;";
+  for (const color of Object.keys(HIGHLIGHT_COLORS)) {
+    dots.appendChild(
+      colorDot(color, async () => {
+        const result = await send<{ ok: boolean; error?: string }>({ action: "UPDATE_HIGHLIGHT", id, color });
+        if (!result.ok) return pageToast(result.error ?? "Couldn't change it.");
+        for (const m of marksFor(id)) styleMark(m, color);
+      }, 20),
+    );
+  }
+  pop.appendChild(dots);
+  const note = document.createElement("textarea");
+  note.placeholder = "Add a note";
+  note.value = highlightNotes.get(id) ?? "";
+  note.rows = 2;
+  // Every colour set here: a page's own CSS for textareas mustn't decide how this looks.
+  note.style.cssText = "width:100%;box-sizing:border-box;border:none;outline:none;border-radius:8px;padding:7px 9px;resize:none;background:#2c2c2e;color:#fff;font:12px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;";
+  note.addEventListener("keydown", (ev) => ev.stopPropagation());
+  pop.appendChild(note);
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;justify-content:space-between;gap:8px;";
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.textContent = "Remove";
+  remove.style.cssText = "background:transparent;border:none;color:#fca5a5;font:inherit;cursor:pointer;padding:4px 0;";
+  remove.addEventListener("click", async () => {
+    const result = await send<{ ok: boolean; error?: string }>({ action: "DELETE_HIGHLIGHT", id });
+    if (!result.ok) return pageToast(result.error ?? "Couldn't remove it.");
+    unwrap(id);
+    hideHighlightPopover();
+  });
+  const save = document.createElement("button");
+  save.type = "button";
+  save.textContent = "Save note";
+  save.style.cssText = "background:#1447E6;border:none;color:#fff;font:inherit;font-weight:600;cursor:pointer;padding:5px 10px;border-radius:8px;";
+  save.addEventListener("click", async () => {
+    const value = note.value.trim() || null;
+    const result = await send<{ ok: boolean; error?: string }>({ action: "UPDATE_HIGHLIGHT", id, note: value });
+    if (!result.ok) return pageToast(result.error ?? "Couldn't save the note.");
+    highlightNotes.set(id, value);
+    hideHighlightPopover();
+    pageToast("Note saved");
+  });
+  row.append(remove, save);
+  pop.appendChild(row);
+  document.documentElement.appendChild(pop);
+  const top = rect.bottom + 8 + 150 > window.innerHeight ? Math.max(8, rect.top - 158) : rect.bottom + 8;
+  pop.style.top = `${top}px`;
+  pop.style.left = `${Math.min(window.innerWidth - 248, Math.max(8, rect.left))}px`;
+  highlightPopover = pop;
+}, true);
+
+// Showing a page's highlights again: find each passage by its text and the text around it.
+interface StoredHighlight {
+  id: string;
+  text: string;
+  prefix: string;
+  suffix: string;
+  color: string;
+  note: string | null;
+}
+
+/** The page's text with whitespace collapsed, and where each character came from. */
+function flatText(): { text: string; map: { node: Text; offset: number }[] } {
+  let text = "";
+  const map: { node: Text; offset: number }[] = [];
+  let lastSpace = true;
+  for (const node of pageTextNodes()) {
+    const data = node.data;
+    for (let i = 0; i < data.length; i++) {
+      const isSpace = /\s/.test(data[i]!);
+      if (isSpace && lastSpace) continue;
+      text += isSpace ? " " : data[i];
+      map.push({ node, offset: i });
+      lastSpace = isSpace;
+    }
+  }
+  return { text, map };
+}
+
+function restoreHighlights(list: StoredHighlight[]): StoredHighlight[] {
+  const missing: StoredHighlight[] = [];
+  for (const h of list) {
+    highlightNotes.set(h.id, h.note);
+    if (marksFor(h.id).length) continue;
+    const { text, map } = flatText();
+    const needle = collapse(h.text).trim();
+    const withContext = collapse(h.prefix) + needle + collapse(h.suffix);
+    let at = h.prefix || h.suffix ? text.indexOf(withContext) : -1;
+    at = at >= 0 ? at + collapse(h.prefix).length : text.indexOf(needle);
+    if (at < 0 || !map[at] || !map[at + needle.length - 1]) {
+      missing.push(h);
+      continue;
+    }
+    const start = map[at]!;
+    const end = map[at + needle.length - 1]!;
+    const range = document.createRange();
+    range.setStart(start.node, start.offset);
+    range.setEnd(end.node, end.offset + 1);
+    wrapRange(range, h.id, h.color);
+  }
+  return missing;
+}
+
+chrome.runtime.onMessage.addListener((request) => {
+  if (request.action !== "SHOW_HIGHLIGHTS" || request.url !== location.href) return undefined;
+  const missing = restoreHighlights(request.highlights as StoredHighlight[]);
+  // A page still loading its content (a single-page app): try the rest once more shortly.
+  if (missing.length) setTimeout(() => restoreHighlights(missing), 2500);
+  return undefined;
+});
+
+// The side panel's highlight list: scroll to one on the page.
+chrome.runtime.onMessage.addListener((request) => {
+  if (request.action !== "SCROLL_TO_HIGHLIGHT") return undefined;
+  const mark = marksFor(String(request.id))[0];
+  if (!mark) return undefined;
+  mark.scrollIntoView({ block: "center", behavior: "smooth" });
+  const marks = marksFor(String(request.id));
+  for (const m of marks) m.animate([{ outline: "3px solid #1447E6" }, { outline: "3px solid transparent" }], { duration: 1400 });
+  return undefined;
+});

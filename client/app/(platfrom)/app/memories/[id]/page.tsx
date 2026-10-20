@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -18,11 +18,15 @@ import {
   Tick02Icon as Tick,
   PencilEdit02Icon as Pencil,
   Folder01Icon as Folder,
+  AlarmClockIcon as Alarm,
 } from "@hugeicons/core-free-icons";
 import { LogoMark } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
+import { useRemindMe } from "@/components/memory/remind-me";
+import { MemoryHighlights } from "@/components/memory/memory-highlights";
+import { formatRemindAt } from "@/lib/remind";
 import { useMemoryQuery, useToggleFavoriteMutation, useUpdateMemoryMutation } from "@/context/MemoryContext";
 import { timeAgo } from "@/lib/time";
 import { isMemoryProcessing } from "@/lib/memory-processing";
@@ -78,6 +82,15 @@ function formatSavedDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
+/** "en.wikipedia.org" from a link, for the source list. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 export default function MemoryDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -86,6 +99,18 @@ export default function MemoryDetailPage() {
   const { data: memory, isLoading, isError } = useMemoryQuery(id);
   const toggleFavoriteMutation = useToggleFavoriteMutation();
   const updateMutation = useUpdateMemoryMutation();
+  const remindMe = useRemindMe();
+  // Read once: whether a reminder is still to come only needs to be right when the page opens.
+  const [openedAt] = useState(() => Date.now());
+
+  // Opening it is reading it: out of the Inbox. Once per memory, and only when it was unread.
+  const markedRead = useRef<string | null>(null);
+  const markRead = updateMutation.mutate;
+  useEffect(() => {
+    if (!memory || memory.readAt !== null || markedRead.current === memory.id) return;
+    markedRead.current = memory.id;
+    markRead({ id: memory.id, patch: { isRead: true } });
+  }, [memory, markRead]);
 
   // `content` is the body of a "note" memory, and for every other type the
   // caption the user typed alongside a link or file. Both are edited here,
@@ -93,6 +118,8 @@ export default function MemoryDetailPage() {
   const [draftNote, setDraftNote] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+  // A preview picture that doesn't load (gone, blocked) falls back to the no-preview tile.
+  const [previewFailed, setPreviewFailed] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -200,7 +227,17 @@ export default function MemoryDetailPage() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground text-balance break-words">{memory.title}</h1>
         <p className="text-xs text-muted-foreground">
           Saved {formatSavedDate(memory.createdAt)} · {timeAgo(memory.createdAt)}
+          {memory.remindAt && new Date(memory.remindAt).getTime() > openedAt && (
+            <>
+              {" · "}
+              <button type="button" onClick={() => void remindMe.remind([memory])} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                <HugeiconsIcon icon={Alarm} strokeWidth={2} className="h-3.5 w-3.5" />
+                Back {formatRemindAt(memory.remindAt)}
+              </button>
+            </>
+          )}
         </p>
+        {remindMe.element}
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -279,9 +316,9 @@ export default function MemoryDetailPage() {
                     <div className="absolute inset-y-0 left-0 w-1/3 animate-shine-sweep bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                   </div>
                 )}
-                {memory.previewImageUrl ? (
+                {memory.previewImageUrl && previewFailed !== memory.previewImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- external, unpredictable-domain preview image
-                  <img src={memory.previewImageUrl} alt={memory.title} className="w-full aspect-video object-cover" />
+                  <img src={memory.previewImageUrl} alt={memory.title} onError={() => setPreviewFailed(memory.previewImageUrl)} className="w-full aspect-video object-cover" />
                 ) : memory.platform && (memory.type === "web" || memory.type === "video") ? (
                   (() => {
                     const fallback = getPlatformFallback(memory.platform);
@@ -390,6 +427,8 @@ export default function MemoryDetailPage() {
               </AttachmentGroup>
             </section>
           )}
+
+          <MemoryHighlights memoryId={memory.id} highlights={memory.highlights ?? []} />
         </div>
 
         {/* Right: what Savedly made of it */}
@@ -406,6 +445,30 @@ export default function MemoryDetailPage() {
                 (processing ? "Still reading this. The summary appears here in a few seconds." : "No summary for this one.")}
             </p>
           </div>
+
+          {memory.webResearch && memory.webResearch.sources.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-[10px] font-semibold text-muted-foreground">Looked up on the web</h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                The note alone didn&apos;t say what this is, so Savedly searched for &ldquo;{memory.webResearch.query}&rdquo;.
+              </p>
+              <div className="flex flex-col gap-1">
+                {memory.webResearch.sources.map((source) => (
+                  <a
+                    key={source.url}
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="-mx-2 flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-muted"
+                  >
+                    <HugeiconsIcon icon={Globe} strokeWidth={2} className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1 truncate font-medium text-foreground">{source.title}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{hostOf(source.url)}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <h3 className="text-[10px] font-semibold text-muted-foreground">Tags</h3>

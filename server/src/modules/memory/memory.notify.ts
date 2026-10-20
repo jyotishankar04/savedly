@@ -3,7 +3,7 @@ import { env } from "../../config/env";
 import { EmailCategory, EmailTemplateKey, NotificationType } from "../../db/enums";
 import { createNotification } from "../notification/notification.service";
 import { sendEmail } from "../email";
-import { eventDetectedEmailTemplate } from "../../shared/mailer/templates";
+import { eventDetectedEmailTemplate, memoryReminderEmailTemplate } from "../../shared/mailer/templates";
 import { userTimeZone } from "../../shared/utils/time-zone";
 
 /**
@@ -103,4 +103,47 @@ export function notifyDuplicateDetected(notice: DuplicateDetectedNotice): void {
       metadata: { memoryId: notice.memoryId, duplicateOfId: notice.existingId, existingTitle: notice.existingTitle },
     }),
   );
+}
+
+export interface MemoryReminderNotice {
+  userId: string;
+  /** Null when they turned reminder emails off, or have no address to send to. */
+  email: string | null;
+  memoryId: string;
+  title: string;
+  summary: string | null;
+  url: string | null;
+}
+
+/** A reminder set with "Remind me" is due: in the app always, by email unless turned off. */
+export function notifyMemoryReminder(notice: MemoryReminderNotice): void {
+  emit("memory reminder", () =>
+    createNotification({
+      userId: notice.userId,
+      type: NotificationType.MEMORY_REMINDER,
+      title: `Reminder: ${notice.title}`,
+      body: notice.summary ? (notice.summary.length > 160 ? `${notice.summary.slice(0, 160).trimEnd()}…` : notice.summary) : "You asked to come back to this.",
+      actionUrl: `/app/memories/${notice.memoryId}`,
+      metadata: { memoryId: notice.memoryId, url: notice.url },
+    }),
+  );
+  if (!notice.email) return;
+  const email = notice.email;
+  emit("memory reminder email", () => {
+    const { subject, html } = memoryReminderEmailTemplate({
+      title: notice.title,
+      summary: notice.summary,
+      link: notice.url,
+      url: `${env.FRONTEND_URL}/app/memories/${notice.memoryId}`,
+      settingsUrl: `${env.FRONTEND_URL}/app/settings/notifications`,
+    });
+    return sendEmail({
+      to: email,
+      recipientUserId: notice.userId,
+      category: EmailCategory.TRANSACTIONAL,
+      templateKey: EmailTemplateKey.MEMORY_REMINDER,
+      subject,
+      html,
+    });
+  });
 }

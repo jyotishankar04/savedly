@@ -6,6 +6,8 @@ import {
   batchRestoreMemories,
   batchUpdateStatus,
   batchUncollectMemories,
+  batchReadMemories,
+  batchRemindMemories,
   batchDeleteCollections,
   batchMergeCollections,
   batchVaultCollections,
@@ -83,6 +85,16 @@ function useInvalidateLibrary() {
 export function useBatchUncollectMutation() {
   const invalidate = useInvalidateLibrary();
   return useMutation({ mutationFn: batchUncollectMemories, onSuccess: invalidate });
+}
+
+export function useBatchReadMutation() {
+  const invalidate = useInvalidateLibrary();
+  return useMutation({ mutationFn: batchReadMemories, onSuccess: invalidate });
+}
+
+export function useBatchRemindMutation() {
+  const invalidate = useInvalidateLibrary();
+  return useMutation({ mutationFn: batchRemindMemories, onSuccess: invalidate });
 }
 
 export function useBatchDeleteCollectionsMutation() {

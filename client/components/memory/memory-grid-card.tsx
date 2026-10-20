@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { StarIcon as Star, MoreHorizontalIcon as MoreHorizontal, Calendar03Icon as CalendarIcon } from "@hugeicons/core-free-icons";
+import { StarIcon as Star, MoreHorizontalIcon as MoreHorizontal, Calendar03Icon as CalendarIcon, HighlighterIcon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 import { timeAgo } from "@/lib/time";
@@ -83,6 +83,11 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
               <span className="flex shrink-0 items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-primary" title={new Date(item.eventAt).toLocaleString()}>
                 <HugeiconsIcon icon={CalendarIcon} strokeWidth={2} className="h-3 w-3" />
                 {new Date(item.eventAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+              </span>
+            )}
+            {item.hasHighlights && (
+              <span className="flex shrink-0 items-center text-amber-500" title="Has highlights" aria-label="Has highlights">
+                <HugeiconsIcon icon={HighlighterIcon} strokeWidth={2} className="h-3.5 w-3.5" />
               </span>
             )}
           </span>

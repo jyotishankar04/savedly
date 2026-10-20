@@ -171,6 +171,7 @@ export default function CollectionsPage() {
                   trigger={
                     <button
                       type="button"
+                      aria-label={`More actions for ${col.name}`}
                       className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground shadow-sm backdrop-blur-sm hover:text-foreground"
                     >
                       <HugeiconsIcon icon={MoreHorizontal} strokeWidth={2} className="h-4 w-4"/>

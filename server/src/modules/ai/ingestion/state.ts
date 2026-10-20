@@ -94,6 +94,20 @@ export const IngestionState = new StateSchema({
   detectedEventAt: z.string().nullable().default(null),
   eventDetectionConfidence: z.number().nullable().default(null),
 
+  // ResearchContext output: what a web search said a short or unreadable
+  // save is (a bare name: a film, a book…), for every step after it. Null
+  // when it didn't search.
+  webResearch: z
+    .object({
+      query: z.string(),
+      findings: z.string(),
+      kind: z.string().nullable(),
+      sources: z.array(z.object({ title: z.string(), url: z.string() })),
+      at: z.string(),
+    })
+    .nullable()
+    .default(null),
+
   // GenerateAIInsights output.
   aiTitle: z.string().nullable().default(null),
   aiSummary: z.string().nullable().default(null),

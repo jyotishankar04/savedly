@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { isEditableTarget } from "@/components/capture/quick-save";
 import { useShelve } from "@/components/memory/collection-drop";
+import { useMarkRead, useRemindMe } from "@/components/memory/remind-me";
 import { activeSelection } from "@/hooks/use-selection";
 import { cachedMemories } from "@/lib/memory-drag";
 
@@ -32,9 +33,11 @@ export function useMemoryListKeys() {
   const pathname = usePathname();
   const shelve = useShelve();
   const queryClient = useQueryClient();
-  const latest = useRef({ shelve, pathname, queryClient });
+  const remindMe = useRemindMe();
+  const markRead = useMarkRead();
+  const latest = useRef({ shelve, pathname, queryClient, remindMe, markRead });
   useEffect(() => {
-    latest.current = { shelve, pathname, queryClient };
+    latest.current = { shelve, pathname, queryClient, remindMe, markRead };
   });
 
   useEffect(() => {
@@ -98,9 +101,20 @@ export function useMemoryListKeys() {
       } else if (key === "#" || key === "Delete") {
         e.preventDefault();
         void run(ids, "trash").then(refocus);
+      } else if (key === "m" || key === "M" || key === "r" || key === "R") {
+        e.preventDefault();
+        const known = cachedMemories(cache, ids);
+        const items = ids.map((id) => known.get(id)).filter((m) => m !== undefined);
+        if (!items.length) return;
+        if (key === "r" || key === "R") void latest.current.remindMe.remind(items);
+        // Read unless every one already is; on the Inbox, reading one takes it out, so focus moves on.
+        else void latest.current.markRead.mark(items, !items.every((m) => m.readAt)).then(path.startsWith("/app/inbox") ? refocus : undefined);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // The Remind me dialog R opens.
+  return remindMe.element;
 }

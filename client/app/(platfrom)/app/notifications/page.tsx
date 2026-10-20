@@ -12,6 +12,7 @@ import {
   Delete02Icon as Trash,
   Calendar03Icon as CalendarIcon,
   Copy01Icon as Copy,
+  AlarmClockIcon as Alarm,
   Tick02Icon as Tick,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const ICONS: Record<NotificationType, typeof Bell> = {
   share_revoked: Declined,
   event_detected: CalendarIcon,
   duplicate_detected: Copy,
+  memory_reminder: Alarm,
 };
 
 export default function NotificationsPage() {
@@ -127,6 +129,7 @@ const TYPE_LABEL: Record<NotificationType, string> = {
   share_revoked: "Access removed",
   event_detected: "Event detected",
   duplicate_detected: "Duplicate detected",
+  memory_reminder: "Reminder",
 };
 
 function NotificationRow({ notification }: { notification: AppNotification }) {

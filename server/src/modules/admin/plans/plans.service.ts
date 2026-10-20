@@ -80,6 +80,7 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
     [PlanLimitType.AI_MONTHLY_SAVES]: null,
     [PlanLimitType.AI_MONTHLY_QUERIES]: null,
     [PlanLimitType.IMPORT_MONTHLY_COUNT]: null,
+    [PlanLimitType.WEB_SEARCH_MONTHLY]: null,
     ...values,
   };
   return Object.entries(all).map(([limitType, limitValue]) => ({ limitType: limitType as PlanLimitType, limitValue }));
@@ -99,12 +100,14 @@ const LITE_LIMITS = limits({
   [PlanLimitType.PUBLIC_SHARE_COUNT]: 100,
   [PlanLimitType.AI_MONTHLY_SAVES]: 500,
   [PlanLimitType.AI_MONTHLY_QUERIES]: 250,
+  [PlanLimitType.WEB_SEARCH_MONTHLY]: 100,
 });
 const PRO_LIMITS = limits({
   [PlanLimitType.STORAGE_MB]: 15 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 100,
   [PlanLimitType.AI_MONTHLY_SAVES]: 2000,
   [PlanLimitType.AI_MONTHLY_QUERIES]: 1000,
+  [PlanLimitType.WEB_SEARCH_MONTHLY]: 500,
 });
 
 const HOSTED_PLANS: DefaultPlanSeed[] = [
@@ -127,6 +130,7 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
       [PlanLimitType.AI_MONTHLY_SAVES]: 100,
       [PlanLimitType.AI_MONTHLY_QUERIES]: 30,
       [PlanLimitType.IMPORT_MONTHLY_COUNT]: 1,
+      [PlanLimitType.WEB_SEARCH_MONTHLY]: 10,
     }),
     features: FREE_FEATURES,
   },

@@ -24,6 +24,7 @@ export default function NotificationsSettingsPage() {
         <div className="space-y-4">
           {(
             [
+              { key: "reminderEmails", title: "Reminder emails", desc: "An email when something you set Remind me on comes back. The notification in the app always comes." },
               { key: "productUpdates", title: "Product news & announcements", desc: "Emails from the team about new features and changes." },
             ] as const
           ).map((item) => (

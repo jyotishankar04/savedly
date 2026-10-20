@@ -7,6 +7,7 @@ import { transcribeAudio } from "./nodes/transcribe-audio";
 import { processImageVision } from "./nodes/process-image-vision";
 import { extractDocText } from "./nodes/extract-doc-text";
 import { normalizeNote } from "./nodes/normalize-note";
+import { researchContext } from "./nodes/research-context";
 import { correctCaption } from "./nodes/correct-caption";
 import { detectContentType } from "./nodes/detect-content-type";
 import { classifyIntent } from "./nodes/classify-intent";
@@ -103,6 +104,8 @@ const builder = new StateGraph(IngestionState)
   .addNode("processImageVision", processImageVision)
   .addNode("extractDocText", extractDocText)
   .addNode("normalizeNote", normalizeNote)
+  // Looks a short or unreadable save up on the web; instant (no model call) for everything else.
+  .addNode("researchContext", optional("researchContext", researchContext))
   .addNode("correctCaption", optional("correctCaption", correctCaption))
   .addNode("detectContentType", optional("detectContentType", detectContentType))
   .addNode("classifyIntent", optional("classifyIntent", classifyIntent))
@@ -128,19 +131,20 @@ const builder = new StateGraph(IngestionState)
 // depend on each other. The longest chain is now caption -> intent ->
 // insights -> collection (four model calls) instead of all six in a row.
 //
-//   parser ─┬─ correctCaption ── classifyIntent ─┬─ generateAiInsights ─┬─ organizeCollection ─┐
-//           ├─ detectContentType ────────────────┤                      │                      ├─ upsertVectors
-//           │                                    └─ detectEvent ────────┼──────────────────────┤
-//           ├─ semanticChunker ─────────────────────────────────────────┴─ generateEmbeddings ─┤
-//           └─ detectDuplicate ────────────────────────────────────────────────────────────────┘
+//   parser ─┬─ researchContext ─┬─ correctCaption ── classifyIntent ─┬─ generateAiInsights ─┬─ organizeCollection ─┐
+//           │                   └─ detectContentType ────────────────┤                      │                      ├─ upsertVectors
+//           │                                                        └─ detectEvent ────────┼──────────────────────┤
+//           ├─ semanticChunker ─────────────────────────────────────────────────────────────┴─ generateEmbeddings ─┤
+//           └─ detectDuplicate ────────────────────────────────────────────────────────────────────────────────────┘
 for (const parserNode of PARSER_NODES) {
-  builder.addEdge(parserNode, "correctCaption");
-  builder.addEdge(parserNode, "detectContentType");
+  builder.addEdge(parserNode, "researchContext");
   builder.addEdge(parserNode, "semanticChunker");
   builder.addEdge(parserNode, "detectDuplicate");
 }
 
 builder
+  .addEdge("researchContext", "correctCaption")
+  .addEdge("researchContext", "detectContentType")
   .addEdge("correctCaption", "classifyIntent")
   .addEdge(["detectContentType", "classifyIntent"], "generateAiInsights")
   .addEdge(["detectContentType", "classifyIntent"], "detectEvent")

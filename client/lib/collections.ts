@@ -17,6 +17,11 @@ export async function listCollections(includeSystem = false, vaulted = false): P
   return apiFetch<Collection[]>(`/collections${qs ? `?${qs}` : ""}`);
 }
 
+/** One collection, for its page (404 when it isn't yours, or is in the vault). */
+export async function getCollection(id: string): Promise<Collection> {
+  return apiFetch<Collection>(`/collections/${id}`);
+}
+
 /** One-way: turns a system collection into a user-owned one. Never the reverse. */
 export async function convertCollectionToUser(id: string): Promise<Collection> {
   return apiFetch<Collection>(`/collections/${id}/convert-to-user`, { method: "PATCH" });
