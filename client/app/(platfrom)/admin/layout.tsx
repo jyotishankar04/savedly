@@ -167,6 +167,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   // The billing plan, not the RBAC role — an admin is still on some plan.
   const planLabel = usePlanLabel();
   const { navEntries, navLeaves } = useAdminNav();
+  // Admin > Messages is an email client: it takes the whole area, edge to edge.
+  const fullPage = pathname.startsWith("/admin/messages");
 
   const handleLogout = () => {
     logout().finally(() => router.push("/"));
@@ -313,12 +315,16 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-6 py-8 animate-fade-in">
-            <AiHealthBanner />
-            {children}
-          </div>
-        </main>
+        {fullPage ? (
+          <main className="flex flex-1 min-h-0 flex-col overflow-hidden">{children}</main>
+        ) : (
+          <main className="flex-1 min-h-0 overflow-y-auto">
+            <div className="max-w-6xl mx-auto px-6 py-8 animate-fade-in">
+              <AiHealthBanner />
+              {children}
+            </div>
+          </main>
+        )}
       </div>
 
       <style>{`
