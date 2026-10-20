@@ -73,6 +73,13 @@ export enum BlogPostStatus {
   PUBLISHED = "published",
 }
 
+// Where an item sits on the public roadmap (see roadmapItems): being built
+// now, or planned next. What has shipped is the changelog, not this table.
+export enum RoadmapStatus {
+  NOW = "now",
+  NEXT = "next",
+}
+
 // What a "What's new" card is telling the visitor about (see whatsNewItems).
 export enum WhatsNewKind {
   // Something the product does, with no claim that it just arrived: the launch tour.
