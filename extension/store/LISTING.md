@@ -77,7 +77,10 @@ Privacy policy: https://savedly.app/privacy
 | `storage` | To remember, on the device, whether the user is signed in and whether they turned the on-page button off. |
 | `contextMenus` | To add "Save to Savedly" to the right-click menu for pages, links, images and selected text. |
 | `notifications` | To tell the user that a save worked or failed when it was started from the right-click menu, the keyboard shortcut or the on-page button, where there is no popup to show it. |
-| Host permission (all sites) | The user can save from any site. The content script shows the on-page save button, draws the screenshot selection and reads the page's description; capturing a screenshot started from that button needs access to the page being captured. The extension also sends the save to the Savedly server. |
+| `alarms` | To check for due reminders and show them as notifications, and to refresh the list of saved pages (kept as short hashes on the device) every few minutes. |
+| `sidePanel` | To show Savedly in Chrome's side panel: the current page, the user's Inbox, search, recent saves and collections. |
+| `scripting` | To load the extension's own content script (the file already in the package) into tabs that were open before the extension was installed or updated, so the on-page button, highlights and the side panel work there without the user reloading each tab. |
+| Host permission (all sites) | The user can save from any site. The content script shows the on-page save button, draws the screenshot selection, shows and saves highlights, and reads the page's description; capturing a screenshot started from that button needs access to the page being captured. The side panel shows the page in the current tab, which needs its address; it isn't sent anywhere unless the user saves or highlights it. The extension also sends saves to the Savedly server. |
 
 **Remote code:** No. All code is in the package.
 

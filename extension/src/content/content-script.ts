@@ -16,6 +16,25 @@ const SHOW_FLOATING_ICON_STORAGE_KEY = "savedly_show_floating_icon";
 // Where the floating button was dragged to, the same on every site: which edge, and how far down (0 top … 1 bottom).
 const FLOATING_POSITION_STORAGE_KEY = "savedly_floating_position";
 
+// One live copy per page. When the extension is installed, updated or
+// reloaded, the background loads this script into tabs that were already
+// open; a copy from before is cut off from the extension by then. The newest
+// copy marks the page as its own, clears what an older copy left on it, and
+// an older copy stops reacting to the page (its DOM listeners would
+// otherwise keep running, showing toolbars whose buttons can't work).
+const INSTANCE = Math.random().toString(36).slice(2);
+document.documentElement.dataset.savedlyInstance = INSTANCE;
+for (const stale of document.querySelectorAll("#savedly-floating-button, #savedly-floating-menu, [data-savedly-ui]")) stale.remove();
+function alive(): boolean {
+  let connected = false;
+  try {
+    connected = !!chrome.runtime?.id;
+  } catch {
+    connected = false;
+  }
+  return connected && document.documentElement.dataset.savedlyInstance === INSTANCE;
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "GET_METADATA") {
     const description = getMetaTag("description") || getMetaTag("og:description") || "";
@@ -571,7 +590,7 @@ if (location.origin === __WEB_APP_URL__) {
   };
   syncSignIn();
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") syncSignIn();
+    if (document.visibilityState === "visible" && alive()) syncSignIn();
   });
 }
 
@@ -586,6 +605,7 @@ refreshFloatingButtonVisibility();
 let reportedUrl = "";
 let reportedTitle = "";
 function reportPage(force = false): void {
+  if (!alive()) return;
   const url = location.href;
   const title = document.title;
   const action = force || url !== reportedUrl ? "PAGE_SEEN" : title !== reportedTitle ? "PAGE_TITLE" : null;
@@ -856,7 +876,7 @@ function showSelectionToolbar(range: Range): void {
 }
 
 document.addEventListener("mouseup", (e) => {
-  if (!highlighterSignedIn || (e.target instanceof Element && e.target.closest(`[${UI_ATTR}]`))) return;
+  if (!alive() || !highlighterSignedIn || (e.target instanceof Element && e.target.closest(`[${UI_ATTR}]`))) return;
   // After the browser has settled the selection.
   setTimeout(() => {
     const selection = window.getSelection();
@@ -874,6 +894,7 @@ document.addEventListener("mousedown", (e) => {
 });
 window.addEventListener("scroll", () => hideSelectionToolbar(), { passive: true });
 document.addEventListener("keydown", (e) => {
+  if (!alive()) return;
   if (e.key === "Escape") {
     hideSelectionToolbar();
     hideHighlightPopover();
@@ -899,7 +920,7 @@ function hideHighlightPopover(): void {
 
 document.addEventListener("click", (e) => {
   const mark = e.target instanceof Element ? e.target.closest<HTMLElement>(`mark[${HL_ATTR}]`) : null;
-  if (!mark || !highlighterSignedIn) return;
+  if (!mark || !highlighterSignedIn || !alive()) return;
   const id = mark.getAttribute(HL_ATTR)!;
   if (id.startsWith("pending-")) return;
   e.preventDefault();

@@ -26,6 +26,10 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.runtime.onInstalled.addListener((details) => {
   // A first install opens the tour of what the extension does (src/welcome); updates don't.
   if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) openWelcome();
+  // Tabs open since before this install or update have no content script (or
+  // one cut off from the extension): give them one, so the side panel, the
+  // ✓ badge, highlights and the on-page button work there without a reload.
+  if (details.reason === chrome.runtime.OnInstalledReason.INSTALL || details.reason === chrome.runtime.OnInstalledReason.UPDATE) void reconnectOpenTabs();
   // On the Savedly icon's own right-click menu, to see the tour again.
   chrome.contextMenus.create({ id: "take-the-tour", title: "Take the tour", contexts: ["action"] }, () => void chrome.runtime.lastError);
 
@@ -822,3 +826,15 @@ function openWelcome(): void {
 chrome.contextMenus.onClicked.addListener((info) => {
   if (info.menuItemId === "take-the-tour") openWelcome();
 });
+
+// --- Open tabs after an install or update --------------------------------------
+
+async function reconnectOpenTabs(): Promise<void> {
+  const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] }).catch(() => [] as chrome.tabs.Tab[]);
+  const script = chrome.runtime.getManifest().content_scripts?.[0]?.js ?? ["content.js"];
+  for (const tab of tabs) {
+    // A discarded tab loads the content script by itself when it's woken.
+    if (tab.id == null || tab.discarded) continue;
+    void chrome.scripting.executeScript({ target: { tabId: tab.id }, files: script }).catch(() => undefined);
+  }
+}

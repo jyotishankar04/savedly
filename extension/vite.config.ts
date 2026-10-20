@@ -17,7 +17,11 @@ function generateManifestPlugin(apiOrigin: string, local: boolean): Plugin {
       const manifestPath = resolve(outDir, "manifest.json");
       if (fs.existsSync(manifestPath)) {
         const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-        manifest.host_permissions = [`${apiOrigin.replace(/\/+$/, "")}/*`];
+        // The API, and every site: the content script already runs on every site
+        // (so the install warning is the same), and this lets the extension
+        // load it into tabs open since before an install or update, and tell
+        // the side panel which page any tab shows.
+        manifest.host_permissions = [`${apiOrigin.replace(/\/+$/, "")}/*`, "<all_urls>"];
         if (local) {
           manifest.name = "Savedly (local)";
           manifest.short_name = "Savedly local";
