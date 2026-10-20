@@ -23,6 +23,7 @@ import {
   AnnouncementDisplayMode,
   WhatsNewKind,
   RoadmapStatus,
+  ContactMessageStatus,
   BlogPostStatus,
   AnnouncementType,
   CalendarProvider,
@@ -118,6 +119,13 @@ export const announcementDisplayModeEnum = pgEnum("announcement_display_mode", [
 export const whatsNewKindEnum = pgEnum("whats_new_kind", [WhatsNewKind.FEATURE, WhatsNewKind.NEW, WhatsNewKind.IMPROVED, WhatsNewKind.UPCOMING]);
 
 export const roadmapStatusEnum = pgEnum("roadmap_status", [RoadmapStatus.NOW, RoadmapStatus.NEXT]);
+
+export const contactMessageStatusEnum = pgEnum("contact_message_status", [
+  ContactMessageStatus.NEW,
+  ContactMessageStatus.READ,
+  ContactMessageStatus.REPLIED,
+  ContactMessageStatus.ARCHIVED,
+]);
 
 export const reportTypeEnum = pgEnum("report_type", [ReportType.BUG, ReportType.FEATURE]);
 
@@ -1646,6 +1654,30 @@ export const importItems = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_import_items_batch_status").on(table.batchId, table.status)]
+);
+
+// Messages from the website's contact page (/contact). Saved before the team
+// is emailed, so none is lost when email is off or fails; read and answered
+// in Admin > Messages. userId is set when the person was signed in.
+export const contactMessages = pgTable(
+  "contact_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 120 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    topic: varchar("topic", { length: 40 }).notNull(),
+    message: text("message").notNull(),
+    status: contactMessageStatusEnum("status").notNull().default(ContactMessageStatus.NEW),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    // When the copy to the team's inbox went out; null when email is off or failed.
+    emailedAt: timestamp("emailed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("idx_contact_messages_status_created").on(table.status, table.createdAt)]
 );
 
 // -----------------------------------------------------------------------------

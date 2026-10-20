@@ -295,6 +295,14 @@ export enum AiRole {
 // there's no admin UI for this yet (see report.service.ts), so a status
 // this simple is one an operator can act on directly in the DB/Studio
 // without needing a richer workflow built first.
+// Where a message from the website's contact page stands (see contactMessages).
+export enum ContactMessageStatus {
+  NEW = "new",
+  READ = "read",
+  REPLIED = "replied",
+  ARCHIVED = "archived",
+}
+
 export enum ReportStatus {
   OPEN = "open",
   REVIEWING = "reviewing",
