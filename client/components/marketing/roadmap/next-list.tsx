@@ -1,13 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { apiFetch } from "@/lib/auth";
 import { useCurrentUserQuery } from "@/context/UserContext";
 import type { Roadmap } from "@/lib/roadmap";
-import { cn } from "@/lib/utils";
+import UpVoteButton from "@/components/shadcn-space/button/button-21";
 
 interface Votes {
   counts: Record<string, number>;
@@ -24,6 +24,7 @@ const votesKey = ["roadmap-votes"] as const;
  */
 export function NextList({ items }: { items: Roadmap["next"] }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { data: user } = useCurrentUserQuery();
   const { data: votes } = useQuery({
     queryKey: votesKey,
@@ -56,35 +57,16 @@ export function NextList({ items }: { items: Roadmap["next"] }) {
         const voted = votes?.mine.includes(item.slug) ?? false;
         const count = votes?.counts[item.slug] ?? item.votes;
         const want = count === 0 ? "Be the first to vote" : count === 1 ? "1 person wants this" : `${count} people want this`;
-        // The familiar upvote box: a solid triangle over the count. Bordered and
-        // calm until hovered; solid blue with a tick once it's your vote.
-        const box = cn(
-          "group/vote flex w-16 shrink-0 flex-col items-center justify-center gap-1 self-start rounded-xl border-2 py-2.5 transition-all duration-150 active:scale-95",
-          voted
-            ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/30"
-            : "border-foreground/15 bg-background text-foreground hover:-translate-y-0.5 hover:border-primary hover:text-primary",
-        );
-        const inner = (
-          <>
-            {voted ? (
-              <HugeiconsIcon icon={Tick02Icon} strokeWidth={2.75} className="size-4" />
-            ) : (
-              <svg viewBox="0 0 12 10" aria-hidden className="h-2.5 w-3 fill-current transition-transform group-hover/vote:-translate-y-0.5">
-                <path d="M6 0 12 10H0z" />
-              </svg>
-            )}
-            <span className="text-base font-semibold leading-none tabular-nums">{count}</span>
-            <span className={cn("text-[10px] font-medium leading-none", voted ? "text-primary-foreground/80" : "text-muted-foreground group-hover/vote:text-primary")}>{voted ? "Voted" : "Upvote"}</span>
-          </>
-        );
-        const vote = user ? (
-          <button type="button" aria-pressed={voted} aria-label={voted ? `Remove your vote for ${item.title} (${count})` : `Upvote ${item.title} (${count})`} title={voted ? "Click to take your vote back" : "Upvote"} className={box} onClick={() => toggle.mutate({ slug: item.slug, voted })}>
-            {inner}
-          </button>
-        ) : (
-          <Link href="/auth/login" aria-label={`Sign in to upvote ${item.title} (${count})`} title="Sign in to vote" className={box}>
-            {inner}
-          </Link>
+        const vote = (
+          <UpVoteButton
+            voted={voted}
+            count={count}
+            // Signed out, a click goes to sign in instead.
+            onToggle={() => (user ? toggle.mutate({ slug: item.slug, voted }) : router.push("/auth/login"))}
+            label={!user ? `Sign in to upvote ${item.title} (${count})` : voted ? `Remove your vote for ${item.title} (${count})` : `Upvote ${item.title} (${count})`}
+            title={!user ? "Sign in to vote" : voted ? "Click to take your vote back" : "Upvote"}
+            className="shrink-0 self-start"
+          />
         );
         return (
           <li key={item.slug} className="flex flex-col rounded-2xl bg-card p-6 ring-1 ring-foreground/[0.07]">
