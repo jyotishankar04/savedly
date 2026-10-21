@@ -22,7 +22,7 @@ import {
 import { LogoMark } from "@/components/logo";
 import { HelpError, MAX_QUESTION, askHelp, type HelpAnswer } from "@/lib/help-ask";
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from "@/lib/contact";
-import { SELF_HOSTED, hostedHref } from "@/lib/instance";
+import { hostedHref } from "@/lib/instance";
 import { cn } from "@/lib/utils";
 
 // The FAQ's question box as a floating chat on every marketing page, so a
@@ -30,9 +30,10 @@ import { cn } from "@/lib/utils";
 // a header with the logo, a greeting, the conversation as bubbles, and a
 // message box. Each question is answered on its own from the help guides by AI
 // (the server keeps no conversation), and the panel says so; a person is one
-// link away on the contact page. On the hosted site it sits above the Buy Me a
-// Coffee button in the same corner. Not on the sign-in pages, where it would
-// only sit over the form.
+// link away on the contact page. It sits in the bottom-right corner, and moves
+// up above the Buy Me a Coffee button only when that button is actually on the
+// page (it isn't on a self-hosted install, and an ad blocker often removes it).
+// Not on the sign-in pages, where it would only sit over the form.
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 // Each one is answered by the help guides; check that before changing them.
@@ -44,6 +45,22 @@ interface Turn {
   links: HelpAnswer["links"];
   status: "writing" | "done" | "stopped" | "error";
   error?: string;
+}
+
+/** True while the Buy Me a Coffee widget's button (it adds #bmc-wbtn to the page, late) is showing. */
+function useCoffeeButton(): boolean {
+  const [present, setPresent] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const el = document.getElementById("bmc-wbtn");
+      setPresent(!!el && el.getBoundingClientRect().height > 0);
+    };
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true });
+    return () => observer.disconnect();
+  }, []);
+  return present;
 }
 
 export function HelpBubble() {
@@ -84,6 +101,7 @@ const PROSE =
 function HelpBubbleInner() {
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
+  const aboveCoffee = useCoffeeButton();
   // The ⋮ menu, and the larger view it can switch to.
   const [menu, setMenu] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -164,7 +182,7 @@ function HelpBubbleInner() {
   };
 
   return (
-    <div className={cn("fixed right-[18px] z-[60] flex flex-col items-end gap-3 font-sans antialiased", SELF_HOSTED ? "bottom-[18px]" : "bottom-[96px]")}>
+    <div className={cn("fixed right-[18px] z-[60] flex flex-col items-end gap-3 font-sans antialiased", aboveCoffee ? "bottom-[96px]" : "bottom-[18px]")}>
       <AnimatePresence>
         {open && (
           <motion.section
@@ -177,7 +195,16 @@ function HelpBubbleInner() {
             style={{ transformOrigin: "100% 100%" }}
             className={cn(
               "flex flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-2xl shadow-black/20 transition-[width,height] duration-300 ease-out motion-reduce:transition-none",
-              expanded ? "h-[calc(100dvh-9.5rem)] w-[min(44rem,calc(100vw-36px))]" : "h-[min(40rem,calc(100dvh-9.5rem))] w-[min(25rem,calc(100vw-36px))]",
+              // Never taller than the room above the button (18px up, or 96px over
+              // Buy Me a Coffee), less a 24px gap at the top.
+              expanded ? "w-[min(44rem,calc(100vw-36px))]" : "w-[min(25rem,calc(100vw-36px))]",
+              aboveCoffee
+                ? expanded
+                  ? "h-[calc(100dvh-11.75rem)]"
+                  : "h-[min(40rem,calc(100dvh-11.75rem))]"
+                : expanded
+                  ? "h-[calc(100dvh-6.875rem)]"
+                  : "h-[min(40rem,calc(100dvh-6.875rem))]",
             )}
           >
             {/* Header */}
