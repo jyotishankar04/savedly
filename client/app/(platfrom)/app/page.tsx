@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { timeAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
+import { MemoryGridCard } from "@/components/memory/memory-grid-card";
 import { memoryDragProps } from "@/lib/memory-drag";
 import { QueryErrorState } from "@/components/query-error-state";
 import type { Memory } from "@/types/memory";
@@ -213,7 +214,8 @@ export default function HomePage() {
                     <Skeleton className="h-3 w-full" />
                   </div>
                 ))
-              : recent.map((item) => <MemoryCard key={item.id} item={item} />)}
+              : // The same card as the Memories page.
+                recent.map((item) => <MemoryGridCard key={item.id} item={item} href={`/app/memories/${item.id}`} />)}
           </div>
         )}
       </section>
@@ -295,27 +297,6 @@ function SaveAction({ icon, label, sub, onClick, href }: { icon: IconSvgElement;
     <Link href={href} className={className}>{body}</Link>
   ) : (
     <button type="button" onClick={onClick} className={className}>{body}</button>
-  );
-}
-
-function MemoryCard({ item }: { item: Memory }) {
-  return (
-    <Link
-      href={`/app/memories/${item.id}`}
-      // Drag onto a collection in the sidebar, and J/K and the other list keys, as on the Memories page.
-      {...memoryDragProps({ id: item.id, title: item.title, selected: false })}
-      className="group flex flex-col rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-    >
-      <MemoryThumbnail item={item} className="rounded-xl" />
-      <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
-        <h3 className="line-clamp-1 text-sm font-medium text-foreground transition-colors group-hover:text-primary">{item.title}</h3>
-        {item.description && <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{item.description}</p>}
-        <div className="mt-auto flex items-center justify-between gap-2 pt-3 text-xs text-muted-foreground">
-          <span className="min-w-0 truncate">{item.collections[0]?.name ?? item.tags[0] ?? ""}</span>
-          <span className="shrink-0 tabular-nums">{timeAgo(item.createdAt)}</span>
-        </div>
-      </div>
-    </Link>
   );
 }
 

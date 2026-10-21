@@ -448,7 +448,8 @@
    Colours and radius are each button's own. It reaches the shared Button
    (components/ui/button.tsx), the Arc button (components/arc/button) and
    every hand-made button: an <a> or <button> with bg-primary, bg-destructive
-   or bg-foreground, or outlined (a border on bg-background / bg-card, or ring-1). Not while
+   or bg-foreground, or an inline-flex one outlined (a border on bg-background
+   / bg-card, or ring-1). Not while
    keyboard-focused, so the focus ring shows. Not in a layer, so it beats a
    utility's own shadow; .no-gloss opts a button out. */
 :root {
@@ -497,10 +498,12 @@
     0 6px 20px -6px var(--button-glow);
 }
 /* Bordered: a border on bg-background / bg-card, or an outline drawn with
-   ring-1. The ring is a shadow too, so it's kept alongside. */
-:is(.btn-tactile, :is(a, button).border:is([class*="bg-background"], [class*="bg-card"]), :is(a, button).ring-1:not(.bg-primary, .bg-destructive, .bg-foreground)):not(.no-gloss) {
+   ring-1. The ring is a shadow too, so it's kept alongside. Only on
+   button-shaped elements (inline-flex): a card that's a link (a memory card,
+   a collection) has a border on bg-card too, and stays as it is. */
+:is(.btn-tactile, :is(a, button).inline-flex.border:is([class*="bg-background"], [class*="bg-card"]), :is(a, button).inline-flex.ring-1:not(.bg-primary, .bg-destructive, .bg-foreground)):not(.no-gloss) {
   background-image: var(--button-tactile-sheen);
 }
-:is(.btn-tactile, :is(a, button).border:is([class*="bg-background"], [class*="bg-card"]), :is(a, button).ring-1:not(.bg-primary, .bg-destructive, .bg-foreground)):not(.no-gloss):not(:focus-visible) {
+:is(.btn-tactile, :is(a, button).inline-flex.border:is([class*="bg-background"], [class*="bg-card"]), :is(a, button).inline-flex.ring-1:not(.bg-primary, .bg-destructive, .bg-foreground)):not(.no-gloss):not(:focus-visible) {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--button-tactile-shadow);
 }
