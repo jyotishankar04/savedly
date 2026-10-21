@@ -19,6 +19,7 @@ import { ProductHuntBadge } from "@/components/marketing/product-hunt-badge";
 import { useAuthCta } from "@/hooks/use-auth-cta";
 import { cn } from "@/lib/utils";
 import { AskScene, OrganizeScene, SaveScene, SearchScene } from "@/components/marketing/landing/product-scenes";
+import { HeroFragments } from "@/components/marketing/landing/hero-fragments";
 
 // The hero: a plain statement, then the product shown as four small scenes
 // on a coloured panel. On a wide screen the panel grows to almost fill the screen
@@ -336,23 +337,6 @@ function Switcher() {
   );
 }
 
-// A + every 48px, cut out of a tinted layer (so it takes the theme's colour)
-// and faded out from the middle, so the crosses never reach the edges.
-const CROSS = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath d='M24 19v10M19 24h10' stroke='%23000' stroke-width='1.25' stroke-linecap='round'/%3E%3C/svg%3E")`;
-const FADE = "radial-gradient(ellipse 55% 60% at 50% 42%, #000 25%, transparent 75%)";
-const HERO_CROSSES: React.CSSProperties = {
-  maskImage: `${CROSS}, ${FADE}`,
-  WebkitMaskImage: `${CROSS}, ${FADE}`,
-  maskSize: "48px 48px, 100% 100%",
-  WebkitMaskSize: "48px 48px, 100% 100%",
-  maskPosition: "center top, center",
-  WebkitMaskPosition: "center top, center",
-  maskRepeat: "repeat, no-repeat",
-  WebkitMaskRepeat: "repeat, no-repeat",
-  maskComposite: "intersect",
-  WebkitMaskComposite: "source-in",
-};
-
 export function HeroSwitcher() {
   const cta = useAuthCta();
   const reduce = useReducedMotion();
@@ -371,9 +355,7 @@ export function HeroSwitcher() {
     <section className="relative isolate z-40 bg-background pb-6 font-sans antialiased selection:bg-primary/25">
       <Navbar />
 
-      {/* A soft wash of the brand blue from the top, and faint crosses behind the headline. */}
-      <div aria-hidden className="pointer-events-none absolute top-[-11rem] left-1/2 -z-10 h-[32rem] w-[min(70rem,100%)] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_22%,transparent),color-mix(in_oklab,var(--brand)_7%,transparent)_60%,transparent)] blur-[10px] dark:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_30%,transparent),color-mix(in_oklab,var(--brand)_8%,transparent)_60%,transparent)]" />
-      <div aria-hidden style={HERO_CROSSES} className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[46rem] bg-foreground/[0.14] opacity-60 sm:opacity-100 dark:bg-foreground/[0.16]" />
+      <HeroFragments />
 
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center px-5 pt-32 text-center sm:px-8 md:pt-40">
         <motion.div {...rise(0)}>
