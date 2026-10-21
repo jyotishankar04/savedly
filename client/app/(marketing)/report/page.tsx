@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { AnimatePresence, motion, MotionConfig, useReducedMotion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowUpRight01Icon as ArrowUpRight, Tick02Icon as Tick } from "@hugeicons/core-free-icons";
@@ -48,7 +48,15 @@ const NEXT_STEPS = [
 
 export default function ReportPage() {
   const reduced = useReducedMotion();
-  const [type, setType] = useState<ReportType>("bug");
+  // ?type=feature (the roadmap's "Suggest a feature") opens on "An idea". Read
+  // after hydration, so the server's render and the first client render agree.
+  const typeFromUrl = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("type"),
+    () => null,
+  );
+  const [picked, setType] = useState<ReportType | null>(null);
+  const type: ReportType = picked ?? (typeFromUrl === "feature" ? "feature" : "bug");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");

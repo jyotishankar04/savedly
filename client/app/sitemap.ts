@@ -31,6 +31,7 @@ const MARKETING_PAGES: { path: string; priority: number }[] = [
   { path: "/help", priority: 0.8 },
   { path: "/help/model-selection", priority: 0.6 },
   { path: "/changelog", priority: 0.7 },
+  { path: "/roadmap", priority: 0.6 },
   { path: "/about", priority: 0.7 },
   { path: "/contact", priority: 0.6 },
   { path: "/community", priority: 0.6 },

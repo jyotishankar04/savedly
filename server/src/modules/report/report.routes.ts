@@ -9,6 +9,6 @@ const router = Router();
 // Public — bug reports and feature requests come from an unauthenticated
 // marketing page as often as a signed-in one. optionalAuthenticate attaches
 // req.user when a valid session happens to be present, without requiring one.
-router.post("/", reportRateLimiter, optionalAuthenticate, validateCreateReport, ReportController.create);
+router.post("/", optionalAuthenticate, reportRateLimiter, validateCreateReport, ReportController.create);
 
 export default router;

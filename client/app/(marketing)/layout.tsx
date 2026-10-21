@@ -1,5 +1,6 @@
 import Script from "next/script";
 import { SELF_HOSTED } from "@/lib/instance";
+import { HelpBubble } from "@/components/marketing/help-bubble";
 
 // No shared canonical here. A default of "/" told search engines that every
 // page without its own (the Help Center and all its guides) was a copy of the
@@ -16,6 +17,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
   return (
     <>
       {children}
+      {/* The FAQ's question box, one tap away on every public page. */}
+      <HelpBubble />
       {!SELF_HOSTED && (
         <Script
           id="bmc-widget"

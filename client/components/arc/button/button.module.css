@@ -1,3 +1,4 @@
+/* Changed locally: primary and secondary take this app's button gloss (app/globals.css, "Buttons"). Re-installing overwrites it. */
 .button { position: relative; display: inline-flex; min-height: var(--control-height-md); align-items: center; justify-content: center; gap: var(--space-2); border: 1px solid transparent; border-radius: var(--radius-control); padding: 0 var(--space-4); font: inherit; font-size: var(--arc-text-sm); font-weight: 500; line-height: var(--leading-body); white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard); }
 .button:disabled { cursor: not-allowed; opacity: .52; }
 .button[aria-busy="true"] { cursor: progress; }
@@ -11,6 +12,10 @@
 .labelPhase { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); white-space: nowrap; }
 .labelPhase svg { flex: none; }
 .primary { color: var(--arc-accent-foreground); background: var(--arc-accent); border-color: var(--arc-accent); }
+/* This app's gloss (app/globals.css, Buttons), as on every other button. */
+.primary:not(:disabled) { background-image: var(--button-gloss); text-shadow: 0 1px 1px rgb(0 0 0 / 0.14); }
+.primary:not(:disabled):not(:focus-visible) { box-shadow: var(--button-gloss-shadow); }
+.secondary:not(:disabled):not(:focus-visible) { box-shadow: var(--button-tactile-shadow); }
 .secondary { color: var(--foreground); background: var(--surface); border-color: var(--border); }
 .ghost { color: var(--text-secondary); background: transparent; border-color: transparent; }
 .danger { color: var(--danger); background: var(--surface); border-color: var(--border); }
@@ -19,7 +24,7 @@
 .danger:disabled { color: color-mix(in oklab, var(--danger) 55%, var(--surface-muted)); }
 .ghost:disabled { opacity: 1; color: var(--text-muted); }
 @media (hover: hover) and (pointer: fine) {
-  .primary:hover:not(:disabled) { opacity: .91; box-shadow: var(--shadow-resting); }
+  .primary:hover:not(:disabled):not(:focus-visible) { opacity: .91; box-shadow: var(--button-gloss-shadow); }
   .secondary:hover:not(:disabled) { background: var(--surface-muted); box-shadow: var(--shadow-resting); }
   .ghost:hover:not(:disabled) { color: var(--foreground); background: var(--surface-muted); }
   .danger:hover:not(:disabled) { border-color: var(--danger); background: var(--surface-muted); }
