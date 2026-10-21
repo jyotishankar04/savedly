@@ -477,6 +477,9 @@
     0 6px 20px -6px var(--button-glow);
 }
 :is(a, button, [role="button"]):is(.bg-primary, .bg-destructive, .bg-foreground):not(.no-gloss) {
+  /* The shared Button paints inside a clear 1px border (bg-clip-padding); here the
+     colour runs under it, or a hover tint shows a pale line inside the rim. */
+  background-clip: border-box;
   background-image: var(--button-gloss);
   text-shadow: 0 1px 1px rgb(0 0 0 / 0.14);
 }
