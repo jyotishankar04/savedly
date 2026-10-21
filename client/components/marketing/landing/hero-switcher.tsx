@@ -394,7 +394,7 @@ export function HeroSwitcher() {
             href={CHROME_WEB_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-12 items-center justify-center gap-2.5 rounded-full border border-border bg-background/70 px-6 text-[15px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="btn-tactile inline-flex h-12 items-center justify-center gap-2.5 rounded-full border border-border bg-background/70 px-6 text-[15px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <ChromeLogo className="h-5 w-5" />
             Add to Chrome
