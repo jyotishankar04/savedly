@@ -354,8 +354,15 @@ export function HeroSwitcher() {
     <section className="relative isolate z-40 bg-background pb-6 font-sans antialiased selection:bg-primary/25">
       <Navbar />
 
-      {/* A soft wash of the brand blue from the top. */}
-      <div aria-hidden className="pointer-events-none absolute top-[-11rem] left-1/2 -z-10 h-[32rem] w-[min(70rem,100%)] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_16%,transparent),color-mix(in_oklab,var(--brand)_5%,transparent)_60%,transparent)] blur-[10px] dark:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_30%,transparent),color-mix(in_oklab,var(--brand)_8%,transparent)_60%,transparent)]" />
+      {/* A soft wash of the brand blue from the top, spreading down and out as the page loads. */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0, scaleX: 0.35, scaleY: 0.4, y: -90 }}
+        animate={{ opacity: 1, scaleX: 1, scaleY: 1, y: 0 }}
+        transition={reduce ? { duration: 0 } : { duration: 1.6, ease: EASE }}
+        style={{ x: "-50%", transformOrigin: "50% 0%" }}
+        className="pointer-events-none absolute top-[-11rem] left-1/2 -z-10 h-[32rem] w-[min(70rem,100%)] rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_16%,transparent),color-mix(in_oklab,var(--brand)_5%,transparent)_60%,transparent)] blur-[10px] dark:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_30%,transparent),color-mix(in_oklab,var(--brand)_8%,transparent)_60%,transparent)]"
+      />
 
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center px-5 pt-32 text-center sm:px-8 md:pt-40">
         <motion.div {...rise(0)}>
