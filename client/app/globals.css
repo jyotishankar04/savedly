@@ -442,36 +442,62 @@
 }
 
 /* Buttons: a soft gloss, the same everywhere. Solid buttons get a light-to-
-   dark sheen, a bright top edge, a darker rim and a glow in their own colour;
-   bordered ones (.btn-tactile) a faint top highlight and a small shadow; ghost
-   and link buttons stay flat. Colours and radius are each button's own. It
-   reaches the shared Button (components/ui/button.tsx), the Arc button
-   (components/arc/button) and every hand-made solid button (an <a> or
-   <button> with bg-primary). Not while keyboard-focused, so the focus ring
-   shows. Not in a layer, so it beats a utility's own shadow; .no-gloss opts
-   a button out. */
+   dark sheen, a bright top edge, a darker rim and a glow in their own colour
+   (blue, red for delete, a plain shadow for black or white); bordered ones a
+   faint top highlight and a small shadow; ghost and link buttons stay flat.
+   Colours and radius are each button's own. It reaches the shared Button
+   (components/ui/button.tsx), the Arc button (components/arc/button) and
+   every hand-made button: an <a> or <button> with bg-primary, bg-destructive
+   or bg-foreground, or outlined (a border on bg-background / bg-card, or ring-1). Not while
+   keyboard-focused, so the focus ring shows. Not in a layer, so it beats a
+   utility's own shadow; .no-gloss opts a button out. */
 :root {
   --button-gloss: linear-gradient(to bottom, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.03) 55%, rgb(0 0 0 / 0.06));
+  --button-tactile-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 rgb(0 0 0 / 0.04), 0 1px 2px rgb(0 0 0 / 0.08), 0 4px 10px -4px rgb(0 0 0 / 0.1);
+  --button-tactile-sheen: linear-gradient(to bottom, rgb(255 255 255 / 0.9), rgb(0 0 0 / 0.025));
+}
+.dark {
+  --button-tactile-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), inset 0 -1px 0 rgb(0 0 0 / 0.3), 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 12px -4px rgb(0 0 0 / 0.6);
+  --button-tactile-sheen: linear-gradient(to bottom, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.01));
+}
+/* The solid button's colour, for its rim and glow. */
+:root, .bg-primary { --button-tone: var(--primary); --button-glow: color-mix(in oklab, var(--button-tone) 65%, transparent); }
+.bg-destructive { --button-tone: var(--destructive); --button-glow: color-mix(in oklab, var(--button-tone) 55%, transparent); }
+.bg-foreground { --button-tone: var(--foreground); --button-glow: rgb(0 0 0 / 0.28); }
+:root {
   --button-gloss-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.32), inset 0 -1px 0 rgb(0 0 0 / 0.14),
-    0 0 0 1px color-mix(in oklab, var(--primary) 78%, black),
-    0 6px 16px -6px color-mix(in oklab, var(--primary) 65%, transparent);
-  --button-tactile-shadow: inset 0 1px 0 rgb(255 255 255 / 0.75), 0 1px 2px rgb(0 0 0 / 0.06);
+    0 0 0 1px color-mix(in oklab, var(--button-tone) 78%, black),
+    0 6px 16px -6px var(--button-glow);
 }
 .dark {
   --button-gloss-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.28), inset 0 -1px 0 rgb(0 0 0 / 0.2),
-    0 0 0 1px color-mix(in oklab, var(--primary) 70%, black),
-    0 6px 20px -6px color-mix(in oklab, var(--primary) 55%, transparent);
-  --button-tactile-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.4);
+    0 0 0 1px color-mix(in oklab, var(--button-tone) 70%, black),
+    0 6px 20px -6px var(--button-glow);
 }
-:is(a, button, [role="button"]).bg-primary:not(.no-gloss) {
+:is(a, button, [role="button"]):is(.bg-primary, .bg-destructive, .bg-foreground):not(.no-gloss) {
   background-image: var(--button-gloss);
   text-shadow: 0 1px 1px rgb(0 0 0 / 0.14);
 }
-:is(a, button, [role="button"]).bg-primary:not(.no-gloss):not(:focus-visible) {
-  box-shadow: var(--button-gloss-shadow);
+:is(a, button, [role="button"]):is(.bg-primary, .bg-destructive, .bg-foreground):not(.no-gloss):not(:focus-visible) {
+  /* Read where it's used, so the tone set on this button applies. */
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.32), inset 0 -1px 0 rgb(0 0 0 / 0.14),
+    0 0 0 1px color-mix(in oklab, var(--button-tone) 78%, black),
+    0 6px 16px -6px var(--button-glow);
 }
-.btn-tactile:not(:focus-visible) {
-  box-shadow: var(--button-tactile-shadow);
+.dark :is(a, button, [role="button"]):is(.bg-primary, .bg-destructive, .bg-foreground):not(.no-gloss):not(:focus-visible) {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28), inset 0 -1px 0 rgb(0 0 0 / 0.2),
+    0 0 0 1px color-mix(in oklab, var(--button-tone) 70%, black),
+    0 6px 20px -6px var(--button-glow);
+}
+/* Bordered: a border on bg-background / bg-card, or an outline drawn with
+   ring-1. The ring is a shadow too, so it's kept alongside. */
+:is(.btn-tactile, :is(a, button).border:is([class*="bg-background"], [class*="bg-card"]), :is(a, button).ring-1:not(.bg-primary, .bg-destructive, .bg-foreground)):not(.no-gloss) {
+  background-image: var(--button-tactile-sheen);
+}
+:is(.btn-tactile, :is(a, button).border:is([class*="bg-background"], [class*="bg-card"]), :is(a, button).ring-1:not(.bg-primary, .bg-destructive, .bg-foreground)):not(.no-gloss):not(:focus-visible) {
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--button-tactile-shadow);
 }
