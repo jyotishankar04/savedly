@@ -9,7 +9,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowUp02Icon as SendIcon,
   BookOpen01Icon as GuidesIcon,
-  BubbleChatSparkIcon as AskIcon,
   Cancel01Icon as CloseIcon,
   Mail01Icon as MailIcon,
   ArrowExpand01Icon as ExpandIcon,
@@ -66,6 +65,16 @@ function useCoffeeButton(): boolean {
 export function HelpBubble() {
   const onAuth = usePathname().startsWith("/auth");
   return onAuth ? null : <HelpBubbleInner />;
+}
+
+/** A smiling chat bubble: Tabler's "brand-hipchat" icon (MIT licence), drawn in the text colour. */
+function ChatIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M17.802 17.292s.077 -.055 .2 -.149c1.843 -1.425 3 -3.49 3 -5.789c0 -4.286 -4.03 -7.764 -9 -7.764c-4.97 0 -9 3.478 -9 7.764c0 4.288 4.03 7.646 9 7.646c.424 0 1.12 -.028 2.088 -.084c1.262 .82 3.104 1.493 4.716 1.493c.499 0 .734 -.41 .414 -.828c-.486 -.596 -1.156 -1.551 -1.416 -2.29l-.002 .001" />
+      <path d="M7.5 13.5c2.5 2.5 6.5 2.5 9 0" />
+    </svg>
+  );
 }
 
 /** The Savedly mark in a round badge, beside each answer. */
@@ -215,7 +224,7 @@ function HelpBubbleInner() {
                   <HugeiconsIcon icon={GuidesIcon} strokeWidth={2} className="size-4" />
                 </Link>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/30">
-                  <HugeiconsIcon icon={AskIcon} strokeWidth={2} className="size-3.5" />
+                  <ChatIcon className="size-3.5" />
                   Ask Savedly
                 </span>
                 <div ref={menuBox} data-open={menu} className="relative">
@@ -403,7 +412,7 @@ function HelpBubbleInner() {
             transition={{ duration: 0.18 }}
             className="grid place-items-center"
           >
-            <HugeiconsIcon icon={open ? CloseIcon : AskIcon} strokeWidth={2} className="size-6" />
+            {open ? <HugeiconsIcon icon={CloseIcon} strokeWidth={2} className="size-6" /> : <ChatIcon className="size-6" />}
           </motion.span>
         </AnimatePresence>
       </button>
