@@ -8,6 +8,6 @@ const router = Router();
 
 // Public: the website's contact page, signed in or not (a signed-in sender's
 // message is linked to their account in Admin > Messages).
-router.post("/", contactRateLimiter, optionalAuthenticate, validateSendContact, ContactController.send);
+router.post("/", optionalAuthenticate, contactRateLimiter, validateSendContact, ContactController.send);
 
 export default router;
