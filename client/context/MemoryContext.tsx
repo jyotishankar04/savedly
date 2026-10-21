@@ -178,10 +178,16 @@ function patchCachedMemory(
   id: string,
   patch: Partial<Memory>,
 ) {
-  queryClient.setQueriesData<{ items: Memory[]; page: number; limit: number; total: number }>(
-    { queryKey: ["memories"] },
-    (old) => (old ? { ...old, items: old.items.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : old),
-  );
+  // Not everything under ["memories"] is a page of them: the Inbox count is a
+  // number, and ["memories", id] (the graph) is one memory. Only lists and that
+  // one memory are patched; anything else is left as it is.
+  queryClient.setQueriesData<unknown>({ queryKey: ["memories"] }, (old: unknown) => {
+    if (!old || typeof old !== "object") return old;
+    const data = old as { items?: unknown; id?: unknown };
+    if (Array.isArray(data.items)) return { ...data, items: (data.items as Memory[]).map((m) => (m.id === id ? { ...m, ...patch } : m)) };
+    if (data.id === id) return { ...data, ...patch };
+    return old;
+  });
 }
 
 export function useToggleFavoriteMutation() {

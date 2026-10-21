@@ -97,12 +97,27 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
 
       {/* Overlaid rather than in the flow: keeps card height driven by
           content, and this row never has to compete with the title/date. */}
-      <div className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+      {/* Clicks in here are the buttons' own, never "open this memory". The menu
+          and the dialogs it opens (Share, Move to collection…) are portalled, so
+          on screen they're elsewhere, but React still passes their clicks up
+          through here to the card's link or onClick: stopped here. preventDefault
+          only for clicks really inside the card, so a checkbox or link inside a
+          dialog still works (the star and ⋯ buttons stop their own clicks, and
+          cancel the link themselves). */}
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          if (e.currentTarget.contains(e.target as Node)) e.preventDefault();
+        }}
+        className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+      >
         <button
           type="button"
           aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
           aria-pressed={item.isFavorite}
           onClick={(e) => {
+            // Inside the card's link: without preventDefault the browser follows it.
+            e.preventDefault();
             e.stopPropagation();
             toggleFavoriteMutation.mutate(
               { id: item.id, isFavorite: !item.isFavorite },
@@ -123,7 +138,10 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
           trigger={
             <button
               type="button"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
               aria-label="More actions"
               className="flex h-7 w-7 items-center justify-center rounded-full border border-border/60 bg-card/95 text-muted-foreground shadow-xs backdrop-blur-sm hover:text-foreground"
             >
