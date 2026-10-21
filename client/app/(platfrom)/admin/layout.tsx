@@ -19,6 +19,8 @@ import {
   Layers01Icon as Layers,
   Mail01Icon as Mail,
   Megaphone01Icon as Megaphone,
+  Route01Icon as RouteIcon,
+  InboxIcon as MessagesIcon,
   QuillWrite01Icon as QuillWrite,
   SlideIcon as Sliders,
   CloudServerIcon as CloudServer,
@@ -64,8 +66,10 @@ const NAV_ENTRIES: NavEntry[] = [
   { label: "Users", href: "/admin/users", icon: UserGroup },
   { label: "Analytics", href: "/admin/analytics", icon: BarChart },
   { label: "Emails", href: "/admin/emails", icon: Mail },
+  { label: "Messages", href: "/admin/messages", icon: MessagesIcon },
   { label: "AI Usage", href: "/admin/ai-usage", icon: Cpu },
   { label: "What's new", href: "/admin/whats-new", icon: Megaphone },
+  { label: "Roadmap", href: "/admin/roadmap", icon: RouteIcon },
   { label: "Blog", href: "/admin/blog", icon: QuillWrite },
   { label: "Features", href: "/admin/features", icon: Sliders },
   { label: "Configuration", href: "/admin/configuration", icon: Settings },
@@ -103,6 +107,8 @@ function useAdminNav() {
     hidden.add("/admin/whats-new");
     // The blog is part of the public website, which a self-hosted install doesn't have either.
     hidden.add("/admin/blog");
+    // So is the roadmap.
+    hidden.add("/admin/roadmap");
     if (!system?.services.email) hidden.add("/admin/emails");
   }
   const keep = (leaf: NavLeaf) => !hidden.has(leaf.href);
@@ -161,6 +167,8 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   // The billing plan, not the RBAC role — an admin is still on some plan.
   const planLabel = usePlanLabel();
   const { navEntries, navLeaves } = useAdminNav();
+  // Admin > Messages is an email client: it takes the whole area, edge to edge.
+  const fullPage = pathname.startsWith("/admin/messages");
 
   const handleLogout = () => {
     logout().finally(() => router.push("/"));
@@ -307,12 +315,16 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <main className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-6 py-8 animate-fade-in">
-            <AiHealthBanner />
-            {children}
-          </div>
-        </main>
+        {fullPage ? (
+          <main className="flex flex-1 min-h-0 flex-col overflow-hidden">{children}</main>
+        ) : (
+          <main className="flex-1 min-h-0 overflow-y-auto">
+            <div className="max-w-6xl mx-auto px-6 py-8 animate-fade-in">
+              <AiHealthBanner />
+              {children}
+            </div>
+          </main>
+        )}
       </div>
 
       <style>{`

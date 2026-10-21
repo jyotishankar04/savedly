@@ -53,6 +53,7 @@ const sections: { title: string; links: FooterLink[] }[] = [
       { label: "Integrations", href: "/#integrations" },
       { label: "Chrome extension", href: "/chrome-extension" },
       { label: "Changelog", href: "/changelog" },
+      { label: "Roadmap", href: "/roadmap" },
       { label: "Self-hosting", href: "/help/docs/self-host/self-host" },
     ],
   },

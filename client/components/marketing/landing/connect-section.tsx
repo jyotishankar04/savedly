@@ -17,6 +17,7 @@ import {
   WhatsappIcon,
   YoutubeIcon,
 } from "@hugeicons/core-free-icons";
+import { ChromeLogo } from "@/components/chrome-logo";
 import { LogoMark } from "@/components/logo";
 import { useAuthCta } from "@/hooks/use-auth-cta";
 import { CHROME_WEB_STORE_URL } from "@/lib/extension";
@@ -198,7 +199,10 @@ export function ConnectSection() {
               rel="noopener noreferrer"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-6 text-[15px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             >
-              <HugeiconsIcon icon={ChromeIcon} strokeWidth={2} className="h-4 w-4" />
+              {/* The colour logo, on a white disc so its blue centre doesn't vanish into the button. */}
+              <span className="grid size-5 place-items-center rounded-full bg-white shadow-sm">
+                <ChromeLogo className="size-4" />
+              </span>
               Add to Chrome
             </a>
           </div>

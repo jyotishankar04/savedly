@@ -22,6 +22,8 @@ import {
   AiRole,
   AnnouncementDisplayMode,
   WhatsNewKind,
+  RoadmapStatus,
+  ContactMessageStatus,
   BlogPostStatus,
   AnnouncementType,
   CalendarProvider,
@@ -115,6 +117,15 @@ export const announcementDisplayModeEnum = pgEnum("announcement_display_mode", [
 ]);
 
 export const whatsNewKindEnum = pgEnum("whats_new_kind", [WhatsNewKind.FEATURE, WhatsNewKind.NEW, WhatsNewKind.IMPROVED, WhatsNewKind.UPCOMING]);
+
+export const roadmapStatusEnum = pgEnum("roadmap_status", [RoadmapStatus.NOW, RoadmapStatus.NEXT]);
+
+export const contactMessageStatusEnum = pgEnum("contact_message_status", [
+  ContactMessageStatus.NEW,
+  ContactMessageStatus.READ,
+  ContactMessageStatus.REPLIED,
+  ContactMessageStatus.ARCHIVED,
+]);
 
 export const reportTypeEnum = pgEnum("report_type", [ReportType.BUG, ReportType.FEATURE]);
 
@@ -1315,6 +1326,51 @@ export const blogPosts = pgTable(
 );
 
 // -----------------------------------------------------------------------------
+// The public roadmap (/roadmap): what's being built now and what's planned
+// next, managed from Admin > Roadmap. No dates, only an order (sortOrder
+// within each status). Shipped work is the changelog, not this table. The
+// slug is made from the first title and never changes, so votes keep their
+// item when the title is edited.
+// -----------------------------------------------------------------------------
+export const roadmapItems = pgTable(
+  "roadmap_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: varchar("slug", { length: 60 }).notNull().unique(),
+    status: roadmapStatusEnum("status").notNull().default(RoadmapStatus.NEXT),
+    title: varchar("title", { length: 120 }).notNull(),
+    description: text("description").notNull(),
+    // The part of Savedly it lands in: "Extension", "Inbox"…
+    area: varchar("area", { length: 40 }),
+    points: jsonb("points").$type<string[]>().notNull().default([]),
+    isActive: boolean("is_active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("idx_roadmap_items_status_order").on(table.status, table.sortOrder)]
+);
+
+// A signed-in person's vote for a planned roadmap item: one per person per
+// item. Deleting the item deletes its votes.
+export const roadmapVotes = pgTable(
+  "roadmap_votes",
+  {
+    itemSlug: varchar("item_slug", { length: 60 })
+      .notNull()
+      .references(() => roadmapItems.slug, { onDelete: "cascade", onUpdate: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.itemSlug, table.userId] }), index("idx_roadmap_votes_user_id").on(table.userId)]
+);
+
+// -----------------------------------------------------------------------------
 // 21b. What's New Items Table (the cards in the landing page's "What's new"
 //      popup: features that shipped and ones that are coming. Unlike
 //      announcements, any number can be active at once; they show as a
@@ -1598,6 +1654,47 @@ export const importItems = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_import_items_batch_status").on(table.batchId, table.status)]
+);
+
+// Messages from the website's contact page (/contact). Saved before the team
+// is emailed, so none is lost when email is off or fails; read and answered
+// in Admin > Messages. userId is set when the person was signed in.
+export const contactMessages = pgTable(
+  "contact_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: varchar("name", { length: 120 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    topic: varchar("topic", { length: 40 }).notNull(),
+    message: text("message").notNull(),
+    status: contactMessageStatusEnum("status").notNull().default(ContactMessageStatus.NEW),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    // When the copy to the team's inbox went out; null when email is off or failed.
+    emailedAt: timestamp("emailed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("idx_contact_messages_status_created").on(table.status, table.createdAt)]
+);
+
+// Replies sent from Admin > Messages to someone who wrote in: a contact
+// message or a report ("kind" says which, "targetId" which one). Kept so the
+// conversation shows in the reading pane; the email itself goes to them.
+export const messageReplies = pgTable(
+  "message_replies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    targetId: uuid("target_id").notNull(),
+    adminUserId: uuid("admin_user_id").references(() => users.id, { onDelete: "set null" }),
+    toEmail: varchar("to_email", { length: 255 }).notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("idx_message_replies_target").on(table.kind, table.targetId, table.createdAt)]
 );
 
 // -----------------------------------------------------------------------------

@@ -354,6 +354,16 @@ export function HeroSwitcher() {
     <section className="relative isolate z-40 bg-background pb-6 font-sans antialiased selection:bg-primary/25">
       <Navbar />
 
+      {/* A soft wash of the brand blue from the top, spreading down and out as the page loads. */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0, scaleX: 0.35, scaleY: 0.4, y: -90 }}
+        animate={{ opacity: 1, scaleX: 1, scaleY: 1, y: 0 }}
+        transition={reduce ? { duration: 0 } : { duration: 1.6, ease: EASE }}
+        style={{ x: "-50%", transformOrigin: "50% 0%" }}
+        className="pointer-events-none absolute top-[-11rem] left-1/2 -z-10 h-[32rem] w-[min(70rem,100%)] rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_16%,transparent),color-mix(in_oklab,var(--brand)_5%,transparent)_60%,transparent)] blur-[10px] dark:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_30%,transparent),color-mix(in_oklab,var(--brand)_8%,transparent)_60%,transparent)]"
+      />
+
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center px-5 pt-32 text-center sm:px-8 md:pt-40">
         <motion.div {...rise(0)}>
           <ProductHuntBadge variant="featured" height={40} />
@@ -384,7 +394,7 @@ export function HeroSwitcher() {
             href={CHROME_WEB_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-12 items-center justify-center gap-2.5 rounded-full border border-border bg-background/70 px-6 text-[15px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="btn-tactile inline-flex h-12 items-center justify-center gap-2.5 rounded-full border border-border bg-background/70 px-6 text-[15px] font-medium text-foreground backdrop-blur-sm transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <ChromeLogo className="h-5 w-5" />
             Add to Chrome
