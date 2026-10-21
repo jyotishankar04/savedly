@@ -19,7 +19,6 @@ import { ProductHuntBadge } from "@/components/marketing/product-hunt-badge";
 import { useAuthCta } from "@/hooks/use-auth-cta";
 import { cn } from "@/lib/utils";
 import { AskScene, OrganizeScene, SaveScene, SearchScene } from "@/components/marketing/landing/product-scenes";
-import { HeroFragments } from "@/components/marketing/landing/hero-fragments";
 
 // The hero: a plain statement, then the product shown as four small scenes
 // on a coloured panel. On a wide screen the panel grows to almost fill the screen
@@ -355,7 +354,8 @@ export function HeroSwitcher() {
     <section className="relative isolate z-40 bg-background pb-6 font-sans antialiased selection:bg-primary/25">
       <Navbar />
 
-      <HeroFragments />
+      {/* A soft wash of the brand blue from the top. */}
+      <div aria-hidden className="pointer-events-none absolute top-[-11rem] left-1/2 -z-10 h-[32rem] w-[min(70rem,100%)] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_16%,transparent),color-mix(in_oklab,var(--brand)_5%,transparent)_60%,transparent)] blur-[10px] dark:bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand)_30%,transparent),color-mix(in_oklab,var(--brand)_8%,transparent)_60%,transparent)]" />
 
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center px-5 pt-32 text-center sm:px-8 md:pt-40">
         <motion.div {...rise(0)}>
