@@ -9,6 +9,100 @@ type Item = Omit<ChangelogEntry, "id" | "month" | "date"> & { id?: string };
 
 const items: Item[] = [
   {
+    iso: "2026-10-20",
+    kind: "improved",
+    title: "The extension keeps up with your tabs",
+    summary: "The side panel follows the page you're on, and the extension works in tabs that were open before it was installed or updated.",
+    details: [
+      "Single-page sites, Back and Forward, and switching tabs all update the side panel straight away.",
+      "After an update there's no need to reload each open tab.",
+    ],
+  },
+  {
+    iso: "2026-10-18",
+    kind: "new",
+    title: "Savedly for Chrome 1.2: highlights and a side panel",
+    summary: "Highlight text on any page, keep Savedly open beside the page, and get suggestions as you save.",
+    details: [
+      "Select text and pick a colour, or add a note. Highlights come back when you return to the page; Alt+H highlights in yellow.",
+      "The side panel (Ctrl+Shift+E) shows the page you're on, your Inbox, search, recent saves and collections.",
+      "The save form suggests a collection and tags, keeps recent collections one tap away, and lets you pick the cover picture.",
+      "Right-click › Save to collection sends a page straight to one of your recent collections. A tour of the extension opens when you install it.",
+    ],
+  },
+  {
+    iso: "2026-10-18",
+    kind: "new",
+    title: "Highlights in Savedly",
+    summary: "Passages you highlight with the extension appear on the memory, with their notes, and are searchable.",
+    details: ["Cards show a small mark when a memory has highlights.", "Removing a highlight in the app removes it from the page too."],
+  },
+  {
+    iso: "2026-10-18",
+    kind: "new",
+    title: "Inbox and Remind me",
+    summary: "Links, videos and documents you save wait in your Inbox until you've read them; Remind me brings one back later.",
+    details: [
+      "Mark as read, or snooze until later today, tomorrow, next week or a time you pick.",
+      "Reminders arrive in the app, by email and as a notification from the extension. Ask can set one for you.",
+    ],
+  },
+  {
+    iso: "2026-10-18",
+    kind: "new",
+    title: "Savedly for Chrome 1.1: it knows what you've saved",
+    summary: "A ✓ on the Savedly icon shows the page is already saved, and you can search your library from the extension or the address bar.",
+    details: [
+      "Type sv and a space in the address bar to search.",
+      "The check happens on your computer: the pages you visit aren't sent to Savedly to do it.",
+    ],
+  },
+  {
+    iso: "2026-10-18",
+    kind: "new",
+    title: "Ask looks things up on the web",
+    summary: "When a save doesn't explain itself, or your library has no answer, Savedly can search the web for the missing context.",
+    details: ["A film or a book named in a save gets filed where it belongs.", "Each plan includes a monthly allowance of web lookups."],
+  },
+  {
+    iso: "2026-10-18",
+    kind: "new",
+    title: "Share in one tap",
+    summary: "Send a link to a memory or collection by WhatsApp, Telegram, X or email, or show a QR code.",
+    details: ["Add a short message before sending."],
+  },
+  {
+    iso: "2026-10-17",
+    kind: "new",
+    title: "Organize many at once",
+    summary: "Select memories and move, tag, favourite, archive or remind them in one go, with Undo.",
+    details: [
+      "Select works on every list of memories, and on collections (merge, or delete with or without their memories).",
+      "J and K move through any list; X selects, F favourites, E archives and # moves to Trash.",
+    ],
+  },
+  {
+    iso: "2026-10-17",
+    kind: "new",
+    title: "Paste, drop or drag",
+    summary: "Paste a link anywhere to save it, drop files and links onto the window, and drag memories onto a collection, Favorites, Vault, Archive or Trash.",
+    details: ["Each one comes with Undo."],
+  },
+  {
+    iso: "2026-10-17",
+    kind: "improved",
+    title: "Deleting for good deletes everything",
+    summary: "Permanently deleting a memory also removes its files from storage.",
+    details: ["Clearing everything removes your collections and tags too."],
+  },
+  {
+    iso: "2026-10-15",
+    kind: "improved",
+    title: "A darker dark theme",
+    summary: "Dark mode now has a true black background, with quieter borders throughout.",
+    details: [],
+  },
+  {
     iso: "2026-10-10",
     kind: "improved",
     title: "Ask checks with you before it changes anything",

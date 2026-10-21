@@ -82,6 +82,7 @@ export const shareRequestRateLimiter = rateLimit({
 // (when signed in) or the IP is the only identity available — same
 // fallback shape as shareRequestRateLimiter, just generous enough that a
 // frustrated user filing a couple of real reports in a row never hits it.
+// The route reads sign-in (optionalAuthenticate) before this runs.
 export const reportRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
@@ -91,15 +92,17 @@ export const reportRateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
-// The public contact form (modules/contact): each message is an email to
-// the support inbox, so a script can't be allowed to fill it.
+// The public contact form (modules/contact): each message is saved and
+// emailed to the support inbox, so a script can't be allowed to fill it.
+// Per account when signed in (the route reads sign-in first), else per IP,
+// so people behind one office or campus address don't use up each other's.
 export const contactRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   handler: rateLimitHandler,
-  keyGenerator: (req) => ipKeyGenerator(req.ip ?? ""),
+  keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
 // The public help box (modules/help-assistant): nobody is signed in, and
