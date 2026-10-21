@@ -9,7 +9,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowUp02Icon as SendIcon,
   BookOpen01Icon as GuidesIcon,
-  BubbleChatQuestionIcon as AskIcon,
+  BubbleChatSparkIcon as AskIcon,
   Cancel01Icon as CloseIcon,
   Mail01Icon as MailIcon,
   ArrowExpand01Icon as ExpandIcon,
