@@ -224,18 +224,6 @@ function MarketingFooter() {
               <Logo className="text-xl text-foreground" />
             </Link>
             <p className="mt-4 max-w-xs text-[15px] leading-relaxed text-muted-foreground">A personal library that reads what you save and finds it again when you need it.</p>
-            <ProductHuntBadge variant="review" height={36} className="mt-5" />
-            {/* Directory listing badges, each exactly as the directory supplies it (their dofollow links kept as-is). */}
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
-              <a href="https://sumodir.com" target="_blank" rel="dofollow"><img src="https://sumodir.com/badge.png" alt="Featured on SumoDir" width="200" height="54" /></a>
-              {/* Their light badge is dark lettering on a clear background: a white backdrop in dark mode keeps it readable. */}
-              <span className="inline-flex rounded-full dark:bg-white">
-                {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
-                <a href="https://dododirectory.com" target="_blank" rel="dofollow"><img src="https://dododirectory.com/badge-light.png" alt="Featured on DodoDirectory" width="200" height="54" /></a>
-              </span>
-              <MakeItLastBadge />
-            </div>
           </motion.div>
 
           <motion.nav variants={footerContainer} aria-label="Footer" className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4">
@@ -276,6 +264,30 @@ function MarketingFooter() {
               </span>
             </a>
           </motion.div>
+        </div>
+
+        {/* Product Hunt, then the directory listing badges, each exactly as the directory supplies it (their
+            dofollow links kept as-is). In a row of their own, shown at one height so the
+            different sizes line up; only how big each is drawn changes, not the code.
+            A plain div, not an animated one: always in the page and visible, as
+            MakeItLast's checker requires. */}
+        <div className="mt-14 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <p className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground">Featured on</p>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 [&_img]:h-10! [&_img]:max-h-none! [&_img]:w-auto! [&_img]:max-w-none!">
+            <ProductHuntBadge variant="review" height={40} />
+            {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+            <a href="https://sumodir.com" target="_blank" rel="dofollow"><img src="https://sumodir.com/badge.png" alt="Featured on SumoDir" width="200" height="54" /></a>
+            {/* Their light badge is dark lettering on a clear background: a white backdrop in dark mode keeps it readable. */}
+            <span className="inline-flex rounded-full dark:bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+              <a href="https://dododirectory.com" target="_blank" rel="dofollow"><img src="https://dododirectory.com/badge-light.png" alt="Featured on DodoDirectory" width="200" height="54" /></a>
+            </span>
+            <MakeItLastBadge />
+            <a href="https://www.codehype.ai/product/savedly?utm_source=codehype_badge" target="_blank" rel="noopener noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+              <img src="https://www.codehype.ai/badges/savedly.svg?variant=find-us&v=20" alt="Featured on CodeHype" width="180" height="65" loading="lazy" decoding="async" style={{ display: "inline-block", border: 0, width: "100%", maxWidth: "180px", height: "auto", maxHeight: "65px" }} />
+            </a>
+          </div>
         </div>
 
         {/* Bottom bar */}
