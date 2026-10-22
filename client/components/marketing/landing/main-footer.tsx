@@ -287,6 +287,19 @@ function MarketingFooter() {
               {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
               <img src="https://www.codehype.ai/badges/savedly.svg?variant=find-us&v=20" alt="Featured on CodeHype" width="180" height="65" loading="lazy" decoding="async" style={{ display: "inline-block", border: 0, width: "100%", maxWidth: "180px", height: "auto", maxHeight: "65px" }} />
             </a>
+            {/* Turbo0 supplies a light and a dark version: both are in the page, and the theme shows one. */}
+            <span className="inline-flex dark:hidden">
+              <a href="https://turbo0.com/item/savedly" target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+                <img src="https://img.turbo0.com/badge-listed-light.svg" alt="Listed on Turbo0" style={{ height: "54px", width: "auto" }} />
+              </a>
+            </span>
+            <span className="hidden dark:inline-flex">
+              <a href="https://turbo0.com/item/savedly" target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+                <img src="https://img.turbo0.com/badge-listed-dark.svg" alt="Listed on Turbo0" style={{ height: "54px", width: "auto" }} />
+              </a>
+            </span>
             {/* Text links rather than badges, as supplied; the wrappers give them the footer's link text. */}
             <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               <a href="https://aitop10.tools/" target="_blank">AiTop10 Tools</a>
