@@ -234,6 +234,7 @@ function MarketingFooter() {
                 {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
                 <a href="https://dododirectory.com" target="_blank" rel="dofollow"><img src="https://dododirectory.com/badge-light.png" alt="Featured on DodoDirectory" width="200" height="54" /></a>
               </span>
+              <MakeItLastBadge />
             </div>
           </motion.div>
 
@@ -322,3 +323,17 @@ function MarketingFooter() {
 }
 
 export default MainFooter;
+
+// MakeItLast's badge, as they supply it for React. Their checker needs the
+// link to point at https://www.makeitla.st/ with no rel="nofollow",
+// "sponsored" or "ugc", shown to every visitor on the root page. A style
+// change (https://www.makeitla.st/badge) changes only the img src.
+export function MakeItLastBadge() {
+  return (
+    <a href="https://www.makeitla.st/" title="Featured on MakeItLast">
+      {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+      <img src="https://www.makeitla.st/badge/makeitlast-badge-dark.svg?v=3"
+           alt="Featured on MakeItLast" width={252} height={76} />
+    </a>
+  );
+}
