@@ -225,6 +225,11 @@ function MarketingFooter() {
             </Link>
             <p className="mt-4 max-w-xs text-[15px] leading-relaxed text-muted-foreground">A personal library that reads what you save and finds it again when you need it.</p>
             <ProductHuntBadge variant="review" height={36} className="mt-5" />
+            {/* SumoDir's listing badge, exactly as they supply it (their dofollow link kept as-is). */}
+            <div className="mt-3">
+              {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+              <a href="https://sumodir.com" target="_blank" rel="dofollow"><img src="https://sumodir.com/badge.png" alt="Featured on SumoDir" width="200" height="54" /></a>
+            </div>
           </motion.div>
 
           <motion.nav variants={footerContainer} aria-label="Footer" className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4">
