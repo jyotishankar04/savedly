@@ -4,7 +4,7 @@ import { SELF_HOSTED } from "@/lib/instance";
 import { PlainFooter } from "@/components/self-hosted/plain-chrome";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, type Variants } from "motion/react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
@@ -224,7 +224,6 @@ function MarketingFooter() {
               <Logo className="text-xl text-foreground" />
             </Link>
             <p className="mt-4 max-w-xs text-[15px] leading-relaxed text-muted-foreground">A personal library that reads what you save and finds it again when you need it.</p>
-            <ProductHuntBadge variant="review" height={36} className="mt-5" />
           </motion.div>
 
           <motion.nav variants={footerContainer} aria-label="Footer" className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4">
@@ -267,6 +266,61 @@ function MarketingFooter() {
           </motion.div>
         </div>
 
+        {/* Product Hunt, then the directory listing badges, each exactly as the directory supplies it (their
+            dofollow links kept as-is). In a row of their own, shown at one height so the
+            different sizes line up (32px); only how big each is drawn changes, not the code.
+            A plain div, not an animated one: always in the page and visible, as
+            MakeItLast's checker requires. */}
+        <div className="mt-14">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground">Featured on</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-3 [&_img]:h-8! [&_img]:max-h-none! [&_img]:w-auto! [&_img]:max-w-none!">
+            <ProductHuntBadge variant="review" height={32} />
+            {/* SumoDir's image has wide clear margins and its card is only 161 of its 226px (the
+                mascot's head rises above it): drawn larger so the card is 32px like the others,
+                its side margins cancelled, the head allowed to rise above the row. */}
+            <span className="inline-flex [&>a]:flex [&>a>img]:h-[45px]! [&>a>img]:-mx-[34.2px] [&>a>img]:-mt-[7px] [&>a>img]:-mb-[6px]">
+              {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+              <a href="https://sumodir.com" target="_blank" rel="dofollow"><img src="https://sumodir.com/badge.png" alt="Featured on SumoDir" width="200" height="54" /></a>
+            </span>
+            {/* Their light badge is dark lettering on a clear background: a white backdrop in dark mode keeps it readable. */}
+            <span className="inline-flex rounded-full dark:bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+              <a href="https://dododirectory.com" target="_blank" rel="dofollow"><img src="https://dododirectory.com/badge-light.png" alt="Featured on DodoDirectory" width="200" height="54" /></a>
+            </span>
+            <MakeItLastBadge />
+            <a href="https://www.codehype.ai/product/savedly?utm_source=codehype_badge" target="_blank" rel="noopener noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+              <img src="https://www.codehype.ai/badges/savedly.svg?variant=find-us&v=20" alt="Featured on CodeHype" width="180" height="65" loading="lazy" decoding="async" style={{ display: "inline-block", border: 0, width: "100%", maxWidth: "180px", height: "auto", maxHeight: "65px" }} />
+            </a>
+            {/* Turbo0 supplies a light and a dark version: both are in the page, and the theme shows one. */}
+            <span className="inline-flex dark:hidden">
+              <a href="https://turbo0.com/item/savedly" target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+                <img src="https://img.turbo0.com/badge-listed-light.svg" alt="Listed on Turbo0" style={{ height: "54px", width: "auto" }} />
+              </a>
+            </span>
+            <span className="hidden dark:inline-flex">
+              <a href="https://turbo0.com/item/savedly" target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+                <img src="https://img.turbo0.com/badge-listed-dark.svg" alt="Listed on Turbo0" style={{ height: "54px", width: "auto" }} />
+              </a>
+            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+            <a href="https://startupfa.me/s/savedly?utm_source=savedly.app" target="_blank"><img src="https://startupfa.me/badges/featured-badge.webp" alt="Savedly - Featured on Startup Fame" width="171" height="54" /></a>
+          </div>
+          {/* Text links rather than badges, as supplied; the wrappers give them the footer's link text. */}
+          <p className="mt-4 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+            <span>Also listed on</span>
+            <span className="transition-colors hover:text-foreground">
+              <a href="https://aitop10.tools/" target="_blank">AiTop10 Tools</a>
+            </span>
+            <span aria-hidden>·</span>
+            <span className="transition-colors hover:text-foreground">
+              <a href="https://www.aitoolzdir.com" target="_blank">AI Toolz Dir</a>
+            </span>
+          </p>
+        </div>
+
         {/* Bottom bar */}
         <motion.div variants={riseItem} className="mt-16 flex flex-col gap-5 border-t border-foreground/10 py-7 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-muted-foreground">
@@ -307,8 +361,68 @@ function MarketingFooter() {
           </div>
         </motion.div>
       </motion.div>
+
+      <FooterWordmark />
     </footer>
   );
 }
 
 export default MainFooter;
+
+// MakeItLast's badge, as they supply it for React. Their checker needs the
+// link to point at https://www.makeitla.st/ with no rel="nofollow",
+// "sponsored" or "ugc", shown to every visitor on the root page. A style
+// change (https://www.makeitla.st/badge) changes only the img src.
+export function MakeItLastBadge() {
+  return (
+    <a href="https://www.makeitla.st/" title="Featured on MakeItLast">
+      {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+      <img src="https://www.makeitla.st/badge/makeitlast-badge-dark.svg?v=3"
+           alt="Featured on MakeItLast" width={252} height={76} />
+    </a>
+  );
+}
+
+const WORDMARK = "whitespace-nowrap text-center text-[26vw] font-semibold leading-[0.8] tracking-[-0.06em]";
+
+/**
+ * The name in huge letters across the bottom, edge to edge and cut off by the
+ * page's end. Under the cursor the letters' outline lights up in the brand
+ * blue with a soft glow, only in a circle around it, following it and fading out when it
+ * leaves: a second copy of the word, masked to that circle. Decoration only.
+ */
+function FooterWordmark() {
+  const box = useRef<HTMLDivElement>(null);
+  const place = (event: React.PointerEvent) => {
+    const el = box.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--x", `${event.clientX - rect.left}px`);
+    el.style.setProperty("--y", `${event.clientY - rect.top}px`);
+    el.style.setProperty("--glow", "1");
+  };
+  return (
+    <div
+      ref={box}
+      aria-hidden
+      onPointerMove={place}
+      onPointerEnter={place}
+      onPointerLeave={() => box.current?.style.setProperty("--glow", "0")}
+      className="relative -mx-5 h-[17vw] overflow-hidden select-none [--glow:0] [--x:50%] [--y:50%] sm:-mx-8"
+    >
+      <p className={cn(WORDMARK, "text-foreground/[0.12] [mask-image:linear-gradient(to_bottom,#000_45%,transparent_100%)] dark:text-foreground/[0.1]")}>savedly</p>
+      <p
+        className={cn(WORDMARK, "absolute inset-x-0 top-0 text-transparent opacity-[var(--glow)] transition-opacity duration-300")}
+        style={{
+          maskImage: "radial-gradient(circle min(18vw,240px) at var(--x) var(--y), #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(circle min(18vw,240px) at var(--x) var(--y), #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%)",
+          // The letters' outline only, not their fill.
+          WebkitTextStroke: "max(1.5px, 0.14vw) var(--brand)",
+          filter: "drop-shadow(0 0 10px color-mix(in oklab, var(--brand) 75%, transparent))",
+        }}
+      >
+        savedly
+      </p>
+    </div>
+  );
+}
