@@ -387,8 +387,8 @@ const WORDMARK = "whitespace-nowrap text-center text-[26vw] font-semibold leadin
 
 /**
  * The name in huge letters across the bottom, edge to edge and cut off by the
- * page's end. Under the cursor the letters light up in the brand blue with a
- * soft glow, only in a circle around it, following it and fading out when it
+ * page's end. Under the cursor the letters' outline lights up in the brand
+ * blue with a soft glow, only in a circle around it, following it and fading out when it
  * leaves: a second copy of the word, masked to that circle. Decoration only.
  */
 function FooterWordmark() {
@@ -412,11 +412,13 @@ function FooterWordmark() {
     >
       <p className={cn(WORDMARK, "text-foreground/[0.12] [mask-image:linear-gradient(to_bottom,#000_45%,transparent_100%)] dark:text-foreground/[0.1]")}>savedly</p>
       <p
-        className={cn(WORDMARK, "absolute inset-x-0 top-0 text-[var(--brand)] opacity-[var(--glow)] transition-opacity duration-300")}
+        className={cn(WORDMARK, "absolute inset-x-0 top-0 text-transparent opacity-[var(--glow)] transition-opacity duration-300")}
         style={{
           maskImage: "radial-gradient(circle min(18vw,240px) at var(--x) var(--y), #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%)",
           WebkitMaskImage: "radial-gradient(circle min(18vw,240px) at var(--x) var(--y), #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%)",
-          filter: "drop-shadow(0 0 18px color-mix(in oklab, var(--brand) 70%, transparent))",
+          // The letters' outline only, not their fill.
+          WebkitTextStroke: "max(1.5px, 0.14vw) var(--brand)",
+          filter: "drop-shadow(0 0 10px color-mix(in oklab, var(--brand) 75%, transparent))",
         }}
       >
         savedly
