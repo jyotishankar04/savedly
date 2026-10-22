@@ -4,7 +4,7 @@ import { SELF_HOSTED } from "@/lib/instance";
 import { PlainFooter } from "@/components/self-hosted/plain-chrome";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, type Variants } from "motion/react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
@@ -362,13 +362,7 @@ function MarketingFooter() {
         </motion.div>
       </motion.div>
 
-      {/* The name in huge letters across the bottom, edge to edge and cut off by
-          the page's end. Decoration only. */}
-      <div aria-hidden className="pointer-events-none -mx-5 h-[17vw] overflow-hidden select-none sm:-mx-8">
-        <p className="whitespace-nowrap text-center text-[26vw] font-semibold leading-[0.8] tracking-[-0.06em] text-foreground/[0.12] [mask-image:linear-gradient(to_bottom,#000_45%,transparent_100%)] dark:text-foreground/[0.1]">
-          savedly
-        </p>
-      </div>
+      <FooterWordmark />
     </footer>
   );
 }
@@ -386,5 +380,47 @@ export function MakeItLastBadge() {
       <img src="https://www.makeitla.st/badge/makeitlast-badge-dark.svg?v=3"
            alt="Featured on MakeItLast" width={252} height={76} />
     </a>
+  );
+}
+
+const WORDMARK = "whitespace-nowrap text-center text-[26vw] font-semibold leading-[0.8] tracking-[-0.06em]";
+
+/**
+ * The name in huge letters across the bottom, edge to edge and cut off by the
+ * page's end. Under the cursor the letters light up in the brand blue with a
+ * soft glow, only in a circle around it, following it and fading out when it
+ * leaves: a second copy of the word, masked to that circle. Decoration only.
+ */
+function FooterWordmark() {
+  const box = useRef<HTMLDivElement>(null);
+  const place = (event: React.PointerEvent) => {
+    const el = box.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--x", `${event.clientX - rect.left}px`);
+    el.style.setProperty("--y", `${event.clientY - rect.top}px`);
+    el.style.setProperty("--glow", "1");
+  };
+  return (
+    <div
+      ref={box}
+      aria-hidden
+      onPointerMove={place}
+      onPointerEnter={place}
+      onPointerLeave={() => box.current?.style.setProperty("--glow", "0")}
+      className="relative -mx-5 h-[17vw] overflow-hidden select-none [--glow:0] [--x:50%] [--y:50%] sm:-mx-8"
+    >
+      <p className={cn(WORDMARK, "text-foreground/[0.12] [mask-image:linear-gradient(to_bottom,#000_45%,transparent_100%)] dark:text-foreground/[0.1]")}>savedly</p>
+      <p
+        className={cn(WORDMARK, "absolute inset-x-0 top-0 text-[var(--brand)] opacity-[var(--glow)] transition-opacity duration-300")}
+        style={{
+          maskImage: "radial-gradient(circle min(18vw,240px) at var(--x) var(--y), #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(circle min(18vw,240px) at var(--x) var(--y), #000 0%, rgb(0 0 0 / 0.5) 45%, transparent 75%)",
+          filter: "drop-shadow(0 0 18px color-mix(in oklab, var(--brand) 70%, transparent))",
+        }}
+      >
+        savedly
+      </p>
+    </div>
   );
 }
