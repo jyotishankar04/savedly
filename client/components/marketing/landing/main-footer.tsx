@@ -268,15 +268,20 @@ function MarketingFooter() {
 
         {/* Product Hunt, then the directory listing badges, each exactly as the directory supplies it (their
             dofollow links kept as-is). In a row of their own, shown at one height so the
-            different sizes line up; only how big each is drawn changes, not the code.
+            different sizes line up (32px); only how big each is drawn changes, not the code.
             A plain div, not an animated one: always in the page and visible, as
             MakeItLast's checker requires. */}
-        <div className="mt-14 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-          <p className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground">Featured on</p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 [&_img]:h-10! [&_img]:max-h-none! [&_img]:w-auto! [&_img]:max-w-none!">
-            <ProductHuntBadge variant="review" height={40} />
-            {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
-            <a href="https://sumodir.com" target="_blank" rel="dofollow"><img src="https://sumodir.com/badge.png" alt="Featured on SumoDir" width="200" height="54" /></a>
+        <div className="mt-14">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground">Featured on</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-3 [&_img]:h-8! [&_img]:max-h-none! [&_img]:w-auto! [&_img]:max-w-none!">
+            <ProductHuntBadge variant="review" height={32} />
+            {/* SumoDir's image has wide clear margins and its card is only 161 of its 226px (the
+                mascot's head rises above it): drawn larger so the card is 32px like the others,
+                its side margins cancelled, the head allowed to rise above the row. */}
+            <span className="inline-flex [&>a]:flex [&>a>img]:h-[45px]! [&>a>img]:-mx-[34.2px] [&>a>img]:-mt-[7px] [&>a>img]:-mb-[6px]">
+              {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+              <a href="https://sumodir.com" target="_blank" rel="dofollow"><img src="https://sumodir.com/badge.png" alt="Featured on SumoDir" width="200" height="54" /></a>
+            </span>
             {/* Their light badge is dark lettering on a clear background: a white backdrop in dark mode keeps it readable. */}
             <span className="inline-flex rounded-full dark:bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
@@ -302,14 +307,18 @@ function MarketingFooter() {
             </span>
             {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
             <a href="https://startupfa.me/s/savedly?utm_source=savedly.app" target="_blank"><img src="https://startupfa.me/badges/featured-badge.webp" alt="Savedly - Featured on Startup Fame" width="171" height="54" /></a>
-            {/* Text links rather than badges, as supplied; the wrappers give them the footer's link text. */}
-            <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          </div>
+          {/* Text links rather than badges, as supplied; the wrappers give them the footer's link text. */}
+          <p className="mt-4 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+            <span>Also listed on</span>
+            <span className="transition-colors hover:text-foreground">
               <a href="https://aitop10.tools/" target="_blank">AiTop10 Tools</a>
             </span>
-            <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <span aria-hidden>·</span>
+            <span className="transition-colors hover:text-foreground">
               <a href="https://www.aitoolzdir.com" target="_blank">AI Toolz Dir</a>
             </span>
-          </div>
+          </p>
         </div>
 
         {/* Bottom bar */}
@@ -352,6 +361,14 @@ function MarketingFooter() {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* The name in huge letters across the bottom, edge to edge and cut off by
+          the page's end. Decoration only. */}
+      <div aria-hidden className="pointer-events-none -mx-5 h-[17vw] overflow-hidden select-none sm:-mx-8">
+        <p className="whitespace-nowrap text-center text-[26vw] font-semibold leading-[0.8] tracking-[-0.06em] text-foreground/[0.12] [mask-image:linear-gradient(to_bottom,#000_45%,transparent_100%)] dark:text-foreground/[0.1]">
+          savedly
+        </p>
+      </div>
     </footer>
   );
 }
