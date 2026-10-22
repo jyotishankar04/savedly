@@ -225,10 +225,15 @@ function MarketingFooter() {
             </Link>
             <p className="mt-4 max-w-xs text-[15px] leading-relaxed text-muted-foreground">A personal library that reads what you save and finds it again when you need it.</p>
             <ProductHuntBadge variant="review" height={36} className="mt-5" />
-            {/* SumoDir's listing badge, exactly as they supply it (their dofollow link kept as-is). */}
-            <div className="mt-3">
+            {/* Directory listing badges, each exactly as the directory supplies it (their dofollow links kept as-is). */}
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
               <a href="https://sumodir.com" target="_blank" rel="dofollow"><img src="https://sumodir.com/badge.png" alt="Featured on SumoDir" width="200" height="54" /></a>
+              {/* Their light badge is dark lettering on a clear background: a white backdrop in dark mode keeps it readable. */}
+              <span className="inline-flex rounded-full dark:bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+                <a href="https://dododirectory.com" target="_blank" rel="dofollow"><img src="https://dododirectory.com/badge-light.png" alt="Featured on DodoDirectory" width="200" height="54" /></a>
+              </span>
             </div>
           </motion.div>
 
