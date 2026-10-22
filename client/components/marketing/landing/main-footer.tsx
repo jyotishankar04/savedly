@@ -300,6 +300,8 @@ function MarketingFooter() {
                 <img src="https://img.turbo0.com/badge-listed-dark.svg" alt="Listed on Turbo0" style={{ height: "54px", width: "auto" }} />
               </a>
             </span>
+            {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
+            <a href="https://startupfa.me/s/savedly?utm_source=savedly.app" target="_blank"><img src="https://startupfa.me/badges/featured-badge.webp" alt="Savedly - Featured on Startup Fame" width="171" height="54" /></a>
             {/* Text links rather than badges, as supplied; the wrappers give them the footer's link text. */}
             <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               <a href="https://aitop10.tools/" target="_blank">AiTop10 Tools</a>
