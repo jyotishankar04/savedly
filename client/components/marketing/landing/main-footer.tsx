@@ -287,9 +287,12 @@ function MarketingFooter() {
               {/* eslint-disable-next-line @next/next/no-img-element -- their image, served from their site */}
               <img src="https://www.codehype.ai/badges/savedly.svg?variant=find-us&v=20" alt="Featured on CodeHype" width="180" height="65" loading="lazy" decoding="async" style={{ display: "inline-block", border: 0, width: "100%", maxWidth: "180px", height: "auto", maxHeight: "65px" }} />
             </a>
-            {/* A text link rather than a badge, as supplied; the wrapper gives it the footer's link text. */}
+            {/* Text links rather than badges, as supplied; the wrappers give them the footer's link text. */}
             <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               <a href="https://aitop10.tools/" target="_blank">AiTop10 Tools</a>
+            </span>
+            <span className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <a href="https://www.aitoolzdir.com" target="_blank">AI Toolz Dir</a>
             </span>
           </div>
         </div>
