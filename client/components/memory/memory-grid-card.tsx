@@ -24,6 +24,8 @@ interface MemoryGridCardProps {
   selected?: boolean;
   selecting?: boolean;
   onSelect?: (event: { shiftKey?: boolean }) => void;
+  /** The smaller card: picture, a two-line title, type and age. Memories' list view on a phone. */
+  compact?: boolean;
 }
 
 const TYPE_LABEL: Record<Memory["type"], string> = {
@@ -38,11 +40,12 @@ const TYPE_LABEL: Record<Memory["type"], string> = {
 /** The memory grid card used on the memories list — also reused on Explore
  * and inside the vault, so vaulted memories look and behave exactly like
  * regular ones. */
-export function MemoryGridCard({ item, href, onClick, redirectTo, selected = false, selecting = false, onSelect }: MemoryGridCardProps) {
+export function MemoryGridCard({ item, href, onClick, redirectTo, selected = false, selecting = false, onSelect, compact = false }: MemoryGridCardProps) {
   const toggleFavoriteMutation = useToggleFavoriteMutation();
 
   const className = cn(
-    "group relative flex h-full flex-col gap-3 rounded-2xl border border-border bg-card p-3 transition-[border-color,box-shadow] hover:border-primary/30",
+    "group relative flex h-full flex-col border border-border bg-card transition-[border-color,box-shadow] hover:border-primary/30",
+    compact ? "gap-2 rounded-xl p-2" : "gap-3 rounded-2xl p-3",
     selected && "border-primary/60 ring-2 ring-primary/40",
     (href || onClick) && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
   );
@@ -51,13 +54,23 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
     <>
       {onSelect && <SelectCheckbox checked={selected} selecting={selecting} onToggle={(e) => onSelect({ shiftKey: e.shiftKey })} label={`Select ${item.title}`} />}
       {item.type !== "note" ? (
-        <MemoryThumbnail item={item} className="rounded-xl" />
+        <MemoryThumbnail item={item} className={compact ? "rounded-lg" : "rounded-xl"} />
       ) : (
-        <div className="aspect-video overflow-hidden rounded-xl border border-border/60 bg-muted/30 p-3">
-          <p className="line-clamp-4 text-[13px] leading-relaxed text-muted-foreground">{item.description}</p>
+        <div className={cn("aspect-video overflow-hidden border border-border/60 bg-muted/30", compact ? "rounded-lg p-2" : "rounded-xl p-3")}>
+          <p className={cn("leading-relaxed text-muted-foreground", compact ? "line-clamp-3 text-[11px]" : "line-clamp-4 text-[13px]")}>{item.description}</p>
         </div>
       )}
 
+      {compact ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-1 px-0.5">
+          <h3 className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground transition-colors group-hover:text-primary">{item.title}</h3>
+          <p className="mt-auto flex min-w-0 items-center gap-1 pt-0.5 text-[11px] text-muted-foreground">
+            <span className="truncate">{TYPE_LABEL[item.type]}</span>
+            <span aria-hidden>·</span>
+            <span className="shrink-0 tabular-nums">{timeAgo(item.createdAt)}</span>
+          </p>
+        </div>
+      ) : (
       <div className="flex min-h-0 flex-1 flex-col gap-1 px-0.5">
         <h3 className="line-clamp-1 text-sm font-medium leading-snug text-foreground transition-colors group-hover:text-primary">
           {item.title}
@@ -94,6 +107,7 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
           <span className="shrink-0 tabular-nums">{timeAgo(item.createdAt)}</span>
         </div>
       </div>
+      )}
 
       {/* Overlaid rather than in the flow: keeps card height driven by
           content, and this row never has to compete with the title/date. */}
@@ -109,7 +123,7 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
           e.stopPropagation();
           if (e.currentTarget.contains(e.target as Node)) e.preventDefault();
         }}
-        className="absolute right-2 top-2 flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100"
+        className={cn("absolute flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100", compact ? "right-1.5 top-1.5" : "right-2 top-2")}
       >
         <button
           type="button"

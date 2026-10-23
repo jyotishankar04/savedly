@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PlusIcon as Plus, Search01Icon as Search, XIcon as X, StarIcon as Star, GridIcon as Grid, ListIcon as List, MoreHorizontalIcon as MoreHorizontal } from "@hugeicons/core-free-icons";
@@ -17,6 +17,7 @@ import { MemorySelectionBar } from "@/components/selection/memory-selection-bar"
 import { SelectButton } from "@/components/selection/selection-bar";
 import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
 import { useSelection } from "@/hooks/use-selection";
+import { usePinch } from "@/hooks/use-pinch";
 import type { Memory, MemoryType } from "@/types/memory";
 import { useMemoriesQuery, useToggleFavoriteMutation } from "@/context/MemoryContext";
 import { timeAgo, timelineGroup } from "@/lib/time";
@@ -42,6 +43,15 @@ export default function MemoriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentFilter, setCurrentFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // On a phone the small cards (list view there) are the default. Set after the
+  // first render, so the server's and the browser's first render match.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (window.matchMedia("(max-width: 639px)").matches) setViewMode("list");
+  }, []);
+  // Pinch to switch, on a touch screen: spread for the full cards, close for the smaller ones.
+  const pageRef = useRef<HTMLDivElement>(null);
+  usePinch(pageRef, { onPinchOut: () => setViewMode("grid"), onPinchIn: () => setViewMode("list") });
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useMemoriesQuery({
@@ -81,7 +91,7 @@ export default function MemoriesPage() {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden relative">
+    <div ref={pageRef} className="flex h-full w-full overflow-hidden relative">
 
       {/* Memories content list */}
       <ScrollArea className="flex-1 min-h-0 min-w-0">
@@ -223,7 +233,22 @@ export default function MemoriesPage() {
                     ))}
                   </div>
                 ) : (
-                  <ul className="space-y-1.5">
+                  <>
+                  {/* On a phone the list is smaller cards, two to a row; rows from sm up. */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+                    {groupItems.map((item) => (
+                      <MemoryGridCard
+                        key={item.id}
+                        item={item}
+                        compact
+                        onClick={() => setSelectedMemoryId(item.id)}
+                        selected={selection.has(item.id)}
+                        selecting={selection.isSelecting}
+                        onSelect={(e) => selection.toggle(item.id, e)}
+                      />
+                    ))}
+                  </div>
+                  <ul className="hidden space-y-1.5 sm:block">
                     {groupItems.map((item) => {
                       const TypeIcon = MEMORY_TYPE_ICONS[item.type];
                       return (
@@ -258,7 +283,8 @@ export default function MemoriesPage() {
                               <p className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{item.title}</p>
                               <p className="truncate text-[13px] text-muted-foreground">{item.source}</p>
                             </div>
-                            <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                            {/* The menu is portalled, but React passes its clicks up to the row: stopped here, as on the cards. */}
+                            <div onClick={(e) => e.stopPropagation()} className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                               <span className="mr-2 hidden tabular-nums sm:inline">{timeAgo(item.createdAt)}</span>
                               <button
                                 onClick={(e) => toggleStar(item, e)}
@@ -286,6 +312,7 @@ export default function MemoriesPage() {
                       );
                     })}
                   </ul>
+                  </>
                 )}
               </section>
             ))}
@@ -298,9 +325,10 @@ export default function MemoriesPage() {
       </div>
       </ScrollArea>
 
-      {/* DETAIL SLIDE DRAWER */}
+      {/* DETAIL SLIDE DRAWER: beside the list from sm up; on a phone, too narrow
+          for both, it covers the screen (above the bottom bar) until closed. */}
       {selectedMemory && (
-        <div className="w-96 border-l border-border bg-card flex flex-col shrink-0 z-40 relative animate-slide-left">
+        <div className="fixed inset-0 z-50 flex w-full flex-col bg-card animate-slide-left sm:relative sm:inset-auto sm:z-40 sm:w-96 sm:shrink-0 sm:border-l sm:border-border">
 
           <div className="p-5 border-b border-border flex items-center justify-between shrink-0">
             <div className="min-w-0">
@@ -308,8 +336,10 @@ export default function MemoriesPage() {
               <span className="text-xs text-muted-foreground truncate block">{selectedMemory.source}</span>
             </div>
             <button
+              type="button"
               onClick={() => setSelectedMemoryId(null)}
-              className="h-7 w-7 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
+              aria-label="Close preview"
+              className="h-10 w-10 sm:h-7 sm:w-7 shrink-0 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
             >
               <HugeiconsIcon icon={X} strokeWidth={2.25} className="h-4 w-4" />
             </button>
