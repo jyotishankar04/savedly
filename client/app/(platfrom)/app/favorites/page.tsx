@@ -8,6 +8,7 @@ import { QueryErrorState } from "@/components/query-error-state";
 import { PageHeader, EmptyState } from "@/components/app-page";
 import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
 import { SelectButton } from "@/components/selection/selection-bar";
+import { MemorySwipe } from "@/components/memory/memory-swipe";
 import { useSelection } from "@/hooks/use-selection";
 
 export default function FavoritesPage() {
@@ -36,14 +37,15 @@ export default function FavoritesPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {favorites.map((item) => (
-            <MemoryGridCard
-              key={item.id}
-              item={item}
-              href={`/app/memories/${item.id}`}
-              selected={selection.has(item.id)}
-              selecting={selection.isSelecting}
-              onSelect={(e) => selection.toggle(item.id, e)}
-            />
+            <MemorySwipe key={item.id} memory={item} disabled={selection.isSelecting} className="rounded-2xl">
+              <MemoryGridCard
+                item={item}
+                href={`/app/memories/${item.id}`}
+                selected={selection.has(item.id)}
+                selecting={selection.isSelecting}
+                onSelect={(e) => selection.toggle(item.id, e)}
+              />
+            </MemorySwipe>
           ))}
         </div>
       )}

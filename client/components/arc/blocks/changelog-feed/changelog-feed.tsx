@@ -1,3 +1,6 @@
+// Changed locally for Savedly (re-installing overwrites this): a `flow` option
+// that drops the box and the inner scroll, so the list runs at full height in
+// the page with a sticky month bar (changelog-feed.module.css, ".flow").
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FocusEvent, type FormEvent, type KeyboardEvent } from "react";
@@ -215,6 +218,9 @@ export interface ChangelogFeedProps {
   endNote?: string;
   /** Entry ids open on first render. Defaults to the newest entry. */
   defaultOpen?: string[];
+  /** No box and no inner scroll: the list runs at full height in the page's own scroll, on the page's
+   * background, and the month bar sticks below the site's header (changed locally for Savedly). */
+  flow?: boolean;
   className?: string;
 }
 
@@ -226,6 +232,7 @@ export function ChangelogFeed({
   endNote,
   defaultOpen,
   onSubscribe,
+  flow = false,
   className,
 }: ChangelogFeedProps) {
   const uid = useId();
@@ -237,6 +244,7 @@ export function ChangelogFeed({
   const [open, setOpen] = useState<string[]>(() => defaultOpen ?? (entries[0] ? [entries[0].id] : []));
   const [active, setActive] = useState({ key: months[0]?.key ?? "", direction: 1 });
   const scrollRef = useRef<HTMLDivElement>(null);
+  const monthBarRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const groupRefs = useRef(new Map<string, HTMLElement>());
   const frame = useRef(0);
@@ -248,15 +256,19 @@ export function ChangelogFeed({
   const sync = useCallback(() => {
     const scroller = scrollRef.current;
     if (!scroller || groups.length === 0) return;
-    const line = scroller.getBoundingClientRect().top + 28;
+    // In flow the page scrolls: the line is just under the sticky month bar.
+    const line = flow ? (monthBarRef.current?.getBoundingClientRect().bottom ?? 0) + 8 : scroller.getBoundingClientRect().top + 28;
     let key = groups[0]!.key;
     for (const group of groups) {
       const element = groupRefs.current.get(group.key);
       if (element && element.getBoundingClientRect().top <= line) key = group.key;
     }
-    if (scroller.scrollTop > 0 && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2) key = groups[groups.length - 1]!.key;
+    const atEnd = flow
+      ? window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2 && (listRef.current?.getBoundingClientRect().bottom ?? Infinity) <= window.innerHeight
+      : scroller.scrollTop > 0 && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2;
+    if (atEnd) key = groups[groups.length - 1]!.key;
     setActive((previous) => previous.key === key ? previous : { key, direction: monthOrder(key) > monthOrder(previous.key) ? 1 : -1 });
-  }, [groups, monthOrder]);
+  }, [groups, monthOrder, flow]);
 
   const onScroll = useCallback(() => {
     if (frame.current) return;
@@ -270,6 +282,11 @@ export function ChangelogFeed({
     observer.observe(list);
     return () => observer.disconnect();
   }, [onScroll]);
+  useEffect(() => {
+    if (!flow) return;
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [flow, onScroll]);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
   function toggleFilter(kind: Kind) { setFilters((previous) => previous.includes(kind) ? previous.filter((item) => item !== kind) : [...previous, kind]); }
@@ -278,6 +295,15 @@ export function ChangelogFeed({
     const scroller = scrollRef.current;
     const element = groupRefs.current.get(key);
     if (!scroller || !element) return;
+    if (flow) {
+      // Where the bar's bottom will be once stuck (its sticky top plus its height), not where it is now:
+      // from the top of the page it hasn't stuck yet and sits lower.
+      const bar = monthBarRef.current;
+      const under = bar ? (parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight : 0;
+      // Instant: a smooth scroll of the page gets cut short on this site (the announcement bar collapsing as it starts).
+      window.scrollTo({ top: Math.max(0, window.scrollY + element.getBoundingClientRect().top - under) });
+      return;
+    }
     const top = scroller.scrollTop + element.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
     scroller.scrollTo({ top: Math.max(0, top - 1), behavior: reduce ? "auto" : "smooth" });
   }
@@ -285,7 +311,7 @@ export function ChangelogFeed({
   const shownLabel = filters.length === 0 ? `${totalCount} updates` : `${visible.length} of ${totalCount} updates`;
   const layout: Transition = reduce ? instant : motionTokens.spring.smooth;
 
-  return <section className={[styles.feed, className].filter(Boolean).join(" ")} aria-labelledby={`${uid}-title`}>
+  return <section className={[styles.feed, flow && styles.flow, className].filter(Boolean).join(" ")} aria-labelledby={`${uid}-title`}>
     <header className={styles.header}>
       <div className={styles.heading}>
         <h2 id={`${uid}-title`}>{title}</h2>
@@ -319,7 +345,7 @@ export function ChangelogFeed({
       <p className={styles.srOnly} role="status" aria-live="polite">{`Showing ${shownLabel}`}</p>
     </div>
 
-    <div className={styles.monthBar}>
+    <div ref={monthBarRef} className={styles.monthBar}>
       <div className={styles.monthLabel} aria-hidden="true">
         <span className={styles.monthText}>
           <AnimatePresence mode="popLayout" initial={false} custom={active.direction}>
@@ -339,7 +365,7 @@ export function ChangelogFeed({
       </nav>
     </div>
 
-    <motion.div layoutScroll ref={scrollRef} className={styles.scroller} onScroll={onScroll} tabIndex={0} aria-label="Release notes">
+    <motion.div layoutScroll ref={scrollRef} className={styles.scroller} onScroll={flow ? undefined : onScroll} tabIndex={flow ? undefined : 0} aria-label="Release notes">
       <div ref={listRef} className={styles.list}>
         <AnimatePresence mode="popLayout" initial={false}>
           {groups.map((group, index) => <motion.section

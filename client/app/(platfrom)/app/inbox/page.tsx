@@ -22,6 +22,7 @@ import SegmentedControl from "@/components/arc/segmented-control/segmented-contr
 import { Button } from "@/components/arc/button/button";
 import { useMarkRead, useRemindMe } from "@/components/memory/remind-me";
 import { toast } from "@/components/ui/toast";
+import { MemorySwipe } from "@/components/memory/memory-swipe";
 
 type Tab = "unread" | "snoozed";
 
@@ -180,6 +181,7 @@ function InboxRow({
 
   return (
     <li className="group/inbox relative">
+      <MemorySwipe memory={item} disabled={selection.isSelecting} className="rounded-xl">
       <Link
         href={`/app/memories/${item.id}`}
         {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e), { id: item.id, title: item.title, selected })}
@@ -213,6 +215,7 @@ function InboxRow({
           <RowButton label={tab === "snoozed" ? "Change reminder" : "Remind me"} onClick={onRemind} icon={Alarm} />
         </div>
       )}
+      </MemorySwipe>
     </li>
   );
 }

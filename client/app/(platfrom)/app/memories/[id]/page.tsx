@@ -28,6 +28,7 @@ import { useRemindMe } from "@/components/memory/remind-me";
 import { MemoryHighlights } from "@/components/memory/memory-highlights";
 import { formatRemindAt } from "@/lib/remind";
 import { useMemoryQuery, useToggleFavoriteMutation, useUpdateMemoryMutation } from "@/context/MemoryContext";
+import { EditableTitle } from "@/components/memory/editable-title";
 import { timeAgo } from "@/lib/time";
 import { isMemoryProcessing } from "@/lib/memory-processing";
 import { getPlatformFallback } from "@/lib/platform-fallback";
@@ -224,7 +225,7 @@ export default function MemoryDetailPage() {
             </span>
           )}
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground text-balance break-words">{memory.title}</h1>
+        <EditableTitle id={memory.id} title={memory.title} className="text-2xl font-bold tracking-tight text-foreground text-balance break-words" />
         <p className="text-xs text-muted-foreground">
           Saved {formatSavedDate(memory.createdAt)} · {timeAgo(memory.createdAt)}
           {memory.remindAt && new Date(memory.remindAt).getTime() > openedAt && (

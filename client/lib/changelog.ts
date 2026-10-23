@@ -9,6 +9,45 @@ type Item = Omit<ChangelogEntry, "id" | "month" | "date"> & { id?: string };
 
 const items: Item[] = [
   {
+    iso: "2026-10-23",
+    kind: "new",
+    title: "Gestures on your phone",
+    summary: "Swipe a memory to mark it read or archive it, and rename one by tapping its title.",
+    details: [
+      "Swipe right to mark read (or unread again), left to archive, in the Inbox, Memories, Favorites and Home.",
+      "Every swipe can be undone from the message it shows.",
+      "On a memory's page, tap the title to rename it in place, no dialog.",
+    ],
+  },
+  {
+    iso: "2026-10-23",
+    kind: "improved",
+    title: "Memories on a phone",
+    summary: "Smaller cards, two to a row, by default, and a pinch switches between them and the full cards.",
+    details: ["Spread two fingers for the full cards, pinch them together for the smaller ones.", "A memory's preview now opens full screen instead of squeezing the list."],
+  },
+  {
+    iso: "2026-10-22",
+    kind: "fixed",
+    title: "The star and the ⋯ menu on cards",
+    summary: "Starring a memory works again, and the card's buttons and menu no longer open the memory instead.",
+    details: ["Starring had failed with \"Couldn't update favorite\".", "Choosing from the ⋯ menu, or clicking in a dialog it opens, now does just that."],
+  },
+  {
+    iso: "2026-10-21",
+    kind: "new",
+    title: "Ask about Savedly from any page",
+    summary: "A chat button on the website answers questions about Savedly from the help guides, with links to them.",
+    details: ["It's on every public page; the question box in the FAQ is still there too.", "For anything else, Talk to a person goes to the contact page."],
+  },
+  {
+    iso: "2026-10-21",
+    kind: "new",
+    title: "A public roadmap",
+    summary: "See what's being built now and what's planned next, without dates, and upvote what you'd use most.",
+    details: ["Suggest a feature from the roadmap page if it isn't there yet."],
+  },
+  {
     iso: "2026-10-20",
     kind: "improved",
     title: "The extension keeps up with your tabs",
