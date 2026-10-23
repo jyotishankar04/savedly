@@ -29,6 +29,7 @@ import { MemoryGridCard } from "@/components/memory/memory-grid-card";
 import { memoryDragProps } from "@/lib/memory-drag";
 import { QueryErrorState } from "@/components/query-error-state";
 import type { Memory } from "@/types/memory";
+import { MemorySwipe } from "@/components/memory/memory-swipe";
 
 const RECENT_COUNT = 6;
 const COLLECTION_COUNT = 6;
@@ -215,7 +216,11 @@ export default function HomePage() {
                   </div>
                 ))
               : // The same card as the Memories page.
-                recent.map((item) => <MemoryGridCard key={item.id} item={item} href={`/app/memories/${item.id}`} />)}
+                recent.map((item) => (
+                  <MemorySwipe key={item.id} memory={item} className="rounded-2xl">
+                    <MemoryGridCard item={item} href={`/app/memories/${item.id}`} />
+                  </MemorySwipe>
+                ))}
           </div>
         )}
       </section>
