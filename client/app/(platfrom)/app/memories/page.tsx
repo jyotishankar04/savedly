@@ -28,6 +28,7 @@ import { getPlatformFallback } from "@/lib/platform-fallback";
 import { QueryErrorState } from "@/components/query-error-state";
 import { usePlanLimit } from "@/hooks/use-plan-limit";
 import { PlanLimitNotice, LimitDot } from "@/components/plan-limit-notice";
+import { MemorySwipe } from "@/components/memory/memory-swipe";
 import { PageHeader, EmptyState } from "@/components/app-page";
 
 const FILTER_TYPE: Record<string, MemoryType | undefined> = {
@@ -222,14 +223,15 @@ export default function MemoriesPage() {
                 {viewMode === "grid" ? (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {groupItems.map((item) => (
-                      <MemoryGridCard
-                        key={item.id}
-                        item={item}
-                        onClick={() => setSelectedMemoryId(item.id)}
-                        selected={selection.has(item.id)}
-                        selecting={selection.isSelecting}
-                        onSelect={(e) => selection.toggle(item.id, e)}
-                      />
+                      <MemorySwipe key={item.id} memory={item} disabled={selection.isSelecting} className="rounded-2xl">
+                        <MemoryGridCard
+                          item={item}
+                          onClick={() => setSelectedMemoryId(item.id)}
+                          selected={selection.has(item.id)}
+                          selecting={selection.isSelecting}
+                          onSelect={(e) => selection.toggle(item.id, e)}
+                        />
+                      </MemorySwipe>
                     ))}
                   </div>
                 ) : (
@@ -253,6 +255,7 @@ export default function MemoriesPage() {
                       const TypeIcon = MEMORY_TYPE_ICONS[item.type];
                       return (
                         <li key={item.id}>
+                          <MemorySwipe memory={item} disabled={selection.isSelecting} className="rounded-xl">
                           <div
                             onClick={() => setSelectedMemoryId(item.id)}
                             role="button"
@@ -308,6 +311,7 @@ export default function MemoriesPage() {
                               />
                             </div>
                           </div>
+                          </MemorySwipe>
                         </li>
                       );
                     })}
