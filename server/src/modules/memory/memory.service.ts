@@ -144,6 +144,25 @@ export async function resolveTagIds(tx: Tx, userId: string, tagNames: string[]):
   return rows.map((row) => row.id);
 }
 
+/** A note's own opening words, as plain text: what its card shows (the AI summary comes later, or never without AI). */
+export function noteExcerpt(markdown: string | null): string | null {
+  if (!markdown) return null;
+  const text = markdown
+    .replace(/^```[^\n]*\n?|```$/gm, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^\s*>\s?(\[!\w+\]\s*)?/gm, "")
+    .replace(/^\s*#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+\[ \]\s+/gm, "☐ ")
+    .replace(/^\s*[-*+]\s+\[[xX]\]\s+/gm, "☑ ")
+    .replace(/^\s*([-*+]|\d+[.)])\s+/gm, "• ")
+    .replace(/(\*\*|__|~~|`|\*|_)/g, "")
+    .replace(/^\s*[-*_]{3,}\s*$/gm, "")
+    .replace(/\s*\n+\s*/g, "  ")
+    .trim();
+  return text ? text.slice(0, 280) : null;
+}
+
 function toListItem(
   row: typeof memories.$inferSelect,
   memoryTagsList: string[],
@@ -154,7 +173,8 @@ function toListItem(
     type: row.type,
     title: row.title,
     url: row.url,
-    description: row.description,
+    // A note shows its own words; everything else, what was understood about it.
+    description: row.type === MemoryType.NOTE ? (noteExcerpt(row.content) ?? row.description) : row.description,
     source: row.source,
     faviconUrl: row.faviconUrl,
     previewImageUrl: row.previewImageUrl,
