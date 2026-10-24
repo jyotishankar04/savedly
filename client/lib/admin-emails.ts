@@ -87,6 +87,11 @@ export async function sendTestEmail(input: { subject: string; content: EmailCont
   return apiFetch<{ to: string }>("/admin/emails/test", { method: "POST", body: input });
 }
 
+/** This week's "things to read" email, built from the signed-in admin's own Inbox and sent to them now. */
+export async function sendWeeklyDigestTest(): Promise<{ to: string }> {
+  return apiFetch<{ to: string }>("/admin/emails/weekly-digest/test", { method: "POST" });
+}
+
 export async function listCampaigns(params: { page?: number; limit?: number } = {}): Promise<ListCampaignsResult> {
   const search = new URLSearchParams();
   if (params.page) search.set("page", String(params.page));

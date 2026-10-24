@@ -170,13 +170,18 @@ type FooterReason =
   | { kind: "shared"; by: string }
   | { kind: "custom"; text: string }
   /** Sent to many people at once: says so, and carries the way out. */
-  | { kind: "announcement" };
+  | { kind: "announcement" }
+  /** A regular email someone can turn off in Settings: says why it came, and links there. */
+  | { kind: "setting"; what: string; settingsUrl: string };
 
 function footerText(reason: FooterReason): string {
   const product = escapeHtml(env.SMTP_FROM_NAME);
   if (reason.kind === "account") return `You're receiving this because you have a ${product} account.`;
   if (reason.kind === "announcement") {
     return `You're receiving this because you have a ${product} account and get its announcements. <a href="${UNSUBSCRIBE_URL_PLACEHOLDER}" style="color:${COLOR.muted};text-decoration:underline;">Unsubscribe</a>`;
+  }
+  if (reason.kind === "setting") {
+    return `You're receiving this because ${escapeHtml(reason.what)} is on in your ${product} settings. <a href="${escapeHtml(reason.settingsUrl)}" style="color:${COLOR.muted};text-decoration:underline;">Turn it off</a>`;
   }
   if (reason.kind === "shared") return `You're receiving this because ${escapeHtml(reason.by)} shared something with you on ${product}. You don't need to do anything if this wasn't meant for you.`;
   return escapeHtml(reason.text);
@@ -615,6 +620,72 @@ export function memoryReminderEmailTemplate({
       ${button("Open in Savedly", url)}
       ${paragraph(`It's back at the top of your Inbox. <a href="${escapeHtml(settingsUrl)}" style="color:${COLOR.body};">Turn off reminder emails</a>`, { muted: true, top: 14 })}`,
       { preheader: about ?? title },
+    ),
+  };
+}
+
+/** "3 days ago", "2 weeks ago": how long a save has been waiting. */
+function waitingFor(iso: string, now: Date): string {
+  const days = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 86_400_000));
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  if (days < 60) return `${Math.floor(days / 7)} weeks ago`;
+  return `${Math.floor(days / 30)} months ago`;
+}
+
+/**
+ * The weekly email: a few saves from the Inbox that haven't been read yet,
+ * each a link into Savedly with where it's from and how long it's waited.
+ */
+export function weeklyDigestEmailTemplate({
+  name,
+  items,
+  unreadCount,
+  savedThisWeek,
+  inboxUrl,
+  settingsUrl,
+  now = new Date(),
+}: {
+  name: string | null;
+  items: { title: string; summary: string | null; source: string | null; url: string; createdAt: string }[];
+  /** Everything unread in the Inbox, of which `items` are the first few. */
+  unreadCount: number;
+  savedThisWeek: number;
+  inboxUrl: string;
+  settingsUrl: string;
+  now?: Date;
+}): EmailContent {
+  const count = items.length;
+  const headline = `${count === 1 ? "One thing" : `${count} things`} waiting to be read`;
+  const intro =
+    savedThisWeek > 0
+      ? `${name ? `${escapeHtml(name)}, you` : "You"} saved ${savedThisWeek === 1 ? "one thing" : `${savedThisWeek} things`} this week. Here's what's still in your Inbox, oldest first.`
+      : `${name ? `${escapeHtml(name)}, here's` : "Here's"} what's still in your Inbox, oldest first.`;
+  const rows = items
+    .map((item, i) => {
+      const about = item.summary ? (item.summary.length > 140 ? `${item.summary.slice(0, 140).trimEnd()}…` : item.summary) : null;
+      const meta = [item.source, `saved ${waitingFor(item.createdAt, now)}`].filter(Boolean).map((part) => escapeHtml(part as string)).join(" &middot; ");
+      return `<tr>
+        <td style="padding:${i === 0 ? 0 : 18}px 0 18px;${i === 0 ? "" : `border-top:1px solid ${COLOR.border};`}">
+          <a href="${escapeHtml(item.url)}" style="font-size:15px;line-height:1.45;font-weight:600;color:${COLOR.text};text-decoration:none;">${escapeHtml(item.title)}</a>
+          ${about ? `<p style="margin:5px 0 0;font-size:14px;line-height:1.55;color:${COLOR.body};">${escapeHtml(about)}</p>` : ""}
+          <p style="margin:6px 0 0;font-size:12px;line-height:1.4;color:${COLOR.muted};">${meta}</p>
+        </td>
+      </tr>`;
+    })
+    .join("");
+  const more = unreadCount - count;
+  return {
+    subject: headline,
+    html: layout(
+      `${eyebrow("Your week")}
+      ${heading(headline)}
+      ${paragraph(intro)}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0 0;">${rows}</table>
+      ${more > 0 ? paragraph(`And ${more === 1 ? "one more" : `${more} more`} in your Inbox.`, { muted: true, top: 4 }) : ""}
+      ${button("Open your Inbox", inboxUrl)}`,
+      { preheader: items.map((item) => item.title).slice(0, 3).join(" · "), footer: { kind: "setting", what: "the weekly email", settingsUrl } },
     ),
   };
 }
