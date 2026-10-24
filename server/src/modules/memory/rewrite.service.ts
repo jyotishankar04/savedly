@@ -11,8 +11,8 @@ import { UNTRUSTED_RULE, wrapUntrusted } from "../ai/untrusted";
 
 export type RewriteMode = "fix" | "improve" | "shorten";
 
-// The note editor's "Write with AI": the whole note, rewritten one of three
-// ways, returned for the person to look at. Nothing is saved here; the editor
+// The note editor's "Write with AI": the whole note (a note, or the note on a
+// link or a file), rewritten one of three ways, returned for the person to look at. Nothing is saved here; the editor
 // replaces its text only when they choose to.
 
 const TASKS: Record<RewriteMode, string> = {
@@ -112,7 +112,7 @@ export async function rewriteNote(
     .where(and(eq(memories.id, memoryId), eq(memories.userId, userId)))
     .limit(1);
   if (!note) throw new AppError("Memory not found", 404, "NOT_FOUND");
-  if (note.type !== MemoryType.NOTE) throw new AppError("Only a note can be rewritten.", 400, "NOT_A_NOTE");
+  // Any memory's note: a note's own text, or the note written beside a link or a file.
   if (!input.markdown.trim()) throw new AppError("The note is empty.", 400, "EMPTY_NOTE");
 
   // Part of the note's own AI processing for the month: the first AI use on a

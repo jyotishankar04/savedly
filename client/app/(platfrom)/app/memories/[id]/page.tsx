@@ -43,12 +43,13 @@ import {
   AttachmentTrigger,
 } from "@/components/ui/attachment";
 import type { MemoryDetail } from "@/types/memory";
-import { NoteBody, NoteEditor } from "@/components/notes/note-editor";
+import { NoteBody } from "@/components/notes/note-editor";
 import { SocialPostView } from "@/components/memory/social-post";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { useQueryClient } from "@tanstack/react-query";
 import { reprocessMemory } from "@/lib/memories";
 import { readableFields } from "@/lib/extracted-fields";
+import { MemoryNote } from "@/components/memory/memory-note";
 
 function attachmentFilename(fileUrl: string): string {
   return fileUrl.split("/").pop() ?? fileUrl;
@@ -423,44 +424,8 @@ export default function MemoryDetailPage() {
             </section>
           )}
 
-          {/* Your note — the caption on a link or file ("note" memories edit their body above) */}
-          {!isNote && (
-            <section className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-bold text-foreground">Your note</h2>
-                {isEditing ? (
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setIsEditing(false)} className="text-xs font-semibold text-muted-foreground hover:text-foreground">
-                      Cancel
-                    </button>
-                    <button onClick={saveEditing} className="text-xs font-bold text-primary hover:underline">
-                      Save
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={startEditing} className="text-xs font-bold text-primary hover:underline">
-                    {memory.content ? "Edit" : "Add a note"}
-                  </button>
-                )}
-              </div>
-              <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5 text-sm leading-relaxed text-foreground">
-                {isEditing ? (
-                  // The note editor, as in Notes: headings, lists, to-dos, / for the rest.
-                  <NoteEditor
-                    markdown={memory.content}
-                    autoFocus
-                    placeholder="Why you saved this, or what to do with it. Type / for lists and to-dos"
-                    onChange={(value) => setDraftNote(value.markdown)}
-                    className="[&>[role=textbox]]:min-h-24"
-                  />
-                ) : memory.content ? (
-                  <NoteBody markdown={memory.content} />
-                ) : (
-                  <p className="text-xs text-muted-foreground">Nothing yet. A line on why you saved this makes it easier to find later.</p>
-                )}
-              </div>
-            </section>
-          )}
+          {/* Your note on a link or a file, written like a note in Notes ("note" memories edit their body above). */}
+          {!isNote && <MemoryNote memoryId={memory.id} title={memory.title} content={memory.content} />}
 
           {memory.attachments.length > 0 && (
             <section className="space-y-2.5">
