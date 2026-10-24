@@ -1,4 +1,4 @@
-import { detectPlatform, extractServerMetadata, fetchUrl, buildPreview, defaultFaviconUrl, postAsText, socialExtractorFor, type SocialPost } from "../../url-processor";
+import { detectPlatform, extractServerMetadata, fetchUrl, buildPreview, defaultFaviconUrl, postAsText, resolveShortLink, socialExtractorFor, type SocialPost } from "../../url-processor";
 import { extractPdfContent } from "./lib/parse-pdf";
 import { analyzeImage } from "./lib/analyze-image";
 import { logNode } from "../log";
@@ -80,15 +80,17 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
     return { rawContent: "" };
   }
 
-  const { platform, resourceType, domain, hasAuth } = detectPlatform(state.url);
+  // A short link (lnkd.in, t.co, redd.it, ...) is read as the page it leads to.
+  const pageUrl = await resolveShortLink(state.url);
+  const { platform, resourceType, domain, hasAuth } = detectPlatform(pageUrl);
 
   // A social post or video: read from its platform, not as a web page. When
   // that fails it falls through to the page fetch below, as before.
-  const read = socialExtractorFor(state.url);
-  const post = read ? await read(state.url).catch(() => null) : null;
+  const read = socialExtractorFor(pageUrl);
+  const post = read ? await read(pageUrl).catch(() => null) : null;
   if (post) return fromSocialPost(state, post, { platform, resourceType, domain });
 
-  const fetchResult = await fetchUrl(state.url);
+  const fetchResult = await fetchUrl(pageUrl);
 
   // A pasted URL is always mediaType "web" client-side (content-type isn't
   // knowable before the fetch), so a public PDF or raw image link only ever
@@ -103,18 +105,18 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
       { userId: state.userId, requestType: "ingestion:pdf_summary", memoryId: state.memoryId },
       state.caption || undefined,
     );
-    logNode(state.memoryId, "parseWebContent", { url: state.url, fetchStatus: fetchResult.status, kind: "pdf", contentLength: rawContent.length });
+    logNode(state.memoryId, "parseWebContent", { url: pageUrl, fetchStatus: fetchResult.status, kind: "pdf", contentLength: rawContent.length });
     return {
       rawContent,
       platform,
       resourceType,
       fetchStatus: fetchResult.status,
-      canonicalUrl: fetchResult.finalUrl ?? state.url,
+      canonicalUrl: fetchResult.finalUrl ?? pageUrl,
       // A PDF has no natural thumbnail image, so this stays "partial" —
       // same as any other link with no OG image today — rather than
       // claiming an "available" preview that doesn't exist.
       previewImageUrl: null,
-      faviconUrl: defaultFaviconUrl(state.url),
+      faviconUrl: defaultFaviconUrl(pageUrl),
       previewStatus: "partial",
       previewSource: "server",
       sourceDomain: domain || null,
@@ -124,10 +126,10 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
   }
 
   if (fetchResult.status === "success" && fetchResult.contentType?.includes("image/")) {
-    const imageUrl = fetchResult.finalUrl ?? state.url;
+    const imageUrl = fetchResult.finalUrl ?? pageUrl;
     const rawContent = await analyzeImage(imageUrl, { userId: state.userId, requestType: "ingestion:vision", memoryId: state.memoryId });
     logNode(state.memoryId, "parseWebContent", {
-      url: state.url,
+      url: pageUrl,
       fetchStatus: fetchResult.status,
       kind: "image",
       contentLength: rawContent.length,
@@ -142,7 +144,7 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
       // what upgrades previewStatus to "available" (upsertVectors then
       // promotes the memory to "ready" instead of "partial").
       previewImageUrl: imageUrl,
-      faviconUrl: defaultFaviconUrl(state.url),
+      faviconUrl: defaultFaviconUrl(pageUrl),
       previewStatus: "available",
       previewSource: "server",
       sourceDomain: domain || null,
@@ -163,8 +165,8 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
   // browser falls back to the same thing — so that field alone doesn't need
   // real HTML to have a value.
   const serverMetadata = fetchResult.html
-    ? extractServerMetadata(fetchResult.html, fetchResult.finalUrl ?? state.url)
-    : { title: null, description: null, imageUrl: null, canonicalUrl: null, faviconUrl: defaultFaviconUrl(state.url) };
+    ? extractServerMetadata(fetchResult.html, fetchResult.finalUrl ?? pageUrl)
+    : { title: null, description: null, imageUrl: null, canonicalUrl: null, faviconUrl: defaultFaviconUrl(pageUrl) };
 
   const preview = buildPreview(serverMetadata, state.browserCapture, { platform, resourceType, domain, hasAuth });
   // A post or video whose reader came back empty (removed, private): its page is the platform's app
@@ -172,7 +174,7 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
   const rawContent = fetchResult.html && !read ? stripHtml(fetchResult.html).slice(0, MAX_CONTENT_LENGTH) : "";
 
   logNode(state.memoryId, "parseWebContent", {
-    url: state.url,
+    url: pageUrl,
     fetchStatus: fetchResult.status,
     httpStatus: fetchResult.httpStatus,
     platform,

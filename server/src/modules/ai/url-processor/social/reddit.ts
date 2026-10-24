@@ -20,7 +20,8 @@ function textOf(html: string | undefined): string {
 }
 
 export async function extractReddit(url: string): Promise<SocialPost | null> {
-  const match = /^(https:\/\/(?:www\.|old\.)?reddit\.com\/r\/[\w]+\/comments\/[a-z0-9]+(?:\/[^/?#]*)?)/i.exec(url);
+  // Also the subreddit-less form a redd.it short link leads to: reddit.com/comments/<id>.
+  const match = /^(https:\/\/(?:www\.|old\.)?reddit\.com\/(?:r\/[\w]+\/)?comments\/[a-z0-9]+(?:\/[^/?#]*)?)/i.exec(url);
   if (!match) return null;
   const postUrl = match[1]!.replace(/^https:\/\/(?:www\.|old\.)?reddit\.com/i, "https://www.reddit.com").replace(/\/?$/, "/");
   let feed: string;

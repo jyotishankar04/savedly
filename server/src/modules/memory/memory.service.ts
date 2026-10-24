@@ -971,13 +971,21 @@ export async function submitBrowserCapture(
 // refresh leaves the prior preview fields untouched — upsertVectors only
 // ever writes a field when the corresponding state value is non-null (see
 // its `?? undefined` pattern), so nothing gets clobbered by a bad retry.
-export async function refreshPreview(userId: string, id: string): Promise<MemoryDetail> {
+export async function refreshPreview(userId: string, id: string, options: { retitle?: boolean } = {}): Promise<MemoryDetail> {
   await assertOwnedMemory(userId, id);
 
   await db
     .update(memories)
     .set({ status: MemoryStatus.PROCESSING, updatedAt: new Date() })
     .where(and(eq(memories.id, id), eq(memories.userId, userId)));
+  // Asked to read a post that was never read: its title came from nothing (the
+  // link alone), so it goes back to the placeholder for the post to name it.
+  if (options.retitle) {
+    await db
+      .update(memories)
+      .set({ title: "Untitled" })
+      .where(and(eq(memories.id, id), eq(memories.userId, userId), isNull(memories.socialPost)));
+  }
 
   await enqueueIngestion(id).catch((err) => {
     logger.error({ memoryId: id, err }, "Failed to enqueue ingestion job for preview refresh");

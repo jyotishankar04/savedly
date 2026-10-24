@@ -41,7 +41,7 @@ function isPrivateIPv6(ip: string): boolean {
  * *point at* a private/cloud-metadata address — every resolved IP. Every
  * redirect hop re-runs this, not just the original URL.
  */
-async function assertSafeUrl(rawUrl: string): Promise<URL> {
+export async function assertSafeUrl(rawUrl: string): Promise<URL> {
   let url: URL;
   try {
     url = new URL(rawUrl);

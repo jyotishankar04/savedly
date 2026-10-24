@@ -66,7 +66,8 @@ export class MemoryController {
   }
 
   static async refreshPreview(req: Request, res: Response) {
-    const memory = await refreshPreview(req.user!.id, req.params.id as string);
+    // "Read the post": a link that was never read had its title made up from nothing, so it's written again.
+    const memory = await refreshPreview(req.user!.id, req.params.id as string, { retitle: req.body?.retitle === true });
     res.status(200).json(ApiResponse.success(memory));
   }
 

@@ -82,8 +82,17 @@ function looksLikeCode(memory: MemoryDetail): boolean {
   return lines.length > 0 && lines.every((l) => COMMAND_START.test(l) || /^\s{2,}\S/.test(l) || /[;{}]\s*$/.test(l));
 }
 
-// Platforms whose posts and videos Savedly can read (server: url-processor/social).
+// Platforms whose posts and videos Savedly can read (server: url-processor/social), and the
+// short links that lead to them (server: url-processor/short-links.ts).
 const SOCIAL_PLATFORMS = new Set(["youtube", "x", "instagram", "tiktok", "threads", "linkedin", "reddit", "facebook"]);
+const SHORT_LINK_HOSTS = new Set(["lnkd.in", "t.co", "redd.it", "vm.tiktok.com", "vt.tiktok.com", "fb.me", "fb.watch", "instagr.am", "bit.ly", "tinyurl.com", "ow.ly", "buff.ly"]);
+function isShortLink(url: string): boolean {
+  try {
+    return SHORT_LINK_HOSTS.has(new URL(url).hostname.replace(/^www\./, ""));
+  } catch {
+    return false;
+  }
+}
 
 
 function formatSavedDate(iso: string): string {
@@ -381,14 +390,14 @@ export default function MemoryDetailPage() {
               )}
 
               {/* A post or video saved before Savedly could read them (or whose read failed): read it now. */}
-              {!processing && memory.url && memory.platform && SOCIAL_PLATFORMS.has(memory.platform) && (
+              {!processing && memory.url && ((memory.platform && SOCIAL_PLATFORMS.has(memory.platform)) || isShortLink(memory.url)) && (
                 <button
                   type="button"
                   disabled={readingPost}
                   onClick={async () => {
                     setReadingPost(true);
                     try {
-                      await reprocessMemory(memory.id);
+                      await reprocessMemory(memory.id, { retitle: true });
                       await queryClient.invalidateQueries({ queryKey: memoryQueryKey(memory.id) });
                       toast.add({ title: "Reading the post", description: "It shows here in a moment.", type: "success" });
                     } catch (err) {

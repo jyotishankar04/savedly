@@ -123,8 +123,8 @@ export async function suggestNoteTitles(id: string, title: string, markdown: str
 }
 
 /** Runs Savedly's processing on a memory again: summary, tags, collection and dates. */
-export async function reprocessMemory(id: string): Promise<MemoryDetail> {
-  return apiFetch<MemoryDetail>(`/memories/${id}/refresh-preview`, { method: "POST" });
+export async function reprocessMemory(id: string, options: { retitle?: boolean } = {}): Promise<MemoryDetail> {
+  return apiFetch<MemoryDetail>(`/memories/${id}/refresh-preview`, { method: "POST", body: options.retitle ? { retitle: true } : undefined });
 }
 
 export interface InboxCount {
