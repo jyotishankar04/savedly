@@ -3,26 +3,23 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusIcon as Plus, Search01Icon as Search, XIcon as X, StarIcon as Star, GridIcon as Grid, ListIcon as List, MoreHorizontalIcon as MoreHorizontal } from "@hugeicons/core-free-icons";
+import { PlusIcon as Plus, Search01Icon as Search, XIcon as X, GridIcon as Grid, ListIcon as List } from "@hugeicons/core-free-icons";
 import { LogoMark } from "@/components/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
+import { MemoryListRow } from "@/components/memory/memory-list-row";
 import { MemoryGridCard } from "@/components/memory/memory-grid-card";
 import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
 import { SelectButton } from "@/components/selection/selection-bar";
-import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
 import { useSelection } from "@/hooks/use-selection";
 import { usePinch } from "@/hooks/use-pinch";
 import type { Memory, MemoryType } from "@/types/memory";
-import { useMemoriesQuery, useToggleFavoriteMutation } from "@/context/MemoryContext";
-import { timeAgo, timelineGroup } from "@/lib/time";
+import { useMemoriesQuery } from "@/context/MemoryContext";
+import { timelineGroup } from "@/lib/time";
 import { isMemoryProcessing } from "@/lib/memory-processing";
-import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
 import { getPlatformFallback } from "@/lib/platform-fallback";
 import { QueryErrorState } from "@/components/query-error-state";
@@ -69,15 +66,6 @@ export default function MemoriesPage() {
   // of staying stuck on "Still processing" until it's closed and reopened.
   const selectedMemory = memories.find((m) => m.id === selectedMemoryId) ?? null;
 
-  const toggleFavoriteMutation = useToggleFavoriteMutation();
-
-  const toggleStar = (item: Memory, e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleFavoriteMutation.mutate(
-      { id: item.id, isFavorite: !item.isFavorite },
-      { onError: (err) => toast.add({ title: "Couldn't update favorite", description: err instanceof Error ? err.message : undefined, type: "error" }) },
-    );
-  };
 
   // Group into timeline buckets in the order items already arrive (createdAt desc from the API).
   const groupedEntries: { group: string; items: Memory[] }[] = [];
@@ -252,70 +240,19 @@ export default function MemoriesPage() {
                     ))}
                   </div>
                   <ul className="hidden space-y-1.5 sm:block">
-                    {groupItems.map((item) => {
-                      const TypeIcon = MEMORY_TYPE_ICONS[item.type];
-                      return (
-                        <li key={item.id}>
-                          <MemorySwipe memory={item} disabled={selection.isSelecting} className="rounded-xl">
-                          <div
-                            onClick={() => setSelectedMemoryId(item.id)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                setSelectedMemoryId(item.id);
-                              }
-                            }}
-                            {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e), { id: item.id, title: item.title, selected: selection.has(item.id) })}
-                            className={cn(
-                              "group flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                              selection.has(item.id) && "bg-primary/10 hover:bg-primary/10",
-                            )}
-                          >
-                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                              <HugeiconsIcon icon={TypeIcon} strokeWidth={2} className={cn("h-4.5 w-4.5 transition-opacity", (selection.isSelecting || selection.has(item.id)) && "opacity-0")} />
-                              <SelectCheckbox
-                                checked={selection.has(item.id)}
-                                selecting={selection.isSelecting}
-                                onToggle={(e) => selection.toggle(item.id, e)}
-                                label={`Select ${item.title}`}
-                                className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                              />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{item.title}</p>
-                              <p className="truncate text-[13px] text-muted-foreground">{item.source}</p>
-                            </div>
-                            {/* The menu is portalled, but React passes its clicks up to the row: stopped here, as on the cards. */}
-                            <div onClick={(e) => e.stopPropagation()} className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                              <span className="mr-2 hidden tabular-nums sm:inline">{timeAgo(item.createdAt)}</span>
-                              <button
-                                onClick={(e) => toggleStar(item, e)}
-                                aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
-                                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-amber-500"
-                              >
-                                <HugeiconsIcon icon={Star} strokeWidth={2} className={cn("h-4 w-4", item.isFavorite && "fill-amber-500 text-amber-500")} />
-                              </button>
-                              <MemoryActionsMenu
-                                memory={item}
-                                trigger={
-                                  <button
-                                    type="button"
-                                    onClick={(e) => e.stopPropagation()}
-                                    aria-label="More actions"
-                                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                                  >
-                                    <HugeiconsIcon icon={MoreHorizontal} strokeWidth={2} className="h-4 w-4" />
-                                  </button>
-                                }
-                              />
-                            </div>
-                          </div>
-                          </MemorySwipe>
-                        </li>
-                      );
-                    })}
+                    {groupItems.map((item) => (
+                      <li key={item.id}>
+                        <MemorySwipe memory={item} disabled={selection.isSelecting} className="rounded-xl">
+                          <MemoryListRow
+                            item={item}
+                            onOpen={() => setSelectedMemoryId(item.id)}
+                            selected={selection.has(item.id)}
+                            selecting={selection.isSelecting}
+                            onSelect={(e) => selection.toggle(item.id, e)}
+                          />
+                        </MemorySwipe>
+                      </li>
+                    ))}
                   </ul>
                   </>
                 )}
