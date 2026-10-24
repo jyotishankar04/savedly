@@ -20,6 +20,24 @@ export function extractUrl(text: string): URL | null {
   }
 }
 
+/**
+ * The link a note really is, for the server's backstop: a URL with at most a
+ * short comment around it ("check this out https://… thoughts?"). Null for a
+ * note that merely has a link in it: a link written as Markdown
+ * ([label](https://…)), or one inside longer writing. A note written in the
+ * editor must stay a note.
+ */
+export function linkOfNote(text: string): URL | null {
+  const url = extractUrl(text);
+  if (!url) return null;
+  const raw = text.match(URL_PATTERN)![0];
+  const at = text.indexOf(raw);
+  if (text.slice(0, at).endsWith("](") || text.slice(0, at).endsWith("<")) return null;
+  const rest = (text.slice(0, at) + text.slice(at + raw.length)).trim();
+  if (rest.length > 280 || /\n\s*\n/.test(rest)) return null;
+  return url;
+}
+
 export function isVideoUrl(url: URL): boolean {
   return VIDEO_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
 }

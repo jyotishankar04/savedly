@@ -39,6 +39,24 @@ export async function enqueueIngestion(memoryId: string): Promise<void> {
   await ingestionQueue.add("ingest", { memoryId });
 }
 
+// A note being written is processed again once its writer stops: this long
+// after the last change. Keyword search doesn't wait (a database trigger keeps
+// it current); the summary, tags and search by meaning do.
+const NOTE_SETTLE_MS = 5 * 60 * 1000;
+
+/**
+ * A note was edited: process it once, NOTE_SETTLE_MS after the last of a run
+ * of edits. Every call while one is waiting replaces it and starts the wait
+ * again (BullMQ's debounce), so autosaving every few seconds costs one run.
+ */
+export async function enqueueNoteRefresh(memoryId: string): Promise<void> {
+  await ingestionQueue.add(
+    "ingest",
+    { memoryId },
+    { delay: NOTE_SETTLE_MS, deduplication: { id: `note-refresh:${memoryId}`, ttl: NOTE_SETTLE_MS, extend: true, replace: true } },
+  );
+}
+
 /** Many at once (an import, a GitHub stars sync): one round trip to Redis, queued behind single saves. */
 export async function enqueueIngestionBulk(memoryIds: string[]): Promise<void> {
   if (memoryIds.length === 0) return;

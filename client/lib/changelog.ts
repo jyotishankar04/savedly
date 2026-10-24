@@ -11,6 +11,17 @@ const items: Item[] = [
   {
     iso: "2026-10-24",
     kind: "new",
+    title: "Notes, with a real editor",
+    summary: "Write notes full page, with headings, lists, to-dos, callouts, code and pictures. Type / for the menu.",
+    details: [
+      "Add to Savedly has a Note tab for a quick one, and Open full page when it grows.",
+      "Notes save as you write, and live under Notes in the sidebar.",
+      "They're memories like everything else, so search, Ask and collections cover them. The summary and tags catch up a few minutes after you stop writing.",
+    ],
+  },
+  {
+    iso: "2026-10-24",
+    kind: "new",
     title: "A weekly email of things to read",
     summary: "On Sunday morning, a few saves from your Inbox you haven't read yet, oldest first.",
     details: [

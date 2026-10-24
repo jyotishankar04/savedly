@@ -2,7 +2,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { getChatModel } from "../../ai.providers";
 import { createUsageCallback } from "../../../ai-usage/usage-logger";
-import { extractUrl } from "../extract-url";
+import { linkOfNote } from "../extract-url";
 import { logNode } from "../log";
 import { researchForPrompt } from "./research-context";
 import type { IngestionStateType, IngestionUpdate } from "../state";
@@ -51,8 +51,10 @@ export async function detectContentType(state: IngestionStateType): Promise<Inge
   // note/video but might actually contain a link the client missed).
   // Only for text the user typed (notes). For images, documents and voice,
   // rawContent is OCR or a transcript: a URL that merely appears on screen
-  // (and is often misread) must never turn the memory into a link.
-  const detectedUrl = state.mediaType === "note" && !state.url ? extractUrl(state.rawContent) : null;
+  // (and is often misread) must never turn the memory into a link. And only
+  // when the note is that link (see linkOfNote): a written note that links
+  // somewhere stays a note.
+  const detectedUrl = state.mediaType === "note" && !state.url ? linkOfNote(state.rawContent) : null;
 
   if (!state.rawContent) {
     logNode(state.memoryId, "detectContentType", { skipped: "no content" });

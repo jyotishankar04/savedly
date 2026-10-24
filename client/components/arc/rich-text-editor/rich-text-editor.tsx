@@ -1,10 +1,10 @@
 "use client";
 
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ClipboardEvent as ReactClipboardEvent, CSSProperties, FormEvent, KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
+import type { ClipboardEvent as ReactClipboardEvent, CSSProperties, FormEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { AnimatePresence, animate, motion, useIsPresent, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import type { Transition, Variants } from "motion/react";
-import { ArrowLeft, Bold, Check, Code, Heading1, Heading2, Heading3, ImagePlus, Italic, Link, List, ListOrdered, Minus, Pilcrow, Quote, SquareCode, Strikethrough, Unlink } from "lucide-react";
+import { ArrowLeft, Bold, Check, Code, Heading1, Heading2, Heading3, ImagePlus, Italic, Lightbulb, Link, List, ListOrdered, ListTodo, Minus, Pilcrow, Quote, SquareCode, Strikethrough, Unlink } from "lucide-react";
 import { motionTokens } from "../lib/motion-tokens";
 import styles from "./rich-text-editor.module.css";
 
@@ -12,11 +12,20 @@ import styles from "./rich-text-editor.module.css";
  * Markdown and HTML. Small, dependency free converters for the subset the editor writes.
  * ---------------------------------------------------------------------------------------------- */
 
-// From the uiarc registry (@uiarc/rich-text-editor), with one addition made
-// here: pictures. An image is a block of its own, handled like a divider:
-// `![alt](address)` in Markdown, <img> in the editor. They arrive by the
-// slash menu, by paste or drop, or through the handle's insertImage().
-export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "blockquote" | "pre" | "hr" | "img";
+// From the uiarc registry (@uiarc/rich-text-editor), with additions made here
+// (re-installing it overwrites them):
+// - Pictures. An image is a block of its own, handled like a divider:
+//   `![alt](address)` in Markdown, <img> in the editor. They arrive by the
+//   slash menu, by paste or drop, or through the handle's insertImage().
+// - To-do lists, for notes: a bulleted list marked <ul data-todo>, each item
+//   <li data-checked> once ticked; `- [ ] ` and `- [x] ` in Markdown (as
+//   GitHub writes them). The box is drawn in CSS and ticked by clicking it or
+//   with Ctrl/⌘+Enter.
+// - Callouts: <aside>, a block like a quote, written as GitHub's
+//   `> [!NOTE]` alert.
+// - markdownToHtml's `breaks`, for text where a single line break is meant
+//   (notes typed before they were Markdown).
+export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "blockquote" | "callout" | "pre" | "hr" | "img";
 type TextBlockType = Exclude<BlockType, "hr" | "img">;
 
 /** An address a picture may be loaded from: the web, or a path on this site. */
@@ -47,31 +56,58 @@ function inlineMarkdown(text: string) {
   return out.replace(/\u0000(\d+)\u0000/g, (_, index: string) => `<code>${codes[Number(index)]}</code>`);
 }
 
+type ListKind = "ul" | "ol" | "todo";
+const isListKind = (type: string): type is ListKind => type === "ul" || type === "ol" || type === "todo";
+/** A list element's kind: numbered, bulleted, or a to-do list (a bulleted one marked data-todo). */
+function listKind(list: Element): ListKind {
+  return list.nodeName === "OL" ? "ol" : list.hasAttribute("data-todo") ? "todo" : "ul";
+}
+function createList(kind: ListKind) {
+  const list = document.createElement(kind === "ol" ? "ol" : "ul");
+  if (kind === "todo") list.setAttribute("data-todo", "");
+  return list;
+}
+
 function listMarkdown(lines: string[]) {
   const items = lines.map(line => {
     const match = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(line)!;
-    return { indent: match[1]!.replace(/\t/g, "  ").length, tag: /\d/.test(match[2]!) ? "ol" : "ul", text: match[3]! };
+    const numbered = /\d/.test(match[2]!);
+    const task = numbered ? null : /^\[([ xX])\](?:\s+(.*))?$/.exec(match[3]!);
+    const tag: ListKind = numbered ? "ol" : task ? "todo" : "ul";
+    return { indent: match[1]!.replace(/\t/g, "  ").length, tag, text: task ? task[2] ?? "" : match[3]!, checked: !!task && task[1] !== " " };
   });
+  const open = (tag: ListKind) => tag === "todo" ? "<ul data-todo>" : `<${tag}>`;
+  const close = (tag: ListKind) => tag === "ol" ? "</ol>" : "</ul>";
+  const opener = (item: { checked: boolean }) => item.checked ? "<li data-checked>" : "<li>";
   let html = "";
-  const stack: { indent: number; tag: string }[] = [];
+  const stack: { indent: number; tag: ListKind }[] = [];
   for (const item of items) {
-    while (stack.length > 1 && item.indent < stack[stack.length - 1]!.indent) html += `</li></${stack.pop()!.tag}>`;
+    while (stack.length > 1 && item.indent < stack[stack.length - 1]!.indent) html += `</li>${close(stack.pop()!.tag)}`;
     const top = stack[stack.length - 1];
-    if (!top || item.indent > top.indent) { html += `<${item.tag}><li>`; stack.push({ indent: item.indent, tag: item.tag }); }
-    else if (top.tag !== item.tag) { html += `</li></${top.tag}><${item.tag}><li>`; top.tag = item.tag; }
-    else html += "</li><li>";
+    if (!top || item.indent > top.indent) { html += `${open(item.tag)}${opener(item)}`; stack.push({ indent: item.indent, tag: item.tag }); }
+    else if (top.tag !== item.tag) { html += `</li>${close(top.tag)}${open(item.tag)}${opener(item)}`; top.tag = item.tag; }
+    else html += `</li>${opener(item)}`;
     html += inlineMarkdown(item.text);
   }
-  while (stack.length) html += `</li></${stack.pop()!.tag}>`;
+  while (stack.length) html += `</li>${close(stack.pop()!.tag)}`;
   return html;
 }
 
-/** Converts Markdown to the editor's HTML: headings (three levels), lists, quotes, fenced code, rules, and inline marks. */
-export function markdownToHtml(markdown: string) {
+const CALLOUT_LINE = /^\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\s+(.*))?$/i;
+
+/**
+ * Converts Markdown to the editor's HTML: headings (three levels), lists and to-do lists, quotes, callouts, fenced code, rules, and
+ * inline marks. With `breaks`, a single line break inside a paragraph stays a line break instead of becoming a space.
+ */
+export function markdownToHtml(markdown: string, { breaks = false }: { breaks?: boolean } = {}) {
   const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   const paragraph: string[] = [];
-  const flush = () => { if (paragraph.length) { out.push(`<p>${inlineMarkdown(paragraph.join(" "))}</p>`); paragraph.length = 0; } };
+  const flush = () => {
+    if (!paragraph.length) return;
+    out.push(`<p>${breaks ? paragraph.map(inlineMarkdown).join("<br>") : inlineMarkdown(paragraph.join(" "))}</p>`);
+    paragraph.length = 0;
+  };
   const isItem = (line: string) => /^\s*([-*+]|\d+[.)])\s+/.test(line);
   for (let index = 0; index < lines.length;) {
     const line = lines[index]!;
@@ -94,7 +130,11 @@ export function markdownToHtml(markdown: string) {
       flush();
       const quote: string[] = [];
       while (index < lines.length && /^\s*>/.test(lines[index]!)) quote.push(lines[index++]!.replace(/^\s*>\s?/, ""));
-      out.push(`<blockquote>${quote.map(inlineMarkdown).join("<br>")}</blockquote>`);
+      const callout = CALLOUT_LINE.exec(quote[0]!.trim());
+      if (callout) {
+        const body = [...(callout[1] ? [callout[1]] : []), ...quote.slice(1)];
+        out.push(`<aside>${body.map(inlineMarkdown).join("<br>") || "<br>"}</aside>`);
+      } else out.push(`<blockquote>${quote.map(inlineMarkdown).join("<br>")}</blockquote>`);
       continue;
     }
     if (isItem(line)) {
@@ -138,9 +178,12 @@ function inlineToMarkdown(node: Node): string {
 
 function listToMarkdown(list: Element, indent: string): string {
   let number = 1;
+  const kind = listKind(list);
   return Array.from(list.children).filter(item => item.nodeName === "LI").map(item => {
-    const marker = list.nodeName === "OL" ? `${number++}. ` : "- ";
-    const nested = Array.from(item.children).filter(child => child.nodeName === "UL" || child.nodeName === "OL").map(child => listToMarkdown(child, indent + " ".repeat(marker.length)));
+    const marker = kind === "ol" ? `${number++}. ` : kind === "todo" ? (item.hasAttribute("data-checked") ? "- [x] " : "- [ ] ") : "- ";
+    // A nested list sits under its item's text: under the number, or two spaces in for a bullet or a box.
+    const step = kind === "ol" ? marker.length : 2;
+    const nested = Array.from(item.children).filter(child => child.nodeName === "UL" || child.nodeName === "OL").map(child => listToMarkdown(child, indent + " ".repeat(step)));
     return [`${indent}${marker}${inlineToMarkdown(item).trim()}`, ...nested].join("\n");
   }).join("\n");
 }
@@ -157,6 +200,7 @@ function blockToMarkdown(node: Node): string {
     case "IMG": return `![${(element.getAttribute("alt") ?? "").replace(/[\[\]]/g, "")}](${element.getAttribute("src") ?? ""})`;
     case "PRE": return `\`\`\`\n${(element.textContent ?? "").replace(ZWSP, "").replace(/\n$/, "")}\n\`\`\``;
     case "UL": case "OL": return listToMarkdown(element, "");
+    case "ASIDE": return ["> [!NOTE]", ...inlineToMarkdown(element).trim().split("\n").map(line => line ? `> ${line}` : ">")].join("\n");
     case "BLOCKQUOTE": {
       const blocks = Array.from(element.children).some(child => BLOCK_TAGS.has(child.nodeName));
       const body = blocks ? Array.from(element.childNodes).map(blockToMarkdown).filter(Boolean).join("\n\n") : inlineToMarkdown(element).trim();
@@ -186,9 +230,9 @@ const replaceNode = (old: Node, ...nodes: Node[]) => { insertBefore(old, ...node
 const appendNodes = (parent: Node, ...nodes: Node[]) => nodes.forEach(node => parent.appendChild(node));
 
 const INLINE_MAP: Record<string, string> = { B: "strong", STRONG: "strong", I: "em", EM: "em", S: "s", STRIKE: "s", DEL: "s", CODE: "code", A: "a", BR: "br" };
-const BLOCK_MAP: Record<string, string> = { P: "p", H1: "h1", H2: "h2", H3: "h3", H4: "h3", H5: "h3", H6: "h3", UL: "ul", OL: "ol", LI: "li", BLOCKQUOTE: "blockquote", PRE: "pre", HR: "hr", IMG: "img" };
+const BLOCK_MAP: Record<string, string> = { P: "p", H1: "h1", H2: "h2", H3: "h3", H4: "h3", H5: "h3", H6: "h3", UL: "ul", OL: "ol", LI: "li", BLOCKQUOTE: "blockquote", ASIDE: "aside", PRE: "pre", HR: "hr", IMG: "img" };
 const DROP = new Set(["SCRIPT", "STYLE", "META", "LINK", "TITLE", "TEMPLATE", "IFRAME", "OBJECT", "EMBED", "SVG", "CANVAS", "VIDEO", "AUDIO", "INPUT", "BUTTON", "SELECT", "TEXTAREA", "HEAD"]);
-const BLOCK_TAGS = new Set(["P", "H1", "H2", "H3", "LI", "PRE", "BLOCKQUOTE", "DIV", "UL", "OL", "HR", "IMG"]);
+const BLOCK_TAGS = new Set(["P", "H1", "H2", "H3", "LI", "PRE", "BLOCKQUOTE", "ASIDE", "DIV", "UL", "OL", "HR", "IMG"]);
 
 /** Keeps only the tags the editor understands and drops every attribute except safe link targets. Bold and italic spans from other editors become marks. */
 export function sanitizeHtml(html: string) {
@@ -217,6 +261,13 @@ export function sanitizeHtml(html: string) {
         if (!safeImageUrl(src) || into !== out) return;
         next.setAttribute("src", src);
         next.setAttribute("alt", element.getAttribute("alt") ?? "");
+      }
+      // To-do lists keep their marks; a GitHub-style list (an <input type="checkbox"> in each item) becomes one.
+      if (tag === "ul" && element.hasAttribute("data-todo")) next.setAttribute("data-todo", "");
+      if (tag === "li") {
+        const box = element.querySelector(":scope > input[type=checkbox]");
+        if (element.hasAttribute("data-checked") || box?.hasAttribute("checked")) next.setAttribute("data-checked", "");
+        if (box && into.nodeName === "UL") (into as HTMLElement).setAttribute("data-todo", "");
       }
       if (tag === "pre") next.textContent = element.textContent ?? "";
       else if (tag !== "br" && tag !== "hr" && tag !== "img") convert(element, next);
@@ -247,7 +298,7 @@ export function sanitizeHtml(html: string) {
  * counts as one character, so the caret survives any rewrite that keeps the text.
  * ---------------------------------------------------------------------------------------------- */
 
-const COUNTED = new Set(["P", "H1", "H2", "H3", "LI", "PRE", "BLOCKQUOTE", "DIV"]);
+const COUNTED = new Set(["P", "H1", "H2", "H3", "LI", "PRE", "BLOCKQUOTE", "ASIDE", "DIV"]);
 const isElement = (node: Node | null): node is HTMLElement => !!node && node.nodeType === Node.ELEMENT_NODE;
 const isText = (node: Node | null): node is Text => !!node && node.nodeType === Node.TEXT_NODE;
 
@@ -411,9 +462,9 @@ function linesToNodes(text: string) {
 
 function mergeAdjacentLists(list: HTMLElement) {
   const next = list.nextElementSibling;
-  if (next && next.nodeName === list.nodeName) { moveChildren(next, list); next.remove(); }
+  if (next && next.nodeName === list.nodeName && listKind(next) === listKind(list)) { moveChildren(next, list); next.remove(); }
   const previous = list.previousElementSibling;
-  if (previous && previous.nodeName === list.nodeName) { moveChildren(list, previous); list.remove(); return previous as HTMLElement; }
+  if (previous && previous.nodeName === list.nodeName && listKind(previous) === listKind(list)) { moveChildren(list, previous); list.remove(); return previous as HTMLElement; }
   return list;
 }
 
@@ -425,7 +476,7 @@ function outdent(item: HTMLElement): HTMLElement {
   for (let node = item.nextSibling; node; node = node.nextSibling) following.push(node);
   if (parentItem?.nodeName === "LI") {
     if (following.length) {
-      const sub = document.createElement(list.nodeName.toLowerCase());
+      const sub = createList(listKind(list));
       following.forEach(node => sub.appendChild(node));
       item.appendChild(sub);
     }
@@ -437,7 +488,7 @@ function outdent(item: HTMLElement): HTMLElement {
   const nested: Node[] = [];
   Array.from(item.childNodes).forEach(child => { if (child.nodeName === "UL" || child.nodeName === "OL") nested.push(child); else paragraph.appendChild(child); });
   ensureFilled(paragraph);
-  const tail = following.length || nested.length ? document.createElement(list.nodeName.toLowerCase()) : null;
+  const tail = following.length || nested.length ? createList(listKind(list)) : null;
   if (tail) {
     nested.forEach(sub => sub.childNodes.length && Array.from(sub.childNodes).forEach(node => tail.appendChild(node)));
     following.forEach(node => tail.appendChild(node));
@@ -452,9 +503,9 @@ function outdent(item: HTMLElement): HTMLElement {
 function indent(item: HTMLElement) {
   const previous = item.previousElementSibling as HTMLElement | null;
   if (!previous || previous.nodeName !== "LI") return false;
-  const listTag = item.parentElement!.nodeName;
+  const kind = listKind(item.parentElement!);
   let sub = previous.lastElementChild as HTMLElement | null;
-  if (!sub || (sub.nodeName !== "UL" && sub.nodeName !== "OL")) { sub = document.createElement(listTag.toLowerCase()); previous.appendChild(sub); }
+  if (!sub || (sub.nodeName !== "UL" && sub.nodeName !== "OL")) { sub = createList(kind); previous.appendChild(sub); }
   sub.appendChild(item);
   return true;
 }
@@ -463,27 +514,30 @@ function indent(item: HTMLElement) {
 function convertBlock(block: HTMLElement, type: TextBlockType): HTMLElement {
   if (block.nodeName === "LI") {
     const list = block.parentElement!;
-    if (type === "ul" || type === "ol") {
-      if (list.nodeName.toLowerCase() === type) return outdent(block);
-      const swapped = document.createElement(type);
+    if (isListKind(type)) {
+      if (listKind(list) === type) return outdent(block);
+      const swapped = createList(type);
       moveChildren(list, swapped);
+      if (type !== "todo") swapped.querySelectorAll(":scope > li[data-checked]").forEach(item => item.removeAttribute("data-checked"));
       replaceNode(list, swapped);
       return block;
     }
     const paragraph = outdent(block);
     return paragraph.nodeName === "P" && type !== "p" ? convertBlock(paragraph, type) : paragraph;
   }
-  if (type === "ul" || type === "ol") {
+  if (isListKind(type)) {
     const item = document.createElement("li");
     if (block.nodeName === "PRE") appendNodes(item, ...linesToNodes(block.textContent ?? "")); else moveChildren(block, item);
     ensureFilled(item);
-    const list = document.createElement(type);
+    const list = createList(type);
     list.appendChild(item);
     replaceNode(block, list);
     mergeAdjacentLists(list);
     return item;
   }
-  const tag = block.nodeName.toLowerCase() === type ? "p" : type;
+  // A callout is an <aside>.
+  const wanted = type === "callout" ? "aside" : type;
+  const tag = block.nodeName.toLowerCase() === wanted ? "p" : wanted;
   const next = document.createElement(tag);
   if (tag === "pre") next.textContent = plainText(block);
   else if (block.nodeName === "PRE") appendNodes(next, ...linesToNodes(block.textContent ?? ""));
@@ -539,7 +593,11 @@ function tidy(root: HTMLElement) {
 function cleanClone(root: HTMLElement) {
   const clone = root.cloneNode(true) as HTMLElement;
   clone.querySelectorAll("*").forEach(element => {
-    Array.from(element.attributes).forEach(attribute => { if (!(element.nodeName === "A" && attribute.name === "href") && !(element.nodeName === "IMG" && (attribute.name === "src" || attribute.name === "alt"))) element.removeAttribute(attribute.name); });
+    Array.from(element.attributes).forEach(attribute => {
+      const kept = (element.nodeName === "A" && attribute.name === "href") || (element.nodeName === "IMG" && (attribute.name === "src" || attribute.name === "alt"))
+        || (element.nodeName === "UL" && attribute.name === "data-todo") || (element.nodeName === "LI" && attribute.name === "data-checked");
+      if (!kept) element.removeAttribute(attribute.name);
+    });
   });
   const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
   const empty: Text[] = [];
@@ -548,7 +606,7 @@ function cleanClone(root: HTMLElement) {
     if (!node.data) empty.push(node);
   }
   empty.forEach(node => node.remove());
-  clone.querySelectorAll("p, h1, h2, h3, li, blockquote").forEach(block => {
+  clone.querySelectorAll("p, h1, h2, h3, li, blockquote, aside").forEach(block => {
     const last = block.lastChild;
     if (last?.nodeName === "BR" && visibleText(block)) last.remove();
   });
@@ -558,7 +616,7 @@ function cleanClone(root: HTMLElement) {
 }
 
 function plainOutput(clone: HTMLElement) {
-  return Array.from(clone.querySelectorAll("p, h1, h2, h3, li, blockquote, pre")).filter(block => !block.querySelector("p, li")).map(block => (block.textContent ?? "").trim()).filter(Boolean).join("\n");
+  return Array.from(clone.querySelectorAll("p, h1, h2, h3, li, blockquote, aside, pre")).filter(block => !block.querySelector("p, li")).map(block => (block.textContent ?? "").trim()).filter(Boolean).join("\n");
 }
 
 /* ------------------------------------------------------------------------------------------------
@@ -625,7 +683,9 @@ const SLASH_ITEMS: SlashItem[] = [
   { type: "h3", label: "Heading 3", hint: "###", keywords: "h3 small", icon: <Heading3 {...icon} /> },
   { type: "ul", label: "Bulleted list", hint: "-", keywords: "bullet unordered ul points", icon: <List {...icon} /> },
   { type: "ol", label: "Numbered list", hint: "1.", keywords: "ordered ol steps numbers", icon: <ListOrdered {...icon} /> },
-  { type: "blockquote", label: "Quote", hint: ">", keywords: "blockquote citation callout", icon: <Quote {...icon} /> },
+  { type: "todo", label: "To-do list", hint: "[]", keywords: "todo task checkbox checklist check", icon: <ListTodo {...icon} /> },
+  { type: "blockquote", label: "Quote", hint: ">", keywords: "blockquote citation", icon: <Quote {...icon} /> },
+  { type: "callout", label: "Callout", hint: "", keywords: "callout note tip info aside box", icon: <Lightbulb {...icon} /> },
   { type: "pre", label: "Code block", hint: "```", keywords: "pre snippet monospace", icon: <SquareCode {...icon} /> },
   { type: "hr", label: "Divider", hint: "---", keywords: "rule hr line separator", icon: <Minus {...icon} /> },
   { type: "img", label: "Image", hint: "", keywords: "picture photo screenshot upload img", icon: <ImagePlus {...icon} /> },
@@ -782,7 +842,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     const range = inside ? selection!.getRangeAt(0) : null;
 
     const block = range ? blockAt(editor, range.startContainer) : null;
-    const hint = range?.collapsed && block && !visibleText(block) && block.nodeName !== "PRE" ? block : null;
+    // A to-do item's ::before is its box, so it gets no hint.
+    const todoItem = block?.nodeName === "LI" && !!block.parentElement?.hasAttribute("data-todo");
+    const hint = range?.collapsed && block && !visibleText(block) && block.nodeName !== "PRE" && !todoItem ? block : null;
     if (hinted.current !== hint) {
       hinted.current?.removeAttribute("data-hint");
       hint?.setAttribute("data-hint", "");
@@ -798,7 +860,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     const start = isElement(range.startContainer) ? range.startContainer : range.startContainer.parentElement;
     const within = (selector: string) => { const found = start?.closest(selector); return !!found && editor.contains(found); };
     const anchor = start?.closest("a");
-    const listItem = block?.nodeName === "LI" ? block.parentElement?.nodeName.toLowerCase() ?? "ul" : null;
+    const listItem = block?.nodeName === "LI" ? (block.parentElement ? listKind(block.parentElement) : "ul") : block?.nodeName === "ASIDE" ? "callout" : null;
     const next: Formats = {
       bold: within("strong, b"), italic: within("em, i"), strike: within("s, strike, del"),
       code: within("code") && !within("pre"),
@@ -843,7 +905,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     const editor = editorRef.current;
     if (!editor) return;
     editor.innerHTML = sanitizeHtml(html) || "<p><br></p>";
-    editor.querySelectorAll("p, h1, h2, h3, li, blockquote, pre").forEach(block => ensureFilled(block as HTMLElement));
+    editor.querySelectorAll("p, h1, h2, h3, li, blockquote, aside, pre").forEach(block => ensureFilled(block as HTMLElement));
     hinted.current = null;
   }, []);
 
@@ -879,7 +941,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     const plainBlock = block.nodeName === "P" || block.nodeName === "DIV";
 
     if (data === " " && plainBlock && block.parentElement === editor) {
-      const rule: [RegExp, TextBlockType][] = [[/^# $/, "h1"], [/^## $/, "h2"], [/^### $/, "h3"], [/^[-*+] $/, "ul"], [/^\d+[.)] $/, "ol"], [/^> $/, "blockquote"]];
+      const rule: [RegExp, TextBlockType][] = [[/^# $/, "h1"], [/^## $/, "h2"], [/^### $/, "h3"], [/^[-*+] \[ ?\] $/, "todo"], [/^\[ ?\] $/, "todo"], [/^[-*+] $/, "ul"], [/^\d+[.)] $/, "ol"], [/^> $/, "blockquote"]];
       const match = rule.find(([pattern]) => pattern.test(before));
       if (match) {
         const prefix = document.createRange();
@@ -890,6 +952,17 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         placeAtStart(next);
         return true;
       }
+    }
+    // "[ ] " at the start of a bulleted item turns its list into a to-do list.
+    if (data === " " && block.nodeName === "LI" && block.parentElement && listKind(block.parentElement) === "ul" && /^\[ ?\] $/.test(before)) {
+      const prefix = document.createRange();
+      prefix.setStart(block, 0);
+      prefix.setEnd(range.startContainer, range.startOffset);
+      prefix.deleteContents();
+      ensureFilled(block);
+      convertBlock(block, "todo");
+      placeAtStart(block);
+      return true;
     }
     if (data === "-" && plainBlock && block.parentElement === editor && before === "---" && visibleText(block) === "---") {
       const rule = document.createElement("hr");
@@ -979,8 +1052,8 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       return;
     }
     // Several selected blocks turn together; if every one already has the type, they all turn back into paragraphs.
-    const blocks = range.collapsed ? [block] : Array.from(editor.querySelectorAll<HTMLElement>("p, h1, h2, h3, li, blockquote, pre")).filter(candidate => range.intersectsNode(candidate) && !candidate.querySelector("p, li"));
-    const current = (candidate: HTMLElement) => candidate.nodeName === "LI" ? candidate.parentElement!.nodeName.toLowerCase() : candidate.nodeName.toLowerCase();
+    const blocks = range.collapsed ? [block] : Array.from(editor.querySelectorAll<HTMLElement>("p, h1, h2, h3, li, blockquote, aside, pre")).filter(candidate => range.intersectsNode(candidate) && !candidate.querySelector("p, li"));
+    const current = (candidate: HTMLElement) => candidate.nodeName === "LI" ? listKind(candidate.parentElement!) : candidate.nodeName === "ASIDE" ? "callout" : candidate.nodeName.toLowerCase();
     const allSame = blocks.every(candidate => current(candidate) === type);
     blocks.forEach(candidate => {
       if (allSame) convertBlock(candidate, type);
@@ -1153,13 +1226,14 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     }
 
     if (block.nodeName === "LI" && !visibleText(block) && !block.querySelector("ul, ol")) { placeAtStart(outdent(block)); return; }
-    if (block.nodeName === "BLOCKQUOTE" && !visibleText(block)) { placeAtStart(convertBlock(block, "p")); return; }
+    if ((block.nodeName === "BLOCKQUOTE" || block.nodeName === "ASIDE") && !visibleText(block)) { placeAtStart(convertBlock(block, "p")); return; }
 
     const tail = document.createRange();
     tail.setStart(range.startContainer, range.startOffset);
     tail.setEnd(block, block.childNodes.length);
     const atEnd = !tail.toString().replace(ZWSP, "") && !tail.cloneContents().querySelector("ul, ol");
-    const heading = /^H[1-3]$/.test(block.nodeName);
+    // Enter at the end of a heading or a callout carries on in a paragraph (Shift+Enter adds a line to a callout).
+    const heading = /^H[1-3]$/.test(block.nodeName) || block.nodeName === "ASIDE";
     const fragment = tail.extractContents();
     const next = document.createElement(heading && atEnd ? "p" : block.nodeName.toLowerCase());
     if (!(heading && atEnd)) next.appendChild(fragment);
@@ -1181,7 +1255,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     const range = selection.getRangeAt(0);
     const block = blockAt(editor, range.startContainer);
     if (!block || !atBlockStart(block, range)) return false;
-    if (/^(H[1-3]|BLOCKQUOTE|PRE)$/.test(block.nodeName)) { placeAtStart(convertBlock(block, "p")); return true; }
+    if (/^(H[1-3]|BLOCKQUOTE|ASIDE|PRE)$/.test(block.nodeName)) { placeAtStart(convertBlock(block, "p")); return true; }
     if (block.nodeName === "LI") { placeAtStart(outdent(block)); return true; }
     const previous = block.previousElementSibling;
     if (previous?.nodeName === "HR" || previous?.nodeName === "IMG") { previous.remove(); return true; }
@@ -1215,7 +1289,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         case "insertText": {
           // Typing into an emptied editor lands in a paragraph, never loose at the root.
           const selection = window.getSelection();
-          if (!selection?.rangeCount || blockAt(editor, selection.anchorNode) || editor.querySelector("p, h1, h2, h3, li, pre, blockquote")) return;
+          if (!selection?.rangeCount || blockAt(editor, selection.anchorNode) || editor.querySelector("p, h1, h2, h3, li, pre, blockquote, aside")) return;
           event.preventDefault();
           const paragraph = document.createElement("p");
           const text = document.createTextNode(event.data ?? "");
@@ -1257,6 +1331,22 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     sync();
   };
 
+  /* To-do items: tick or untick one. */
+  const toggleTask = (item: HTMLElement) => {
+    run(() => { item.toggleAttribute("data-checked"); });
+    setAnnounce(item.hasAttribute("data-checked") ? "Done" : "Not done");
+  };
+  // The box is drawn in the item's left padding, so a press there (and nowhere else in the item) ticks it.
+  const onTaskPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (readOnly) return;
+    const item = event.target instanceof HTMLElement ? event.target.closest("li") : null;
+    if (!item || !editorRef.current?.contains(item) || !item.parentElement?.hasAttribute("data-todo")) return;
+    const left = item.getBoundingClientRect().left + parseFloat(getComputedStyle(item).paddingLeft);
+    if (event.clientX > left) return;
+    event.preventDefault();
+    toggleTask(item);
+  };
+
   const focusToolbar = () => rootRef.current?.querySelector<HTMLElement>(`[data-toolbar="${uid}"] button`)?.focus();
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -1271,6 +1361,12 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       }
       if (event.key === "Enter" || event.key === "Tab") { event.preventDefault(); chooseSlash(slashResults[slashIndex]); return; }
       if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setSlash(null); return; }
+    }
+    if (mod && event.key === "Enter") {
+      const editor = editorRef.current!;
+      const selection = window.getSelection();
+      const block = selection?.rangeCount ? blockAt(editor, selection.anchorNode) : null;
+      if (block?.nodeName === "LI" && block.parentElement?.hasAttribute("data-todo")) { event.preventDefault(); toggleTask(block); return; }
     }
     if (mod && key === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); return; }
     if (mod && key === "y") { event.preventDefault(); redo(); return; }
@@ -1561,7 +1657,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         if (point) { const selection = window.getSelection(); selection?.removeAllRanges(); selection?.addRange(point); }
         void uploadImages(pictures);
       }}
-      onPointerDown={() => { dragging.current = true; }}
+      onPointerDown={event => { onTaskPointer(event); if (!event.defaultPrevented) dragging.current = true; }}
       onCompositionEnd={() => { record("type", true); emit(); }}
     />
     <input ref={pickerRef} type="file" accept="image/*" multiple hidden tabIndex={-1} aria-hidden

@@ -44,6 +44,9 @@ export const createMemorySchema = z.object({
   // to save it anyway. Left out (the extension, a share, the API): save it,
   // and the pipeline's duplicate check leaves a notification.
   onDuplicate: z.enum(["ask", "allow"]).optional(),
+  // A note that's still being written (the full-page editor saves as you
+  // type): processed once writing stops, not on this first save.
+  editing: z.boolean().optional(),
 });
 
 export const resolveDuplicateSchema = z.object({ action: z.enum(["skip", "keep"]) });

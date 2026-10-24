@@ -42,6 +42,7 @@ import {
   AttachmentTrigger,
 } from "@/components/ui/attachment";
 import type { MemoryDetail } from "@/types/memory";
+import { NoteBody } from "@/components/notes/note-editor";
 
 function attachmentFilename(fileUrl: string): string {
   return fileUrl.split("/").pop() ?? fileUrl;
@@ -278,7 +279,8 @@ export default function MemoryDetailPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={startEditing}
+                        // A note is edited full page, in the note editor; code stays a plain text box here.
+                        onClick={code ? startEditing : () => router.push(`/app/notes/${memory.id}`)}
                         className="inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
                       >
                         <HugeiconsIcon icon={Pencil} strokeWidth={2.25} className="h-3.5 w-3.5" />
@@ -304,8 +306,8 @@ export default function MemoryDetailPage() {
                   <code>{memory.content}</code>
                 </pre>
               ) : (
-                <div className="px-5 py-4 text-sm leading-7 text-foreground whitespace-pre-wrap break-words">
-                  {memory.content || <span className="text-muted-foreground">This note is empty.</span>}
+                <div className="px-5 py-4 text-sm leading-7 text-foreground">
+                  {memory.content ? <NoteBody markdown={memory.content} /> : <span className="text-muted-foreground">This note is empty.</span>}
                 </div>
               )}
             </section>

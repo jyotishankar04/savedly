@@ -43,6 +43,8 @@ export interface CreateMemoryInput {
   captureMethod?: "server" | "extension" | "manual";
   /** "ask": if it's already in the library, don't save; the server answers 409 so the app can ask. "allow": save it anyway. */
   onDuplicate?: "ask" | "allow";
+  /** A note still being written (the full-page editor): processed once writing stops, not on this first save. */
+  editing?: boolean;
 }
 
 /** The memory a save would duplicate, from the server's DUPLICATE_MEMORY error. */

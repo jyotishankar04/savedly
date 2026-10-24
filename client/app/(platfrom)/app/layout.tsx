@@ -10,7 +10,7 @@ import { PullToRefresh } from "@/components/pull-to-refresh";
 import { FORCED_MAINTENANCE_MESSAGE, FORCED_MAINTENANCE, getMaintenanceStatus } from "@/lib/maintenance";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { SparklesIcon as Sparkles, PlusIcon as Plus, Search01Icon as Search, Settings01Icon as Settings, HelpCircleIcon as HelpCircle, BellIcon as Bell, MoonIcon as Moon, Sun01Icon as Sun, FolderOpenIcon as FolderOpen, CompassIcon as Compass, InboxIcon as InboxNav, CheckIcon as Check, ChevronDownIcon as ChevronDown, FolderPlusIcon as FolderPlus, HeartIcon as Heart, Clock01Icon as Clock, CompassIcon, BarChartIcon as BarChart2, CloudUploadIcon as UploadCloud, Layers01Icon as Layers, PanelLeftCloseIcon as PanelLeftClose, PanelLeftOpenIcon as PanelLeftOpen, Menu01Icon as Menu, Tag01Icon as Tag, KeyboardIcon as Keyboard, Archive01Icon as Archive, Delete02Icon as Trash2, TrendingUpIcon as TrendingUp, Plug01Icon as Plug, MessageSquarePlusIcon as MessageSquarePlus, HistoryIcon as History, ShieldUserIcon as ShieldUser, Share02Icon as Share2, LockPasswordIcon as VaultIcon, Calendar03Icon as CalendarIcon } from "@hugeicons/core-free-icons";
+import { SparklesIcon as Sparkles, PlusIcon as Plus, Search01Icon as Search, Settings01Icon as Settings, HelpCircleIcon as HelpCircle, BellIcon as Bell, MoonIcon as Moon, Sun01Icon as Sun, FolderOpenIcon as FolderOpen, Note01Icon as NoteIcon, CompassIcon as Compass, InboxIcon as InboxNav, CheckIcon as Check, ChevronDownIcon as ChevronDown, FolderPlusIcon as FolderPlus, HeartIcon as Heart, Clock01Icon as Clock, CompassIcon, BarChartIcon as BarChart2, CloudUploadIcon as UploadCloud, Layers01Icon as Layers, PanelLeftCloseIcon as PanelLeftClose, PanelLeftOpenIcon as PanelLeftOpen, Menu01Icon as Menu, Tag01Icon as Tag, KeyboardIcon as Keyboard, Archive01Icon as Archive, Delete02Icon as Trash2, TrendingUpIcon as TrendingUp, Plug01Icon as Plug, MessageSquarePlusIcon as MessageSquarePlus, HistoryIcon as History, ShieldUserIcon as ShieldUser, Share02Icon as Share2, LockPasswordIcon as VaultIcon, Calendar03Icon as CalendarIcon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { logout } from "@/lib/auth";
 import { UserAvatar, UserProvider, useUser, useCurrentUserQuery, useSetCurrentUser } from "@/context/UserContext";
@@ -42,6 +42,9 @@ import { Button as ArcButton } from "@/components/arc/button/button";
 import { type Shelf, useCollectionDrop, useMemoryDragging, useShelfDrop } from "@/components/memory/collection-drop";
 import { isEditableTarget, useQuickSave } from "@/components/capture/quick-save";
 import { DropToSave } from "@/components/capture/drop-to-save";
+import { CaptureCollectionPicker } from "@/components/capture/collection-picker";
+import { CaptureNote, NOTE_DRAFT_KEY } from "@/components/notes/capture-note";
+import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import { useMemoryListKeys } from "@/components/memory/list-keys";
 import { Badge as ArcBadge } from "@/components/arc/badge/badge";
 import { FileDropzone, type FileDropzoneUpload } from "@/components/arc/file-dropzone/file-dropzone";
@@ -252,71 +255,6 @@ function SidebarSection({
  * rendered flat as its own pill — which used to overflow the whole modal
  * once an account had more than a handful of collections. */
 /** How many collections Quick Capture shows before "Show all". */
-const CAPTURE_COLLECTIONS_SHOWN = 8;
-
-/**
- * Collections to file a save under, as chips to switch on and off. Laid out
- * in the form itself, not in a popover: it then works the same in the desktop
- * dialog and in the phone's bottom sheet, and what is chosen is always in view.
- */
-function CaptureCollectionPicker({
-  collections,
-  selectedIds,
-  onChange,
-}: {
-  collections: Collection[];
-  selectedIds: string[];
-  onChange: (ids: string[]) => void;
-}) {
-  const [showAll, setShowAll] = useState(false);
-  // Chosen ones first, so they stay in view when the list is cut short.
-  const sorted = [...collections].sort((a, b) => Number(selectedIds.includes(b.id)) - Number(selectedIds.includes(a.id)) || a.name.localeCompare(b.name));
-  const shown = showAll ? sorted : sorted.slice(0, Math.max(CAPTURE_COLLECTIONS_SHOWN, selectedIds.length));
-  const hidden = sorted.length - shown.length;
-
-  const toggle = (id: string) => {
-    onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);
-  };
-
-  return (
-    <fieldset className="space-y-2">
-      <legend className="text-sm font-medium text-foreground">Collections</legend>
-
-      {collections.length === 0 ? (
-        <p className="text-sm text-muted-foreground">You have none yet. Savedly suggests one after you save.</p>
-      ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {shown.map((col) => {
-            const on = selectedIds.includes(col.id);
-            return (
-              <button
-                key={col.id}
-                type="button"
-                aria-pressed={on}
-                onClick={() => toggle(col.id)}
-                title={col.name}
-                className={cn(
-                  "inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border px-3 text-sm transition-colors duration-150",
-                  on ? "border-primary/40 bg-primary/10 font-medium text-primary" : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground",
-                )}
-              >
-                <span aria-hidden>{col.icon}</span>
-                <span className="truncate">{col.name}</span>
-                {on && <HugeiconsIcon icon={Check} strokeWidth={2.5} className="h-3.5 w-3.5 shrink-0" />}
-              </button>
-            );
-          })}
-          {hidden > 0 && (
-            <button type="button" onClick={() => setShowAll(true)} className="inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
-              Show {hidden} more
-            </button>
-          )}
-        </div>
-      )}
-    </fieldset>
-  );
-}
-
 // What the shortcuts dialog lists. "mod" is ⌘ on a Mac and Ctrl elsewhere;
 // the dialog draws the right one for whoever is looking. The keys themselves
 // are handled further down, in the layout's keydown listeners.
@@ -496,6 +434,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [saveStep, setSaveStep] = useState<1 | "done">(1);
+  // The capture dialog's two tabs: a link or file (one box that works out what was pasted), or a note in the editor.
+  const [captureMode, setCaptureMode] = useState<"link" | "note">("link");
+  // The note just saved from the Note tab, for the done step's "Open the note".
+  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
   const [captureTitle, setCaptureTitle] = useState("");
   const [captureText, setCaptureText] = useState("");
   const [captureCollectionIds, setCaptureCollectionIds] = useState<string[]>([]);
@@ -571,8 +513,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
     [captureText, captureAttachmentMimeType],
   );
   const detectedTypeLabel = detectedType === "web" ? "Website" : detectedType;
-  const openCaptureModal = useCallback(() => {
+  const openCaptureModal = useCallback((mode: "link" | "note" = "link") => {
     setSaveStep(1);
+    setCaptureMode(mode);
+    setSavedNoteId(null);
     setCaptureTitle("");
     setCaptureText("");
     setCaptureCollectionIds([]);
@@ -600,7 +544,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
     openCaptureModalRef.current = openCaptureModal;
   });
   useEffect(() => {
-    const open = () => openCaptureModalRef.current();
+    // `detail.mode: "note"` opens it on the Note tab (Home's "Write a note").
+    const open = (event: Event) => openCaptureModalRef.current((event as CustomEvent<{ mode?: string } | null>).detail?.mode === "note" ? "note" : "link");
     window.addEventListener("capture:open", open);
     return () => window.removeEventListener("capture:open", open);
   }, []);
@@ -732,7 +677,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
           openCaptureModal();
           break;
         case "enter":
-          if (saveModalOpen && saveStep === 1) {
+          // The editor uses Ctrl/⌘+Enter to tick a to-do; then it isn't a save.
+          if (saveModalOpen && saveStep === 1 && !e.defaultPrevented) {
             e.preventDefault();
             captureFormRef.current?.requestSubmit();
           }
@@ -843,6 +789,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     { label: "Search", href: "/app/search", icon: Search },
     { label: "Ask Savedly", href: "/app/ask", icon: Sparkles, logo: true },
     { label: "Memories", href: "/app/memories", icon: FolderOpen },
+    { label: "Notes", href: "/app/notes", icon: NoteIcon },
     { label: "Collections", href: "/app/collections", icon: Layers },
     { label: "Tags", href: "/app/tags", icon: Tag },
   ];
@@ -891,6 +838,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const pageItems = [...primaryNavItems, ...secondaryNavItems, { label: "Settings", href: "/app/settings", icon: Settings }];
   const commandItems: PaletteItem[] = [
     { id: "capture", group: "Actions", label: "Save something", description: "A link, a note or a file", keywords: ["new", "add", "memory", "capture", "quick"], icon: paletteIcon(Plus), shortcut: keys("mod+q") },
+    { id: "new-note", group: "Actions", label: "Write a note", description: "A new note, full page", keywords: ["new", "note", "write", "page", "doc", "editor"], icon: paletteIcon(NoteIcon) },
     { id: "ask", group: "Actions", label: "Ask Savedly", description: "Get an answer from what you saved", keywords: ["chat", "question", "ai"], icon: <LogoMark ticks={false} className="h-4 w-4" /> },
     { id: "new-collection", group: "Actions", label: "New collection", keywords: ["create", "folder", "group"], icon: paletteIcon(FolderPlus) },
     { id: "toggle-sidebar", group: "Actions", label: "Show or hide the sidebar", keywords: ["collapse", "expand", "menu"], icon: paletteIcon(PanelLeftClose), shortcut: keys("mod+b") },
@@ -902,6 +850,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   ];
   const commandActions: Record<string, () => void> = {
     capture: openCaptureModal,
+    "new-note": () => router.push("/app/notes/new"),
     ask: () => router.push("/app/ask"),
     "new-collection": () => router.push("/app/collections"),
     "toggle-sidebar": toggleSidebar,
@@ -974,7 +923,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <motion.button
                 layoutId="quick-capture-fab"
                 transition={{ duration: 0.25, ease: "easeInOut" }}
-                onClick={openCaptureModal}
+                onClick={() => openCaptureModal()}
                 data-tour="quick-capture-btn"
                 title={memoryLimit.isAtLimit ? memoryLimit.message ?? undefined : undefined}
                 className="relative w-full h-10 rounded-full font-semibold text-[13px] bg-primary text-primary-foreground flex items-center justify-center gap-1.5 shadow-sm"
@@ -992,7 +941,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <motion.button
                 layoutId="quick-capture-fab"
                 transition={{ duration: 0.25, ease: "easeInOut" }}
-                onClick={openCaptureModal}
+                onClick={() => openCaptureModal()}
                 onLayoutAnimationComplete={() => {
                   setSidebarPhase((phase) => {
                     if (phase === "toCircle") return "hiding";
@@ -1225,7 +1174,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Quick Capture Button (Prominent!) */}
           <button
-            onClick={openCaptureModal}
+            onClick={() => openCaptureModal()}
             title={memoryLimit.isAtLimit ? memoryLimit.message ?? undefined : undefined}
             className="relative h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg -translate-y-2 select-none"
           >
@@ -1341,11 +1290,49 @@ function AppShell({ children }: { children: React.ReactNode }) {
         title={saveStep === "done" ? "Saved" : "Add to Savedly"}
         description="Save a link, a note or a file to your library."
         hideDescription
-        className="sm:max-w-lg"
+        className={saveStep === 1 && captureMode === "note" ? "sm:max-w-2xl" : "sm:max-w-lg"}
       >
 
+          {saveStep === 1 && (
+            <SegmentedControl
+              label="What to add"
+              value={captureMode}
+              onValueChange={(value) => setCaptureMode(value as "link" | "note")}
+              options={[
+                { value: "link", label: "Link or file" },
+                { value: "note", label: "Note" },
+              ]}
+              className="mb-5"
+            />
+          )}
+
           <AnimatePresence mode="wait" initial={false}>
-            {saveStep === 1 && (
+            {saveStep === 1 && captureMode === "note" && (
+              <motion.div key="note" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.12 } }} transition={{ duration: 0.2 }}>
+                <CaptureNote
+                  collections={collections}
+                  formRef={captureFormRef}
+                  limit={memoryLimit}
+                  onSaved={(memory) => {
+                    setSavedTitle(memory.title);
+                    setSavedCollections(memory.collections);
+                    setSavedNoteId(memory.id);
+                    setSaveStep("done");
+                  }}
+                  onOpenFullPage={(draft) => {
+                    try {
+                      sessionStorage.setItem(NOTE_DRAFT_KEY, JSON.stringify(draft));
+                    } catch {
+                      // Private browsing without storage: the full page opens empty.
+                    }
+                    setSaveModalOpen(false);
+                    router.push("/app/notes/new");
+                  }}
+                />
+              </motion.div>
+            )}
+
+            {saveStep === 1 && captureMode === "link" && (
               <motion.form
                 key="form"
                 ref={captureFormRef}
@@ -1448,17 +1435,17 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 )}
 
                 <div className="flex gap-2 pt-1">
-                  <ArcButton variant="secondary" className="flex-1" onClick={openCaptureModal}>
-                    Save another
+                  <ArcButton variant="secondary" className="flex-1" onClick={() => openCaptureModal(savedNoteId ? "note" : "link")}>
+                    {savedNoteId ? "Write another" : "Save another"}
                   </ArcButton>
                   <ArcButton
                     className="flex-1"
                     onClick={() => {
                       setSaveModalOpen(false);
-                      router.push("/app/memories");
+                      router.push(savedNoteId ? `/app/notes/${savedNoteId}` : "/app/memories");
                     }}
                   >
-                    View memories
+                    {savedNoteId ? "Open the note" : "View memories"}
                   </ArcButton>
                 </div>
               </motion.div>
@@ -1491,7 +1478,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               layoutId="quick-capture-fab"
               transition={{ duration: 0.25, ease: "easeInOut" }}
               type="button"
-              onClick={openCaptureModal}
+              onClick={() => openCaptureModal()}
               title={memoryLimit.isAtLimit ? memoryLimit.message ?? undefined : undefined}
               className="relative h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-sm flex items-center justify-center hover:opacity-90 transition-opacity shrink-0"
               aria-label="Quick Capture (Ctrl+Q)"

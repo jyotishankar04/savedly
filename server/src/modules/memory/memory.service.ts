@@ -1,11 +1,11 @@
 import { and, asc, count, desc, eq, gt, ilike, inArray, isNull, lte, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../../db";
 import { attachments, collectionMemories, collections, memories, memoryHighlights, memoryTags, tags } from "../../db/schema";
-import { MemoryStatus, PlanLimitType, type MemoryType } from "../../db/enums";
+import { MemoryStatus, MemoryType, PlanLimitType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
 import { withFileCleanup } from "./memory-files";
-import { enqueueIngestion } from "../ai/ingestion/queue";
+import { enqueueIngestion, enqueueNoteRefresh } from "../ai/ingestion/queue";
 import { getVectorStore } from "../ai/vector-store";
 import { hybridSearch, SEMANTIC_SIMILARITY_FLOOR } from "../ai/search";
 import { normalizeUrl } from "./normalize-url";
@@ -774,8 +774,9 @@ export async function createMemory(
   });
 
   // Fire-and-forget: AI ingestion runs async in the background — a queue
-  // failure must never fail the create request itself.
-  enqueueIngestion(memoryId).catch((err) => {
+  // failure must never fail the create request itself. A note still being
+  // written waits until its writer stops.
+  (input.editing && input.type === "note" ? enqueueNoteRefresh(memoryId) : enqueueIngestion(memoryId)).catch((err) => {
     logger.error({ memoryId, err }, "Failed to enqueue ingestion job");
   });
 
@@ -790,7 +791,7 @@ export async function updateMemory(
 ): Promise<MemoryDetail> {
   // Moving into the vault needs the plan; taking something out never does.
   if (input.isVaulted === true) await assertFeature(userId, "vault");
-  await db.transaction(async (tx) => {
+  const type = await db.transaction(async (tx) => {
     const columns: Record<string, unknown> = { updatedAt: new Date() };
     if (input.title !== undefined) columns.title = input.title;
     if (input.content !== undefined) columns.content = input.content;
@@ -819,7 +820,7 @@ export async function updateMemory(
       .update(memories)
       .set(columns)
       .where(and(eq(memories.id, id), eq(memories.userId, userId)))
-      .returning({ id: memories.id });
+      .returning({ id: memories.id, type: memories.type });
 
     if (!updated) {
       throw new AppError("Memory not found", 404, "NOT_FOUND");
@@ -859,7 +860,16 @@ export async function updateMemory(
       await tx.delete(attachments).where(eq(attachments.memoryId, id));
       await insertAttachments(tx, id, input.attachments);
     }
+    return updated.type;
   });
+
+  // A note's text changed: once the editing stops, its summary, tags and
+  // search catch up (the title too, while it's still the placeholder).
+  if (type === MemoryType.NOTE && (input.content !== undefined || input.title !== undefined)) {
+    enqueueNoteRefresh(id).catch((err) => {
+      logger.error({ memoryId: id, err }, "Failed to enqueue the edited note's refresh");
+    });
+  }
 
   return getMemoryById(userId, id);
 }
