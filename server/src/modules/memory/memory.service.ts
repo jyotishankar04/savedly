@@ -5,7 +5,7 @@ import { MemoryStatus, MemoryType, PlanLimitType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
 import { withFileCleanup } from "./memory-files";
-import { enqueueIngestion, enqueueNoteRefresh } from "../ai/ingestion/queue";
+import { enqueueIngestion, enqueueNoteRefresh, enqueueNoteReindex } from "../ai/ingestion/queue";
 import { getVectorStore } from "../ai/vector-store";
 import { hybridSearch, SEMANTIC_SIMILARITY_FLOOR } from "../ai/search";
 import { normalizeUrl } from "./normalize-url";
@@ -791,7 +791,7 @@ export async function updateMemory(
 ): Promise<MemoryDetail> {
   // Moving into the vault needs the plan; taking something out never does.
   if (input.isVaulted === true) await assertFeature(userId, "vault");
-  const type = await db.transaction(async (tx) => {
+  const { type, status } = await db.transaction(async (tx) => {
     const columns: Record<string, unknown> = { updatedAt: new Date() };
     if (input.title !== undefined) columns.title = input.title;
     if (input.content !== undefined) columns.content = input.content;
@@ -820,7 +820,7 @@ export async function updateMemory(
       .update(memories)
       .set(columns)
       .where(and(eq(memories.id, id), eq(memories.userId, userId)))
-      .returning({ id: memories.id, type: memories.type });
+      .returning({ id: memories.id, type: memories.type, status: memories.status });
 
     if (!updated) {
       throw new AppError("Memory not found", 404, "NOT_FOUND");
@@ -860,14 +860,16 @@ export async function updateMemory(
       await tx.delete(attachments).where(eq(attachments.memoryId, id));
       await insertAttachments(tx, id, input.attachments);
     }
-    return updated.type;
+    return updated;
   });
 
-  // A note's text changed: once the editing stops, its summary, tags and
-  // search catch up (the title too, while it's still the placeholder).
+  // A note's text changed: re-index it for search once the editing stops. The
+  // AI isn't run again; a note not yet processed at all (one being written in
+  // the full-page editor) has its first processing pushed back instead.
   if (type === MemoryType.NOTE && (input.content !== undefined || input.title !== undefined)) {
-    enqueueNoteRefresh(id).catch((err) => {
-      logger.error({ memoryId: id, err }, "Failed to enqueue the edited note's refresh");
+    const queued = [enqueueNoteReindex(id), ...(status === MemoryStatus.PROCESSING ? [enqueueNoteRefresh(id)] : [])];
+    Promise.all(queued).catch((err) => {
+      logger.error({ memoryId: id, err }, "Failed to queue the edited note's re-index");
     });
   }
 

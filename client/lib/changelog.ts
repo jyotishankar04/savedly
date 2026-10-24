@@ -16,7 +16,7 @@ const items: Item[] = [
     details: [
       "Add to Savedly has a Note tab for a quick one, and Open full page when it grows.",
       "Notes save as you write, and live under Notes in the sidebar.",
-      "They're memories like everything else, so search, Ask and collections cover them. The summary and tags catch up a few minutes after you stop writing.",
+      "They're memories like everything else, so search, Ask and collections cover them, and search finds your latest words within a minute of you stopping.",
     ],
   },
   {

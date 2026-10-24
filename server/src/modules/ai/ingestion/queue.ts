@@ -39,21 +39,37 @@ export async function enqueueIngestion(memoryId: string): Promise<void> {
   await ingestionQueue.add("ingest", { memoryId });
 }
 
-// A note being written is processed again once its writer stops: this long
-// after the last change. Keyword search doesn't wait (a database trigger keeps
-// it current); the summary, tags and search by meaning do.
-const NOTE_SETTLE_MS = 5 * 60 * 1000;
+// A note gets the AI once: its summary, tags, collection and dates come from
+// its first processing. After that an edit only re-indexes it for search by
+// meaning (chunks and vectors, no AI and no allowance; keyword search is kept
+// current by a database trigger). Both wait for the writing to stop: every
+// call while one is waiting replaces it and starts the wait again (BullMQ's
+// debounce), so autosaving every few seconds costs one run.
 
-/**
- * A note was edited: process it once, NOTE_SETTLE_MS after the last of a run
- * of edits. Every call while one is waiting replaces it and starts the wait
- * again (BullMQ's debounce), so autosaving every few seconds costs one run.
- */
+/** The worker's job name for re-indexing only (reembed.ts), as opposed to "ingest". */
+export const REINDEX_JOB = "reindex";
+
+// A note started in the full-page editor is processed this long after its
+// writer stops, so the AI reads the note, not its first few words.
+const NOTE_SETTLE_MS = 5 * 60 * 1000;
+// Re-indexing is cheap, so search catches up soon after an edit.
+const NOTE_REINDEX_MS = 30 * 1000;
+
+/** A note's first processing (the AI), NOTE_SETTLE_MS after the last edit. */
 export async function enqueueNoteRefresh(memoryId: string): Promise<void> {
   await ingestionQueue.add(
     "ingest",
     { memoryId },
     { delay: NOTE_SETTLE_MS, deduplication: { id: `note-refresh:${memoryId}`, ttl: NOTE_SETTLE_MS, extend: true, replace: true } },
+  );
+}
+
+/** An edited note's search index, NOTE_REINDEX_MS after the last edit. */
+export async function enqueueNoteReindex(memoryId: string): Promise<void> {
+  await ingestionQueue.add(
+    REINDEX_JOB,
+    { memoryId },
+    { delay: NOTE_REINDEX_MS, deduplication: { id: `note-reindex:${memoryId}`, ttl: NOTE_REINDEX_MS, extend: true, replace: true } },
   );
 }
 

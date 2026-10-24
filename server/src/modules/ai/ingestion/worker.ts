@@ -9,7 +9,8 @@ import { getLangfuseHandler } from "../langfuse";
 import type { BrowserCapturePayload } from "../url-processor";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 import { ingestionGraph } from "./graph";
-import { INGESTION_QUEUE, ingestionQueue, ingestionWorkerOptions, type IngestionJobData } from "./queue";
+import { INGESTION_QUEUE, REINDEX_JOB, ingestionQueue, ingestionWorkerOptions, type IngestionJobData } from "./queue";
+import { reembedMemory } from "./reembed";
 
 /** Runs in the same process as the API for now (fine for dev — see the AI ingestion plan for the production split). */
 export function startIngestionWorker(): Worker<IngestionJobData> {
@@ -22,6 +23,11 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
   const worker = new Worker<IngestionJobData>(
     INGESTION_QUEUE,
     async (job) => {
+      // An edited note: its chunks and vectors again, without the AI (see queue.ts).
+      if (job.name === REINDEX_JOB) {
+        await reembedMemory(job.data.memoryId);
+        return;
+      }
       logger.info({ memoryId: job.data.memoryId }, "[ingestion] job started");
 
       const [memory] = await db.select().from(memories).where(eq(memories.id, job.data.memoryId));
@@ -74,8 +80,9 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
     // Every prior node degrades gracefully instead of throwing — reaching
     // here means something genuinely broke (a bug, an outage). The memory
     // itself was already created and must never be left stuck at
-    // "processing" forever, per the save guarantee.
-    if (job?.data.memoryId) {
+    // "processing" forever, per the save guarantee. A failed re-index leaves
+    // the memory as it was: only its search by meaning is behind.
+    if (job?.data.memoryId && job.name !== REINDEX_JOB) {
       db.update(memories)
         .set({ status: MemoryStatus.FAILED })
         .where(eq(memories.id, job.data.memoryId))
