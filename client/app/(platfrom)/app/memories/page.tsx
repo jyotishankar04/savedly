@@ -27,6 +27,7 @@ import { usePlanLimit } from "@/hooks/use-plan-limit";
 import { PlanLimitNotice, LimitDot } from "@/components/plan-limit-notice";
 import { MemorySwipe } from "@/components/memory/memory-swipe";
 import { PageHeader, EmptyState } from "@/components/app-page";
+import { readableFields } from "@/lib/extracted-fields";
 
 const FILTER_TYPE: Record<string, MemoryType | undefined> = {
   all: undefined,
@@ -65,6 +66,7 @@ export default function MemoriesPage() {
   // snapshot, so the drawer picks up enrichment as soon as it lands instead
   // of staying stuck on "Still processing" until it's closed and reopened.
   const selectedMemory = memories.find((m) => m.id === selectedMemoryId) ?? null;
+  const selectedDetails = readableFields(selectedMemory?.extractedFields, [selectedMemory?.title, selectedMemory?.source]);
 
 
   // Group into timeline buckets in the order items already arrive (createdAt desc from the API).
@@ -342,18 +344,15 @@ export default function MemoriesPage() {
               </p>
             </div>
 
-            {selectedMemory.extractedFields && Object.keys(selectedMemory.extractedFields).length > 0 && (
-              <div className="space-y-2 border-t border-border pt-4">
-                <span className="text-xs font-medium text-muted-foreground block">
-                  {selectedMemory.contentType ? selectedMemory.contentType.replace(/_/g, " ") : "Details"}
-                </span>
-                <dl className="space-y-1.5">
-                  {Object.entries(selectedMemory.extractedFields).map(([key, value]) => (
-                    <div key={key} className="flex items-start justify-between gap-3">
-                      <dt className="text-xs text-muted-foreground shrink-0 capitalize">
-                        {key.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}
-                      </dt>
-                      <dd className="text-[13px] text-foreground/90 font-medium text-right">{value}</dd>
+            {/* The same short facts as the memory's own page: label over value, never a wall of text. */}
+            {selectedDetails.length > 0 && (
+              <div className="space-y-2.5 border-t border-border pt-4">
+                <span className="block text-xs font-medium text-muted-foreground">Details</span>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  {selectedDetails.map(({ label, value }) => (
+                    <div key={label} className="min-w-0">
+                      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+                      <dd className="mt-0.5 text-[13px] font-medium text-foreground/90 [overflow-wrap:anywhere]">{value}</dd>
                     </div>
                   ))}
                 </dl>

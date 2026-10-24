@@ -43,11 +43,12 @@ import {
   AttachmentTrigger,
 } from "@/components/ui/attachment";
 import type { MemoryDetail } from "@/types/memory";
-import { NoteBody } from "@/components/notes/note-editor";
+import { NoteBody, NoteEditor } from "@/components/notes/note-editor";
 import { SocialPostView } from "@/components/memory/social-post";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { useQueryClient } from "@tanstack/react-query";
 import { reprocessMemory } from "@/lib/memories";
+import { readableFields } from "@/lib/extracted-fields";
 
 function attachmentFilename(fileUrl: string): string {
   return fileUrl.split("/").pop() ?? fileUrl;
@@ -84,10 +85,6 @@ function looksLikeCode(memory: MemoryDetail): boolean {
 // Platforms whose posts and videos Savedly can read (server: url-processor/social).
 const SOCIAL_PLATFORMS = new Set(["youtube", "x", "instagram", "tiktok", "threads", "linkedin", "reddit", "facebook"]);
 
-function humanize(key: string): string {
-  const words = key.replace(/[_-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").trim();
-  return words.charAt(0).toUpperCase() + words.slice(1).toLowerCase();
-}
 
 function formatSavedDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
@@ -175,9 +172,7 @@ export default function MemoryDetailPage() {
   const code = isNote && looksLikeCode(memory);
   // Short facts the AI pulled out (a date, a price, a project name) — not
   // long restatements, and nothing that just repeats the note itself.
-  const details = Object.entries(memory.extractedFields ?? {})
-    .filter(([, value]) => typeof value === "string" && value.trim() && value.length <= 80 && value.trim() !== memory.content?.trim())
-    .slice(0, 4);
+  const details = readableFields(memory.extractedFields, [memory.content, memory.title]);
 
   const startEditing = () => {
     setDraftNote(memory.content ?? "");
@@ -441,16 +436,16 @@ export default function MemoryDetailPage() {
               </div>
               <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5 text-sm leading-relaxed text-foreground">
                 {isEditing ? (
-                  <textarea
-                    value={draftNote}
-                    onChange={(e) => setDraftNote(e.target.value)}
-                    className="w-full bg-transparent resize-y focus:outline-none"
-                    rows={4}
-                    placeholder="Why you saved this, or what to do with it"
+                  // The note editor, as in Notes: headings, lists, to-dos, / for the rest.
+                  <NoteEditor
+                    markdown={memory.content}
                     autoFocus
+                    placeholder="Why you saved this, or what to do with it. Type / for lists and to-dos"
+                    onChange={(value) => setDraftNote(value.markdown)}
+                    className="[&>[role=textbox]]:min-h-24"
                   />
                 ) : memory.content ? (
-                  <p className="whitespace-pre-wrap break-words">{memory.content}</p>
+                  <NoteBody markdown={memory.content} />
                 ) : (
                   <p className="text-xs text-muted-foreground">Nothing yet. A line on why you saved this makes it easier to find later.</p>
                 )}
@@ -568,9 +563,9 @@ export default function MemoryDetailPage() {
             <div className="space-y-2">
               <h3 className="text-[10px] font-semibold text-muted-foreground">Details</h3>
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5">
-                {details.map(([key, value]) => (
-                  <div key={key} className="min-w-0">
-                    <dt className="text-[10px] text-muted-foreground">{humanize(key)}</dt>
+                {details.map(({ label, value }) => (
+                  <div key={label} className="min-w-0">
+                    <dt className="text-[10px] text-muted-foreground">{label}</dt>
                     <dd className="mt-0.5 text-xs font-medium text-foreground break-words">{value}</dd>
                   </div>
                 ))}
