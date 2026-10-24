@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { MaintenanceFullPage } from "@/components/maintenance/maintenance-full-page";
-import { getMaintenanceStatus } from "@/lib/maintenance";
+import { FORCED_MAINTENANCE, FORCED_MAINTENANCE_MESSAGE, getMaintenanceStatus } from "@/lib/maintenance";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,6 +19,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     retry: 1,
     enabled: !isLoginPage,
   });
+
+  // Switched on in the website (the backend is down): nobody can sign in, so sign-in shows it too.
+  if (FORCED_MAINTENANCE) return <MaintenanceFullPage message={FORCED_MAINTENANCE_MESSAGE} />;
 
   if (!isLoginPage && maintenance?.enabled) {
     return <MaintenanceFullPage message={maintenance.message} />;
