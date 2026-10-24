@@ -2,10 +2,8 @@
 
 import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
 import { SelectButton } from "@/components/selection/selection-bar";
-import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
 import { useSelection } from "@/hooks/use-selection";
-import React, { useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Search01Icon as Search, ArrowLeft01Icon as ArrowLeft, Edit01Icon as Edit, GridIcon as Grid, ListIcon as List } from "@hugeicons/core-free-icons";
@@ -16,8 +14,9 @@ import { cn } from "@/lib/utils";
 import { CollectionActionsMenu } from "@/components/collection/collection-actions-menu";
 import { EditCollectionDialog } from "@/components/collection/edit-collection-dialog";
 import { useCollectionQuery, useMemoriesQuery } from "@/context/MemoryContext";
-import { timeAgo } from "@/lib/time";
-import { MemoryThumbnail } from "@/components/memory-thumbnail";
+import { MemoryGridCard } from "@/components/memory/memory-grid-card";
+import { MemorySwipe } from "@/components/memory/memory-swipe";
+import { usePinch } from "@/hooks/use-pinch";
 import { QueryErrorState } from "@/components/query-error-state";
 
 export default function CollectionDetailPage() {
@@ -27,6 +26,14 @@ export default function CollectionDetailPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // As on Memories: a phone starts on the smaller cards (set after the first
+  // render, so the server's and the browser's match), and a pinch switches.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (window.matchMedia("(max-width: 639px)").matches) setViewMode("list");
+  }, []);
+  const pageRef = useRef<HTMLDivElement>(null);
+  usePinch(pageRef, { onPinchOut: () => setViewMode("grid"), onPinchIn: () => setViewMode("list") });
   const [editOpen, setEditOpen] = useState(false);
 
   // By id, not picked out of the list: a collection the AI made after the list loaded still opens.
@@ -63,7 +70,7 @@ export default function CollectionDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10 space-y-8 animate-fade-in">
+    <div ref={pageRef} className="max-w-4xl mx-auto px-6 py-10 space-y-8 animate-fade-in">
 
       {/* Back button */}
       <button
@@ -121,13 +128,19 @@ export default function CollectionDetailPage() {
           {memories.length > 0 && <SelectButton selection={selection} />}
           <div className="flex items-center border border-border/60 rounded-lg bg-card overflow-hidden">
             <button
+              type="button"
               onClick={() => setViewMode("grid")}
+              aria-label="Grid view"
+              aria-pressed={viewMode === "grid"}
               className={cn("p-1.5 hover:bg-muted transition-colors", viewMode === "grid" ? "text-primary bg-primary/5" : "text-muted-foreground")}
             >
               <HugeiconsIcon icon={Grid} strokeWidth={2.25} className="h-3.5 w-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode("list")}
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
               className={cn("p-1.5 hover:bg-muted transition-colors", viewMode === "list" ? "text-primary bg-primary/5" : "text-muted-foreground")}
             >
               <HugeiconsIcon icon={List} strokeWidth={2.25} className="h-3.5 w-3.5" />
@@ -161,48 +174,20 @@ export default function CollectionDetailPage() {
           <p className="text-xs text-muted-foreground">Add memories to it from the memories list or quick capture.</p>
         </div>
       ) : (
-        <div className={cn(
-          viewMode === "grid"
-            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-            : "flex flex-col gap-3"
-        )}>
+        // The same cards as Memories: full in grid view; smaller in list view, two to
+        // a row on a phone. Both swipe (read, archive) and open the memory.
+        <div className={cn(viewMode === "grid" ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" : "grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4")}>
           {memories.map((item) => (
-            <Link
-              key={item.id}
-              href={`/app/memories/${item.id}`}
-              {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e), { id: item.id, title: item.title, selected: selection.has(item.id) })}
-              className={cn(
-                "relative rounded-xl border border-border/45 bg-muted/75 p-1 shadow-xs hover:border-primary/20 transition-all duration-300 block group",
-                selection.has(item.id) && "border-primary/60 ring-2 ring-primary/40",
-              )}
-            >
-              <SelectCheckbox
-                checked={selection.has(item.id)}
+            <MemorySwipe key={item.id} memory={item} disabled={selection.isSelecting} className={viewMode === "grid" ? "rounded-2xl" : "rounded-xl"}>
+              <MemoryGridCard
+                item={item}
+                href={`/app/memories/${item.id}`}
+                compact={viewMode === "list"}
+                selected={selection.has(item.id)}
                 selecting={selection.isSelecting}
-                onToggle={(e) => selection.toggle(item.id, e)}
-                label={`Select ${item.title}`}
-                className="top-3 left-3"
+                onSelect={(e) => selection.toggle(item.id, e)}
               />
-              <div className="p-4 rounded-lg border border-border/75 bg-card flex flex-col justify-between h-full min-h-[165px] space-y-4">
-                <MemoryThumbnail item={item} className="rounded-lg" />
-                <div className="space-y-2">
-                  <span className="text-[8px] font-mono text-primary font-bold bg-primary/10 px-2 py-0.5 rounded uppercase">
-                    {item.type}
-                  </span>
-                  <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
-                    {item.title}
-                  </h4>
-                  <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between pt-2.5 border-t border-border/20 text-[9px] text-muted-foreground font-mono">
-                  <span className="truncate max-w-[120px]">{item.source}</span>
-                  <span>{timeAgo(item.createdAt)}</span>
-                </div>
-              </div>
-            </Link>
+            </MemorySwipe>
           ))}
         </div>
       )}

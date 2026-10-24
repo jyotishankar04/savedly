@@ -6,6 +6,8 @@ import { useEffect, useRef, type RefObject } from "react";
  * pinch, after the gap between them changes by `threshold` (a quarter by
  * default). Inside the element, a two-finger move doesn't also zoom the page.
  * Touch only: Ctrl+scroll and a trackpad pinch stay the browser's own zoom.
+ * Listens on the window and checks the element when a pinch starts, so it
+ * works for an element that appears later (after a page's loading state).
  */
 export function usePinch(
   ref: RefObject<HTMLElement | null>,
@@ -18,14 +20,13 @@ export function usePinch(
   });
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
     let start = 0;
     let done = false;
     const gap = (touches: TouchList) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
 
     const onStart = (event: TouchEvent) => {
-      if (event.touches.length !== 2) return;
+      const el = ref.current;
+      if (event.touches.length !== 2 || !el || !el.contains(event.target as Node)) return;
       start = gap(event.touches);
       done = false;
     };
@@ -46,15 +47,15 @@ export function usePinch(
       if (event.touches.length < 2) start = 0;
     };
 
-    el.addEventListener("touchstart", onStart, { passive: true });
-    el.addEventListener("touchmove", onMove, { passive: false });
-    el.addEventListener("touchend", onEnd, { passive: true });
-    el.addEventListener("touchcancel", onEnd, { passive: true });
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    window.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {
-      el.removeEventListener("touchstart", onStart);
-      el.removeEventListener("touchmove", onMove);
-      el.removeEventListener("touchend", onEnd);
-      el.removeEventListener("touchcancel", onEnd);
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("touchcancel", onEnd);
     };
   }, [ref, threshold]);
 }
