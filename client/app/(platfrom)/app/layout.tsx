@@ -45,6 +45,7 @@ import { DropToSave } from "@/components/capture/drop-to-save";
 import { CaptureCollectionPicker } from "@/components/capture/collection-picker";
 import { CaptureNote, NOTE_DRAFT_KEY } from "@/components/notes/capture-note";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { AutoHeight } from "@/components/ui/auto-height";
 import { useMemoryListKeys } from "@/components/memory/list-keys";
 import { Badge as ArcBadge } from "@/components/arc/badge/badge";
 import { FileDropzone, type FileDropzoneUpload } from "@/components/arc/file-dropzone/file-dropzone";
@@ -527,6 +528,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
     setSaveModalOpen(true);
   }, [
     setSaveStep,
+    setCaptureMode,
+    setSavedNoteId,
     setCaptureTitle,
     setCaptureText,
     setCaptureCollectionIds,
@@ -1290,7 +1293,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         title={saveStep === "done" ? "Saved" : "Add to Savedly"}
         description="Save a link, a note or a file to your library."
         hideDescription
-        className={saveStep === 1 && captureMode === "note" ? "sm:max-w-2xl md:max-h-[90dvh] md:overflow-y-auto" : "sm:max-w-lg"}
+        className={cn("motion-safe:transition-[max-width] motion-safe:duration-300 motion-safe:ease-out", saveStep === 1 && captureMode === "note" ? "sm:max-w-2xl md:max-h-[90dvh] md:overflow-y-auto" : "sm:max-w-lg")}
       >
 
           {saveStep === 1 && (
@@ -1306,6 +1309,8 @@ function AppShell({ children }: { children: React.ReactNode }) {
             />
           )}
 
+          {/* The box eases to each tab's height (and the dialog to its width) instead of jumping. */}
+          <AutoHeight changeKey={`${saveStep}-${captureMode}`}>
           <AnimatePresence mode="wait" initial={false}>
             {saveStep === 1 && captureMode === "note" && (
               <motion.div key="note" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, transition: { duration: 0.12 } }} transition={{ duration: 0.2 }}>
@@ -1451,6 +1456,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               </motion.div>
             )}
           </AnimatePresence>
+          </AutoHeight>
       </ResponsiveDialog>
 
       {/* Floating dock — replaces the collapsed sidebar, docked at the
