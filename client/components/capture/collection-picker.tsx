@@ -17,10 +17,13 @@ export function CaptureCollectionPicker({
   collections,
   selectedIds,
   onChange,
+  hideLegend = false,
 }: {
   collections: Collection[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
+  /** Where something on screen already says "collections" (the Note tab's line that opens it), the heading is for screen readers only. */
+  hideLegend?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
   // Chosen ones first, so they stay in view when the list is cut short.
@@ -34,7 +37,7 @@ export function CaptureCollectionPicker({
 
   return (
     <fieldset className="space-y-2">
-      <legend className="text-sm font-medium text-foreground">Collections</legend>
+      <legend className={hideLegend ? "sr-only" : "text-sm font-medium text-foreground"}>Collections</legend>
 
       {collections.length === 0 ? (
         <p className="text-sm text-muted-foreground">You have none yet. Savedly suggests one after you save.</p>
