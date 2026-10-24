@@ -69,8 +69,9 @@ const COMMAND_START = /^\s*(\$ |sudo |docker |npm |npx |pnpm |yarn |git |curl |w
 function looksLikeCode(memory: MemoryDetail): boolean {
   const text = memory.content ?? "";
   if (!text.trim()) return false;
+  // Written in the note editor (fences, lists, headings, quotes): shown formatted, code blocks included.
+  if (/^\s*(#{1,6} |[-*+] |\d+[.)] |> )|```/m.test(text)) return false;
   if (memory.contentType && /code|command|snippet|script/i.test(memory.contentType)) return true;
-  if (text.includes("```")) return true;
   const lines = text.split("\n").filter((l) => l.trim());
   return lines.length > 0 && lines.every((l) => COMMAND_START.test(l) || /^\s{2,}\S/.test(l) || /[;{}]\s*$/.test(l));
 }
