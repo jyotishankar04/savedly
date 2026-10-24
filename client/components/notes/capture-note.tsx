@@ -96,8 +96,8 @@ export function CaptureNote({
           autoComplete="off"
           className="block w-full bg-transparent px-5 pb-1 pt-4 text-xl font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/45"
         />
-        {/* Scrolls inside itself, so a long note doesn't push Save out of the dialog. */}
-        <div className="max-h-[42vh] overflow-y-auto px-5 pb-4">
+        {/* Grows with the note; the dialog scrolls past a long one. Not a scrolling box of its own: that would clip the / menu. */}
+        <div className="px-5 pb-4">
           <NoteEditor
             ref={editor}
             autoFocus

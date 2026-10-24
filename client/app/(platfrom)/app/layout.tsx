@@ -1290,7 +1290,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         title={saveStep === "done" ? "Saved" : "Add to Savedly"}
         description="Save a link, a note or a file to your library."
         hideDescription
-        className={saveStep === 1 && captureMode === "note" ? "sm:max-w-2xl" : "sm:max-w-lg"}
+        className={saveStep === 1 && captureMode === "note" ? "sm:max-w-2xl md:max-h-[90dvh] md:overflow-y-auto" : "sm:max-w-lg"}
       >
 
           {saveStep === 1 && (
