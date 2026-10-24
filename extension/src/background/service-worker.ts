@@ -1,7 +1,8 @@
-// Background service worker for the Savedly Chrome extension
+// Background service worker for the Savedly extension (a background script in the Firefox build)
 import { apiFetch, ApiError, checkAuth, checkSignedIn } from "../lib/api";
 import { SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
 import { forgetSaved, hasHighlights, isSaved, refreshHighlighted, rememberHighlighted, rememberSaved, savedKeys } from "../lib/saved-pages";
+import { openSidePanel, PANEL_NAME } from "../lib/side-panel";
 
 // Sign-in is the browser's own Savedly session (see lib/api.ts). This file
 // only keeps the yes/no "signed in" flag fresh for the popup and the on-page
@@ -48,7 +49,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   chrome.contextMenus.create({
     id: "open-side-panel",
     parentId: "savedly-root",
-    title: "Open Savedly side panel",
+    title: `Open Savedly ${PANEL_NAME}`,
     contexts: ["page", "selection", "image", "link"]
   });
 
@@ -169,7 +170,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.commands.onCommand.addListener(async (command, tab) => {
   // Opened straight away: the side panel only opens in direct answer to the person's action.
   if (command === "open-side-panel") {
-    if (tab?.windowId != null) void chrome.sidePanel.open({ windowId: tab.windowId });
+    if (tab?.windowId != null) void openSidePanel({ windowId: tab.windowId }).catch(() => undefined);
     return;
   }
   if (command !== "quick-save-page") return;
@@ -218,6 +219,9 @@ const RESTRICTED_URL_PREFIXES = [
   "view-source:",
   "https://chrome.google.com/webstore",
   "https://chromewebstore.google.com",
+  // Firefox's own: other add-ons' pages and its add-ons site.
+  "moz-extension://",
+  "https://addons.mozilla.org",
 ];
 
 function isRestrictedPage(url: string | undefined): boolean {
@@ -568,7 +572,8 @@ async function checkReminders(): Promise<void> {
       title: n.title,
       message: n.body ?? "You asked to come back to this.",
       priority: 2,
-      buttons: [{ title: "Open" }],
+      // Firefox has no notification buttons; clicking the notification opens it there.
+      ...(__FIREFOX__ ? {} : { buttons: [{ title: "Open" }] }),
     });
   }
   // Only the latest few are worth keeping a link for.
@@ -586,7 +591,8 @@ async function openReminder(notificationId: string): Promise<void> {
 }
 
 chrome.notifications.onClicked.addListener((id) => void openReminder(id));
-chrome.notifications.onButtonClicked.addListener((id) => void openReminder(id));
+// Not in Firefox, which has no notification buttons.
+chrome.notifications.onButtonClicked?.addListener((id) => void openReminder(id));
 
 let ticks = 0;
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -700,7 +706,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // storage so a sleeping worker doesn't forget them.
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "open-side-panel" && tab?.windowId != null) void chrome.sidePanel.open({ windowId: tab.windowId });
+  if (info.menuItemId === "open-side-panel" && tab?.windowId != null) void openSidePanel({ windowId: tab.windowId }).catch(() => undefined);
 });
 
 const tabPageKey = (tabId: number) => `tab-page:${tabId}`;
@@ -719,7 +725,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   if (request.action === "OPEN_SIDE_PANEL" && sender.tab?.id != null) {
-    chrome.sidePanel.open({ tabId: sender.tab.id }).catch(() => undefined);
+    openSidePanel({ tabId: sender.tab.id }).catch(() => undefined);
     return undefined;
   }
   return undefined;

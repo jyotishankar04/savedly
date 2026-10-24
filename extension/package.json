@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:local": "tsc && vite build --mode development",
-    "package": "pnpm build && rm -f savedly-extension-*.zip && cd dist && zip -qr ../savedly-extension-$npm_package_version.zip . && cd .. && ls -lh savedly-extension-*.zip"
+    "package": "pnpm build && rm -f savedly-extension-*.zip && cd dist && zip -qr ../savedly-extension-$npm_package_version.zip . && cd .. && ls -lh savedly-extension-*.zip",
+    "build:firefox": "tsc && TARGET=firefox vite build",
+    "build:firefox:local": "tsc && TARGET=firefox vite build --mode development",
+    "package:firefox": "pnpm build:firefox && rm -f savedly-firefox-*.zip && cd dist-firefox && zip -qr ../savedly-firefox-$npm_package_version.zip . && cd .. && zip -qr savedly-firefox-source-$npm_package_version.zip . -x \"node_modules/*\" \"dist/*\" \"dist-firefox/*\" \"store/*\" \"*.zip\" \".env\" \".env.local\" && ls -lh savedly-firefox-*.zip"
   },
   "dependencies": {
     "react": "^18.3.1",

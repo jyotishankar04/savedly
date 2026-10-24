@@ -81,7 +81,7 @@ export function EditableTitle({ id, title, className }: { id: string; title: str
         type="button"
         onClick={start}
         title="Rename"
-        className="-mx-1 rounded-md px-1 text-left transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="-mx-1 max-w-full rounded-md px-1 text-left [overflow-wrap:anywhere] transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         {shown}
         <span className="sr-only"> (rename)</span>

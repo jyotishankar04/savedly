@@ -21,6 +21,7 @@ import {
 import { useDeleteMemoryMutation, useMemoriesQuery, useUpdateMemoryMutation } from "@/context/MemoryContext";
 import { QueryErrorState } from "@/components/query-error-state";
 import { cn } from "@/lib/utils";
+import { SwipeRow } from "@/components/swipe-row";
 import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
 import { SelectButton } from "@/components/selection/selection-bar";
 import { RowSelect, selectableProps } from "@/components/selection/select-checkbox";
@@ -52,7 +53,13 @@ export default function TrashPage() {
     updateMutation.mutate(
       { id, patch: { inTrash: false } },
       {
-        onSuccess: () => toast.add({ title: "Restored to active index", description: title, type: "success" }),
+        onSuccess: () =>
+          toast.add({
+            title: "Restored to active index",
+            description: title,
+            type: "success",
+            action: { label: "Undo", onClick: () => updateMutation.mutate({ id, patch: { inTrash: true } }) },
+          }),
         onError: (err) => toast.add({ title: "Couldn't restore that memory", description: err instanceof Error ? err.message : undefined, type: "error" }),
       },
     );
@@ -150,56 +157,67 @@ function TrashRow({
 }) {
   const daysLeft = daysUntilPurge(item.trashedAt);
   const selected = selection.has(item.id);
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
   return (
-    <li
-      {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
-      className={cn("group flex items-center gap-4 rounded-2xl border border-border bg-card p-3 transition-colors", selection.isSelecting && "cursor-pointer", selected && "border-primary/60 bg-primary/5")}
-    >
-      <RowSelect checked={selected} selecting={selection.isSelecting} onToggle={(e) => selection.toggle(item.id, e)} label={`Select ${item.title}`} className="w-16 shrink-0">
-        <div className="w-16 opacity-70">
-          <MemoryThumbnail item={item} className="rounded-xl grayscale" />
+    <li>
+      {/* On a phone: swipe right to restore, left to delete for good (after the same question as the button). */}
+      <SwipeRow
+        disabled={selection.isSelecting}
+        className="rounded-2xl"
+        swipeRight={{ label: "Restore", icon: RotateCcw, tone: "primary", leaves: true, run: () => onRestore(item.id, item.title) }}
+        swipeLeft={{ label: "Delete", icon: Trash2, tone: "danger", run: () => setConfirmOpen(true) }}
+      >
+        <div
+          {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e))}
+          className={cn("group flex items-center gap-4 rounded-2xl border border-border bg-card p-3 transition-colors", selection.isSelecting && "cursor-pointer", selected && "border-primary/60 bg-primary/5")}
+        >
+          <RowSelect checked={selected} selecting={selection.isSelecting} onToggle={(e) => selection.toggle(item.id, e)} label={`Select ${item.title}`} className="w-16 shrink-0">
+            <div className="w-16 opacity-70">
+              <MemoryThumbnail item={item} className="rounded-xl grayscale" />
+            </div>
+          </RowSelect>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {daysLeft === null ? "Trashed" : daysLeft === 0 ? "Purges today" : `Purges in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => onRestore(item.id, item.title)} aria-label="Restore" className="h-9 rounded-full px-2.5 text-sm sm:px-3.5">
+              <HugeiconsIcon icon={RotateCcw} strokeWidth={2} className="h-4 w-4" /> <span className="hidden sm:inline">Restore</span>
+            </Button>
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Delete permanently"
+                    className="h-9 w-9 rounded-full border-destructive/25 bg-destructive/5 text-destructive hover:bg-destructive/10"
+                  >
+                    <HugeiconsIcon icon={Trash2} strokeWidth={2} className="h-4 w-4" />
+                  </Button>
+                }
+              />
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogMedia tone="destructive">
+                    <HugeiconsIcon icon={Trash2} strokeWidth={2} />
+                  </AlertDialogMedia>
+                  <AlertDialogTitle>Delete &ldquo;{item.title}&rdquo; permanently?</AlertDialogTitle>
+                  <AlertDialogDescription>This action can&apos;t be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => onDelete(item.id, item.title)}>
+                    Delete permanently
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
-      </RowSelect>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {daysLeft === null ? "Trashed" : daysLeft === 0 ? "Purges today" : `Purges in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`}
-        </p>
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => onRestore(item.id, item.title)} className="h-9 rounded-full px-3.5 text-sm">
-          <HugeiconsIcon icon={RotateCcw} strokeWidth={2} className="h-4 w-4" /> Restore
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label="Delete permanently"
-                className="h-9 w-9 rounded-full border-destructive/25 bg-destructive/5 text-destructive hover:bg-destructive/10"
-              >
-                <HugeiconsIcon icon={Trash2} strokeWidth={2} className="h-4 w-4" />
-              </Button>
-            }
-          />
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogMedia tone="destructive">
-                <HugeiconsIcon icon={Trash2} strokeWidth={2} />
-              </AlertDialogMedia>
-              <AlertDialogTitle>Delete &ldquo;{item.title}&rdquo; permanently?</AlertDialogTitle>
-              <AlertDialogDescription>This action can&apos;t be undone.</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => onDelete(item.id, item.title)}>
-                Delete permanently
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      </SwipeRow>
     </li>
   );
 }

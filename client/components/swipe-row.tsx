@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { animate, motion, useMotionValue, useReducedMotion } from "motion/react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export interface SwipeAction {
   label: string;
   icon: IconSvgElement;
-  tone: "primary" | "amber";
+  tone: "primary" | "amber" | "danger";
   run: () => void;
   /** The item leaves the list (Archive): the row slides off rather than springing back. */
   leaves?: boolean;
@@ -18,6 +18,7 @@ const SLOP = 8;
 const TONE = {
   primary: { soft: "bg-primary/12 text-primary", solid: "bg-primary text-primary-foreground" },
   amber: { soft: "bg-amber-500/15 text-amber-600 dark:text-amber-400", solid: "bg-amber-500 text-white" },
+  danger: { soft: "bg-destructive/12 text-destructive", solid: "bg-destructive text-white" },
 };
 
 /**
@@ -49,6 +50,10 @@ export function SwipeRow({
   const swallowClick = useRef(false);
   const [side, setSide] = useState<"right" | "left" | null>(null);
   const [armed, setArmed] = useState(false);
+  // A half-width card has no room for the words: just the icon shows behind it.
+  const [narrow, setNarrow] = useState(false);
+  const stopWatching = useRef<(() => void) | null>(null);
+  useEffect(() => () => stopWatching.current?.(), []);
 
   const actionFor = (s: "right" | "left" | null) => (s === "right" ? swipeRight : s === "left" ? swipeLeft : undefined);
   const threshold = (width: number) => Math.min(width * 0.35, 140);
@@ -68,8 +73,23 @@ export function SwipeRow({
   };
 
   const onPointerDown = (event: React.PointerEvent) => {
-    if (disabled || event.pointerType !== "touch" || (!swipeRight && !swipeLeft)) return;
-    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, width: box.current?.offsetWidth ?? 320, locked: false };
+    if (disabled || event.pointerType !== "touch" || !event.isPrimary || (!swipeRight && !swipeLeft)) return;
+    const width = box.current?.offsetWidth ?? 320;
+    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, width, locked: false };
+    setNarrow(width < 240);
+    // A second finger anywhere makes it a pinch (it switches the view), never a swipe.
+    stopWatching.current?.();
+    const onTouch = (e: TouchEvent) => {
+      if (e.touches.length < 2 || !drag.current) return;
+      drag.current = null;
+      swallowClick.current = false;
+      reset();
+    };
+    window.addEventListener("touchstart", onTouch, { passive: true });
+    stopWatching.current = () => {
+      window.removeEventListener("touchstart", onTouch);
+      stopWatching.current = null;
+    };
   };
   const onPointerMove = (event: React.PointerEvent) => {
     const d = drag.current;
@@ -102,8 +122,12 @@ export function SwipeRow({
     const d = drag.current;
     if (!d || d.id !== event.pointerId) return;
     drag.current = null;
+    stopWatching.current?.();
     if (!d.locked) return;
+    // The tap that ends a swipe isn't a click on the item. If no click follows,
+    // the next real tap mustn't be eaten either.
     swallowClick.current = true;
+    window.setTimeout(() => (swallowClick.current = false), 400);
     const action = actionFor(side);
     if (!armed || !action) {
       reset();
@@ -133,8 +157,9 @@ export function SwipeRow({
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
       onClickCapture={(event) => {
-        // The tap that ends a swipe isn't a click on the item.
-        if (!swallowClick.current) return;
+        // The tap that ends a swipe isn't a click on the item. Only clicks on the row itself:
+        // a dialog the swipe opened (portalled, but still inside this in React) must work.
+        if (!swallowClick.current || !box.current?.contains(event.target as Node)) return;
         swallowClick.current = false;
         event.preventDefault();
         event.stopPropagation();
@@ -142,10 +167,10 @@ export function SwipeRow({
       className={cn("relative touch-pan-y overflow-hidden", className)}
     >
       {action && tone && (
-        <div aria-hidden className={cn("absolute inset-0 flex items-center px-5 transition-colors duration-150", side === "right" ? "justify-start" : "justify-end", armed ? tone.solid : tone.soft)}>
+        <div aria-hidden className={cn("absolute inset-0 flex items-center transition-colors duration-150", narrow ? "px-4" : "px-5", side === "right" ? "justify-start" : "justify-end", armed ? tone.solid : tone.soft)}>
           <span className={cn("flex items-center gap-2 text-sm font-medium transition-transform duration-150", armed && "scale-110")}>
             <HugeiconsIcon icon={action.icon} strokeWidth={2} className="size-5" />
-            {action.label}
+            {!narrow && action.label}
           </span>
         </div>
       )}

@@ -7,6 +7,7 @@ import { SearchPanel } from "./SearchPanel";
 import { timeAgo } from "../lib/remind";
 import { apiFetch, ApiError } from "../lib/api";
 import { API_BASE, SHOW_FLOATING_ICON_STORAGE_KEY, SIGNED_IN_STORAGE_KEY, WEB_APP_URL } from "../lib/config";
+import { openSidePanel, PANEL_NAME } from "../lib/side-panel";
 
 type ExtensionState = "checking" | "unauthorized" | "unreachable" | "notWebPage" | "ready" | "saving" | "saved" | "error";
 
@@ -379,12 +380,17 @@ export default function Popup() {
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <button
             style={styles.iconButton}
-            title="Open Savedly in the side panel"
-            aria-label="Open Savedly in the side panel"
+            title={`Open Savedly in the ${PANEL_NAME}`}
+            aria-label={`Open Savedly in the ${PANEL_NAME}`}
             onClick={() => {
               // Straight from the click: the side panel opens only in direct answer to one.
+              // Firefox's sidebar needs no window, and waiting for one would lose the click.
+              if (__FIREFOX__) {
+                void openSidePanel({}).then(() => window.close()).catch(() => undefined);
+                return;
+              }
               chrome.windows.getCurrent((win) => {
-                if (win.id != null) void chrome.sidePanel.open({ windowId: win.id }).then(() => window.close());
+                if (win.id != null) void openSidePanel({ windowId: win.id }).then(() => window.close()).catch(() => undefined);
               });
             }}
           >

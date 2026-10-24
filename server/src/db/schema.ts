@@ -254,6 +254,7 @@ export const emailTemplateKeyEnum = pgEnum("email_template_key", [
   EmailTemplateKey.ADMIN_CUSTOM,
   EmailTemplateKey.EVENT_DETECTED,
   EmailTemplateKey.MEMORY_REMINDER,
+  EmailTemplateKey.WEEKLY_DIGEST,
 ]);
 
 export const emailStatusEnum = pgEnum("email_status", [
@@ -647,7 +648,10 @@ export const userSettings = pgTable("user_settings", {
   captureGenerateTitle: boolean("capture_generate_title").notNull().default(true),
   captureGenerateSummary: boolean("capture_generate_summary").notNull().default(true),
   captureSuggestTags: boolean("capture_suggest_tags").notNull().default(true),
+  // The Sunday email of saves waiting to be read (modules/memory/weekly-digest.job.ts).
   notifyWeeklySummary: boolean("notify_weekly_summary").notNull().default(true),
+  // When it last went out, so it's sent once a week however many servers sweep.
+  weeklyDigestSentAt: timestamp("weekly_digest_sent_at", { withTimezone: true }),
   notifyForgottenMemories: boolean("notify_forgotten_memories").notNull().default(true),
   // Emails for reminders set with "Remind me" (the in-app notification always comes).
   notifyReminderEmails: boolean("notify_reminder_emails").notNull().default(true),

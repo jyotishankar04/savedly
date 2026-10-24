@@ -9,6 +9,16 @@ type Item = Omit<ChangelogEntry, "id" | "month" | "date"> & { id?: string };
 
 const items: Item[] = [
   {
+    iso: "2026-10-24",
+    kind: "new",
+    title: "A weekly email of things to read",
+    summary: "On Sunday morning, a few saves from your Inbox you haven't read yet, oldest first.",
+    details: [
+      "It comes at 9 in your own time zone, and not at all in a week with nothing unread.",
+      "Turn it off in Settings › Notifications, or from the link in the email.",
+    ],
+  },
+  {
     iso: "2026-10-23",
     kind: "new",
     title: "Gestures on your phone",
