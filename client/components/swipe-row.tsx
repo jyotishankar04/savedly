@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export interface SwipeAction {
   label: string;
   icon: IconSvgElement;
-  tone: "primary" | "amber";
+  tone: "primary" | "amber" | "danger";
   run: () => void;
   /** The item leaves the list (Archive): the row slides off rather than springing back. */
   leaves?: boolean;
@@ -18,6 +18,7 @@ const SLOP = 8;
 const TONE = {
   primary: { soft: "bg-primary/12 text-primary", solid: "bg-primary text-primary-foreground" },
   amber: { soft: "bg-amber-500/15 text-amber-600 dark:text-amber-400", solid: "bg-amber-500 text-white" },
+  danger: { soft: "bg-destructive/12 text-destructive", solid: "bg-destructive text-white" },
 };
 
 /**
@@ -123,7 +124,10 @@ export function SwipeRow({
     drag.current = null;
     stopWatching.current?.();
     if (!d.locked) return;
+    // The tap that ends a swipe isn't a click on the item. If no click follows,
+    // the next real tap mustn't be eaten either.
     swallowClick.current = true;
+    window.setTimeout(() => (swallowClick.current = false), 400);
     const action = actionFor(side);
     if (!armed || !action) {
       reset();
@@ -153,8 +157,9 @@ export function SwipeRow({
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
       onClickCapture={(event) => {
-        // The tap that ends a swipe isn't a click on the item.
-        if (!swallowClick.current) return;
+        // The tap that ends a swipe isn't a click on the item. Only clicks on the row itself:
+        // a dialog the swipe opened (portalled, but still inside this in React) must work.
+        if (!swallowClick.current || !box.current?.contains(event.target as Node)) return;
         swallowClick.current = false;
         event.preventDefault();
         event.stopPropagation();
