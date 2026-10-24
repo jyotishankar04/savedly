@@ -13,6 +13,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button as ArcButton } from "@/components/arc/button/button";
 import { NoteBody } from "@/components/notes/note-editor";
+import { NoteDiff } from "@/components/notes/note-diff";
+import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { toast } from "@/components/ui/toast";
@@ -45,7 +47,9 @@ export function NoteAiMenu({
 }) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState<NoteRewriteMode | "refresh" | null>(null);
-  const [result, setResult] = useState<{ mode: NoteRewriteMode; markdown: string } | null>(null);
+  const [result, setResult] = useState<{ mode: NoteRewriteMode; before: string; markdown: string } | null>(null);
+  // The preview opens on what changed; "Result" shows the new version as it will look.
+  const [view, setView] = useState<"changes" | "result">("changes");
 
   const rewrite = async (mode: NoteRewriteMode) => {
     const markdown = getMarkdown().trim();
@@ -57,7 +61,10 @@ export function NoteAiMenu({
     try {
       const answer = await rewriteNote(noteId, mode, markdown);
       if (answer.markdown.trim() === markdown) toast.add({ title: "Nothing to change", description: "The AI left the note as it is.", type: "success" });
-      else setResult({ mode, markdown: answer.markdown });
+      else {
+        setView("changes");
+        setResult({ mode, before: markdown, markdown: answer.markdown });
+      }
     } catch (err) {
       toast.add({ title: "Couldn't rewrite the note", description: err instanceof Error ? err.message : undefined, type: "error" });
     } finally {
@@ -120,13 +127,22 @@ export function NoteAiMenu({
         open={!!result}
         onOpenChange={(open) => !open && setResult(null)}
         title={shown?.done ?? "Suggested version"}
-        description="Have a look before it replaces your note. Ctrl/⌘+Z in the note brings yours back."
+        description="See what changed before it replaces your note. Ctrl/⌘+Z in the note brings yours back."
         className="sm:max-w-2xl"
       >
         {result && (
-          <div className="space-y-5">
+          <div className="space-y-4">
+            <SegmentedControl
+              label="Preview"
+              value={view}
+              onValueChange={(value) => setView(value as "changes" | "result")}
+              options={[
+                { value: "changes", label: "Changes" },
+                { value: "result", label: "Result" },
+              ]}
+            />
             <div className="max-h-[55vh] overflow-y-auto rounded-2xl border border-border/70 bg-muted/25 px-5 py-4">
-              <NoteBody markdown={result.markdown} />
+              {view === "changes" ? <NoteDiff before={result.before} after={result.markdown} /> : <NoteBody markdown={result.markdown} />}
             </div>
             <div className="flex justify-end gap-2">
               <ArcButton variant="secondary" onClick={() => setResult(null)}>
