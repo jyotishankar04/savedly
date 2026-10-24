@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -140,6 +141,7 @@ function NoteWriter({
   const router = useRouter();
   const queryClient = useQueryClient();
   const trash = useMoveToTrashMutation();
+  const reduced = useReducedMotion();
   const editor = useRef<RichTextEditorHandle>(null);
   const aiMenu = useRef<NoteAiMenuHandle>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -311,7 +313,13 @@ function NoteWriter({
             : "";
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-4 sm:px-6 md:pt-6">
+    // Rises into place: from Notes, New note, or the dialog's "Open full page".
+    <motion.div
+      initial={reduced ? false : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 32 }}
+      className="mx-auto w-full max-w-3xl px-4 pb-24 pt-4 sm:px-6 md:pt-6"
+    >
       <div className="mb-8 flex items-center justify-between gap-3 md:mb-12">
         <Link
           href="/app/notes"
@@ -514,6 +522,6 @@ function NoteWriter({
             });
         }}
       />
-    </div>
+    </motion.div>
   );
 }

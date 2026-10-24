@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowExpand01Icon as Expand, ArrowShrink02Icon as Shrink } from "@hugeicons/core-free-icons";
-import type { RichTextEditorHandle } from "@/components/arc/rich-text-editor/rich-text-editor";
+import type { CapturedSelection, RichTextEditorHandle } from "@/components/arc/rich-text-editor/rich-text-editor";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { NoteAiMenu, SELECTION_ACTIONS, type NoteAiMenuHandle } from "@/components/notes/note-ai-menu";
 import { memoryQueryKey } from "@/context/MemoryContext";
@@ -22,10 +23,19 @@ type SaveState = "saved" | "editing" | "saving" | "error";
  */
 export function MemoryNote({ memoryId, title, content }: { memoryId: string; title: string; content: string | null }) {
   const queryClient = useQueryClient();
-  const editor = useRef<RichTextEditorHandle>(null);
+  // The page's editor and the full page's: both are briefly on screen while the full page shrinks back.
+  const inlineEditor = useRef<RichTextEditorHandle>(null);
+  const fullEditor = useRef<RichTextEditorHandle>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  // Where the note box is on screen: the full page grows out of it and shrinks back into it.
+  const [origin, setOrigin] = useState<string>("inset(0px 0px 0px 0px round 0px)");
   const aiMenu = useRef<NoteAiMenuHandle>(null);
   const [state, setState] = useState<SaveState>("saved");
   const [full, setFull] = useState(false);
+  // Which editor is the live one, for the handlers below (read when they run, never during render).
+  const fullOpen = useRef(false);
+  const liveEditor = useCallback(() => (fullOpen.current ? fullEditor.current : inlineEditor.current), []);
   // The text the editor opens with (again, when it moves to full page and back), and whether there's any.
   const [openingText, setOpeningText] = useState(content ?? "");
   const [hasText, setHasText] = useState(!!content?.trim());
@@ -80,7 +90,10 @@ export function MemoryNote({ memoryId, title, content }: { memoryId: string; tit
 
   // In and out of full page: the editor moves, and opens again on what's been written so far.
   const setFullPage = useCallback((open: boolean) => {
+    const rect = box.current?.getBoundingClientRect();
+    if (rect) setOrigin(`inset(${rect.top}px ${window.innerWidth - rect.right}px ${window.innerHeight - rect.bottom}px ${rect.left}px round 16px)`);
     baselined.current = false;
+    fullOpen.current = open;
     setOpeningText(latest.current);
     setFull(open);
   }, []);
@@ -102,35 +115,43 @@ export function MemoryNote({ memoryId, title, content }: { memoryId: string; tit
 
   const status = state === "saving" ? "Saving…" : state === "editing" ? "Editing" : state === "error" ? "Not saved" : hasText ? "Saved" : "";
 
+  const onEditorChange = useCallback(
+    (value: { markdown: string; empty: boolean }) => {
+      setHasText(!value.empty);
+      if (!baselined.current) {
+        baselined.current = true;
+        latest.current = value.markdown;
+        if (!opened.current) saved.current = value.markdown;
+        opened.current = true;
+        return;
+      }
+      if (value.markdown === latest.current) return;
+      latest.current = value.markdown;
+      setState("editing");
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => void save(), 800);
+    },
+    [save],
+  );
+  const onSelectionAction = useCallback(
+    (action: string, selection: CapturedSelection) =>
+      aiMenu.current?.rewritePart(action as (typeof SELECTION_ACTIONS)[number]["id"], selection.markdown, (markdown) => liveEditor()?.replaceSelection(selection, markdown) ?? false, selection.context),
+    [liveEditor],
+  );
+
   // One editor, inline or full page; moving it keeps what's written (it reopens on the latest text).
-  const writer = (
+  const writer = (place: "inline" | "full") => (
     <NoteEditor
-      key={full ? "full" : "inline"}
-      ref={editor}
+      key={place}
+      ref={place === "full" ? fullEditor : inlineEditor}
       markdown={openingText}
-      autoFocus={full}
-      size={full ? "page" : "compact"}
+      autoFocus={place === "full"}
+      size={place === "full" ? "page" : "compact"}
       placeholder="Why you saved this, or what to do with it. Type / for lists and to-dos"
       selectionActions={SELECTION_ACTIONS}
-      onSelectionAction={(action, selection) =>
-        aiMenu.current?.rewritePart(action as (typeof SELECTION_ACTIONS)[number]["id"], selection.markdown, (markdown) => editor.current?.replaceSelection(selection, markdown) ?? false, selection.context)
-      }
-      onChange={(value) => {
-        setHasText(!value.empty);
-        if (!baselined.current) {
-          baselined.current = true;
-          latest.current = value.markdown;
-          if (!opened.current) saved.current = value.markdown;
-          opened.current = true;
-          return;
-        }
-        if (value.markdown === latest.current) return;
-        latest.current = value.markdown;
-        setState("editing");
-        clearTimeout(timer.current);
-        timer.current = setTimeout(() => void save(), 800);
-      }}
-      className={full ? undefined : "[&>[role=textbox]]:min-h-20"}
+      onSelectionAction={onSelectionAction}
+      onChange={onEditorChange}
+      className={place === "full" ? undefined : "[&>[role=textbox]]:min-h-20"}
     />
   );
 
@@ -149,8 +170,8 @@ export function MemoryNote({ memoryId, title, content }: { memoryId: string; tit
         <NoteAiMenu
           ref={aiMenu}
           noteId={memoryId}
-          getMarkdown={() => editor.current?.getMarkdown() ?? latest.current}
-          onReplace={(markdown) => editor.current?.setMarkdown(markdown)}
+          getMarkdown={() => liveEditor()?.getMarkdown() ?? latest.current}
+          onReplace={(markdown) => liveEditor()?.setMarkdown(markdown)}
           beforeRefresh={save}
         />
         <button
@@ -166,30 +187,44 @@ export function MemoryNote({ memoryId, title, content }: { memoryId: string; tit
     </div>
   );
 
-  if (full && typeof document !== "undefined") {
-    return (
-      <>
-        <section className="space-y-2.5">
-          <h2 className="text-xs font-bold text-foreground">Your note</h2>
-          <p className="rounded-2xl border border-dashed border-border px-4 py-3.5 text-xs text-muted-foreground">Open full page. Esc comes back.</p>
-        </section>
-        {createPortal(
-          <div role="dialog" aria-modal="true" aria-label={`Your note on ${title}`} className="fixed inset-0 z-[90] overflow-y-auto bg-background animate-in fade-in-0 duration-150">
-            <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-5 sm:px-6 md:pt-8">
-              <div className="mb-8">{header}</div>
-              {writer}
-            </div>
-          </div>,
+  return (
+    <>
+      <section className="space-y-2.5">
+        {full ? <h2 className="text-xs font-bold text-foreground">Your note</h2> : header}
+        <div ref={box} className="rounded-2xl border border-border/60 bg-card px-4 py-3.5 text-sm leading-relaxed text-foreground transition-colors focus-within:border-primary/40">
+          {full ? <p className="text-xs text-muted-foreground">Open full page. Esc comes back.</p> : writer("inline")}
+        </div>
+      </section>
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {full && (
+              // Grows out of the note box to the whole screen, and back into it.
+              <motion.div
+                key="full"
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Your note on ${title}`}
+                initial={reduced ? { opacity: 0 } : { clipPath: origin, opacity: 0.4 }}
+                animate={reduced ? { opacity: 1 } : { clipPath: "inset(0px 0px 0px 0px round 0px)", opacity: 1 }}
+                exit={reduced ? { opacity: 0 } : { clipPath: origin, opacity: 0, transition: { type: "spring", stiffness: 420, damping: 40, opacity: { duration: 0.25, delay: 0.05 } } }}
+                transition={{ type: "spring", stiffness: 340, damping: 34 }}
+                className="fixed inset-0 z-[90] overflow-y-auto bg-background"
+              >
+                <motion.div
+                  initial={reduced ? false : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: reduced ? 0 : 0.1, duration: 0.25 } }}
+                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                  className="mx-auto w-full max-w-3xl px-4 pb-24 pt-5 sm:px-6 md:pt-8"
+                >
+                  <div className="mb-8">{header}</div>
+                  {writer("full")}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
           document.body,
         )}
-      </>
-    );
-  }
-
-  return (
-    <section className="space-y-2.5">
-      {header}
-      <div className="rounded-2xl border border-border/60 bg-card px-4 py-3.5 text-sm leading-relaxed text-foreground transition-colors focus-within:border-primary/40">{writer}</div>
-    </section>
+    </>
   );
 }
