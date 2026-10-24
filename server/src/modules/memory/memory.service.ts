@@ -19,6 +19,7 @@ import type {
 } from "./memory.schema";
 import { assertFeature, assertWithinLimit } from "../plans/plans.service";
 import { DuplicateStatus, findDuplicate } from "./duplicates";
+import type { SocialPost } from "../ai/url-processor";
 
 /** Saves meant to be read or watched later: they start unread, in the Inbox. Notes and voice memos are the user's own words. */
 export const READ_LATER_TYPES = new Set<string>(["web", "video", "document", "image"]);
@@ -86,6 +87,8 @@ export interface MemoryDetail extends MemoryListItem {
   content: string | null;
   keywords: string[] | null;
   attachments: AttachmentResponse[];
+  /** A social post or video as read from its platform (url-processor/social), transcript included. */
+  socialPost: SocialPost | null;
 }
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -163,6 +166,11 @@ export function noteExcerpt(markdown: string | null): string | null {
   return text ? text.slice(0, 280) : null;
 }
 
+function postAuthor(post: unknown): string | null {
+  const author = (post as SocialPost | null)?.author;
+  return author?.handle ? `@${author.handle}` : (author?.name ?? null);
+}
+
 function toListItem(
   row: typeof memories.$inferSelect,
   memoryTagsList: string[],
@@ -175,7 +183,8 @@ function toListItem(
     url: row.url,
     // A note shows its own words; everything else, what was understood about it.
     description: row.type === MemoryType.NOTE ? (noteExcerpt(row.content) ?? row.description) : row.description,
-    source: row.source,
+    // A post's author says more than its site ("@jack" rather than "x.com").
+    source: postAuthor(row.socialPost) ?? row.source,
     faviconUrl: row.faviconUrl,
     previewImageUrl: row.previewImageUrl,
     isFavorite: row.isFavorite,
@@ -414,6 +423,7 @@ export async function getMemoryById(userId: string, id: string): Promise<MemoryD
     content: row.content,
     keywords: row.keywords,
     attachments: attachmentRows,
+    socialPost: (row.socialPost as SocialPost | null) ?? null,
   };
 }
 
@@ -484,6 +494,8 @@ export async function exportAllMemories(userId: string): Promise<MemoryDetail[]>
     content: row.content,
     keywords: row.keywords,
     attachments: attachmentsByMemory.get(row.id) ?? [],
+    // The export keeps what was read from a post, transcript included.
+    socialPost: (row.socialPost as SocialPost | null) ?? null,
   }));
 }
 

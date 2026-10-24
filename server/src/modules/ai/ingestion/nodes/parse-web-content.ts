@@ -1,4 +1,4 @@
-import { detectPlatform, extractServerMetadata, fetchUrl, buildPreview, defaultFaviconUrl } from "../../url-processor";
+import { detectPlatform, extractServerMetadata, fetchUrl, buildPreview, defaultFaviconUrl, postAsText, socialExtractorFor, type SocialPost } from "../../url-processor";
 import { extractPdfContent } from "./lib/parse-pdf";
 import { analyzeImage } from "./lib/analyze-image";
 import { logNode } from "../log";
@@ -16,6 +16,56 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+// A post with this little text is mostly its picture: the picture is described, so search and Ask find it by what's in it.
+const SHORT_POST_CHARS = 280;
+
+async function fromSocialPost(
+  state: IngestionStateType,
+  post: SocialPost,
+  { platform, resourceType, domain }: { platform: string | null; resourceType: string | null; domain: string },
+): Promise<IngestionUpdate> {
+  const first = post.media?.[0];
+  const postImage = first ? (first.thumbnailUrl ?? (first.type === "image" ? first.url : null)) : null;
+  // A cover the person picked in the extension stays theirs.
+  const imageUrl = state.browserCapture?.imageUrl ?? postImage;
+
+  let rawContent = postAsText(post);
+  if (postImage && !post.transcript && (post.text?.length ?? 0) < SHORT_POST_CHARS) {
+    const seen = await analyzeImage(postImage, { userId: state.userId, requestType: "ingestion:vision", memoryId: state.memoryId });
+    if (seen) rawContent += `\n\nImage: ${seen}`;
+  }
+
+  const who = post.author?.handle ? `@${post.author.handle}` : post.author?.name;
+  const opening = post.text?.replace(/\s+/g, " ").trim();
+  const title = post.title ?? (opening ? `${who ? `${who}: ` : ""}${opening.length > 90 ? `${opening.slice(0, 87)}…` : opening}` : null);
+
+  logNode(state.memoryId, "parseWebContent", {
+    url: state.url,
+    kind: "social",
+    platform,
+    source: post.source,
+    textLength: post.text?.length ?? 0,
+    transcriptLines: post.transcript?.segments.length ?? 0,
+    contentLength: rawContent.length,
+  });
+
+  return {
+    rawContent: rawContent.slice(0, 80_000),
+    platform,
+    resourceType,
+    fetchStatus: "success",
+    canonicalUrl: post.url,
+    previewImageUrl: imageUrl,
+    faviconUrl: defaultFaviconUrl(state.url ?? post.url),
+    previewStatus: imageUrl ? "available" : "partial",
+    previewSource: state.browserCapture?.imageUrl ? "browser" : "server",
+    sourceDomain: domain || null,
+    previewTitle: title,
+    previewDescription: opening ? opening.slice(0, 500) : null,
+    socialPost: post,
+  };
+}
+
 /**
  * The core of the URL capture & preview system (docs/URL_CAPTURE_AND_PREVIEW.md):
  * SSRF-safe fetch -> platform detection -> metadata extraction -> merge with
@@ -31,6 +81,13 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
   }
 
   const { platform, resourceType, domain, hasAuth } = detectPlatform(state.url);
+
+  // A social post or video: read from its platform, not as a web page. When
+  // that fails it falls through to the page fetch below, as before.
+  const read = socialExtractorFor(state.url);
+  const post = read ? await read(state.url).catch(() => null) : null;
+  if (post) return fromSocialPost(state, post, { platform, resourceType, domain });
+
   const fetchResult = await fetchUrl(state.url);
 
   // A pasted URL is always mediaType "web" client-side (content-type isn't
@@ -110,7 +167,9 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
     : { title: null, description: null, imageUrl: null, canonicalUrl: null, faviconUrl: defaultFaviconUrl(state.url) };
 
   const preview = buildPreview(serverMetadata, state.browserCapture, { platform, resourceType, domain, hasAuth });
-  const rawContent = fetchResult.html ? stripHtml(fetchResult.html).slice(0, MAX_CONTENT_LENGTH) : "";
+  // A post or video whose reader came back empty (removed, private): its page is the platform's app
+  // shell, whose text is menus and footers. Only its preview tags are worth keeping.
+  const rawContent = fetchResult.html && !read ? stripHtml(fetchResult.html).slice(0, MAX_CONTENT_LENGTH) : "";
 
   logNode(state.memoryId, "parseWebContent", {
     url: state.url,

@@ -1,0 +1,124 @@
+import { fetchJson } from "./http";
+import type { SocialPost } from "./types";
+
+// A YouTube video: its details and description from YouTube's player API,
+// and its captions as a transcript. The player is asked as YouTube's iOS
+// app: the web player's caption links need a browser's proof-of-origin
+// token and come back empty, the app's don't (checked Oct 2026). Falls back
+// to oEmbed (title, channel, thumbnail) when the player won't answer.
+
+const IOS_CLIENT = { clientName: "IOS", clientVersion: "20.10.4", deviceModel: "iPhone16,2", hl: "en" };
+const IOS_UA = "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3 like Mac OS X;)";
+// A long talk's captions run to hundreds of thousands of characters; this is plenty to search and summarize.
+const MAX_TRANSCRIPT_CHARS = 60_000;
+
+export function youtubeVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^(www\.|m\.|music\.)/, "");
+    if (host === "youtu.be") return u.pathname.slice(1).split("/")[0] || null;
+    if (host !== "youtube.com" && host !== "youtube-nocookie.com") return null;
+    const v = u.searchParams.get("v");
+    if (v) return v;
+    const match = /^\/(?:shorts|live|embed|v)\/([A-Za-z0-9_-]{6,})/.exec(u.pathname);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+interface PlayerResponse {
+  playabilityStatus?: { status?: string };
+  videoDetails?: {
+    title?: string;
+    author?: string;
+    channelId?: string;
+    shortDescription?: string;
+    lengthSeconds?: string;
+    viewCount?: string;
+    thumbnail?: { thumbnails?: { url: string; width?: number }[] };
+  };
+  captions?: { playerCaptionsTracklistRenderer?: { captionTracks?: { baseUrl: string; languageCode: string; kind?: string }[] } };
+}
+
+/** "0:00 Intro" lines in a description, when there are at least two starting at 0:00. */
+function chaptersFrom(description: string): { start: number; title: string }[] | undefined {
+  const chapters = description
+    .split("\n")
+    .map((line) => /^\s*(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s*[-–—:|]?\s*(.+?)\s*$/.exec(line))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map((m) => ({ start: Number(m[1] ?? 0) * 3600 + Number(m[2]) * 60 + Number(m[3]), title: m[4]! }));
+  return chapters.length >= 2 && chapters[0]!.start === 0 ? chapters : undefined;
+}
+
+async function transcriptFrom(player: PlayerResponse): Promise<SocialPost["transcript"]> {
+  const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+  if (!tracks.length) return undefined;
+  // The automatic track says which language is spoken; a written track in that language beats it.
+  const auto = tracks.find((t) => t.kind === "asr");
+  const spoken = auto?.languageCode;
+  const track = tracks.find((t) => t.kind !== "asr" && spoken && t.languageCode.split("-")[0] === spoken.split("-")[0]) ?? auto ?? tracks.find((t) => t.kind !== "asr") ?? tracks[0]!;
+  const data = await fetchJson<{ events?: { tStartMs?: number; segs?: { utf8?: string }[] }[] }>(`${track.baseUrl}&fmt=json3`, { userAgent: IOS_UA });
+  if (!data?.events) return undefined;
+  const segments: { start: number; text: string }[] = [];
+  let total = 0;
+  for (const event of data.events) {
+    const text = (event.segs ?? []).map((s) => s.utf8 ?? "").join("").replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    segments.push({ start: Math.round((event.tStartMs ?? 0) / 1000), text });
+    total += text.length + 1;
+    if (total > MAX_TRANSCRIPT_CHARS) break;
+  }
+  return segments.length ? { language: track.languageCode, auto: track.kind === "asr", segments } : undefined;
+}
+
+export async function extractYouTube(url: string): Promise<SocialPost | null> {
+  const id = youtubeVideoId(url);
+  if (!id) return null;
+  const kind: SocialPost["kind"] = /\/shorts\//.test(url) ? "short" : "video";
+  const watchUrl = kind === "short" ? `https://www.youtube.com/shorts/${id}` : `https://www.youtube.com/watch?v=${id}`;
+
+  const player = await fetchJson<PlayerResponse>("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
+    method: "POST",
+    userAgent: IOS_UA,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ context: { client: IOS_CLIENT }, videoId: id }),
+  });
+  const details = player?.playabilityStatus?.status === "OK" ? player.videoDetails : undefined;
+
+  if (details?.title) {
+    const thumbs = details.thumbnail?.thumbnails ?? [];
+    const thumbnail = [...thumbs].sort((a, b) => (b.width ?? 0) - (a.width ?? 0))[0]?.url ?? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    const description = details.shortDescription?.trim() || undefined;
+    return {
+      platform: "youtube",
+      kind,
+      url: watchUrl,
+      author: { name: details.author, url: details.channelId ? `https://www.youtube.com/channel/${details.channelId}` : undefined },
+      title: details.title,
+      text: description,
+      media: [{ type: "video", url: watchUrl, thumbnailUrl: thumbnail }],
+      stats: { views: details.viewCount ? Number(details.viewCount) : undefined },
+      durationSeconds: details.lengthSeconds ? Number(details.lengthSeconds) : undefined,
+      chapters: description ? chaptersFrom(description) : undefined,
+      transcript: await transcriptFrom(player!),
+      embed: { provider: "youtube", id },
+      source: "api",
+    };
+  }
+
+  const oembed = await fetchJson<{ title?: string; author_name?: string; author_url?: string; thumbnail_url?: string }>(
+    `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(watchUrl)}`,
+  );
+  if (!oembed?.title) return null;
+  return {
+    platform: "youtube",
+    kind,
+    url: watchUrl,
+    author: { name: oembed.author_name, url: oembed.author_url },
+    title: oembed.title,
+    media: oembed.thumbnail_url ? [{ type: "video", url: watchUrl, thumbnailUrl: oembed.thumbnail_url }] : undefined,
+    embed: { provider: "youtube", id },
+    source: "oembed",
+  };
+}

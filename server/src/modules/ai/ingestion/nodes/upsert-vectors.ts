@@ -61,11 +61,26 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
   // content is still the original note text, not the fetched page — good
   // enough to be findable and correctly typed, not a full re-ingest.
   const reclassifiedAsLink = !state.url && !!state.detectedUrl;
+  // A link that turned out to be a video (a YouTube or TikTok post saved as a page) is filed as one.
+  const postIsVideo = !!state.socialPost && state.mediaType === MemoryType.WEB && ["video", "short"].includes(state.socialPost.kind) && ["youtube", "tiktok"].includes(state.socialPost.platform);
   const correctedType = reclassifiedAsLink
     ? isVideoUrl(new URL(state.detectedUrl as string))
       ? MemoryType.VIDEO
       : MemoryType.WEB
-    : undefined;
+    : postIsVideo
+      ? MemoryType.VIDEO
+      : undefined;
+  // A link titled with its own address or site ("x.com", the URL) wasn't named by anyone either.
+  const urlTitle = (() => {
+    if (!state.url) return false;
+    const title = state.existingTitle.trim().toLowerCase();
+    try {
+      const host = new URL(state.url).hostname.replace(/^www\./, "").toLowerCase();
+      return title === state.url.toLowerCase() || title === host || title === `www.${host}`;
+    } catch {
+      return false;
+    }
+  })();
 
   // Reaching this node at all means every earlier node completed without
   // throwing — "failed" is reserved for a genuine thrown error (see
@@ -86,7 +101,7 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
         // over a placeholder (see isPlaceholderTitle). Prefers the AI title,
         // falling back to the page's own og:title/<title> when AI insight
         // generation itself came up empty (still better than "Untitled").
-        title: isPlaceholderTitle(state.existingTitle) ? (state.aiTitle ?? state.previewTitle ?? undefined) : undefined,
+        title: isPlaceholderTitle(state.existingTitle) || urlTitle ? (state.aiTitle ?? state.previewTitle ?? undefined) : undefined,
         // Spelling/grammar-corrected version of what the user typed as a
         // caption — never runs for "note" (see correctCaption.ts), so a
         // note's own body is never touched here.
@@ -115,6 +130,7 @@ export async function upsertVectors(state: IngestionStateType): Promise<Ingestio
         resourceType: state.resourceType ?? undefined,
         canonicalUrl: state.canonicalUrl ?? undefined,
         fetchStatus: state.fetchStatus ?? undefined,
+        socialPost: state.socialPost ?? undefined,
         status: finalStatus,
       })
       .where(eq(memories.id, state.memoryId));

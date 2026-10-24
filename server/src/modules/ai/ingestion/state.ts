@@ -1,5 +1,6 @@
 import { StateSchema } from "@langchain/langgraph";
 import { z } from "zod";
+import type { SocialPost } from "../url-processor";
 
 const chunkSchema = z.object({
   index: z.number(),
@@ -67,6 +68,8 @@ export const IngestionState = new StateSchema({
   // page title still wins over "Untitled" even if AI enrichment itself fails.
   previewTitle: z.string().nullable().default(null),
   previewDescription: z.string().nullable().default(null),
+  // A social post or video, read from its platform by ParseWebContent (url-processor/social).
+  socialPost: z.custom<SocialPost>().nullable().default(null),
 
   // CorrectCaption output — null when skipped (note body, or no caption).
   correctedCaption: z.string().nullable().default(null),

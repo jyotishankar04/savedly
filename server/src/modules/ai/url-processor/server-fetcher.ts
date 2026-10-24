@@ -134,8 +134,11 @@ function looksLikeJsShell(html: string): boolean {
   return stripped.length < 500 && /enable javascript|noscript|requires javascript/i.test(html);
 }
 
-/** SSRF-safe, robots-respecting fetch with a normalized outcome — never throws; every failure mode maps to a FetchStatus instead. */
-export async function fetchUrl(rawUrl: string): Promise<UrlFetchResult> {
+/**
+ * SSRF-safe, robots-respecting fetch with a normalized outcome — never throws; every failure mode maps to a FetchStatus instead.
+ * `robots: "skip"` is for social/unfurl.ts only: one fetch of the one page a person saved, read like a link preview.
+ */
+export async function fetchUrl(rawUrl: string, options: { robots?: "respect" | "skip" } = {}): Promise<UrlFetchResult> {
   const fetchedAt = new Date().toISOString();
   let currentUrl = rawUrl;
 
@@ -143,7 +146,7 @@ export async function fetchUrl(rawUrl: string): Promise<UrlFetchResult> {
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       const safeUrl = await assertSafeUrl(currentUrl);
 
-      if (!(await isAllowedByRobots(safeUrl))) {
+      if (options.robots !== "skip" && !(await isAllowedByRobots(safeUrl))) {
         return { status: "robots_blocked", httpStatus: null, finalUrl: currentUrl, html: "", fetchedAt, contentType: null, binaryData: null };
       }
 

@@ -757,6 +757,10 @@ export const memories = pgTable(
     // POST /:id/browser-capture, consumed by the ingestion pipeline's merge
     // step and kept for re-merging on a later /refresh-preview.
     browserCapture: jsonb("browser_capture"),
+    // A social post or video as read from its platform (ai/url-processor/
+    // social): author, text, media, counts, a YouTube video's chapters and
+    // transcript. Null for any other link, and until ingestion runs.
+    socialPost: jsonb("social_post"),
     isFavorite: boolean("is_favorite").notNull().default(false),
     isArchived: boolean("is_archived").notNull().default(false),
     inTrash: boolean("in_trash").notNull().default(false),

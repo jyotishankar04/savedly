@@ -1,4 +1,5 @@
 import type { PlatformInfo } from "./types";
+import { extractTikTok, extractX, extractYouTube, unfurl, type SocialExtractor } from "./social";
 
 /**
  * Credential lookup for a platform that requires authenticated fetching
@@ -17,6 +18,8 @@ interface PlatformRule {
   hostnames: string[];
   resourceType?: (pathname: string) => string | null;
   auth?: PlatformAuthConfig;
+  /** Reads a post or video's content (social/), for these resource types only; null when it can't. */
+  extract?: { resourceTypes: string[]; read: SocialExtractor };
 }
 
 // Data, not branching logic — a new platform (with or without auth) is a
@@ -40,6 +43,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/[^/]+\/?$/.test(path)) return "profile";
       return null;
     },
+    extract: { resourceTypes: ["post"], read: unfurl("instagram") },
   },
   {
     platform: "x",
@@ -49,6 +53,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/[^/]+\/?$/.test(path)) return "profile";
       return null;
     },
+    extract: { resourceTypes: ["post"], read: extractX },
   },
   {
     platform: "youtube",
@@ -60,6 +65,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/playlist/.test(path)) return "playlist";
       return null;
     },
+    extract: { resourceTypes: ["video", "short"], read: extractYouTube },
   },
   {
     platform: "tiktok",
@@ -69,18 +75,35 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/@[^/]+\/?$/.test(path)) return "profile";
       return null;
     },
+    extract: { resourceTypes: ["video"], read: extractTikTok },
+  },
+  {
+    platform: "threads",
+    hostnames: ["threads.net", "threads.com"],
+    resourceType: (path) => {
+      if (/^\/@[^/]+\/post\//.test(path)) return "post";
+      if (/^\/@[^/]+\/?$/.test(path)) return "profile";
+      return null;
+    },
+    extract: { resourceTypes: ["post"], read: unfurl("threads") },
   },
   {
     platform: "linkedin",
     hostnames: ["linkedin.com"],
     resourceType: (path) => {
-      if (/^\/posts\//.test(path)) return "post";
+      if (/^\/(posts|pulse)\//.test(path) || /^\/feed\/update\//.test(path)) return "post";
       if (/^\/in\//.test(path)) return "profile";
       if (/^\/company\//.test(path)) return "company";
       return null;
     },
+    extract: { resourceTypes: ["post"], read: unfurl("linkedin") },
   },
-  { platform: "facebook", hostnames: ["facebook.com", "fb.com"] },
+  {
+    platform: "facebook",
+    hostnames: ["facebook.com", "fb.com", "fb.watch"],
+    resourceType: (path) => (/\/(posts|videos|reel|permalink|watch|share)\b/.test(path) ? "post" : null),
+    extract: { resourceTypes: ["post"], read: unfurl("facebook") },
+  },
   {
     platform: "reddit",
     hostnames: ["reddit.com"],
@@ -89,6 +112,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/r\/[^/]+\/?$/.test(path)) return "subreddit";
       return null;
     },
+    extract: { resourceTypes: ["post"], read: unfurl("reddit") },
   },
   {
     platform: "github",
@@ -153,6 +177,13 @@ export function detectPlatform(url: string): PlatformInfo {
     domain: hostname,
     hasAuth: !!rule.auth && !!process.env[rule.auth.envVar],
   };
+}
+
+/** The reader for a URL's post or video, when its platform has one for that kind of page (see `extract` above). */
+export function socialExtractorFor(url: string): SocialExtractor | null {
+  const { platform, resourceType } = detectPlatform(url);
+  const rule = PLATFORM_RULES.find((r) => r.platform === platform);
+  return rule?.extract && resourceType && rule.extract.resourceTypes.includes(resourceType) ? rule.extract.read : null;
 }
 
 /**
