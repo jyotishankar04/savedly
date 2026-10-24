@@ -1,5 +1,5 @@
 import type { PlatformInfo } from "./types";
-import { extractTikTok, extractX, extractYouTube, unfurl, type SocialExtractor } from "./social";
+import { extractReddit, extractTikTok, extractX, extractYouTube, unfurl, type SocialExtractor } from "./social";
 
 /**
  * Credential lookup for a platform that requires authenticated fetching
@@ -112,7 +112,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/r\/[^/]+\/?$/.test(path)) return "subreddit";
       return null;
     },
-    extract: { resourceTypes: ["post"], read: unfurl("reddit") },
+    extract: { resourceTypes: ["post"], read: extractReddit },
   },
   {
     platform: "github",

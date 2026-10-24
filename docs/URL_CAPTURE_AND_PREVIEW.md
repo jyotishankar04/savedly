@@ -78,11 +78,14 @@ A platform row may carry `extract: { resourceTypes, read }`: a reader for its po
 | YouTube (`video`, `short`) | the player API, as YouTube's iOS app (the web player's captions need a browser's proof-of-origin token); oEmbed as a fallback | title, channel, description, duration, views, chapters (from the description), the captions as a transcript (at most ~60k characters) |
 | X (`post`) | `cdn.syndication.twimg.com/tweet-result`, the endpoint X's embedded posts read; oEmbed as a fallback | text (t.co links expanded), author and avatar, date, photos and video posters, a quoted post, likes and replies |
 | TikTok (`video`) | TikTok's oEmbed | caption, author, thumbnail (what's said is only in the audio, which isn't read) |
-| Instagram, Threads, LinkedIn, Reddit, Facebook (`post`) | the saved page's preview tags, read like a link preview (below) | the caption or text, the author, the date, the picture, and Instagram's likes and comments |
+| Instagram, Threads, LinkedIn, Facebook (`post`) | the saved page, read like a link preview (below): its preview tags, and for LinkedIn its JSON-LD | the caption or text, the author, the date, the picture; Instagram's likes and comments; LinkedIn's counts, a video's file, cover and transcript |
+| Reddit (`post`) | the post's own RSS feed (the page sends bots nothing; the JSON API needs a login) | title, author, date, the text or shared link, the top 5 comments. Reddit limits feeds without a login (429): a refused read saves the link as before |
 
 A post that's mostly its picture (under 280 characters of text, no transcript) also gets its image described by the vision model, part of the same memory's AI save.
 
-**robots.txt and link previews.** Those five send `Disallow: /` to every unknown bot. That rule is about crawling; a save is one person sharing one page, which is what WhatsApp, Slack and iMessage read for their link previews. So for a post on one of these platforms, and only there, `fetchUrl(url, { robots: "skip" })` fetches that one page, with Savedly's own user agent, and only its `<meta>` preview tags are read. Nothing linked from it is fetched, and every other page still honours robots.txt.
+**Playing it in Savedly.** A video plays on the memory's page: YouTube, TikTok, Instagram reels and Facebook videos in the player each publishes for embedding; X and LinkedIn videos, whose files a browser can play, in Savedly's own player (`components/ui/video-player.tsx`). X's video server refuses requests that say they come from another site, so that player can drop the Referer. Pictures open full screen in Savedly.
+
+**robots.txt and link previews.** Those platforms send `Disallow: /` to every unknown bot. That rule is about crawling; a save is one person sharing one page, which is what WhatsApp, Slack and iMessage read for their link previews. So for a post on one of these platforms, and only there, `fetchUrl(url, { robots: "skip" })` fetches that one page, with Savedly's own user agent, and only its `<meta>` preview tags are read. Nothing linked from it is fetched, and every other page still honours robots.txt.
 
 ## 6. Security — `server-fetcher.ts`
 

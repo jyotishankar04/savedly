@@ -13,6 +13,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { getPlatformFallback } from "@/lib/platform-fallback";
 import { cn } from "@/lib/utils";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { VideoPlayer } from "@/components/ui/video-player";
 import type { SocialPost } from "@/types/memory";
 
 const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
@@ -56,6 +58,117 @@ function Marked({ text, query }: { text: string; query: string }) {
   return <>{out}</>;
 }
 
+/** Width ÷ height; anything narrower than square plays in a phone-shaped frame, centred. */
+const isTall = (aspect: number | undefined) => !!aspect && aspect < 0.9;
+
+/**
+ * A post's video or pictures, in place:
+ * - YouTube in its privacy-friendly player (the transcript and chapters seek it);
+ * - a video file the browser plays itself (X, LinkedIn) in a plain video player;
+ * - TikTok, Instagram reels and Facebook videos in the player each publishes for embedding;
+ * - pictures, which open full screen (all of a post's photos, ← → between them).
+ * A video with none of those shows its picture and opens on the platform.
+ */
+function PostMedia({ post, start, processing, imageFailed, onImageFailed }: { post: SocialPost; start: number | null; processing: boolean; imageFailed: boolean; onImageFailed: () => void }) {
+  const [viewing, setViewing] = useState<number | null>(null);
+  const label = post.title ?? post.text?.slice(0, 120) ?? getPlatformFallback(post.platform).label;
+  const video = post.media?.find((m) => m.type === "video");
+  const playable = post.media?.find((m) => m.type === "video" && m.src);
+  const photos = (post.media ?? []).filter((m) => m.type === "image").map((m) => ({ src: m.url, alt: label }));
+  const frame = (aspect: number | undefined, children: React.ReactNode, id?: string) => (
+    <div id={id} className={cn("relative overflow-hidden rounded-2xl border border-border/60 bg-black", isTall(aspect) && "mx-auto w-full max-w-[360px]")} style={{ aspectRatio: aspect ?? 16 / 9 }}>
+      {children}
+    </div>
+  );
+
+  if (post.embed?.provider === "youtube" && post.embed.id) {
+    return frame(
+      post.embed.aspect,
+      <iframe
+        key={start ?? "start"}
+        src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(post.embed.id)}?rel=0${start !== null ? `&start=${start}&autoplay=1` : ""}`}
+        title={post.title ?? "YouTube video"}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+        className="absolute inset-0 size-full"
+      />,
+      "social-player",
+    );
+  }
+  if (playable?.src) {
+    return (
+      <VideoPlayer
+        src={playable.src}
+        poster={playable.thumbnailUrl}
+        aspect={playable.aspect}
+        label={label}
+        // X's video server turns away requests that come from another site.
+        noReferrer={post.platform === "x"}
+        fallbackHref={post.url}
+        className={isTall(playable.aspect) ? "mx-auto w-full max-w-[360px]" : "w-full"}
+      />
+    );
+  }
+  if (post.embed?.src) {
+    return frame(
+      post.embed.aspect,
+      <iframe
+        src={post.embed.src}
+        title={`${getPlatformFallback(post.platform).label}: ${label}`}
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture; web-share"
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+        className="absolute inset-0 size-full bg-white"
+      />,
+    );
+  }
+  if (photos.length && !imageFailed) {
+    const shimmer = processing && (
+      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+        <div className="absolute inset-y-0 left-0 w-1/3 animate-shine-sweep bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+      </div>
+    );
+    return (
+      <>
+        {photos.length === 1 ? (
+          <button type="button" onClick={() => setViewing(0)} aria-label="View the picture full screen" className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl border border-border/60 bg-muted/40">
+            {shimmer}
+            {/* eslint-disable-next-line @next/next/no-img-element -- the platform's own image, from its own domain */}
+            <img src={photos[0]!.src} alt={label} onError={onImageFailed} className="mx-auto max-h-[520px] w-full object-contain" />
+          </button>
+        ) : (
+          <div className="grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border border-border/60">
+            {photos.slice(0, 4).map((photo, i) => (
+              <button key={photo.src} type="button" onClick={() => setViewing(i)} aria-label={`View picture ${i + 1} of ${photos.length} full screen`} className={cn("relative block cursor-zoom-in bg-muted/40", photos.length === 3 && i === 0 ? "row-span-2" : "aspect-square")}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- the platform's own image */}
+                <img src={photo.src} alt={label} className="size-full object-cover" />
+                {i === 3 && photos.length > 4 && <span className="absolute inset-0 grid place-items-center bg-black/50 text-lg font-semibold text-white">+{photos.length - 4}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+        <ImageLightbox images={photos} index={viewing} onIndexChange={setViewing} onClose={() => setViewing(null)} originalUrl={post.url} />
+      </>
+    );
+  }
+  if (video?.thumbnailUrl && !imageFailed) {
+    return (
+      <a href={post.url} target="_blank" rel="noreferrer" className="group relative block overflow-hidden rounded-2xl border border-border/60 bg-muted/40">
+        {/* eslint-disable-next-line @next/next/no-img-element -- the platform's own image */}
+        <img src={video.thumbnailUrl} alt={label} onError={onImageFailed} className="mx-auto max-h-[520px] w-full object-contain" />
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid size-14 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition-transform group-hover:scale-105">
+            <HugeiconsIcon icon={Play} strokeWidth={2} className="size-6" />
+          </span>
+        </span>
+      </a>
+    );
+  }
+  return null;
+}
+
 /**
  * A social post or video on its memory's page, as read from the platform:
  * who posted it and when, what it says, its picture or (for YouTube) the
@@ -76,8 +189,8 @@ export function SocialPostView({ post, processing = false }: { post: SocialPost;
     return q ? all.filter((s) => s.text.toLowerCase().includes(q)) : all;
   }, [post.transcript, find]);
 
-  const media = post.media?.[0];
-  const picture = media ? (media.thumbnailUrl ?? (media.type === "image" ? media.url : null)) : null;
+  // Only a video playing here has times to jump to (a LinkedIn video's transcript is one block of text).
+  const timed = post.embed?.provider === "youtube";
   const date = post.publishedAt ? new Date(post.publishedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null;
   const who = post.author?.name ?? (post.author?.handle ? `@${post.author.handle}` : null);
   const seek = (seconds: number) => {
@@ -87,37 +200,8 @@ export function SocialPostView({ post, processing = false }: { post: SocialPost;
 
   return (
     <section className="space-y-4">
-      {/* The video, playable here; or the post's picture. */}
-      {post.embed?.provider === "youtube" ? (
-        <div id="social-player" className="relative aspect-video overflow-hidden rounded-2xl border border-border/60 bg-black">
-          <iframe
-            key={start ?? "start"}
-            src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(post.embed.id)}?rel=0${start !== null ? `&start=${start}&autoplay=1` : ""}`}
-            title={post.title ?? "YouTube video"}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-            className="absolute inset-0 size-full"
-          />
-        </div>
-      ) : picture && !imageFailed ? (
-        <a href={post.url} target="_blank" rel="noreferrer" className="group relative block overflow-hidden rounded-2xl border border-border/60 bg-muted/40">
-          {processing && (
-            <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
-              <div className="absolute inset-y-0 left-0 w-1/3 animate-shine-sweep bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-            </div>
-          )}
-          {/* eslint-disable-next-line @next/next/no-img-element -- the platform's own image, from its own domain */}
-          <img src={picture} alt={post.title ?? post.text?.slice(0, 120) ?? platform} onError={() => setImageFailed(true)} className="mx-auto max-h-[520px] w-full object-contain" />
-          {media?.type === "video" && (
-            <span className="absolute inset-0 grid place-items-center">
-              <span className="grid size-14 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition-transform group-hover:scale-105">
-                <HugeiconsIcon icon={Play} strokeWidth={2} className="size-6" />
-              </span>
-            </span>
-          )}
-        </a>
-      ) : null}
+      {/* The video or the pictures, played and shown right here; the platform is one click away, not the only way. */}
+      <PostMedia post={post} start={start} processing={processing} imageFailed={imageFailed} onImageFailed={() => setImageFailed(true)} />
 
       <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5">
         <div className="flex items-start gap-3">
@@ -194,7 +278,8 @@ export function SocialPostView({ post, processing = false }: { post: SocialPost;
             <span>
               <span className="text-xs font-bold text-foreground">Transcript</span>
               <span className="ml-2 text-xs text-muted-foreground">
-                {post.transcript.segments.length} lines{post.transcript.auto ? " · auto-generated" : ""}
+                {timed ? `${post.transcript.segments.length} lines` : "from the post"}
+                {post.transcript.auto ? " · auto-generated" : ""}
               </span>
             </span>
             <HugeiconsIcon icon={ChevronDown} strokeWidth={2} className={cn("size-4 text-muted-foreground transition-transform", transcriptOpen && "rotate-180")} />
@@ -210,7 +295,12 @@ export function SocialPostView({ post, processing = false }: { post: SocialPost;
                 <p className="px-2 py-3 text-sm text-muted-foreground">Not said in this video.</p>
               ) : (
                 <ol className="max-h-[420px] space-y-0.5 overflow-y-auto">
-                  {segments.map((segment, i) => (
+                  {!timed && segments.map((segment, i) => (
+                    <li key={i} className="whitespace-pre-wrap px-2 py-1 text-sm leading-relaxed text-foreground/90">
+                      <Marked text={segment.text} query={find.trim()} />
+                    </li>
+                  ))}
+                  {timed && segments.map((segment, i) => (
                     <li key={`${segment.start}-${i}`}>
                       <button type="button" onClick={() => seek(segment.start)} className="flex w-full items-baseline gap-3 rounded-lg px-2 py-1 text-left text-sm transition-colors hover:bg-muted" title="Play from here">
                         <span className="w-12 shrink-0 font-mono text-xs tabular-nums text-primary">{clock(segment.start)}</span>

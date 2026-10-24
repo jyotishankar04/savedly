@@ -4,6 +4,7 @@ export type { SocialPost, SocialExtractor } from "./types";
 export { extractYouTube, youtubeVideoId } from "./youtube";
 export { extractX } from "./x";
 export { extractTikTok } from "./tiktok";
+export { extractReddit } from "./reddit";
 export { unfurl } from "./unfurl";
 
 const clock = (seconds: number) => {

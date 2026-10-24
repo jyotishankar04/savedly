@@ -75,13 +75,15 @@ export interface SocialPost {
   title?: string;
   text?: string;
   publishedAt?: string;
-  media?: { type: "image" | "video"; url: string; thumbnailUrl?: string }[];
+  /** A video's `src` is a file the browser plays itself; `aspect` is width / height. */
+  media?: { type: "image" | "video"; url: string; thumbnailUrl?: string; src?: string; aspect?: number }[];
   stats?: { likes?: number; comments?: number; views?: number; reposts?: number };
   quoted?: { author?: string; text: string };
   durationSeconds?: number;
   chapters?: { start: number; title: string }[];
   transcript?: { language: string; auto: boolean; segments: { start: number; text: string }[] };
-  embed?: { provider: "youtube"; id: string };
+  /** The platform's own player: YouTube by id; TikTok, Instagram and Facebook by their embed address. */
+  embed?: { provider: "youtube" | "tiktok" | "instagram" | "facebook"; id?: string; src?: string; aspect?: number };
   source: "api" | "oembed" | "page";
 }
 

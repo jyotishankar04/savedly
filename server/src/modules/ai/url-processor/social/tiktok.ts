@@ -16,7 +16,9 @@ export async function extractTikTok(url: string): Promise<SocialPost | null> {
     url,
     author: { name: data.author_name, handle: data.author_unique_id, url: data.author_url },
     text: data.title?.trim() || undefined,
-    media: data.thumbnail_url ? [{ type: "video", url, thumbnailUrl: data.thumbnail_url }] : undefined,
+    media: data.thumbnail_url ? [{ type: "video", url, thumbnailUrl: data.thumbnail_url, aspect: 9 / 16 }] : undefined,
+    // TikTok's embed player, which it publishes for exactly this.
+    embed: { provider: "tiktok", src: `https://www.tiktok.com/player/v1/${/\/video\/(\d+)/.exec(url)![1]}?rel=0`, aspect: 9 / 16 },
     source: "oembed",
   };
 }

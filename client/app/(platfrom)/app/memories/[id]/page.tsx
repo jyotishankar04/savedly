@@ -45,6 +45,7 @@ import {
 import type { MemoryDetail } from "@/types/memory";
 import { NoteBody } from "@/components/notes/note-editor";
 import { SocialPostView } from "@/components/memory/social-post";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { useQueryClient } from "@tanstack/react-query";
 import { reprocessMemory } from "@/lib/memories";
 
@@ -128,6 +129,7 @@ export default function MemoryDetailPage() {
   const [draftNote, setDraftNote] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [readingPost, setReadingPost] = useState(false);
+  const [viewingPicture, setViewingPicture] = useState(false);
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   // A preview picture that doesn't load (gone, blocked) falls back to the no-preview tile.
@@ -333,8 +335,16 @@ export default function MemoryDetailPage() {
                   </div>
                 )}
                 {memory.previewImageUrl && previewFailed !== memory.previewImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- external, unpredictable-domain preview image
-                  <img src={memory.previewImageUrl} alt={memory.title} onError={() => setPreviewFailed(memory.previewImageUrl)} className="w-full aspect-video object-cover" />
+                  // The picture opens full screen here; an uploaded image is shown whole, a link's preview as a banner.
+                  <button type="button" onClick={() => setViewingPicture(true)} aria-label="View the picture full screen" className="block w-full cursor-zoom-in">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- external, unpredictable-domain preview image */}
+                    <img
+                      src={memory.previewImageUrl}
+                      alt={memory.title}
+                      onError={() => setPreviewFailed(memory.previewImageUrl)}
+                      className={memory.type === "image" ? "mx-auto max-h-[560px] w-full object-contain" : "w-full aspect-video object-cover"}
+                    />
+                  </button>
                 ) : memory.platform && (memory.type === "web" || memory.type === "video") ? (
                   (() => {
                     const fallback = getPlatformFallback(memory.platform);
@@ -352,6 +362,14 @@ export default function MemoryDetailPage() {
                   </div>
                 )}
               </div>
+
+              <ImageLightbox
+                images={memory.previewImageUrl ? [{ src: memory.previewImageUrl, alt: memory.title }] : []}
+                index={viewingPicture ? 0 : null}
+                onIndexChange={() => {}}
+                onClose={() => setViewingPicture(false)}
+                originalUrl={memory.url ?? undefined}
+              />
 
               {memory.url && (
                 <div className="flex items-center justify-between gap-3 text-xs">

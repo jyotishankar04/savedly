@@ -102,7 +102,7 @@ export async function extractYouTube(url: string): Promise<SocialPost | null> {
       durationSeconds: details.lengthSeconds ? Number(details.lengthSeconds) : undefined,
       chapters: description ? chaptersFrom(description) : undefined,
       transcript: await transcriptFrom(player!),
-      embed: { provider: "youtube", id },
+      embed: { provider: "youtube", id, aspect: kind === "short" ? 9 / 16 : 16 / 9 },
       source: "api",
     };
   }
@@ -118,7 +118,7 @@ export async function extractYouTube(url: string): Promise<SocialPost | null> {
     author: { name: oembed.author_name, url: oembed.author_url },
     title: oembed.title,
     media: oembed.thumbnail_url ? [{ type: "video", url: watchUrl, thumbnailUrl: oembed.thumbnail_url }] : undefined,
-    embed: { provider: "youtube", id },
+    embed: { provider: "youtube", id, aspect: kind === "short" ? 9 / 16 : 16 / 9 },
     source: "oembed",
   };
 }

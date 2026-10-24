@@ -2,7 +2,7 @@ import { fetchUrl } from "../server-fetcher";
 import { decodeEntities, parseCount } from "./http";
 import type { SocialPost } from "./types";
 
-// Instagram, Threads, LinkedIn, Reddit, Facebook: the post the user saved,
+// Instagram, Threads, LinkedIn, Facebook: the post the user saved,
 // read the way a link preview is (WhatsApp, Slack, iMessage): one request for
 // that page, and only its public preview tags. Their robots.txt turns away
 // every bot, which is about crawling; this is one page, the one the person
@@ -22,10 +22,44 @@ function metaTags(html: string): Map<string, string> {
   return tags;
 }
 
-type Fields = Pick<SocialPost, "author" | "text" | "title" | "publishedAt" | "stats">;
+type Fields = Pick<SocialPost, "author" | "text" | "title" | "publishedAt" | "stats" | "transcript"> & { image?: string; video?: boolean; videoSrc?: string; aspect?: number };
+
+type LinkedData = Record<string, unknown>;
+/** The page's JSON-LD blocks (schema.org), flattened out of any @graph. */
+function linkedData(html: string): LinkedData[] {
+  const out: LinkedData[] = [];
+  for (const [, block] of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const data = JSON.parse(block!) as LinkedData | LinkedData[];
+      for (const item of Array.isArray(data) ? data : [data]) out.push(...(Array.isArray(item["@graph"]) ? (item["@graph"] as LinkedData[]) : [item]));
+    } catch {
+      // A broken block is skipped.
+    }
+  }
+  return out;
+}
+const str = (value: unknown) => (typeof value === "string" && value.trim() ? decodeEntities(value).trim() : undefined);
+const imageOf = (value: unknown): string | undefined => (typeof value === "string" ? value : Array.isArray(value) ? imageOf(value[0]) : value && typeof value === "object" ? str((value as LinkedData).url) : undefined);
+/** schema.org interaction counts: likes (LikeAction) and comments (CommentAction). */
+function interactions(item: LinkedData): SocialPost["stats"] {
+  const stats: NonNullable<SocialPost["stats"]> = {};
+  const list = Array.isArray(item.interactionStatistic) ? (item.interactionStatistic as LinkedData[]) : [];
+  for (const s of list) {
+    const kind = JSON.stringify(s.interactionType ?? "");
+    const n = Number(s.userInteractionCount);
+    if (!Number.isFinite(n)) continue;
+    if (/Like/i.test(kind)) stats.likes = n;
+    else if (/Comment/i.test(kind)) stats.comments = n;
+  }
+  if (typeof item.commentCount === "number") stats.comments ??= item.commentCount;
+  return Object.keys(stats).length ? stats : undefined;
+}
+
+// LinkedIn's generic share picture, not the post's own.
+const GENERIC_IMAGE = /static\.licdn\.com\/aero/;
 
 // How each platform writes a post into its preview tags (checked Oct 2026).
-const PARSERS: Record<string, (tags: Map<string, string>) => Fields> = {
+const PARSERS: Record<string, (tags: Map<string, string>, html: string) => Fields> = {
   // og:description: 60M likes, 4M comments - world_record_egg on January 4, 2019: "Let’s set a world record…"
   instagram: (tags) => {
     const description = tags.get("og:description") ?? tags.get("description") ?? "";
@@ -44,35 +78,61 @@ const PARSERS: Record<string, (tags: Map<string, string>) => Fields> = {
     const m = /^(.*?)\s*\(@([\w.]+)\)/.exec(tags.get("og:title") ?? "");
     return { author: m ? { name: m[1] || undefined, handle: m[2], url: `https://www.threads.net/@${m[2]}` } : undefined, text: tags.get("og:description") };
   },
-  // og:title: the post's opening | Name | N comments; og:description: the post.
-  linkedin: (tags) => {
-    const parts = (tags.get("og:title") ?? "").split(" | ").map((p) => p.trim());
-    const name = parts.length >= 2 && !/comments?$/i.test(parts[1]!) ? parts[1] : undefined;
-    return { author: name ? { name } : undefined, text: tags.get("og:description") ?? parts[0], publishedAt: tags.get("article:published_time") };
-  },
-  // og:title: r/sub - The title; og:description: the post's text.
-  reddit: (tags) => {
-    const m = /^(r\/[\w]+)\s+-\s+(.+)$/.exec(tags.get("og:title") ?? "");
-    return { author: m ? { name: m[1] } : undefined, title: m?.[2] ?? tags.get("og:title"), text: tags.get("og:description") };
+  // The page's JSON-LD (a SocialMediaPosting, or a VideoObject for a video
+  // post) has the whole post: text, author, date, counts, the video's cover
+  // and transcript. The preview tags are a fallback: "the opening | N comments on LinkedIn".
+  linkedin: (tags, html) => {
+    const item = linkedData(html).find((d) => /SocialMediaPosting|VideoObject|Article|DiscussionForumPosting/.test(String(d["@type"])));
+    const fallback = (tags.get("og:description") ?? "").replace(/\s*\|\s*\d[\d,.]*\s+comments? on LinkedIn\s*$/i, "").trim();
+    if (!item) return { text: fallback || undefined, publishedAt: tags.get("article:published_time") };
+    const who = (item.author ?? item.creator) as LinkedData | LinkedData[] | undefined;
+    const person = Array.isArray(who) ? who[0] : who;
+    const transcript = str(item.transcript);
+    const isVideo = /VideoObject/.test(String(item["@type"]));
+    return {
+      author: person ? { name: str(person.name), url: str(person.url), avatarUrl: imageOf(person.image) } : undefined,
+      text: str(item.articleBody) ?? str(item.description) ?? str(item.text) ?? (fallback || undefined),
+      publishedAt: str(item.datePublished) ?? str(item.uploadDate),
+      stats: interactions(item),
+      transcript: transcript ? { language: "en", auto: false, segments: [{ start: 0, text: transcript }] } : undefined,
+      image: imageOf(item.thumbnailUrl) ?? imageOf(item.image),
+      video: isVideo,
+      // The video file itself (an MP4), which a browser plays without LinkedIn's player.
+      videoSrc: isVideo ? str(item.contentUrl) : undefined,
+      aspect: Number(item.width) && Number(item.height) ? Number(item.width) / Number(item.height) : undefined,
+    };
   },
   facebook: (tags) => ({ title: tags.get("og:title"), text: tags.get("og:description") }),
 };
+
+/** The platform's published embed player for a video post: Instagram's /embed/, Facebook's video plugin. */
+function embedFor(platform: string, url: string): SocialPost["embed"] {
+  if (platform === "instagram") {
+    const m = /\/(p|reel|reels|tv)\/([A-Za-z0-9_-]+)/.exec(url);
+    return m ? { provider: "instagram", src: `https://www.instagram.com/${m[1] === "p" ? "p" : "reel"}/${m[2]}/embed/`, aspect: 9 / 16 } : undefined;
+  }
+  if (platform === "facebook") return { provider: "facebook", src: `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false`, aspect: 16 / 9 };
+  return undefined;
+}
 
 export function unfurl(platform: keyof typeof PARSERS) {
   return async (url: string): Promise<SocialPost | null> => {
     const page = await fetchUrl(url, { robots: "skip" });
     if (!page.html) return null;
     const tags = metaTags(page.html);
-    const fields = PARSERS[platform]!(tags);
-    const image = tags.get("og:image") ?? tags.get("twitter:image");
+    const { image: ownImage, video: isVideo, videoSrc, aspect, ...fields } = PARSERS[platform]!(tags, page.html);
+    const tagImage = tags.get("og:image") ?? tags.get("twitter:image");
+    const image = ownImage ?? (tagImage && !GENERIC_IMAGE.test(tagImage) ? tagImage : undefined);
     if (!fields.text && !fields.title && !image) return null;
-    const video = /\/(reel|reels|tv)\//.test(url) || tags.get("og:type")?.includes("video");
+    const video = isVideo || /\/(reel|reels|tv)\//.test(url) || tags.get("og:type")?.includes("video");
+    const kind = platform === "instagram" && /\/(reel|reels)\//.test(url) ? "reel" : video ? "video" : "post";
     return {
       platform,
-      kind: platform === "instagram" && /\/(reel|reels)\//.test(url) ? "reel" : video ? "video" : "post",
+      kind,
       url: tags.get("og:url") ?? page.finalUrl ?? url,
       ...fields,
-      media: image ? [video ? { type: "video", url, thumbnailUrl: image } : { type: "image", url: image }] : undefined,
+      media: image || videoSrc ? [video ? { type: "video", url, thumbnailUrl: image, src: videoSrc, aspect } : { type: "image", url: image! }] : undefined,
+      embed: video && !videoSrc ? embedFor(platform, url) : undefined,
       source: "page",
     };
   };
