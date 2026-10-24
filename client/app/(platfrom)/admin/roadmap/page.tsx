@@ -226,7 +226,7 @@ export default function AdminRoadmapPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         <div className="space-y-6">
           {isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
           {isError && <p className="text-xs text-destructive">Couldn&apos;t load the roadmap.</p>}

@@ -5,9 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { GlidingHighlight } from "@/components/ui/gliding-highlight";
+import { useActiveTabInView } from "@/hooks/use-active-tab-in-view";
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // On a phone the tabs scroll sideways: keep the current one in view.
+  const tabs = React.useRef<HTMLDivElement>(null);
+  useActiveTabInView(tabs, pathname);
 
   const links = [
     { label: "Account", href: "/app/settings" },
@@ -30,6 +34,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       <div className="flex flex-col md:flex-row gap-8">
         
         {/* Settings Sub-Sidebar */}
+        <div ref={tabs} className="contents">
         <GlidingHighlight as="aside" aria-label="Settings sections" className="w-full md:w-48 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 scrollbar-none font-semibold text-xs text-muted-foreground">
           {links.map((link) => {
             const active = pathname === link.href;
@@ -51,6 +56,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
             );
           })}
         </GlidingHighlight>
+        </div>
 
         {/* Nested settings content panel */}
         <div className="flex-1 min-w-0">

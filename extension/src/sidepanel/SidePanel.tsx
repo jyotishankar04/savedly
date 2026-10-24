@@ -6,6 +6,7 @@ import { remindChoices } from "../lib/remind";
 import { SavedPanel } from "../popup/SavedPanel";
 import { SearchPanel } from "../popup/SearchPanel";
 import { MemoryRow, rowStyles, type RowMemory } from "../ui/MemoryRow";
+import { PANEL_NAME } from "../lib/side-panel";
 
 type Tab = "inbox" | "search" | "recent" | "collections";
 interface Page {
@@ -114,7 +115,7 @@ export default function SidePanel() {
       {auth === "out" && (
         <div style={s.center}>
           <p style={s.strong}>Sign in to Savedly</p>
-          <p style={s.muted}>Sign in on the website; the side panel uses the same sign-in.</p>
+          <p style={s.muted}>Sign in on the website; the {PANEL_NAME} uses the same sign-in.</p>
           <button style={s.primary} onClick={() => open("/auth/login")}>
             Sign in
           </button>

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useQuery } from "@tanstack/react-query";
 import { MaintenanceFullPage } from "@/components/maintenance/maintenance-full-page";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 import { FORCED_MAINTENANCE_MESSAGE, FORCED_MAINTENANCE, getMaintenanceStatus } from "@/lib/maintenance";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
@@ -1201,6 +1202,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Main nested content render */}
         <main className="flex-1 min-h-0">
+          <PullToRefresh />
           <ScrollArea className="h-full" viewportClassName="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
             <SidebarStateProvider value={{ collapsed: sidebarCollapsed, fullyCollapsed: sidebarFullyCollapsed }}>
               <SetupPanel />

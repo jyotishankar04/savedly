@@ -1,5 +1,8 @@
 node_modules/
 dist/
+dist-firefox/
 *.log
 # The package uploaded to the Chrome Web Store (pnpm package)
 savedly-extension-*.zip
+# The package uploaded to addons.mozilla.org (pnpm package:firefox)
+savedly-firefox-*.zip

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -75,6 +75,17 @@ function lastSevenDays(activity: { date: string; count: number }[]) {
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  // On a phone, Recently saved uses the smaller cards, two to a row, as Memories
+  // does there. Known after the first render (the server can't tell), before the
+  // saves arrive, so nothing visibly switches.
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 639px)");
+    const update = () => setPhone(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
   const { user } = useUser();
   const firstName = (user.name ?? user.email).split(/\s+/)[0];
   const greeting = greetingForHour(new Date().getHours());
@@ -206,10 +217,10 @@ export default function HomePage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
             {memoriesLoading
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="space-y-3 rounded-2xl border border-border bg-card p-3">
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-3 rounded-xl border border-border bg-card p-2 sm:rounded-2xl sm:p-3">
                     <Skeleton className="aspect-video w-full rounded-xl" />
                     <Skeleton className="h-4 w-4/5" />
                     <Skeleton className="h-3 w-full" />
@@ -217,8 +228,8 @@ export default function HomePage() {
                 ))
               : // The same card as the Memories page.
                 recent.map((item) => (
-                  <MemorySwipe key={item.id} memory={item} className="rounded-2xl">
-                    <MemoryGridCard item={item} href={`/app/memories/${item.id}`} />
+                  <MemorySwipe key={item.id} memory={item} className={phone ? "rounded-xl" : "rounded-2xl"}>
+                    <MemoryGridCard item={item} href={`/app/memories/${item.id}`} compact={phone} />
                   </MemorySwipe>
                 ))}
           </div>

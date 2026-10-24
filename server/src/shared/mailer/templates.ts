@@ -6,8 +6,9 @@ import { UserStatus } from "../../db/enums";
 // The email design system.
 //
 // Every email is built from the pieces in this file, so they all share one
-// look (the app's: white cards on a cool grey page, the brand blue, pill
-// buttons) while each kind of email has its own layout.
+// look, the app's and kept minimal: one column of text on white with plenty
+// of room, the brand blue for the one thing to click, hairlines rather than
+// boxes, while each kind of email has its own layout.
 //
 // Mail clients are not browsers. Outlook renders with Word's engine and many
 // clients strip <style> blocks, so everything here is tables and inline
@@ -16,9 +17,9 @@ import { UserStatus } from "../../db/enums";
 // -----------------------------------------------------------------------------
 
 const COLOR = {
-  page: "#f3f5fa",
+  page: "#ffffff",
   card: "#ffffff",
-  border: "#e3e8f2",
+  border: "#e8ebf1",
   text: "#0f172a",
   body: "#475569",
   muted: "#8a94a6",
@@ -33,7 +34,7 @@ const COLOR = {
   neutralSoft: "#eef1f6",
 } as const;
 
-const FONT = "Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const FONT = "Geist,Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 type Tone = "primary" | "success" | "warning" | "danger" | "neutral";
 
@@ -59,37 +60,38 @@ function escapeHtml(text: string): string {
 
 // --- Components --------------------------------------------------------------
 
-/** The small uppercase label above a headline: what kind of email this is. */
+/** The small label above a headline: what kind of email this is. Plain coloured text, no box. */
 function eyebrow(text: string, tone: Tone = "primary"): string {
-  const { fg, bg } = TONE[tone];
-  return `<span style="display:inline-block;padding:5px 11px;border-radius:999px;background:${bg};color:${fg};font-size:11px;line-height:1;font-weight:700;letter-spacing:.07em;text-transform:uppercase;">${escapeHtml(text)}</span>`;
+  return `<p style="margin:0;color:${TONE[tone].fg};font-size:13px;line-height:1.4;font-weight:600;">${escapeHtml(text)}</p>`;
 }
 
 function heading(html: string): string {
-  return `<h1 style="margin:16px 0 0;font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-.02em;color:${COLOR.text};">${html}</h1>`;
+  return `<h1 style="margin:10px 0 0;font-size:26px;line-height:1.2;font-weight:600;letter-spacing:-.025em;color:${COLOR.text};">${html}</h1>`;
 }
 
 function paragraph(html: string, opts?: { muted?: boolean; top?: number }): string {
-  return `<p style="margin:${opts?.top ?? 12}px 0 0;font-size:15px;line-height:1.6;color:${opts?.muted ? COLOR.muted : COLOR.body};">${html}</p>`;
+  return `<p style="margin:${opts?.top ?? 14}px 0 0;font-size:15px;line-height:1.65;color:${opts?.muted ? COLOR.muted : COLOR.body};">${html}</p>`;
 }
 
 /** The one action an email asks for. A table cell, not a styled link, so the
  * whole pill is coloured and clickable in Outlook too. */
 function button(label: string, url: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 0;">
     <tr>
       <td bgcolor="${COLOR.primary}" style="border-radius:999px;background:${COLOR.primary};">
-        <a href="${url}" style="display:inline-block;padding:13px 26px;font-family:${FONT};font-size:15px;line-height:1;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px;">${escapeHtml(label)}</a>
+        <a href="${url}" style="display:inline-block;padding:12px 22px;font-family:${FONT};font-size:14px;line-height:1;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px;">${escapeHtml(label)}</a>
       </td>
     </tr>
   </table>`;
 }
 
-/** A tinted box that sets something apart: the shared item, the event, a notice. */
+/** Sets something apart (the shared item, the event, a notice) with a thin line
+ * down its left side in the tone's colour, rather than a filled box. */
 function panel(html: string, tone: Tone = "neutral"): string {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0;">
+  const line = tone === "neutral" ? COLOR.border : TONE[tone].fg;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0;">
     <tr>
-      <td style="padding:16px 18px;border-radius:14px;background:${TONE[tone].bg};">${html}</td>
+      <td style="padding:2px 0 2px 16px;border-left:2px solid ${line};">${html}</td>
     </tr>
   </table>`;
 }
@@ -109,24 +111,20 @@ function initialOf(name: string | null): string {
   return first ? escapeHtml(first.toUpperCase()) : "?";
 }
 
-/** A numbered list of next steps. */
+/** A numbered list of next steps: a quiet 01, 02… beside each, no circles. */
 function steps(items: { title: string; text: string }[]): string {
   const rows = items
     .map(
       (item, i) => `<tr>
-        <td width="34" valign="top" style="padding:${i === 0 ? 0 : 14}px 0 0;">
-          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-            <td width="26" height="26" align="center" valign="middle" style="width:26px;height:26px;border-radius:999px;background:${COLOR.primarySoft};color:${COLOR.primary};font-size:13px;line-height:26px;font-weight:700;">${i + 1}</td>
-          </tr></table>
-        </td>
-        <td valign="top" style="padding:${i === 0 ? 0 : 14}px 0 0 12px;">
-          <p style="margin:0;font-size:15px;line-height:1.4;font-weight:600;color:${COLOR.text};">${escapeHtml(item.title)}</p>
-          <p style="margin:3px 0 0;font-size:14px;line-height:1.5;color:${COLOR.body};">${escapeHtml(item.text)}</p>
+        <td width="32" valign="top" style="padding:${i === 0 ? 0 : 18}px 0 0;font-size:13px;line-height:1.55;font-weight:500;color:${COLOR.muted};font-variant-numeric:tabular-nums;">${String(i + 1).padStart(2, "0")}</td>
+        <td valign="top" style="padding:${i === 0 ? 0 : 18}px 0 0;">
+          <p style="margin:0;font-size:15px;line-height:1.45;font-weight:600;color:${COLOR.text};">${escapeHtml(item.title)}</p>
+          <p style="margin:3px 0 0;font-size:14px;line-height:1.55;color:${COLOR.body};">${escapeHtml(item.text)}</p>
         </td>
       </tr>`,
     )
     .join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;">${rows}</table>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0 0;">${rows}</table>`;
 }
 
 /** A short list of points, each with a small blue dot. */
@@ -172,7 +170,9 @@ type FooterReason =
   | { kind: "shared"; by: string }
   | { kind: "custom"; text: string }
   /** Sent to many people at once: says so, and carries the way out. */
-  | { kind: "announcement" };
+  | { kind: "announcement" }
+  /** A regular email someone can turn off in Settings: says why it came, and links there. */
+  | { kind: "setting"; what: string; settingsUrl: string };
 
 function footerText(reason: FooterReason): string {
   const product = escapeHtml(env.SMTP_FROM_NAME);
@@ -180,11 +180,14 @@ function footerText(reason: FooterReason): string {
   if (reason.kind === "announcement") {
     return `You're receiving this because you have a ${product} account and get its announcements. <a href="${UNSUBSCRIBE_URL_PLACEHOLDER}" style="color:${COLOR.muted};text-decoration:underline;">Unsubscribe</a>`;
   }
+  if (reason.kind === "setting") {
+    return `You're receiving this because ${escapeHtml(reason.what)} is on in your ${product} settings. <a href="${escapeHtml(reason.settingsUrl)}" style="color:${COLOR.muted};text-decoration:underline;">Turn it off</a>`;
+  }
   if (reason.kind === "shared") return `You're receiving this because ${escapeHtml(reason.by)} shared something with you on ${product}. You don't need to do anything if this wasn't meant for you.`;
   return escapeHtml(reason.text);
 }
 
-/** The shell every email renders inside: logo, one white card, footer. */
+/** The shell every email renders inside: logo, the message, a hairline, the footer. */
 function layout(bodyHtml: string, opts: { preheader: string; footer?: FooterReason }): string {
   const product = escapeHtml(env.SMTP_FROM_NAME);
   const site = env.FRONTEND_URL;
@@ -202,27 +205,32 @@ function layout(bodyHtml: string, opts: { preheader: string; footer?: FooterReas
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(opts.preheader)}</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLOR.page};">
       <tr>
-        <td align="center" style="padding:32px 16px;">
+        <td align="center" style="padding:44px 24px 48px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
             <tr>
-              <td style="padding:0 6px 20px;">
+              <td style="padding:0 0 36px;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td valign="middle" style="padding-right:10px;">
-                      <img src="${site}/icons/icon-192.png" width="30" height="30" alt="" style="display:block;border:0;" />
+                    <td valign="middle" style="padding-right:9px;">
+                      <img src="${site}/icons/icon-192.png" width="24" height="24" alt="" style="display:block;border:0;" />
                     </td>
-                    <td valign="middle" style="font-size:17px;line-height:1;font-weight:700;letter-spacing:-.01em;color:${COLOR.text};">${product}</td>
+                    <td valign="middle" style="font-size:15px;line-height:1;font-weight:600;letter-spacing:-.01em;color:${COLOR.text};">${product}</td>
                   </tr>
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:32px;border-radius:20px;background:${COLOR.card};border:1px solid ${COLOR.border};">
+              <td>
                 ${bodyHtml}
               </td>
             </tr>
             <tr>
-              <td style="padding:20px 6px 0;font-size:12px;line-height:1.6;color:${COLOR.muted};">
+              <td style="padding:40px 0 0;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid ${COLOR.border};font-size:0;line-height:0;">&nbsp;</td></tr></table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 0 0;font-size:12px;line-height:1.7;color:${COLOR.muted};">
                 ${footerText(opts.footer ?? { kind: "account" })}
                 <br />
                 <a href="${site}" style="color:${COLOR.muted};text-decoration:underline;">${product}</a>
@@ -612,6 +620,72 @@ export function memoryReminderEmailTemplate({
       ${button("Open in Savedly", url)}
       ${paragraph(`It's back at the top of your Inbox. <a href="${escapeHtml(settingsUrl)}" style="color:${COLOR.body};">Turn off reminder emails</a>`, { muted: true, top: 14 })}`,
       { preheader: about ?? title },
+    ),
+  };
+}
+
+/** "3 days ago", "2 weeks ago": how long a save has been waiting. */
+function waitingFor(iso: string, now: Date): string {
+  const days = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 86_400_000));
+  if (days === 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days} days ago`;
+  if (days < 60) return `${Math.floor(days / 7)} weeks ago`;
+  return `${Math.floor(days / 30)} months ago`;
+}
+
+/**
+ * The weekly email: a few saves from the Inbox that haven't been read yet,
+ * each a link into Savedly with where it's from and how long it's waited.
+ */
+export function weeklyDigestEmailTemplate({
+  name,
+  items,
+  unreadCount,
+  savedThisWeek,
+  inboxUrl,
+  settingsUrl,
+  now = new Date(),
+}: {
+  name: string | null;
+  items: { title: string; summary: string | null; source: string | null; url: string; createdAt: string }[];
+  /** Everything unread in the Inbox, of which `items` are the first few. */
+  unreadCount: number;
+  savedThisWeek: number;
+  inboxUrl: string;
+  settingsUrl: string;
+  now?: Date;
+}): EmailContent {
+  const count = items.length;
+  const headline = `${count === 1 ? "One thing" : `${count} things`} waiting to be read`;
+  const intro =
+    savedThisWeek > 0
+      ? `${name ? `${escapeHtml(name)}, you` : "You"} saved ${savedThisWeek === 1 ? "one thing" : `${savedThisWeek} things`} this week. Here's what's still in your Inbox, oldest first.`
+      : `${name ? `${escapeHtml(name)}, here's` : "Here's"} what's still in your Inbox, oldest first.`;
+  const rows = items
+    .map((item, i) => {
+      const about = item.summary ? (item.summary.length > 140 ? `${item.summary.slice(0, 140).trimEnd()}…` : item.summary) : null;
+      const meta = [item.source, `saved ${waitingFor(item.createdAt, now)}`].filter(Boolean).map((part) => escapeHtml(part as string)).join(" &middot; ");
+      return `<tr>
+        <td style="padding:${i === 0 ? 0 : 18}px 0 18px;${i === 0 ? "" : `border-top:1px solid ${COLOR.border};`}">
+          <a href="${escapeHtml(item.url)}" style="font-size:15px;line-height:1.45;font-weight:600;color:${COLOR.text};text-decoration:none;">${escapeHtml(item.title)}</a>
+          ${about ? `<p style="margin:5px 0 0;font-size:14px;line-height:1.55;color:${COLOR.body};">${escapeHtml(about)}</p>` : ""}
+          <p style="margin:6px 0 0;font-size:12px;line-height:1.4;color:${COLOR.muted};">${meta}</p>
+        </td>
+      </tr>`;
+    })
+    .join("");
+  const more = unreadCount - count;
+  return {
+    subject: headline,
+    html: layout(
+      `${eyebrow("Your week")}
+      ${heading(headline)}
+      ${paragraph(intro)}
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0 0;">${rows}</table>
+      ${more > 0 ? paragraph(`And ${more === 1 ? "one more" : `${more} more`} in your Inbox.`, { muted: true, top: 4 }) : ""}
+      ${button("Open your Inbox", inboxUrl)}`,
+      { preheader: items.map((item) => item.title).slice(0, 3).join(" · "), footer: { kind: "setting", what: "the weekly email", settingsUrl } },
     ),
   };
 }

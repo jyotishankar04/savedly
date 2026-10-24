@@ -239,15 +239,16 @@ export default function MemoriesPage() {
                   {/* On a phone the list is smaller cards, two to a row; rows from sm up. */}
                   <div className="grid grid-cols-2 gap-2.5 sm:hidden">
                     {groupItems.map((item) => (
-                      <MemoryGridCard
-                        key={item.id}
-                        item={item}
-                        compact
-                        onClick={() => setSelectedMemoryId(item.id)}
-                        selected={selection.has(item.id)}
-                        selecting={selection.isSelecting}
-                        onSelect={(e) => selection.toggle(item.id, e)}
-                      />
+                      <MemorySwipe key={item.id} memory={item} disabled={selection.isSelecting} className="rounded-xl">
+                        <MemoryGridCard
+                          item={item}
+                          compact
+                          onClick={() => setSelectedMemoryId(item.id)}
+                          selected={selection.has(item.id)}
+                          selecting={selection.isSelecting}
+                          onSelect={(e) => selection.toggle(item.id, e)}
+                        />
+                      </MemorySwipe>
                     ))}
                   </div>
                   <ul className="hidden space-y-1.5 sm:block">

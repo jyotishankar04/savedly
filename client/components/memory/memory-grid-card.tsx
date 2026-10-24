@@ -63,7 +63,7 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
 
       {compact ? (
         <div className="flex min-h-0 flex-1 flex-col gap-1 px-0.5">
-          <h3 className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground transition-colors group-hover:text-primary">{item.title}</h3>
+          <h3 className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">{item.title}</h3>
           <p className="mt-auto flex min-w-0 items-center gap-1 pt-0.5 text-[11px] text-muted-foreground">
             <span className="truncate">{TYPE_LABEL[item.type]}</span>
             <span aria-hidden>·</span>
@@ -72,7 +72,7 @@ export function MemoryGridCard({ item, href, onClick, redirectTo, selected = fal
         </div>
       ) : (
       <div className="flex min-h-0 flex-1 flex-col gap-1 px-0.5">
-        <h3 className="line-clamp-1 text-sm font-medium leading-snug text-foreground transition-colors group-hover:text-primary">
+        <h3 className="line-clamp-1 text-sm font-medium leading-snug text-foreground transition-colors [overflow-wrap:anywhere] group-hover:text-primary">
           {item.title}
         </h3>
         {item.description && item.type !== "note" && (

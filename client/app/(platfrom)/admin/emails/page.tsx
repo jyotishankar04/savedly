@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PaginationFooter } from "@/components/admin/pagination-footer";
-import { getCampaignMessages, listCampaigns, type EmailCampaignCategory } from "@/lib/admin-emails";
+import { getCampaignMessages, listCampaigns, sendWeeklyDigestTest, type EmailCampaignCategory } from "@/lib/admin-emails";
+import { toast } from "@/components/ui/toast";
 
 const CATEGORY_LABEL: Record<EmailCampaignCategory, string> = {
   marketing: "Marketing",
@@ -26,6 +27,19 @@ export default function AdminEmailsPage() {
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [msgPage, setMsgPage] = useState(1);
+  const [sendingDigest, setSendingDigest] = useState(false);
+  // The Sunday email goes out on its own; this sends this week's to you now, from your own Inbox.
+  const sendDigestToMe = async () => {
+    setSendingDigest(true);
+    try {
+      const { to } = await sendWeeklyDigestTest();
+      toast.add({ title: "Weekly email sent", description: `To ${to}, from your own Inbox.`, type: "success" });
+    } catch (err) {
+      toast.add({ title: "Couldn't send it", description: err instanceof Error ? err.message : undefined, type: "error" });
+    } finally {
+      setSendingDigest(false);
+    }
+  };
   const limit = 20;
 
   const { data, isLoading, isError } = useQuery({
@@ -54,9 +68,14 @@ export default function AdminEmailsPage() {
             account status changes, share invites) aren&apos;t listed here — this is only the bulk composer&apos;s history.
           </p>
         </div>
-        <Button size="sm" className="h-9 shrink-0 rounded-full px-4 text-xs font-bold" nativeButton={false} render={<Link href="/admin/emails/compose" />}>
-          Compose
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" size="sm" className="h-9 rounded-full px-4 text-xs font-semibold" disabled={sendingDigest} onClick={sendDigestToMe} title="The Sunday email of things to read, sent to you now from your own Inbox">
+            {sendingDigest ? "Sending…" : "Send me the weekly email"}
+          </Button>
+          <Button size="sm" className="h-9 rounded-full px-4 text-xs font-bold" nativeButton={false} render={<Link href="/admin/emails/compose" />}>
+            Compose
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border">

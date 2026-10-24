@@ -31,18 +31,18 @@ function FolderCardFace({ count, label, badge, badgeClassName, selected }: Pick<
       <motion.div
         variants={{ closed: { y: 0, opacity: 0.55 }, open: { y: -16, opacity: 0.9 }, picked: { y: -16, opacity: 0.9 } }}
         transition={{ type: "spring", stiffness: 260, damping: 22 }}
-        className="absolute inset-x-7 top-1 h-28 -rotate-2 rounded-lg border border-border/60 bg-muted-foreground/15"
+        className="absolute inset-x-5 top-1 h-20 -rotate-2 rounded-lg sm:inset-x-7 sm:h-28 border border-border/60 bg-muted-foreground/15"
       />
       <motion.div
         variants={{ closed: { y: 0, opacity: 0.4 }, open: { y: -10, opacity: 0.75 }, picked: { y: -10, opacity: 0.75 } }}
         transition={{ type: "spring", stiffness: 260, damping: 22, delay: 0.02 }}
-        className="absolute inset-x-6 top-2 h-28 rotate-2 rounded-lg border border-border/60 bg-muted-foreground/15"
+        className="absolute inset-x-4 top-2 h-20 rotate-2 rounded-lg sm:inset-x-6 sm:h-28 border border-border/60 bg-muted-foreground/15"
       />
 
       {/* Folder tab — flush with the lid's left edge, mostly hidden behind it */}
       <div
         className={cn(
-          "absolute left-0 top-3 h-8 w-[42%] rounded-t-2xl border border-b-0 border-border/60 bg-muted transition-colors dark:bg-card",
+          "absolute left-0 top-2.5 h-7 w-[42%] rounded-t-xl sm:top-3 sm:h-8 sm:rounded-t-2xl border border-b-0 border-border/60 bg-muted transition-colors dark:bg-card",
           selected && SELECTED_FILL,
         )}
       />
@@ -54,14 +54,14 @@ function FolderCardFace({ count, label, badge, badgeClassName, selected }: Pick<
         transition={{ type: "spring", stiffness: 220, damping: 18 }}
         style={{ transformOrigin: "bottom", transformStyle: "preserve-3d" }}
         className={cn(
-          "absolute inset-x-0 bottom-0 top-7 flex flex-col justify-between rounded-2xl rounded-tl-none border border-border/60 bg-muted p-5 shadow-lg shadow-black/10 transition-[box-shadow,background-color,border-color] duration-300 group-hover:shadow-2xl group-hover:shadow-black/20 dark:bg-card dark:shadow-black/40 dark:group-hover:shadow-black/60",
+          "absolute inset-x-0 bottom-0 top-6 flex flex-col justify-between rounded-xl rounded-tl-none border border-border/60 bg-muted p-3.5 shadow-lg sm:top-7 sm:rounded-2xl sm:p-5 shadow-black/10 transition-[box-shadow,background-color,border-color] duration-300 group-hover:shadow-2xl group-hover:shadow-black/20 dark:bg-card dark:shadow-black/40 dark:group-hover:shadow-black/60",
           selected && SELECTED_FILL,
         )}
       >
-        <span className={cn("text-5xl font-bold transition-colors", selected ? "text-primary" : "text-foreground/70")}>{count}</span>
+        <span className={cn("text-3xl font-bold transition-colors sm:text-5xl", selected ? "text-primary" : "text-foreground/70")}>{count}</span>
         <div className="flex items-end justify-between gap-3">
-          <span className="truncate text-sm font-medium text-foreground">{label}</span>
-          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-lg shadow-black/20 ring-1 ring-white/10", badgeClassName)}>
+          <span className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground [overflow-wrap:anywhere] sm:line-clamp-1 sm:text-sm">{label}</span>
+          <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg text-base shadow-lg sm:size-10 sm:rounded-xl sm:text-lg shadow-black/20 ring-1 ring-white/10", badgeClassName)}>
             {badge}
           </div>
         </div>
@@ -71,6 +71,8 @@ function FolderCardFace({ count, label, badge, badgeClassName, selected }: Pick<
 }
 
 /**
+ * Smaller on a phone (two to a row there), full size from sm up.
+ *
  * A folder-shaped card whose lid tilts open on hover/tap, revealing a stack
  * of "papers" peeking out from behind — built with the `motion` library's
  * variant propagation, so the parent link only needs one `whileHover`/
@@ -90,7 +92,7 @@ export function FolderCard({ href, onClick, count, label, badge, badgeClassName,
         animate={state}
         whileHover="open"
         whileTap="open"
-        className={cn("group relative block h-44 select-none [perspective:1000px]", className)}
+        className={cn("group relative block h-32 select-none [perspective:1000px] sm:h-44", className)}
       >
         {face}
       </MotionLink>
@@ -112,7 +114,7 @@ export function FolderCard({ href, onClick, count, label, badge, badgeClassName,
       animate={state}
       whileHover="open"
       whileTap="open"
-      className={cn("group relative block h-44 cursor-pointer select-none [perspective:1000px]", className)}
+      className={cn("group relative block h-32 cursor-pointer select-none [perspective:1000px] sm:h-44", className)}
     >
       {face}
     </motion.div>

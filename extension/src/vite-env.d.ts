@@ -12,3 +12,5 @@ interface ImportMeta {
 // Set when the extension is built (see vite.config.ts).
 declare const __API_ORIGIN__: string;
 declare const __WEB_APP_URL__: string;
+/** True in the Firefox build (pnpm build:firefox): side panel → sidebar, no notification buttons. */
+declare const __FIREFOX__: boolean;

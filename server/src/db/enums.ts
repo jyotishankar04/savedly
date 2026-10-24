@@ -237,6 +237,7 @@ export enum EmailTemplateKey {
   ADMIN_CUSTOM = "admin_custom",
   EVENT_DETECTED = "event_detected",
   MEMORY_REMINDER = "memory_reminder",
+  WEEKLY_DIGEST = "weekly_digest",
 }
 
 export enum EmailStatus {

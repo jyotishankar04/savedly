@@ -7,6 +7,7 @@ import { flushSentry } from "./config/sentry";
 import { startIngestionWorker } from "./modules/ai";
 import { startTrashPurgeWorker } from "./modules/memory/trash-purge.job";
 import { startReminderWorker } from "./modules/memory/reminder.job";
+import { startWeeklyDigestWorker } from "./modules/memory/weekly-digest.job";
 import { startEmailWorker } from "./modules/email";
 import { startAccountDeletionWorker } from "./modules/account";
 import { startGithubStarsWorker } from "./modules/integrations/github/github.job";
@@ -46,6 +47,15 @@ try {
 } catch (err) {
   logger.error({ err }, "Failed to start trash purge worker — trashed memories will not be auto-deleted");
 }
+
+startWeeklyDigestWorker()
+  .then((digestWorker) => {
+    workers.push(digestWorker);
+    logger.info("Weekly email worker started");
+  })
+  .catch((err) => {
+    logger.error({ err }, "Failed to start the weekly email worker: the Sunday email of things to read won't go out");
+  });
 
 startReminderWorker()
   .then((reminderWorker) => {
