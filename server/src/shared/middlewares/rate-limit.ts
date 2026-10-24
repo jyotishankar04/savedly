@@ -92,6 +92,18 @@ export const reportRateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
+// A note's "Write with AI" (memory/rewrite.service.ts): after a note's first
+// AI use in a month, rewriting it again doesn't count against the plan, so
+// this is what keeps it from being run in a loop. Per account.
+export const rewriteRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
+});
+
 // The public contact form (modules/contact): each message is saved and
 // emailed to the support inbox, so a script can't be allowed to fill it.
 // Per account when signed in (the route reads sign-in first), else per IP,

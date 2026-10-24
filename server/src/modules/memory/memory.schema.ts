@@ -49,6 +49,13 @@ export const createMemorySchema = z.object({
   editing: z.boolean().optional(),
 });
 
+// A note's "Write with AI" (rewrite.service.ts): the note as it is in the
+// editor now, which may be ahead of what's saved.
+export const rewriteNoteSchema = z.object({
+  mode: z.enum(["fix", "improve", "shorten"]),
+  markdown: z.string().min(1).max(20_000, "This note is too long to rewrite at once. Try a part of it."),
+});
+
 export const resolveDuplicateSchema = z.object({ action: z.enum(["skip", "keep"]) });
 
 export const updateMemorySchema = z.object({

@@ -17,6 +17,7 @@ import type { ListMemoriesQuery } from "./memory.schema";
 import { settleDuplicate } from "./duplicates";
 import { inboxCounts, lookupByUrl, markInboxRead, savedUrlKeys } from "./inbox.service";
 import { suggestForPage } from "./suggest.service";
+import { rewriteNote } from "./rewrite.service";
 
 export class MemoryController {
   static async list(req: Request, res: Response) {
@@ -95,6 +96,10 @@ export class MemoryController {
 
   static async urlKeys(req: Request, res: Response) {
     res.status(200).json(ApiResponse.success({ keys: await savedUrlKeys(req.user!.id) }));
+  }
+
+  static async rewrite(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await rewriteNote(req.user!.id, req.params.id as string, req.body)));
   }
 
   static async suggest(req: Request, res: Response) {

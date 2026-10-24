@@ -9,7 +9,8 @@ import {
   validateBrowserCapture,
   validateCreateMemory,
   validateListMemories,
-  validateUpdateMemory, validateResolveDuplicate, validateSuggestForPage } from "./memory.validator";
+  validateUpdateMemory, validateResolveDuplicate, validateSuggestForPage, validateRewriteNote } from "./memory.validator";
+import { rewriteRateLimiter } from "../../shared/middlewares/rate-limit";
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.delete("/:id", authenticate, MemoryController.remove);
 
 router.post("/:id/browser-capture", authenticate, validateBrowserCapture, MemoryController.browserCapture);
 router.post("/:id/refresh-preview", authenticate, MemoryController.refreshPreview);
+router.post("/:id/rewrite", authenticate, rewriteRateLimiter, validateRewriteNote, MemoryController.rewrite);
 router.post("/:id/duplicate", authenticate, validateResolveDuplicate, MemoryController.resolveDuplicate);
 router.get("/:id/processing-status", authenticate, MemoryController.processingStatus);
 router.post("/:id/calendar-events", authenticate, requireFeature("calendarSync"), validatePushEvent, CalendarController.pushEvent);

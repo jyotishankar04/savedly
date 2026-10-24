@@ -8,6 +8,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon as ArrowLeft, Delete02Icon as Trash, InformationCircleIcon as Info } from "@hugeicons/core-free-icons";
 import type { RichTextEditorHandle } from "@/components/arc/rich-text-editor/rich-text-editor";
 import { NoteEditor } from "@/components/notes/note-editor";
+import { NoteAiMenu } from "@/components/notes/note-ai-menu";
 import { NOTE_DRAFT_KEY, type NoteDraft } from "@/components/notes/capture-note";
 import { QueryErrorState } from "@/components/query-error-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -213,6 +214,12 @@ function NoteWriter({ noteId, initialTitle, initialMarkdown, collectionIds }: { 
               Try again
             </button>
           )}
+          <NoteAiMenu
+            noteId={id}
+            getMarkdown={() => editor.current?.getMarkdown() ?? latest.current.markdown}
+            onReplace={(markdown) => editor.current?.setMarkdown(markdown)}
+            beforeRefresh={save}
+          />
           {id && (
             <Link href={`/app/memories/${id}`} title="Details: summary, tags and collections" aria-label="Details" className="grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
               <HugeiconsIcon icon={Info} strokeWidth={2} className="size-[18px]" />
