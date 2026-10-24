@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useQuery } from "@tanstack/react-query";
 import { MaintenanceFullPage } from "@/components/maintenance/maintenance-full-page";
-import { getMaintenanceStatus } from "@/lib/maintenance";
+import { FORCED_MAINTENANCE_MESSAGE, FORCED_MAINTENANCE, getMaintenanceStatus } from "@/lib/maintenance";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { SparklesIcon as Sparkles, PlusIcon as Plus, Search01Icon as Search, Settings01Icon as Settings, HelpCircleIcon as HelpCircle, BellIcon as Bell, MoonIcon as Moon, Sun01Icon as Sun, FolderOpenIcon as FolderOpen, CompassIcon as Compass, InboxIcon as InboxNav, CheckIcon as Check, ChevronDownIcon as ChevronDown, FolderPlusIcon as FolderPlus, HeartIcon as Heart, Clock01Icon as Clock, CompassIcon, BarChartIcon as BarChart2, CloudUploadIcon as UploadCloud, Layers01Icon as Layers, PanelLeftCloseIcon as PanelLeftClose, PanelLeftOpenIcon as PanelLeftOpen, Menu01Icon as Menu, Tag01Icon as Tag, KeyboardIcon as Keyboard, Archive01Icon as Archive, Delete02Icon as Trash2, TrendingUpIcon as TrendingUp, Plug01Icon as Plug, MessageSquarePlusIcon as MessageSquarePlus, HistoryIcon as History, ShieldUserIcon as ShieldUser, Share02Icon as Share2, LockPasswordIcon as VaultIcon, Calendar03Icon as CalendarIcon } from "@hugeicons/core-free-icons";
@@ -391,7 +391,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const needsOnboarding = Boolean(currentUser && !currentUser.onboardingCompleted);
 
   useEffect(() => {
-    if (isLoading) return;
+    // The backend is down: stay here on the maintenance page rather than bounce to sign-in.
+    if (isLoading || FORCED_MAINTENANCE) return;
     if (isError) {
       router.replace("/auth/login");
     } else if (needsOnboarding) {
@@ -399,6 +400,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, isError, needsOnboarding, router]);
 
+  if (FORCED_MAINTENANCE) return <MaintenanceFullPage message={FORCED_MAINTENANCE_MESSAGE} />;
   if (maintenance?.enabled) {
     return <MaintenanceFullPage message={maintenance.message} />;
   }

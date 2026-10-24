@@ -1,5 +1,7 @@
 "use client";
 
+import { MaintenanceFullPage } from "@/components/maintenance/maintenance-full-page";
+import { FORCED_MAINTENANCE, FORCED_MAINTENANCE_MESSAGE } from "@/lib/maintenance";
 import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -130,6 +132,12 @@ function isActive(pathname: string, href: string): boolean {
  * under the app shell) so admin pages can still call useUser().
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Switched on in the website because the backend is down: admin can't work either.
+  if (FORCED_MAINTENANCE) return <MaintenanceFullPage message={FORCED_MAINTENANCE_MESSAGE} />;
+  return <AdminGate>{children}</AdminGate>;
+}
+
+function AdminGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { data: currentUser, isLoading, isError } = useCurrentUserQuery();
   const setCurrentUser = useSetCurrentUser();
