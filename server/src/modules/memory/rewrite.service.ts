@@ -1,5 +1,5 @@
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { StringOutputParser } from "@langchain/core/output_parsers";
+import { JsonOutputParser, StringOutputParser } from "@langchain/core/output_parsers";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { memories } from "../../db/schema";
@@ -44,10 +44,68 @@ The text:
 {note}`,
 );
 
+const titlePrompt = ChatPromptTemplate.fromTemplate(
+  `${UNTRUSTED_RULE}
+
+Suggest three titles for a note someone wrote for themselves, so they can
+find it again at a glance. Each one says what the note is about, in the
+note's own language, in 2 to 8 words: plain and specific, no quotes, no
+ending full stop, no emoji, no "Notes on". Use only what's in the note and
+its current title. If
+it already has a title, the three should be better than it, not the same,
+and keep what matters in it (a date, a time, a name) when it fits.
+
+Its title now: {title}
+
+The note:
+{note}
+
+Answer with JSON only: {{"titles": ["…", "…", "…"]}}`,
+);
+
+/** Three titles for a note, from what it says; nothing is saved. */
+export async function suggestNoteTitles(userId: string, memoryId: string, input: { title: string; markdown: string }): Promise<{ titles: string[] }> {
+  const [note] = await db
+    .select({ type: memories.type })
+    .from(memories)
+    .where(and(eq(memories.id, memoryId), eq(memories.userId, userId)))
+    .limit(1);
+  if (!note) throw new AppError("Memory not found", 404, "NOT_FOUND");
+  if (note.type !== MemoryType.NOTE) throw new AppError("Only a note's title can be suggested here.", 400, "NOT_A_NOTE");
+  if (!input.markdown.trim() && !input.title.trim()) throw new AppError("The note is empty.", 400, "EMPTY_NOTE");
+
+  // Counted like a rewrite: part of the note's AI processing for the month.
+  const model = await getChatModel(userId, "fast", { kind: "save", memoryId });
+  if (!model) {
+    throw new AppError("AI isn't available right now: this month's AI saves are used up, or no AI key is set.", 403, "AI_UNAVAILABLE");
+  }
+  const answer = await titlePrompt.pipe(model).pipe(new JsonOutputParser<{ titles?: unknown }>()).invoke(
+    { title: wrapUntrusted(input.title || "(none)", "title"), note: wrapUntrusted(input.markdown.slice(0, 6000), "note") },
+    { callbacks: [createUsageCallback({ userId, requestType: "ingestion:note_title", memoryId })] },
+  );
+  const current = input.title.trim().toLowerCase();
+  const titles = Array.isArray(answer.titles)
+    ? [
+        ...new Set(
+          answer.titles
+            .filter((t): t is string => typeof t === "string")
+            .map((t) => t.trim().replace(/^["'“”]+|["'“”]+$/g, "").replace(/\.$/, "").slice(0, 120))
+            .filter((t) => t && t.toLowerCase() !== current),
+        ),
+      ].slice(0, 3)
+    : [];
+  if (!titles.length) throw new AppError("The AI didn't come up with a title. Try again.", 502, "AI_EMPTY");
+  return { titles };
+}
+
 /** Up to this much of a note is rewritten at once; a longer one is best done a part at a time. */
 export const REWRITE_MAX_CHARS = 20_000;
 
-export async function rewriteNote(userId: string, memoryId: string, input: { mode: RewriteMode; markdown: string; part?: boolean }): Promise<{ markdown: string }> {
+export async function rewriteNote(
+  userId: string,
+  memoryId: string,
+  input: { mode: RewriteMode; markdown: string; part?: boolean; context?: { before: string; after: string } },
+): Promise<{ markdown: string }> {
   const [note] = await db
     .select({ type: memories.type })
     .from(memories)
@@ -68,9 +126,15 @@ export async function rewriteNote(userId: string, memoryId: string, input: { mod
     {
       task: TASKS[input.mode],
       // A selection may be a few words in the middle of a sentence: it must come back as a few words, not a whole note.
-      scope: input.part
-        ? "Below is only a part of the note, selected by its writer: maybe a few words, maybe some paragraphs. Rewrite just that part, so it still fits where it was, and keep it about the same kind of thing (a phrase stays a phrase)."
-        : "Below is the whole note.",
+      scope: !input.part
+        ? "Below is the whole note."
+        : input.context
+          ? [
+              "Below is only a few words the writer selected inside a sentence. Rewrite just those words so they slot back in between the text before and after them:",
+              "don't start with a capital letter or end with a full stop unless the selection itself does, and don't repeat the words around it.",
+              wrapUntrusted(`${input.context.before}[…]${input.context.after}`, "the sentence around the selection, with […] where it goes"),
+            ].join("\n")
+          : "Below is only a part of the note, selected by its writer: some paragraphs or items. Rewrite just that part, so it still fits where it was.",
       note: wrapUntrusted(input.markdown, "note"),
     },
     // Logged as part of the note's processing ("ingestion:" rows are what an AI save counts).

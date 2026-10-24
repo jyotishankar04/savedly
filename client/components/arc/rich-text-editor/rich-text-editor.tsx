@@ -648,6 +648,8 @@ export interface CapturedSelection {
   /** The selection as Markdown: the selected words, or the whole blocks it touches. */
   markdown: string;
   text: string;
+  /** For words inside one block: the block's text around them, so a rewrite can fit back into its sentence. */
+  context?: { before: string; after: string };
 }
 
 export interface RichTextEditorHandle {
@@ -1229,7 +1231,14 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
       holder.appendChild(range.cloneContents());
       const text = range.toString();
       captures.current.set(id, { range: range.cloneRange(), blocks: null, text });
-      return { id, markdown: inlineToMarkdown(holder).trim(), text };
+      const around = document.createRange();
+      around.selectNodeContents(first);
+      around.setEnd(range.startContainer, range.startOffset);
+      const before = around.toString().replace(ZWSP, "");
+      around.selectNodeContents(first);
+      around.setStart(range.endContainer, range.endOffset);
+      const after = around.toString().replace(ZWSP, "");
+      return { id, markdown: inlineToMarkdown(holder).trim(), text, context: { before: before.slice(-300), after: after.slice(0, 300) } };
     }
     // Across blocks: the whole blocks it touches, so lists and headings stay whole.
     const blocks = Array.from(editor.children).filter(child => range.intersectsNode(child));
@@ -1808,7 +1817,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
               </span>
               {selectionActions?.length ? <>
                 <span className={styles.divider} aria-hidden="true" />
-                <ToolButton label="Write with AI" pressed={false} onPress={() => { setFace("actions"); faceRef.current = "actions"; }}><Sparkles {...icon} /></ToolButton>
+                <button type="button" className={styles.aiTool} title="Write with AI" onMouseDown={event => event.preventDefault()} onClick={() => { setFace("actions"); faceRef.current = "actions"; }}>
+                  <Sparkles {...icon} />AI
+                </button>
               </> : null}
             </div>
           </Face> : face === "actions" ? <Face key="actions" direction={direction} reduced={reduced} onSize={onFaceSize}>

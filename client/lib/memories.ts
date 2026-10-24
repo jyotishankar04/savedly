@@ -113,8 +113,13 @@ export async function updateMemory(id: string, patch: UpdateMemoryInput): Promis
 export type NoteRewriteMode = "fix" | "improve" | "shorten";
 
 /** A note rewritten by the AI, to show before anything changes; nothing is saved. `markdown` is the note as it is in the editor now. */
-export async function rewriteNote(id: string, mode: NoteRewriteMode, markdown: string, part = false): Promise<{ markdown: string }> {
-  return apiFetch<{ markdown: string }>(`/memories/${id}/rewrite`, { method: "POST", body: { mode, markdown, part: part || undefined } });
+export async function rewriteNote(id: string, mode: NoteRewriteMode, markdown: string, part = false, context?: { before: string; after: string }): Promise<{ markdown: string }> {
+  return apiFetch<{ markdown: string }>(`/memories/${id}/rewrite`, { method: "POST", body: { mode, markdown, part: part || undefined, context } });
+}
+
+/** Three AI titles for a note, from its title and text as they are in the editor; nothing is saved. */
+export async function suggestNoteTitles(id: string, title: string, markdown: string): Promise<{ titles: string[] }> {
+  return apiFetch<{ titles: string[] }>(`/memories/${id}/title-suggestions`, { method: "POST", body: { title, markdown } });
 }
 
 /** Runs Savedly's processing on a memory again: summary, tags, collection and dates. */

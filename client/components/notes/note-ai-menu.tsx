@@ -36,7 +36,7 @@ export const SELECTION_ACTIONS: { id: NoteRewriteMode; label: string }[] = [
 
 export interface NoteAiMenuHandle {
   /** Rewrites a part of the note (what's selected); `apply` puts the chosen result back, false when that text changed meanwhile. */
-  rewritePart: (mode: NoteRewriteMode, markdown: string, apply: (markdown: string) => boolean) => void;
+  rewritePart: (mode: NoteRewriteMode, markdown: string, apply: (markdown: string) => boolean, context?: { before: string; after: string }) => void;
 }
 
 /**
@@ -62,7 +62,7 @@ export const NoteAiMenu = forwardRef<
   // The preview opens on what changed; "Result" shows the new version as it will look.
   const [view, setView] = useState<"changes" | "result">("changes");
 
-  const run = async (mode: NoteRewriteMode, markdown: string, part: boolean, apply: (markdown: string) => boolean) => {
+  const run = async (mode: NoteRewriteMode, markdown: string, part: boolean, apply: (markdown: string) => boolean, context?: { before: string; after: string }) => {
     if (!noteId || !markdown.trim()) {
       toast.add({ title: part ? "Select some text first" : "Write something first", type: "warning" });
       return;
@@ -70,7 +70,7 @@ export const NoteAiMenu = forwardRef<
     if (busy) return;
     setBusy(mode);
     try {
-      const answer = await rewriteNote(noteId, mode, markdown.trim(), part);
+      const answer = await rewriteNote(noteId, mode, markdown.trim(), part, context);
       if (answer.markdown.trim() === markdown.trim()) toast.add({ title: "Nothing to change", description: part ? "The AI left it as it is." : "The AI left the note as it is.", type: "success" });
       else {
         setView("changes");
@@ -88,7 +88,7 @@ export const NoteAiMenu = forwardRef<
       onReplace(markdown);
       return true;
     });
-  useImperativeHandle(ref, () => ({ rewritePart: (mode, markdown, apply) => void run(mode, markdown, true, apply) }));
+  useImperativeHandle(ref, () => ({ rewritePart: (mode, markdown, apply, context) => void run(mode, markdown, true, apply, context) }));
 
   const refresh = async () => {
     if (!noteId) return;
