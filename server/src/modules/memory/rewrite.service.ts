@@ -25,6 +25,7 @@ const prompt = ChatPromptTemplate.fromTemplate(
   `${UNTRUSTED_RULE}
 
 You are editing a note someone wrote for themselves. The note is Markdown.
+{scope}
 
 Task: {task}
 
@@ -36,17 +37,17 @@ Rules:
 - Leave code blocks, inline code, links (their addresses) and image lines
   exactly as they are.
 - Add no facts, names, dates or numbers that aren't in the note.
-- Answer with the rewritten note only, as Markdown: no introduction, no
+- Answer with the rewritten text only, as Markdown: no introduction, no
   explanation, no code fence around it.
 
-The note:
+The text:
 {note}`,
 );
 
 /** Up to this much of a note is rewritten at once; a longer one is best done a part at a time. */
 export const REWRITE_MAX_CHARS = 20_000;
 
-export async function rewriteNote(userId: string, memoryId: string, input: { mode: RewriteMode; markdown: string }): Promise<{ markdown: string }> {
+export async function rewriteNote(userId: string, memoryId: string, input: { mode: RewriteMode; markdown: string; part?: boolean }): Promise<{ markdown: string }> {
   const [note] = await db
     .select({ type: memories.type })
     .from(memories)
@@ -64,7 +65,14 @@ export async function rewriteNote(userId: string, memoryId: string, input: { mod
   }
 
   const text = await prompt.pipe(model).pipe(new StringOutputParser()).invoke(
-    { task: TASKS[input.mode], note: wrapUntrusted(input.markdown, "note") },
+    {
+      task: TASKS[input.mode],
+      // A selection may be a few words in the middle of a sentence: it must come back as a few words, not a whole note.
+      scope: input.part
+        ? "Below is only a part of the note, selected by its writer: maybe a few words, maybe some paragraphs. Rewrite just that part, so it still fits where it was, and keep it about the same kind of thing (a phrase stays a phrase)."
+        : "Below is the whole note.",
+      note: wrapUntrusted(input.markdown, "note"),
+    },
     // Logged as part of the note's processing ("ingestion:" rows are what an AI save counts).
     { callbacks: [createUsageCallback({ userId, requestType: "ingestion:note_rewrite", memoryId })] },
   );

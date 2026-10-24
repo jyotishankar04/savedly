@@ -54,6 +54,8 @@ export const createMemorySchema = z.object({
 export const rewriteNoteSchema = z.object({
   mode: z.enum(["fix", "improve", "shorten"]),
   markdown: z.string().min(1).max(20_000, "This note is too long to rewrite at once. Try a part of it."),
+  // Only a part of the note: what's selected in the editor.
+  part: z.boolean().optional(),
 });
 
 export const resolveDuplicateSchema = z.object({ action: z.enum(["skip", "keep"]) });

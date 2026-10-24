@@ -8,7 +8,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon as ArrowLeft, Delete02Icon as Trash, InformationCircleIcon as Info } from "@hugeicons/core-free-icons";
 import type { RichTextEditorHandle } from "@/components/arc/rich-text-editor/rich-text-editor";
 import { NoteEditor } from "@/components/notes/note-editor";
-import { NoteAiMenu } from "@/components/notes/note-ai-menu";
+import { NoteAiMenu, SELECTION_ACTIONS, type NoteAiMenuHandle } from "@/components/notes/note-ai-menu";
 import { NOTE_DRAFT_KEY, type NoteDraft } from "@/components/notes/capture-note";
 import { QueryErrorState } from "@/components/query-error-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,6 +93,7 @@ function NoteWriter({ noteId, initialTitle, initialMarkdown, collectionIds }: { 
   const queryClient = useQueryClient();
   const trash = useMoveToTrashMutation();
   const editor = useRef<RichTextEditorHandle>(null);
+  const aiMenu = useRef<NoteAiMenuHandle>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const [id, setId] = useState(noteId);
   const idRef = useRef(noteId);
@@ -215,6 +216,7 @@ function NoteWriter({ noteId, initialTitle, initialMarkdown, collectionIds }: { 
             </button>
           )}
           <NoteAiMenu
+            ref={aiMenu}
             noteId={id}
             getMarkdown={() => editor.current?.getMarkdown() ?? latest.current.markdown}
             onReplace={(markdown) => editor.current?.setMarkdown(markdown)}
@@ -268,6 +270,11 @@ function NoteWriter({ noteId, initialTitle, initialMarkdown, collectionIds }: { 
         ref={editor}
         size="page"
         markdown={initialMarkdown}
+        // Select text, then ✨ in its toolbar: the AI rewrites just that (once the note has been saved).
+        selectionActions={id ? SELECTION_ACTIONS : undefined}
+        onSelectionAction={(action, selection) =>
+          aiMenu.current?.rewritePart(action as (typeof SELECTION_ACTIONS)[number]["id"], selection.markdown, (markdown) => editor.current?.replaceSelection(selection, markdown) ?? false)
+        }
         autoFocus={!noteId && !!(initialTitle || initialMarkdown)}
         onChange={(value) => {
           if (!baselined.current) {

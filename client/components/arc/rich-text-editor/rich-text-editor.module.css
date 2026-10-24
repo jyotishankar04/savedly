@@ -178,6 +178,26 @@
   transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), transform var(--duration-instant) var(--ease-standard);
 }
 .tool:active { transform: scale(.92); }
+/* A selection action (added here): a word, not an icon. */
+.textTool {
+  display: inline-flex;
+  height: 32px;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--arc-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+.textTool:focus-visible { background: var(--surface-muted); color: var(--foreground); outline: none; }
+@media (hover: hover) and (pointer: fine) { .textTool:hover { background: var(--surface-muted); color: var(--foreground); } }
 .tool[aria-pressed="true"] { background: var(--accent-subtle); color: var(--accent-strong); }
 .tool:focus-visible { background: var(--surface-muted); color: var(--foreground); }
 @media (hover: hover) and (pointer: fine) { .tool:hover { background: var(--surface-muted); color: var(--foreground); } .tool[aria-pressed="true"]:hover { background: var(--accent-subtle); color: var(--accent-strong); } }

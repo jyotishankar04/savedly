@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -27,43 +27,54 @@ const MODES: { mode: NoteRewriteMode; label: string; icon: typeof Fix; done: str
   { mode: "shorten", label: "Make it shorter", icon: Shorter, done: "A shorter version" },
 ];
 
+/** The selection toolbar's AI actions, shorter for the small toolbar. */
+export const SELECTION_ACTIONS: { id: NoteRewriteMode; label: string }[] = [
+  { id: "fix", label: "Fix" },
+  { id: "improve", label: "Improve" },
+  { id: "shorten", label: "Shorter" },
+];
+
+export interface NoteAiMenuHandle {
+  /** Rewrites a part of the note (what's selected); `apply` puts the chosen result back, false when that text changed meanwhile. */
+  rewritePart: (mode: NoteRewriteMode, markdown: string, apply: (markdown: string) => boolean) => void;
+}
+
 /**
- * The note editor's AI menu: rewrite the whole note (shown first, replaced
- * only when chosen, and undone with Ctrl/⌘+Z), or run Savedly's processing
- * again for fresh tags, summary and dates.
+ * The note editor's AI menu: rewrite the whole note, or (from the selection
+ * toolbar) a part of it, always shown first with what changed and replaced
+ * only when chosen (Ctrl/⌘+Z undoes it); or run Savedly's processing again
+ * for fresh tags, summary and dates.
  */
-export function NoteAiMenu({
-  noteId,
-  getMarkdown,
-  onReplace,
-  beforeRefresh,
-}: {
-  /** Null until the note's first save: there's nothing to work on yet. */
-  noteId: string | null;
-  getMarkdown: () => string;
-  onReplace: (markdown: string) => void;
-  /** Saves what's on the page, so the refresh reads the latest. */
-  beforeRefresh: () => Promise<void>;
-}) {
+export const NoteAiMenu = forwardRef<
+  NoteAiMenuHandle,
+  {
+    /** Null until the note's first save: there's nothing to work on yet. */
+    noteId: string | null;
+    getMarkdown: () => string;
+    onReplace: (markdown: string) => void;
+    /** Saves what's on the page, so the refresh reads the latest. */
+    beforeRefresh: () => Promise<void>;
+  }
+>(function NoteAiMenu({ noteId, getMarkdown, onReplace, beforeRefresh }, ref) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState<NoteRewriteMode | "refresh" | null>(null);
-  const [result, setResult] = useState<{ mode: NoteRewriteMode; before: string; markdown: string } | null>(null);
+  const [result, setResult] = useState<{ mode: NoteRewriteMode; before: string; markdown: string; part: boolean; apply: (markdown: string) => boolean } | null>(null);
   // The preview opens on what changed; "Result" shows the new version as it will look.
   const [view, setView] = useState<"changes" | "result">("changes");
 
-  const rewrite = async (mode: NoteRewriteMode) => {
-    const markdown = getMarkdown().trim();
-    if (!noteId || !markdown) {
-      toast.add({ title: "Write something first", type: "warning" });
+  const run = async (mode: NoteRewriteMode, markdown: string, part: boolean, apply: (markdown: string) => boolean) => {
+    if (!noteId || !markdown.trim()) {
+      toast.add({ title: part ? "Select some text first" : "Write something first", type: "warning" });
       return;
     }
+    if (busy) return;
     setBusy(mode);
     try {
-      const answer = await rewriteNote(noteId, mode, markdown);
-      if (answer.markdown.trim() === markdown) toast.add({ title: "Nothing to change", description: "The AI left the note as it is.", type: "success" });
+      const answer = await rewriteNote(noteId, mode, markdown.trim(), part);
+      if (answer.markdown.trim() === markdown.trim()) toast.add({ title: "Nothing to change", description: part ? "The AI left it as it is." : "The AI left the note as it is.", type: "success" });
       else {
         setView("changes");
-        setResult({ mode, before: markdown, markdown: answer.markdown });
+        setResult({ mode, before: markdown.trim(), markdown: answer.markdown, part, apply });
       }
     } catch (err) {
       toast.add({ title: "Couldn't rewrite the note", description: err instanceof Error ? err.message : undefined, type: "error" });
@@ -71,6 +82,13 @@ export function NoteAiMenu({
       setBusy(null);
     }
   };
+
+  const rewrite = (mode: NoteRewriteMode) =>
+    run(mode, getMarkdown(), false, (markdown) => {
+      onReplace(markdown);
+      return true;
+    });
+  useImperativeHandle(ref, () => ({ rewritePart: (mode, markdown, apply) => void run(mode, markdown, true, apply) }));
 
   const refresh = async () => {
     if (!noteId) return;
@@ -127,7 +145,11 @@ export function NoteAiMenu({
         open={!!result}
         onOpenChange={(open) => !open && setResult(null)}
         title={shown?.done ?? "Suggested version"}
-        description="See what changed before it replaces your note. Ctrl/⌘+Z in the note brings yours back."
+        description={
+          result?.part
+            ? "See what changed before it replaces what you selected. Ctrl/⌘+Z in the note brings yours back."
+            : "See what changed before it replaces your note. Ctrl/⌘+Z in the note brings yours back."
+        }
         className="sm:max-w-2xl"
       >
         {result && (
@@ -150,9 +172,10 @@ export function NoteAiMenu({
               </ArcButton>
               <ArcButton
                 onClick={() => {
-                  onReplace(result.markdown);
+                  const done = result.apply(result.markdown);
                   setResult(null);
-                  toast.add({ title: "Note replaced", description: "Ctrl/⌘+Z in the note brings yours back.", type: "success" });
+                  if (done) toast.add({ title: result.part ? "Replaced" : "Note replaced", description: "Ctrl/⌘+Z in the note brings yours back.", type: "success" });
+                  else toast.add({ title: "That text changed meanwhile", description: "Select it again and try once more.", type: "warning" });
                 }}
               >
                 Replace
@@ -163,4 +186,4 @@ export function NoteAiMenu({
       </ResponsiveDialog>
     </>
   );
-}
+});

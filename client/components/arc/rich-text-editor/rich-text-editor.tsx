@@ -4,7 +4,7 @@ import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayo
 import type { ClipboardEvent as ReactClipboardEvent, CSSProperties, FormEvent, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { AnimatePresence, animate, motion, useIsPresent, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import type { Transition, Variants } from "motion/react";
-import { ArrowLeft, Bold, Check, Code, Heading1, Heading2, Heading3, ImagePlus, Italic, Lightbulb, Link, List, ListOrdered, ListTodo, Minus, Pilcrow, Quote, SquareCode, Strikethrough, Unlink } from "lucide-react";
+import { ArrowLeft, Bold, Check, Code, Heading1, Heading2, Heading3, ImagePlus, Italic, Lightbulb, Link, List, ListOrdered, ListTodo, Minus, Pilcrow, Quote, Sparkles, SquareCode, Strikethrough, Unlink } from "lucide-react";
 import { motionTokens } from "../lib/motion-tokens";
 import styles from "./rich-text-editor.module.css";
 
@@ -25,6 +25,11 @@ import styles from "./rich-text-editor.module.css";
 //   `> [!NOTE]` alert.
 // - markdownToHtml's `breaks`, for text where a single line break is meant
 //   (notes typed before they were Markdown).
+// - Selection actions: `selectionActions` adds a ✨ button to the selection
+//   toolbar, which turns into those actions (the notes' Write with AI). The
+//   chosen one gets the selection as Markdown, and replaceSelection() puts
+//   new text in its place later. Inside one block it's the selected words;
+//   across blocks, the whole blocks the selection touches.
 export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "blockquote" | "callout" | "pre" | "hr" | "img";
 type TextBlockType = Exclude<BlockType, "hr" | "img">;
 
@@ -630,6 +635,21 @@ export interface RichTextValue {
   empty: boolean;
 }
 
+/** An action offered on selected text (see selectionActions). */
+export interface SelectionAction {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+}
+
+/** Selected text handed to a selection action, to be replaced later with replaceSelection(). */
+export interface CapturedSelection {
+  id: number;
+  /** The selection as Markdown: the selected words, or the whole blocks it touches. */
+  markdown: string;
+  text: string;
+}
+
 export interface RichTextEditorHandle {
   focus: () => void;
   getHTML: () => string;
@@ -644,6 +664,8 @@ export interface RichTextEditorHandle {
   insertImage: (src: string, alt?: string) => void;
   /** Opens the file chooser, then uploads and adds what was chosen. Needs onUploadImage. */
   pickImage: () => void;
+  /** Puts Markdown where a selection action's selection was. False when that text has changed or gone meanwhile. */
+  replaceSelection: (selection: CapturedSelection, markdown: string) => boolean;
   element: HTMLDivElement | null;
 }
 
@@ -668,6 +690,9 @@ export interface RichTextEditorProps {
   "aria-label"?: string;
   className?: string;
   style?: CSSProperties;
+  /** Actions offered on selected text, behind a ✨ button in the selection toolbar. */
+  selectionActions?: SelectionAction[];
+  onSelectionAction?: (id: string, selection: CapturedSelection) => void;
 }
 
 type Formats = { bold: boolean; italic: boolean; strike: boolean; code: boolean; link: string | null; block: string };
@@ -736,6 +761,7 @@ function ToolButton({ label, pressed, shortcut, onPress, children }: { label: st
 export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(function RichTextEditor({
   value, defaultValue, defaultMarkdown, onChange, onHistoryChange, placeholder = "Start writing", blockHint = "Type / for blocks",
   onUploadImage, onUploadState, readOnly = false, autoFocus = false, "aria-label": ariaLabel = "Editor", className, style,
+  selectionActions, onSelectionAction,
 }, ref) {
   const pickerRef = useRef<HTMLInputElement>(null);
   const uploading = useRef(0);
@@ -756,7 +782,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   const [empty, setEmpty] = useState(true);
   const [formats, setFormats] = useState<Formats>({ bold: false, italic: false, strike: false, code: false, link: null, block: "p" });
   const [bar, setBar] = useState<{ x: number; y: number; below: boolean } | null>(null);
-  const [face, setFace] = useState<"format" | "link">("format");
+  const [face, setFace] = useState<"format" | "link" | "actions">("format");
   const [linkDraft, setLinkDraft] = useState("");
   const [slash, setSlash] = useState<Slash | null>(null);
   const [slashActive, setSlashActive] = useState(0);
@@ -880,6 +906,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     const inCode = !!start?.closest("pre");
     if (range.collapsed || dragging.current || inCode || slashRef.current || readOnly) {
       if (faceRef.current !== "link") setBar(null);
+      if (faceRef.current === "actions") { setFace("format"); faceRef.current = "format"; }
       return;
     }
     const rects = range.getClientRects();
@@ -1184,6 +1211,91 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     setBar(null);
     setAnnounce(remove || !url ? "Link removed" : "Link added");
   };
+
+  /* Selection actions: what's selected, kept so its place can be found again when the new text comes back. */
+  const captures = useRef(new Map<number, { range: Range; blocks: Element[] | null; text: string }>());
+  const captureCount = useRef(0);
+  const captureSelection = (): CapturedSelection | null => {
+    const editor = editorRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection?.rangeCount) return null;
+    const range = selection.getRangeAt(0);
+    if (range.collapsed || !editor.contains(range.commonAncestorContainer)) return null;
+    const first = blockAt(editor, range.startContainer), last = blockAt(editor, range.endContainer);
+    const id = ++captureCount.current;
+    // Inside one block: just the selected words.
+    if (first && first === last && first.nodeName !== "PRE") {
+      const holder = document.createElement("div");
+      holder.appendChild(range.cloneContents());
+      const text = range.toString();
+      captures.current.set(id, { range: range.cloneRange(), blocks: null, text });
+      return { id, markdown: inlineToMarkdown(holder).trim(), text };
+    }
+    // Across blocks: the whole blocks it touches, so lists and headings stay whole.
+    const blocks = Array.from(editor.children).filter(child => range.intersectsNode(child));
+    if (!blocks.length) return null;
+    const holder = document.createElement("div");
+    blocks.forEach(block => holder.appendChild(block.cloneNode(true)));
+    const clean = cleanClone(holder);
+    const text = plainOutput(clean);
+    captures.current.set(id, { range: range.cloneRange(), blocks, text });
+    return { id, markdown: htmlToMarkdown(clean), text };
+  };
+  const chooseAction = (id: string) => {
+    const selection = captureSelection();
+    setFace("format");
+    faceRef.current = "format";
+    setBar(null);
+    if (selection) onSelectionAction?.(id, selection);
+  };
+  const replaceSelection = useCallback((selection: CapturedSelection, markdown: string) => {
+    const editor = editorRef.current;
+    const saved = captures.current.get(selection.id);
+    captures.current.delete(selection.id);
+    if (!editor || !saved) return false;
+    let replaced = false;
+    run(() => {
+      const placeAfter = (node: Node | undefined) => {
+        if (!node) return;
+        const after = document.createRange();
+        if (isElement(node) && node.nodeName !== "BR") { after.selectNodeContents(node); after.collapse(false); } else { after.setStartAfter(node); after.collapse(true); }
+        const current = window.getSelection();
+        current?.removeAllRanges();
+        current?.addRange(after);
+      };
+      if (saved.blocks) {
+        const live = saved.blocks.filter(block => block.parentNode === editor);
+        // Changed meanwhile: leave the newer writing alone.
+        if (live.length !== saved.blocks.length) return;
+        const holder = document.createElement("div");
+        live.forEach(block => holder.appendChild(block.cloneNode(true)));
+        if (plainOutput(cleanClone(holder)) !== saved.text) return;
+        const nodes = Array.from(parseHtml(sanitizeHtml(markdownToHtml(markdown))).childNodes);
+        insertBefore(live[0]!, ...nodes);
+        live.forEach(block => block.remove());
+        nodes.forEach(node => {
+          if (!isElement(node)) return;
+          ensureFilled(node);
+          node.querySelectorAll<HTMLElement>("li, p, blockquote, aside").forEach(ensureFilled);
+        });
+        placeAfter(nodes[nodes.length - 1]);
+        replaced = true;
+        return;
+      }
+      const range = saved.range;
+      if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer) || range.toString() !== saved.text) return;
+      // Words in place of words: the new text's inline marks, on one line.
+      const paragraph = parseHtml(sanitizeHtml(markdownToHtml(markdown.replace(/\s*\n+\s*/g, " ")))).firstElementChild;
+      const nodes = paragraph ? Array.from(paragraph.childNodes) : [document.createTextNode(markdown)];
+      range.deleteContents();
+      const fragment = document.createDocumentFragment();
+      nodes.forEach(node => fragment.appendChild(node));
+      range.insertNode(fragment);
+      placeAfter(nodes[nodes.length - 1]);
+      replaced = true;
+    });
+    return replaced;
+  }, [run]);
 
   /* Keyboard. Enter, Backspace at a block edge, and history go through beforeinput so mobile keyboards behave the same. */
   const enterKey = useCallback((soft: boolean) => {
@@ -1514,6 +1626,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
   useImperativeHandle(ref, () => ({
     insertImage,
+    replaceSelection,
     pickImage: () => pickerRef.current?.click(),
     focus: () => editorRef.current?.focus(),
     getHTML: () => editorRef.current ? cleanClone(editorRef.current).innerHTML : "",
@@ -1525,7 +1638,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     undo,
     redo,
     get element() { return editorRef.current; },
-  }), [emit, insertImage, load, record, redo, undo]);
+  }), [emit, insertImage, load, record, redo, replaceSelection, undo]);
 
   /* Toolbar geometry: one surface whose size springs between faces and whose position glides with the selection. */
   const tx = useMotionValue(0), ty = useMotionValue(0), tw = useMotionValue(0), th = useMotionValue(0);
@@ -1571,7 +1684,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
   }, [bar, place, reduced, tx, ty]);
   useEffect(() => { if (bar) place(); }, [bar, place]);
   useEffect(() => () => cancelAnimationFrame(placedFrame.current), []);
-  const direction = face === "link" ? 1 : -1;
+  const direction = face === "format" ? -1 : 1;
 
   /* Slash menu geometry: the highlight glides between rows and the panel springs to its rows. */
   const listRef = useRef<HTMLUListElement>(null);
@@ -1693,6 +1806,17 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
               <ToolButton label="Heading 2" pressed={formats.block === "h2"} onPress={() => run(() => applyBlock("h2"))}><Heading2 {...icon} /></ToolButton>
               <ToolButton label="Quote" pressed={formats.block === "blockquote"} onPress={() => run(() => applyBlock("blockquote"))}><Quote {...icon} /></ToolButton>
               </span>
+              {selectionActions?.length ? <>
+                <span className={styles.divider} aria-hidden="true" />
+                <ToolButton label="Write with AI" pressed={false} onPress={() => { setFace("actions"); faceRef.current = "actions"; }}><Sparkles {...icon} /></ToolButton>
+              </> : null}
+            </div>
+          </Face> : face === "actions" ? <Face key="actions" direction={direction} reduced={reduced} onSize={onFaceSize}>
+            <div className={styles.row}>
+              <ToolButton label="Back to formatting" pressed={false} onPress={() => { setFace("format"); faceRef.current = "format"; }}><ArrowLeft {...icon} /></ToolButton>
+              {selectionActions?.map(action => <button key={action.id} type="button" className={styles.textTool} onMouseDown={event => event.preventDefault()} onClick={() => chooseAction(action.id)}>
+                {action.icon}{action.label}
+              </button>)}
             </div>
           </Face> : <Face key="link" direction={direction} reduced={reduced} onSize={onFaceSize}>
             <form className={styles.linkRow} onSubmit={event => { event.preventDefault(); applyLink(); }}>
