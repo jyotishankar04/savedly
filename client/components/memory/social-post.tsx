@@ -279,7 +279,7 @@ export function SocialPostView({ post, processing = false }: { post: SocialPost;
               <span className="text-xs font-bold text-foreground">Transcript</span>
               <span className="ml-2 text-xs text-muted-foreground">
                 {timed ? `${post.transcript.segments.length} lines` : "from the post"}
-                {post.transcript.auto ? " · auto-generated" : ""}
+                {post.transcript.translatedFrom ? " · translated to English" : post.transcript.auto ? " · auto-generated" : ""}
               </span>
             </span>
             <HugeiconsIcon icon={ChevronDown} strokeWidth={2} className={cn("size-4 text-muted-foreground transition-transform", transcriptOpen && "rotate-180")} />

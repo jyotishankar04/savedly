@@ -38,7 +38,12 @@ interface PlayerResponse {
     viewCount?: string;
     thumbnail?: { thumbnails?: { url: string; width?: number }[] };
   };
-  captions?: { playerCaptionsTracklistRenderer?: { captionTracks?: { baseUrl: string; languageCode: string; kind?: string }[] } };
+  captions?: {
+    playerCaptionsTracklistRenderer?: {
+      captionTracks?: { baseUrl: string; languageCode: string; kind?: string }[];
+      translationLanguages?: { languageCode: string }[];
+    };
+  };
 }
 
 /** "0:00 Intro" lines in a description, when there are at least two starting at 0:00. */
@@ -51,14 +56,33 @@ function chaptersFrom(description: string): { start: number; title: string }[] |
   return chapters.length >= 2 && chapters[0]!.start === 0 ? chapters : undefined;
 }
 
+type CaptionData = { events?: { tStartMs?: number; segs?: { utf8?: string }[] }[] };
+const isEnglish = (code: string) => code.split("-")[0] === "en";
+
+/**
+ * The transcript, in English whenever it can be. A video with dubbed audio
+ * lists an automatic track for every dub (the first may be Bengali), so:
+ * a written English track, else the automatic English one, else YouTube's
+ * own English translation of the best track (its original language), and
+ * only if that fails the track as it is.
+ */
 async function transcriptFrom(player: PlayerResponse): Promise<SocialPost["transcript"]> {
-  const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+  const list = player.captions?.playerCaptionsTracklistRenderer;
+  const tracks = list?.captionTracks ?? [];
   if (!tracks.length) return undefined;
-  // The automatic track says which language is spoken; a written track in that language beats it.
-  const auto = tracks.find((t) => t.kind === "asr");
-  const spoken = auto?.languageCode;
-  const track = tracks.find((t) => t.kind !== "asr" && spoken && t.languageCode.split("-")[0] === spoken.split("-")[0]) ?? auto ?? tracks.find((t) => t.kind !== "asr") ?? tracks[0]!;
-  const data = await fetchJson<{ events?: { tStartMs?: number; segs?: { utf8?: string }[] }[] }>(`${track.baseUrl}&fmt=json3`, { userAgent: IOS_UA });
+  const english = tracks.find((t) => isEnglish(t.languageCode) && t.kind !== "asr") ?? tracks.find((t) => isEnglish(t.languageCode));
+  // The original language: a written track first (people write those), else the automatic one.
+  const original = tracks.find((t) => t.kind !== "asr") ?? tracks[0]!;
+  let track = english ?? original;
+  let translatedFrom: string | undefined;
+  let data = await fetchJson<CaptionData>(`${track.baseUrl}&fmt=json3`, { userAgent: IOS_UA });
+  if (!english && list?.translationLanguages?.some((l) => l.languageCode === "en")) {
+    const translated = await fetchJson<CaptionData>(`${track.baseUrl}&fmt=json3&tlang=en`, { userAgent: IOS_UA });
+    if (translated?.events?.length) {
+      data = translated;
+      translatedFrom = track.languageCode;
+    }
+  }
   if (!data?.events) return undefined;
   const segments: { start: number; text: string }[] = [];
   let total = 0;
@@ -69,7 +93,7 @@ async function transcriptFrom(player: PlayerResponse): Promise<SocialPost["trans
     total += text.length + 1;
     if (total > MAX_TRANSCRIPT_CHARS) break;
   }
-  return segments.length ? { language: track.languageCode, auto: track.kind === "asr", segments } : undefined;
+  return segments.length ? { language: translatedFrom ? "en" : track.languageCode, auto: track.kind === "asr" || !!translatedFrom, translatedFrom, segments } : undefined;
 }
 
 export async function extractYouTube(url: string): Promise<SocialPost | null> {

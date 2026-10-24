@@ -1,6 +1,7 @@
 import { detectPlatform, extractServerMetadata, fetchUrl, buildPreview, defaultFaviconUrl, postAsText, resolveShortLink, socialExtractorFor, type SocialPost } from "../../url-processor";
 import { extractPdfContent } from "./lib/parse-pdf";
 import { analyzeImage } from "./lib/analyze-image";
+import { transcriptInEnglish } from "./lib/translate-transcript";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
@@ -21,13 +22,17 @@ const SHORT_POST_CHARS = 280;
 
 async function fromSocialPost(
   state: IngestionStateType,
-  post: SocialPost,
+  readPost: SocialPost,
   { platform, resourceType, domain }: { platform: string | null; resourceType: string | null; domain: string },
 ): Promise<IngestionUpdate> {
+  let post = readPost;
   const first = post.media?.[0];
   const postImage = first ? (first.thumbnailUrl ?? (first.type === "image" ? first.url : null)) : null;
   // A cover the person picked in the extension stays theirs.
   const imageUrl = state.browserCapture?.imageUrl ?? postImage;
+
+  // Always English: a transcript with no English track is translated (and the post's text and search use that).
+  if (post.transcript) post = { ...post, transcript: await transcriptInEnglish(post.transcript, { userId: state.userId, requestType: "ingestion:transcript_translate", memoryId: state.memoryId }) };
 
   let rawContent = postAsText(post);
   if (postImage && !post.transcript && (post.text?.length ?? 0) < SHORT_POST_CHARS) {

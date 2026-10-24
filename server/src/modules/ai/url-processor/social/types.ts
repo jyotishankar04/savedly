@@ -23,7 +23,8 @@ export interface SocialPost {
   quoted?: { author?: string; text: string };
   durationSeconds?: number;
   chapters?: { start: number; title: string }[];
-  transcript?: { language: string; auto: boolean; segments: { start: number; text: string }[] };
+  /** Always English when it can be: `translatedFrom` is the spoken language when YouTube translated it. */
+  transcript?: { language: string; auto: boolean; translatedFrom?: string; segments: { start: number; text: string }[] };
   /**
    * The platform's own player, for the memory's page: YouTube by id (its
    * transcript and chapters seek it); TikTok, Instagram and Facebook by the
