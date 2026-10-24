@@ -11,6 +11,17 @@ const items: Item[] = [
   {
     iso: "2026-10-24",
     kind: "new",
+    title: "Posts and videos, read for real",
+    summary: "Save a YouTube video, a post on X, Instagram, Threads or LinkedIn, or a TikTok, and Savedly keeps what it says, not just its link.",
+    details: [
+      "A YouTube video keeps its transcript: search and Ask find it by what's said in it, and on its page each line plays the video from there.",
+      "A post keeps its text, who posted it and when, and its picture; a mostly-picture post is described, so you can find it by what's in it.",
+      "A post or video you saved before is read when you press Read the post on its page.",
+    ],
+  },
+  {
+    iso: "2026-10-24",
+    kind: "new",
     title: "Notes, with a real editor",
     summary: "Write notes full page, with headings, lists, to-dos, callouts, code and pictures. Type / for the menu.",
     details: [

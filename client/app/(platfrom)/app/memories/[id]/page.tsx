@@ -27,7 +27,8 @@ import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
 import { useRemindMe } from "@/components/memory/remind-me";
 import { MemoryHighlights } from "@/components/memory/memory-highlights";
 import { formatRemindAt } from "@/lib/remind";
-import { useMemoryQuery, useToggleFavoriteMutation, useUpdateMemoryMutation } from "@/context/MemoryContext";
+import { memoryQueryKey, useMemoryQuery, useToggleFavoriteMutation, useUpdateMemoryMutation } from "@/context/MemoryContext";
+import { toast } from "@/components/ui/toast";
 import { EditableTitle } from "@/components/memory/editable-title";
 import { timeAgo } from "@/lib/time";
 import { isMemoryProcessing } from "@/lib/memory-processing";
@@ -43,6 +44,9 @@ import {
 } from "@/components/ui/attachment";
 import type { MemoryDetail } from "@/types/memory";
 import { NoteBody } from "@/components/notes/note-editor";
+import { SocialPostView } from "@/components/memory/social-post";
+import { useQueryClient } from "@tanstack/react-query";
+import { reprocessMemory } from "@/lib/memories";
 
 function attachmentFilename(fileUrl: string): string {
   return fileUrl.split("/").pop() ?? fileUrl;
@@ -75,6 +79,9 @@ function looksLikeCode(memory: MemoryDetail): boolean {
   const lines = text.split("\n").filter((l) => l.trim());
   return lines.length > 0 && lines.every((l) => COMMAND_START.test(l) || /^\s{2,}\S/.test(l) || /[;{}]\s*$/.test(l));
 }
+
+// Platforms whose posts and videos Savedly can read (server: url-processor/social).
+const SOCIAL_PLATFORMS = new Set(["youtube", "x", "instagram", "tiktok", "threads", "linkedin", "reddit", "facebook"]);
 
 function humanize(key: string): string {
   const words = key.replace(/[_-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").trim();
@@ -120,6 +127,8 @@ export default function MemoryDetailPage() {
   // off a local draft seeded from memory.content when editing starts.
   const [draftNote, setDraftNote] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [readingPost, setReadingPost] = useState(false);
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   // A preview picture that doesn't load (gone, blocked) falls back to the no-preview tile.
   const [previewFailed, setPreviewFailed] = useState<string | null>(null);
@@ -312,6 +321,9 @@ export default function MemoryDetailPage() {
                 </div>
               )}
             </section>
+          ) : memory.socialPost ? (
+            // A post or video read from its platform: who, what it says, the video with its transcript.
+            <SocialPostView post={memory.socialPost} processing={processing} />
           ) : (
             <section className="space-y-3">
               <div className="rounded-2xl border border-border/60 bg-muted/40 overflow-hidden relative">
@@ -353,6 +365,29 @@ export default function MemoryDetailPage() {
                     Open original <HugeiconsIcon icon={ExternalLink} strokeWidth={2.25} className="h-3 w-3" />
                   </a>
                 </div>
+              )}
+
+              {/* A post or video saved before Savedly could read them (or whose read failed): read it now. */}
+              {!processing && memory.url && memory.platform && SOCIAL_PLATFORMS.has(memory.platform) && (
+                <button
+                  type="button"
+                  disabled={readingPost}
+                  onClick={async () => {
+                    setReadingPost(true);
+                    try {
+                      await reprocessMemory(memory.id);
+                      await queryClient.invalidateQueries({ queryKey: memoryQueryKey(memory.id) });
+                      toast.add({ title: "Reading the post", description: "It shows here in a moment.", type: "success" });
+                    } catch (err) {
+                      toast.add({ title: "Couldn't read it", description: err instanceof Error ? err.message : undefined, type: "error" });
+                    } finally {
+                      setReadingPost(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+                >
+                  {readingPost ? "Reading…" : `Read the ${memory.type === "video" ? "video" : "post"}`}
+                </button>
               )}
 
               {/* Plain-language preview status — never the raw fetchStatus (see docs/URL_CAPTURE_AND_PREVIEW.md's UI copy guidance). */}

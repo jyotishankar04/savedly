@@ -62,6 +62,27 @@ export interface MemoryDetail extends Memory {
   attachments: Attachment[];
   /** Highlighted passages, oldest first. */
   highlights?: { id: string; text: string; color: string; note: string | null; createdAt: string }[];
+  /** A social post or video as read from its platform; null for any other memory. */
+  socialPost?: SocialPost | null;
+}
+
+/** Mirrors server/src/modules/ai/url-processor/social/types.ts. */
+export interface SocialPost {
+  platform: string;
+  kind: "post" | "video" | "short" | "reel";
+  url: string;
+  author?: { name?: string; handle?: string; url?: string; avatarUrl?: string };
+  title?: string;
+  text?: string;
+  publishedAt?: string;
+  media?: { type: "image" | "video"; url: string; thumbnailUrl?: string }[];
+  stats?: { likes?: number; comments?: number; views?: number; reposts?: number };
+  quoted?: { author?: string; text: string };
+  durationSeconds?: number;
+  chapters?: { start: number; title: string }[];
+  transcript?: { language: string; auto: boolean; segments: { start: number; text: string }[] };
+  embed?: { provider: "youtube"; id: string };
+  source: "api" | "oembed" | "page";
 }
 
 export interface Collection {

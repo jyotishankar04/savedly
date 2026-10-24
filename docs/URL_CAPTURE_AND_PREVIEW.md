@@ -69,6 +69,21 @@ Frontend rendering (`client/components/memory-thumbnail.tsx`, and the same chain
 - **GitHub**: `/owner/repo` → `repository`, `/owner/repo/issues/...` → `issue`, `/owner/repo/pull/...` → `pull_request`, `/owner` (single segment) → `profile`.
 - Every other listed platform gets at least a coarse `resourceType` (e.g. Instagram: `post`/`reel`/`profile`); anything unrecognized is `platform: null, resourceType: null` — never guessed.
 
+### 5a. Social posts and videos (`url-processor/social/`)
+
+A platform row may carry `extract: { resourceTypes, read }`: a reader for its posts or videos, run by `ParseWebContent` before the generic page fetch. What it reads becomes `memories.social_post` (jsonb), the memory's preview, and the text that's summarized, tagged and embedded (`postAsText`). A reader that comes back empty (a removed or private post) falls through to the page fetch, keeping only that page's preview tags: the platforms' app shells have nothing else worth reading.
+
+| Platform | Read from | Gives |
+|---|---|---|
+| YouTube (`video`, `short`) | the player API, as YouTube's iOS app (the web player's captions need a browser's proof-of-origin token); oEmbed as a fallback | title, channel, description, duration, views, chapters (from the description), the captions as a transcript (at most ~60k characters) |
+| X (`post`) | `cdn.syndication.twimg.com/tweet-result`, the endpoint X's embedded posts read; oEmbed as a fallback | text (t.co links expanded), author and avatar, date, photos and video posters, a quoted post, likes and replies |
+| TikTok (`video`) | TikTok's oEmbed | caption, author, thumbnail (what's said is only in the audio, which isn't read) |
+| Instagram, Threads, LinkedIn, Reddit, Facebook (`post`) | the saved page's preview tags, read like a link preview (below) | the caption or text, the author, the date, the picture, and Instagram's likes and comments |
+
+A post that's mostly its picture (under 280 characters of text, no transcript) also gets its image described by the vision model, part of the same memory's AI save.
+
+**robots.txt and link previews.** Those five send `Disallow: /` to every unknown bot. That rule is about crawling; a save is one person sharing one page, which is what WhatsApp, Slack and iMessage read for their link previews. So for a post on one of these platforms, and only there, `fetchUrl(url, { robots: "skip" })` fetches that one page, with Savedly's own user agent, and only its `<meta>` preview tags are read. Nothing linked from it is fetched, and every other page still honours robots.txt.
+
 ## 6. Security — `server-fetcher.ts`
 
 All SSRF-relevant logic is isolated in this one file:
@@ -78,7 +93,7 @@ All SSRF-relevant logic is isolated in this one file:
 - **Redirect handling**: manual redirect following (`redirect: "manual"`), capped at 5 hops, **every hop re-validated** through the same `assertSafeUrl` check — a safe initial URL redirecting to an internal address is caught mid-chain, not assumed safe because the first hop was.
 - **Response size cap**: streamed read, aborted past 5MB.
 - **Timeout**: `AbortSignal.timeout(...)`.
-- **robots.txt**: `isAllowedByRobots` is consulted (minimal parser, User-agent block + Disallow prefix matching) and fails **open** on any error reaching `robots.txt` itself — this is a courtesy check, not a hard dependency; we do not attempt to circumvent it when it says no (→ `robots_blocked`), but we also never let a broken robots.txt fetch block a legitimate save.
+- **robots.txt**: (except the one-page link preview of a social post, §5a) `isAllowedByRobots` is consulted (minimal parser, User-agent block + Disallow prefix matching) and fails **open** on any error reaching `robots.txt` itself — this is a courtesy check, not a hard dependency; we do not attempt to circumvent it when it says no (→ `robots_blocked`), but we also never let a broken robots.txt fetch block a legitimate save.
 
 `fetchUrl` never throws — every failure mode maps to a `FetchStatus` and the memory is still saved.
 
@@ -141,7 +156,7 @@ All follow the existing `router → validator (zod) → controller → service` 
 
 ## 12. Data model
 
-No new tables — `memories` was extended directly (`server/src/db/schema.ts`), per "don't duplicate existing tables unnecessarily." New columns: `status`, `normalizedUrl`, `previewStatus`, `previewSource`, `platform`, `resourceType`, `canonicalUrl`, `fetchStatus`, `captureMethod`, `browserCapture` (jsonb). Migration `20260830051935_numerous_red_shift` backfills existing rows (`status = ready` where `resourceCategory` was already set, `partial` otherwise) so pre-existing memories don't show a permanent false "processing" badge.
+No new tables — `memories` was extended directly (`server/src/db/schema.ts`), per "don't duplicate existing tables unnecessarily." New columns: `status`, `normalizedUrl`, `previewStatus`, `previewSource`, `platform`, `resourceType`, `canonicalUrl`, `fetchStatus`, `captureMethod`, `browserCapture` (jsonb). `socialPost` (jsonb, migration `20261024172220_social_post`) holds what a social post's reader found (§5a). Migration `20260830051935_numerous_red_shift` backfills existing rows (`status = ready` where `resourceCategory` was already set, `partial` otherwise) so pre-existing memories don't show a permanent false "processing" badge.
 
 ## 13. Known limitations / deferred
 
