@@ -43,6 +43,10 @@ What differs from Chrome (all in `toFirefox` in `vite.config.ts` and the
 
 ## Submission
 
+AMO's validator passes it with 0 errors. Two warnings remain, "Unsafe
+assignment to innerHTML" in `assets/search-*.js`: both are inside React
+(react-dom), not Savedly's code, and don't block review.
+
 **Distribution:** On this site (listed on addons.mozilla.org).
 
 **Upload:** `savedly-firefox-<version>.zip`. Platforms: Firefox (desktop).

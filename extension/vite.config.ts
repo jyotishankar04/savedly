@@ -63,6 +63,8 @@ function toFirefox(manifest: Record<string, any>, local: boolean) {
       // sidebar is open, to show whether it's saved.
       data_collection_permissions: { required: ["websiteContent", "browsingActivity"] },
     },
+    // Firefox for Android shows the data statement from 142. (It's listed for desktop only.)
+    gecko_android: { strict_min_version: "142.0" },
   };
 }
 
