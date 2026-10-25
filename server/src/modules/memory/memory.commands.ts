@@ -117,6 +117,74 @@ export async function createMemory(
   return { ...detail, duplicateOf };
 }
 
+/** The columns an update changes: only the fields the request carried. */
+function columnsFromInput(input: UpdateMemoryInput): Record<string, unknown> {
+  const columns: Record<string, unknown> = { updatedAt: new Date() };
+  if (input.title !== undefined) columns.title = input.title;
+  if (input.content !== undefined) columns.content = input.content;
+  if (input.description !== undefined) columns.description = input.description;
+  if (input.isFavorite !== undefined) columns.isFavorite = input.isFavorite;
+  if (input.isArchived !== undefined) columns.isArchived = input.isArchived;
+  if (input.inTrash !== undefined) {
+    columns.inTrash = input.inTrash;
+    // Starts (or clears) the 15-day purge clock — see trash-purge.job.ts.
+    // Restoring clears it rather than leaving a stale timestamp behind,
+    // so re-trashing later starts a fresh window instead of inheriting
+    // however much of the old one was left.
+    columns.trashedAt = input.inTrash ? new Date() : null;
+  }
+  // Un-vaulting (isVaulted: false) requires the vault to already be
+  // unlocked — enforced by requireUnlockToUnvault at the route, before
+  // this ever runs. Vaulting (true) needs no such check: hiding something
+  // is always safe to do.
+  if (input.isVaulted !== undefined) columns.isVaulted = input.isVaulted;
+  if (input.eventAt !== undefined) columns.eventAt = input.eventAt ? new Date(input.eventAt) : null;
+  if (input.isRead !== undefined) columns.readAt = input.isRead ? new Date() : null;
+  // A new reminder snoozes it until then; null cancels one.
+  if (input.remindAt !== undefined) columns.remindAt = input.remindAt ? new Date(input.remindAt) : null;
+  return columns;
+}
+
+async function replaceCollections(tx: Tx, userId: string, id: string, collectionIds: string[]): Promise<void> {
+  await tx.delete(collectionMemories).where(eq(collectionMemories.memoryId, id));
+  if (collectionIds.length === 0) return;
+  const owned = await tx
+    .select({ id: collections.id, isVaulted: collections.isVaulted })
+    .from(collections)
+    .where(and(eq(collections.userId, userId), inArray(collections.id, collectionIds)));
+  if (owned.length === 0) return;
+  await tx
+    .insert(collectionMemories)
+    .values(owned.map((collection) => ({ collectionId: collection.id, memoryId: id })));
+
+  // Same inherit-on-file-in rule as createMemory.
+  if (owned.some((collection) => collection.isVaulted)) {
+    await tx.update(memories).set({ isVaulted: true }).where(eq(memories.id, id));
+  }
+}
+
+async function replaceTags(tx: Tx, userId: string, id: string, tags: string[]): Promise<void> {
+  await tx.delete(memoryTags).where(eq(memoryTags.memoryId, id));
+  if (tags.length === 0) return;
+  const tagIds = await resolveTagIds(tx, userId, tags);
+  if (tagIds.length > 0) {
+    await tx.insert(memoryTags).values(tagIds.map((tagId) => ({ memoryId: id, tagId })));
+  }
+}
+
+/**
+ * A note's text changed: re-index it for search once the editing stops. The
+ * AI isn't run again; a note not yet processed at all (one being written in
+ * the full-page editor) has its first processing pushed back instead.
+ */
+function requeueEditedNote(id: string, type: string, status: string, input: UpdateMemoryInput): void {
+  if (type !== MemoryType.NOTE || (input.content === undefined && input.title === undefined)) return;
+  const queued = [enqueueNoteReindex(id), ...(status === MemoryStatus.PROCESSING ? [enqueueNoteRefresh(id)] : [])];
+  Promise.all(queued).catch((err) => {
+    logger.error({ memoryId: id, err }, "Failed to queue the edited note's re-index");
+  });
+}
+
 export async function updateMemory(
   userId: string,
   id: string,
@@ -125,33 +193,9 @@ export async function updateMemory(
   // Moving into the vault needs the plan; taking something out never does.
   if (input.isVaulted === true) await assertFeature(userId, "vault");
   const { type, status } = await db.transaction(async (tx) => {
-    const columns: Record<string, unknown> = { updatedAt: new Date() };
-    if (input.title !== undefined) columns.title = input.title;
-    if (input.content !== undefined) columns.content = input.content;
-    if (input.description !== undefined) columns.description = input.description;
-    if (input.isFavorite !== undefined) columns.isFavorite = input.isFavorite;
-    if (input.isArchived !== undefined) columns.isArchived = input.isArchived;
-    if (input.inTrash !== undefined) {
-      columns.inTrash = input.inTrash;
-      // Starts (or clears) the 15-day purge clock — see trash-purge.job.ts.
-      // Restoring clears it rather than leaving a stale timestamp behind,
-      // so re-trashing later starts a fresh window instead of inheriting
-      // however much of the old one was left.
-      columns.trashedAt = input.inTrash ? new Date() : null;
-    }
-    // Un-vaulting (isVaulted: false) requires the vault to already be
-    // unlocked — enforced by requireUnlockToUnvault at the route, before
-    // this ever runs. Vaulting (true) needs no such check: hiding something
-    // is always safe to do.
-    if (input.isVaulted !== undefined) columns.isVaulted = input.isVaulted;
-    if (input.eventAt !== undefined) columns.eventAt = input.eventAt ? new Date(input.eventAt) : null;
-    if (input.isRead !== undefined) columns.readAt = input.isRead ? new Date() : null;
-    // A new reminder snoozes it until then; null cancels one.
-    if (input.remindAt !== undefined) columns.remindAt = input.remindAt ? new Date(input.remindAt) : null;
-
     const [updated] = await tx
       .update(memories)
-      .set(columns)
+      .set(columnsFromInput(input))
       .where(and(eq(memories.id, id), eq(memories.userId, userId)))
       .returning({ id: memories.id, type: memories.type, status: memories.status });
 
@@ -159,36 +203,8 @@ export async function updateMemory(
       throw new AppError("Memory not found", 404, "NOT_FOUND");
     }
 
-    if (input.collectionIds !== undefined) {
-      await tx.delete(collectionMemories).where(eq(collectionMemories.memoryId, id));
-      if (input.collectionIds.length > 0) {
-        const owned = await tx
-          .select({ id: collections.id, isVaulted: collections.isVaulted })
-          .from(collections)
-          .where(and(eq(collections.userId, userId), inArray(collections.id, input.collectionIds)));
-        if (owned.length > 0) {
-          await tx
-            .insert(collectionMemories)
-            .values(owned.map((collection) => ({ collectionId: collection.id, memoryId: id })));
-
-          // Same inherit-on-file-in rule as createMemory.
-          if (owned.some((collection) => collection.isVaulted)) {
-            await tx.update(memories).set({ isVaulted: true }).where(eq(memories.id, id));
-          }
-        }
-      }
-    }
-
-    if (input.tags !== undefined) {
-      await tx.delete(memoryTags).where(eq(memoryTags.memoryId, id));
-      if (input.tags.length > 0) {
-        const tagIds = await resolveTagIds(tx, userId, input.tags);
-        if (tagIds.length > 0) {
-          await tx.insert(memoryTags).values(tagIds.map((tagId) => ({ memoryId: id, tagId })));
-        }
-      }
-    }
-
+    if (input.collectionIds !== undefined) await replaceCollections(tx, userId, id, input.collectionIds);
+    if (input.tags !== undefined) await replaceTags(tx, userId, id, input.tags);
     if (input.attachments !== undefined) {
       await tx.delete(attachments).where(eq(attachments.memoryId, id));
       await insertAttachments(tx, id, input.attachments);
@@ -196,15 +212,7 @@ export async function updateMemory(
     return updated;
   });
 
-  // A note's text changed: re-index it for search once the editing stops. The
-  // AI isn't run again; a note not yet processed at all (one being written in
-  // the full-page editor) has its first processing pushed back instead.
-  if (type === MemoryType.NOTE && (input.content !== undefined || input.title !== undefined)) {
-    const queued = [enqueueNoteReindex(id), ...(status === MemoryStatus.PROCESSING ? [enqueueNoteRefresh(id)] : [])];
-    Promise.all(queued).catch((err) => {
-      logger.error({ memoryId: id, err }, "Failed to queue the edited note's re-index");
-    });
-  }
+  requeueEditedNote(id, type, status, input);
 
   return getMemoryById(userId, id);
 }
