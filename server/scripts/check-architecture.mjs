@@ -26,7 +26,7 @@ const LAYERS = [
   { name: "shared", rank: 1, test: (r) => r.startsWith("shared/") },
   { name: "platform", rank: 2, test: (r) => r.startsWith("platform/") },
   { name: "modules", rank: 3, test: (r) => r.startsWith("modules/") },
-  { name: "app", rank: 4, test: (r) => r.startsWith("routes/") || r === "app.ts" || r === "server.ts" },
+  { name: "app", rank: 4, test: (r) => r.startsWith("routes/") || r.startsWith("jobs/") || r === "app.ts" || r === "server.ts" },
 ];
 // db and shared are siblings at the bottom: neither is above the other, so db may use shared's primitives and shared may read db's schema.
 const layerOf = (rel) => LAYERS.find((l) => l.test(rel));
