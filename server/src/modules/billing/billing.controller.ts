@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { billingStatus, createCheckout, createPortalLink, handleWebhook, previewUpgrade, syncSubscriptions } from "./billing.service";
+import { billingStatus, createCheckout, createPortalLink, previewUpgrade } from "./billing.checkout";
+import { handleWebhook, syncSubscriptions } from "./billing.webhooks";
 import type { CheckoutInput, UpgradePreviewInput } from "./billing.schema";
 
 export class BillingController {
