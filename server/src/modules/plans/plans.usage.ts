@@ -1,0 +1,113 @@
+import { and, eq, gte, like, sql, sum } from "drizzle-orm";
+import { db, type DbOrTx } from "../../db";
+import { attachments, collections, memories, aiUsageLogs, importBatches, shares } from "../../db/schema";
+import { CollectionSource, PlanLimitType, ShareLinkAccess } from "../../db/enums";
+
+export const platformOnly = sql`${aiUsageLogs.metadata}->>'source' = 'platform'`;
+
+export function startOfCurrentMonth(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+/**
+ * Current usage for one limit type. Deliberately one query per type rather
+ * than a single mega-query — each limit lives on a different table with a
+ * different "what counts" rule (e.g. collections only count source='user',
+ * AI usage only counts user-initiated Ask queries, not ingestion/embedding
+ * background calls — see ai.routes.ts's "ask:" requestType prefix).
+ */
+export async function getCurrentUsage(userId: string, limitType: PlanLimitType, dbClient: DbOrTx = db): Promise<number> {
+  switch (limitType) {
+    case PlanLimitType.MEMORY_COUNT: {
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(*)::int` })
+        .from(memories)
+        .where(and(eq(memories.userId, userId), eq(memories.inTrash, false)));
+      return row?.value ?? 0;
+    }
+    case PlanLimitType.COLLECTION_COUNT: {
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(*)::int` })
+        .from(collections)
+        .where(and(eq(collections.userId, userId), eq(collections.source, CollectionSource.USER)));
+      return row?.value ?? 0;
+    }
+    case PlanLimitType.STORAGE_MB: {
+      const [row] = await dbClient
+        .select({ value: sum(attachments.fileSize) })
+        .from(attachments)
+        .innerJoin(memories, eq(attachments.memoryId, memories.id))
+        .where(eq(memories.userId, userId));
+      const bytes = Number(row?.value ?? 0);
+      return Math.ceil(bytes / (1024 * 1024));
+    }
+    // The three AI quotas count only *included* AI — calls that ran on the
+    // platform's key, which the usage logger tags with metadata.source =
+    // "platform". Calls on a user's own key never count.
+    case PlanLimitType.AI_MONTHLY_QUERIES: {
+      // Exact match on "ask:query", not a "rag:%" prefix — a single question
+      // fans out into several rag:* rows internally, so counting those would
+      // overcount. streamAsk logs exactly one "ask:query" row per question.
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(*)::int` })
+        .from(aiUsageLogs)
+        .where(
+          and(
+            eq(aiUsageLogs.userId, userId),
+            eq(aiUsageLogs.requestType, "ask:query"),
+            platformOnly,
+            gte(aiUsageLogs.createdAt, startOfCurrentMonth()),
+          ),
+        );
+      return row?.value ?? 0;
+    }
+    case PlanLimitType.AI_MONTHLY_SAVES: {
+      // One per memory the ingestion pipeline enriched on the platform key,
+      // however many ingestion:* calls that took.
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(distinct ${aiUsageLogs.memoryId})::int` })
+        .from(aiUsageLogs)
+        .where(
+          and(
+            eq(aiUsageLogs.userId, userId),
+            like(aiUsageLogs.requestType, "ingestion:%"),
+            platformOnly,
+            gte(aiUsageLogs.createdAt, startOfCurrentMonth()),
+          ),
+        );
+      return row?.value ?? 0;
+    }
+    case PlanLimitType.WEB_SEARCH_MONTHLY: {
+      // One "web:search" row per lookup (modules/ai/web-search), from saves and Ask alike.
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(*)::int` })
+        .from(aiUsageLogs)
+        .where(and(eq(aiUsageLogs.userId, userId), eq(aiUsageLogs.requestType, "web:search"), gte(aiUsageLogs.createdAt, startOfCurrentMonth())));
+      return row?.value ?? 0;
+    }
+    case PlanLimitType.IMPORT_MONTHLY_COUNT: {
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(*)::int` })
+        .from(importBatches)
+        .where(and(eq(importBatches.userId, userId), gte(importBatches.createdAt, startOfCurrentMonth())));
+      return row?.value ?? 0;
+    }
+    case PlanLimitType.AI_MONTHLY_VISION_QUERIES: // retired: part of AI_MONTHLY_SAVES now
+    case PlanLimitType.MAX_FILE_MB:
+      // A per-file cap, checked against each upload's size — there's no
+      // running total to report.
+      return 0;
+    case PlanLimitType.PUBLIC_SHARE_COUNT: {
+      // Only links actually set to "public" count against the cap — an
+      // invite-only or password-protected share is gated by a features flag
+      // instead, not by this quota. The `shares` table is imported directly
+      // rather than calling share.service: that module imports this one.
+      const [row] = await dbClient
+        .select({ value: sql<number>`count(*)::int` })
+        .from(shares)
+        .where(and(eq(shares.ownerId, userId), eq(shares.linkAccess, ShareLinkAccess.PUBLIC)));
+      return row?.value ?? 0;
+    }
+  }
+}
