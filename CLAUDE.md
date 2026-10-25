@@ -32,7 +32,7 @@ There is no lint or test script/framework configured yet. Local infra (Postgres,
 
 Drizzle (ORM/migrations):
 ```bash
-npx drizzle-kit generate   # generate a migration from schema.ts changes
+npx drizzle-kit generate   # generate a migration from changes under src/db/schema/
 npx drizzle-kit migrate    # apply pending migrations
 npx drizzle-kit studio     # inspect DB
 ```
@@ -69,7 +69,7 @@ Errors: throw `AppError(message, statusCode)` (`src/shared/errors/app-error.ts`)
 - Infrastructure that a self-hosted admin can change at runtime (storage, vector store, email, embeddings, OAuth) is read through `platform/instance-settings/` (`getSection`: env > DB setting > default; the DB is never read unless `SELF_HOSTED`); its admin HTTP API is `modules/instance-settings/`. Don't read those env vars directly — add a field to `platform/instance-settings/instance-settings.registry.ts`.
 - `pnpm build` typechecks and bundles `src/server.ts` + `src/db/bootstrap.ts` with esbuild into `dist/` (tsc's output doesn't run under Node ESM: no `.js` import extensions).
 - `src/config/cors.ts` — CORS is currently wide open (`origin: true, credentials: true`).
-- `src/db/index.ts` — Drizzle client over a `pg.Pool`; `src/db/schema.ts` is the single schema file (tables + `pgEnum` + `defineRelations`); enum string values live in `src/db/enums.ts` and are reused by the pgEnum definitions — add new enum values there, not inline.
+- `src/db/index.ts` — Drizzle client over a `pg.Pool`; `src/db/schema/` holds the schema, one file per area (`identity`, `library`, `sharing`, `billing`, … plus `pg-enums.ts` and `relations.ts`); `schema/index.ts` re-exports it all, so code imports `db/schema`. A new table goes in the file for its area; enum string values live in `src/db/enums.ts` and are reused by the pgEnum definitions — add new enum values there, not inline.
 
 ## Client (`client/`)
 Next.js 16 App Router. Route groups: `app/(marketing)/` (public/marketing pages) and `app/(platfrom)/app/` (the authenticated dashboard — note the directory is literally misspelled `platfrom`, not `platform`). UI components under `components/ui` follow shadcn conventions (`components.json` present). `pnpm dev` / `pnpm build` / `pnpm lint` as usual for Next.js.
