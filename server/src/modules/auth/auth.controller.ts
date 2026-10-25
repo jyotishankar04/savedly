@@ -21,23 +21,9 @@ import { claimPendingGrantsForEmail } from "../share/api";
 import { sendEmail } from "../email";
 import { EmailCategory, EmailTemplateKey } from "../../db/enums";
 import { welcomeEmailTemplate } from "../../platform/mailer/templates";
-import {
-  assignAdminRole,
-  assignDefaultRole,
-  buildGithubAuthUrl,
-  buildGoogleAuthUrl,
-  exchangeGithubCode,
-  exchangeGoogleCode,
-  findOrCreateUser,
-  getUserWithRoles,
-  hasAnyUser,
-  issueTokenPair,
-  loginWithPassword,
-  registerWithPassword,
-  revokeRefreshToken,
-  rotateRefreshToken,
-  type OAuthProfile,
-} from "./auth.service";
+import { assignAdminRole, assignDefaultRole, findOrCreateUser, getUserWithRoles, hasAnyUser, loginWithPassword, registerWithPassword } from "./auth.users";
+import { buildGithubAuthUrl, buildGoogleAuthUrl, exchangeGithubCode, exchangeGoogleCode, type OAuthProfile } from "./auth.oauth";
+import { issueTokenPair, revokeRefreshToken, rotateRefreshToken } from "./auth.sessions";
 import type { LoginInput, RegisterInput } from "./auth.schema";
 
 /** A provider's sign-in button shows only when an admin both enabled it and it has client credentials. */

@@ -2,5 +2,5 @@
 // Nothing here is a router (that's index.ts): importing it never loads this module's HTTP layer.
 // Add a line when another module needs something; keep it small.
 
-export { assignAdminRole, assignDefaultRole, getUserWithRoles } from "./auth.service";
+export { assignAdminRole, assignDefaultRole, getUserWithRoles } from "./auth.users";
 export { getOAuthCredentials, requireOAuthCredentials } from "./oauth-config";
