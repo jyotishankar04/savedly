@@ -10,20 +10,8 @@ import {
   exchangeGoogleCalendarCode,
   isGoogleCalendarConfigured,
 } from "./google-calendar-client";
-import {
-  bestEffortRevoke,
-  connectCalendar,
-  createStandaloneCalendarEvent,
-  deleteEventForMemory,
-  deleteExternalCalendarEvent,
-  disconnectCalendar,
-  getConnections,
-  listEvents,
-  pushMemoryToCalendar,
-  updateEventForMemory,
-  updateExternalCalendarEvent,
-  type CalendarProviderKey,
-} from "./calendar.service";
+import { bestEffortRevoke, connectCalendar, disconnectCalendar, getConnections, type CalendarProviderKey } from "./calendar.connections";
+import { createStandaloneCalendarEvent, deleteEventForMemory, deleteExternalCalendarEvent, listEvents, pushMemoryToCalendar, updateEventForMemory, updateExternalCalendarEvent } from "./calendar.events";
 import type {
   CreateEventInput,
   ExternalEventParams,
