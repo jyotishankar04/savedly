@@ -84,9 +84,7 @@ function CapturePageContent() {
         <h1 className="text-2xl font-bold tracking-tight">Quick Capture</h1>
         <p className="mt-1 text-xs text-muted-foreground">Paste a link, drop a file, or write a note.</p>
       </div>
-      <div className="rounded-2xl border border-border/60 bg-card p-5 sm:p-6">
-        <CaptureFlow capture={capture} collections={collections} memoryLimit={memoryLimit} />
-      </div>
+      <CaptureFlow capture={capture} collections={collections} memoryLimit={memoryLimit} />
     </div>
   );
 }
