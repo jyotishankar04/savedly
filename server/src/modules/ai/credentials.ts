@@ -15,7 +15,7 @@ export interface UsageContext {
 }
 
 // Gemini's OpenAI-compatible layer covers chat, vision and embeddings, so
-// ChatOpenAI/OpenAIEmbeddings can be reused instead of a dedicated Google integration.
+// ChatOpenAI/OpenAIEmbeddings are reused.
 const GOOGLE_OPENAI_COMPAT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
@@ -28,12 +28,11 @@ export interface ProviderCredentialInput {
 }
 
 /**
- * The user's own key for a role (Settings -> AI). Resolvers return null/[] instead of throwing: "no
- * key yet" is a normal state, and callers skip that step.
+ * The user's own key for a role. Resolvers return null/[] rather than throw: "no key yet" is normal
+ * and callers skip that step.
  */
 export async function ownCredential(userId: string, role: AiRole): Promise<ProviderCredentialInput | null> {
-  // On a plan with managed AI (AI included), the user's saved keys are kept
-  // but not used — everything runs on included AI.
+  // On a managed-AI plan the user's keys are kept but unused; everything runs on included AI.
   if (await planHasManagedAi(userId)) return null;
 
   const [row] = await db
@@ -65,9 +64,9 @@ export async function hasOwnCredential(userId: string, role: AiRole): Promise<bo
 }
 
 /**
- * The platform's key for a chat/vision role ("included AI"), set in Admin -> Infrastructure or
+ * The platform's key for a chat/vision role ("included AI"), from Admin -> Infrastructure or
  * PLATFORM_AI_* (which wins). A role without its own key reuses the reasoning key when the provider
- * matches. Null when the role is off.
+ * matches.
  */
 export async function platformCredential(role: AiRole.FAST | AiRole.REASONING | AiRole.VISION): Promise<ProviderCredentialInput | null> {
   return platformCredentialFrom(await getSection("includedAi"), role);
@@ -94,8 +93,8 @@ interface ResolvedCredential {
 }
 
 /**
- * The user's own key, else included AI on the platform key when the caller says what the call is
- * for and the plan's quota allows it. No purpose = own key only.
+ * The user's own key, else included AI when the caller gives a purpose and the plan's quota allows;
+ * no purpose = own key only.
  */
 export async function resolveCredential(
   userId: string,
@@ -126,9 +125,8 @@ export async function platformEmbeddingsCredential(): Promise<ProviderCredential
       model: String(settings.model),
     };
   }
-  // No embeddings key of its own: reuse the Included AI key when it's
-  // OpenAI's, so search by meaning works as soon as included AI does. Other
-  // providers' embedding models differ in size, so they need Embeddings set.
+  // No embeddings key of its own: reuse the included key when it's OpenAI's (other providers'
+  // embedding models differ in size, so they need Embeddings set).
   const included = await platformCredential(AiRole.REASONING);
   if (included?.provider === AiCredentialProvider.OPENAI) {
     return { provider: AiCredentialProvider.OPENAI, apiKey: included.apiKey, baseUrl: null, model: FALLBACK_EMBEDDINGS_MODEL };

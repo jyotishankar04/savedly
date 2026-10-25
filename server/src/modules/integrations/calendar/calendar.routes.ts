@@ -10,21 +10,18 @@ import {
   validateUpdateExternalEvent,
 } from "./calendar.validator";
 
-// Mounted at /calendar by ../index.ts, so the full path is /api/v1/integrations/calendar/...
-// memory.routes.ts mounts POST /memories/:id/calendar-events (CalendarController.pushEvent) as a
-// memory action instead.
+// Mounted at /calendar under /api/v1/integrations. memory.routes.ts mounts POST
+// /memories/:id/calendar-events (pushEvent) as a memory action instead.
 const router = Router();
 
 router.get("/connections", authenticate, CalendarController.listConnections);
 
-// The in-app calendar view — merges connected providers' real events with
-// any Savedly memory that has an eventAt but isn't (yet) pushed anywhere.
+// The in-app calendar: connected providers' events plus memories with an eventAt not yet pushed.
 router.get("/events", authenticate, validateListEventsQuery, CalendarController.listEvents);
 router.post("/events", authenticate, requireFeature("calendarSync"), validateCreateEvent, CalendarController.createEvent);
 
-// A purely external event — one that lives only on a connected calendar and
-// was never created through Savedly, so there's no memory to key off (see
-// memory.routes.ts for the memory-backed edit/delete pair instead).
+// A purely external event (only on a connected calendar, no memory); memory-backed edit/delete are
+// in memory.routes.ts.
 router.patch(
   "/events/:provider/:externalId",
   authenticate,
@@ -34,12 +31,10 @@ router.patch(
 );
 router.delete("/events/:provider/:externalId", authenticate, validateExternalEventParams, CalendarController.deleteExternalEvent);
 
-// Connecting is a plan feature; an existing connection keeps showing events
-// and can always be disconnected.
+// Connecting is a plan feature; an existing connection keeps showing events and can always be disconnected.
 router.get("/google/connect", authenticate, requireFeature("calendarSync"), CalendarController.connectGoogle);
-// No authenticate — the provider's redirect carries no session; the
-// initiating user is instead recovered from the signed `state` param (see
-// calendar.controller.ts's handleCallback / verifyCalendarStateToken).
+// No authenticate: the provider's redirect has no session, so the user is recovered from the signed
+// `state` (verifyCalendarStateToken).
 router.get("/google/callback", CalendarController.googleCallback);
 
 router.delete("/:provider", authenticate, validateDisconnectParams, CalendarController.disconnect);

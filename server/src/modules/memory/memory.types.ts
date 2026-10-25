@@ -1,8 +1,8 @@
 import type { db } from "../../db";
 import type { SocialPost } from "../ai/api";
 
-// What the memory module hands out (list item, full detail, the shared transaction type), apart
-// from the service so code that needs only the shapes doesn't depend on its logic.
+// What the memory module hands out (list item, detail, shared transaction type), kept apart so code
+// needing only shapes doesn't depend on the service.
 
 export interface MemoryListItem {
   id: string;
@@ -32,17 +32,15 @@ export interface MemoryListItem {
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
-  // AI ingestion output (docs/AI_REQUIREMENTS.md) — null until the
-  // background pipeline finishes for this memory.
+  // AI ingestion output (docs/AI_REQUIREMENTS.md); null until the pipeline finishes.
   resourceCategory: string | null;
   inferredIntent: string | null;
   contentType: string | null;
   extractedFields: Record<string, string> | null;
   /** What the AI looked up on the web to understand it, with the pages it used; null when it didn't. */
   webResearch: { query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string } | null;
-  // URL capture & preview system (docs/URL_CAPTURE_AND_PREVIEW.md) — status
-  // is always set (defaults to "processing"); the preview.* fields stay null
-  // until ingestion runs, or forever for non-link memories.
+  // URL capture and preview (docs/URL_CAPTURE_AND_PREVIEW.md): status is always set (defaults to
+  // "processing"); the preview fields stay null until ingestion runs, and for non-links.
   status: string;
   previewStatus: string | null;
   previewSource: string | null;

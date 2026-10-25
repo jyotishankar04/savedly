@@ -4,7 +4,6 @@ import { requireAdmin } from "../../../shared/middlewares/require-admin";
 import { AdminEmailController } from "./email.controller";
 import { validateListCampaignMessages, validateListCampaigns, validatePreviewEmail, validateSendEmail } from "./email.validator";
 
-// Mounted at /admin/emails by ../index.ts.
 const router = Router();
 
 router.post("/send", authenticate, requireAdmin, validateSendEmail, AdminEmailController.send);

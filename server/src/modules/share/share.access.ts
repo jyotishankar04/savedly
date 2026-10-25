@@ -39,7 +39,7 @@ export type ShareDecision =
   | { outcome: "not_found" };
 
 /**
- * Reads the unlock cookie: the share ids this browser proved a password for, each with the `pv`
+ * Reads the unlock cookie: share ids this browser proved a password for, each with the `pv`
  * (passwordUpdatedAt) it was minted against (see resolveShareAccess).
  */
 export function readUnlockedShares(req: Request): { id: string; pv: number }[] {
@@ -86,8 +86,8 @@ export async function resolveShareAccess(
 
   const { share } = row;
 
-  // FKs cascade, so a missing row means the resource is gone. Trash is a
-  // soft delete the FK can't see, hence the explicit check.
+  // FKs cascade, so a missing row means the resource is gone; trash is a soft delete the FK can't
+  // see, hence the explicit check.
   const resourceGone =
     share.resourceType === ShareResourceType.COLLECTION ? !row.collectionExists : !row.memoryId || row.memoryInTrash;
   if (resourceGone) return { outcome: "not_found" };
@@ -121,8 +121,8 @@ export async function resolveShareAccess(
       return { outcome: "allow", share, via: "public" };
 
     case ShareLinkAccess.PASSWORD: {
-      // The pv comparison is what makes changing the password revoke every
-      // cookie already issued, without storing them server-side.
+      // The pv comparison makes a password change revoke every cookie already issued, with nothing
+      // stored server-side.
       const proof = unlocked.find((entry) => entry.id === share.id);
       const currentPv = share.passwordUpdatedAt?.getTime() ?? 0;
       if (proof && proof.pv === currentPv) return { outcome: "allow", share, via: "password" };
@@ -158,10 +158,10 @@ export async function resolveShareAccess(
 }
 
 // Public payloads, built field by field on purpose: they're reachable without authentication, so a
-// `select()` spreading a whole row would leak every column added to `memories` later. Never widen
-// without deciding per column that it is public-safe. Deliberately excluded: userId, embeddings,
-// fts tokens, browser capture, extracted fields, intent, keywords, fetch status, URLs used
-// internally, platform, and the favorite/archive/trash flags.
+// `select()` spreading a row would leak every column later added to `memories`. Never widen without
+// deciding per column that it's public-safe. Deliberately excluded: userId, embeddings, fts tokens,
+// browser capture, extracted fields, intent, keywords, fetch status, internal URLs, platform, and
+// the favorite/archive/trash flags.
 
 export interface SharedMemoryItem {
   id: string;
@@ -226,9 +226,8 @@ export async function getSharedPayload(share: ShareRow): Promise<SharedResourceP
     .where(eq(collections.id, share.collectionId!))
     .limit(1);
 
-  // Archived is filtered as well as trashed: an owner who archives something
-  // has taken it out of their own active view, and it reading as still-public
-  // is the more surprising of the two behaviours.
+  // Archived is filtered too as trashed: an owner who archives has taken it out of their view, and
+  // it staying public would surprise more.
   const items = await db
     .select(sharedMemoryColumns)
     .from(collectionMemories)
@@ -249,7 +248,4 @@ export async function getSharedPayload(share: ShareRow): Promise<SharedResourceP
     memories: items as SharedMemoryItem[],
   };
 }
-
-// recordShareView moved to share.views.ts — it's now identity-aware and
-// deduped, not a bare counter bump.
 

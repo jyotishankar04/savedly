@@ -1,6 +1,4 @@
-// The public API of the ai module: what other modules may import from it.
-// Nothing here is a router (that's index.ts): importing it never loads this module's HTTP layer.
-// Add a line when another module needs something; keep it small.
+// Public API of the ai module: what other modules may import (never routers; see index.ts).
 
 export { OPENROUTER_BASE_URL, hasOwnCredential, platformCredential, platformCredentialFrom, platformEmbeddingsCredential } from "./credentials";
 export { getChatModel, getPlatformChatModel } from "./models";

@@ -3,8 +3,7 @@ import { PlanAssignmentStatus, PlanBillingInterval } from "../enums";
 import { users } from "./identity";
 import { planAssignmentSourceEnum, planAssignmentStatusEnum, planBillingIntervalEnum, planLimitTypeEnum } from "./pg-enums";
 
-// Billing, hosted only. billing_customers: the provider's customer id per user. billing_events:
-// handled webhook ids, so a replay is a no-op.
+// Hosted only: the provider's customer id per user, and handled webhook ids (so a replay is a no-op).
 export const billingCustomers = pgTable("billing_customers", {
   userId: uuid("user_id")
     .primaryKey()
@@ -38,9 +37,7 @@ export const plans = pgTable(
       .notNull()
       .default(PlanBillingInterval.MONTHLY),
     isActive: boolean("is_active").notNull().default(true),
-    // Auto-assigned on signup. Only one plan may be default at a time —
-    // enforced in the service layer with the same flip-others-first
-    // transaction pattern as announcements.isActive.
+    // Auto-assigned on signup; only one default, enforced in the service.
     isDefault: boolean("is_default").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
     // On/off perks, separate from the numeric limits. Record-keeping only: every plan gets every feature.
@@ -73,8 +70,8 @@ export const planLimits = pgTable(
   (table) => [uniqueIndex("uq_plan_limits_plan_type").on(table.planId, table.limitType)]
 );
 
-// Plan history per user. Only one ACTIVE row per user (the service supersedes the old one). The
-// effective plan is the active, unexpired row, else the default plan.
+// Plan history per user; one ACTIVE row (the service supersedes the old). Effective plan: active
+// and unexpired, else the default.
 export const userPlanAssignments = pgTable(
   "user_plan_assignments",
   {
@@ -89,8 +86,7 @@ export const userPlanAssignments = pgTable(
     endsAt: timestamp("ends_at", { withTimezone: true }), // null = doesn't expire
     assignedBy: uuid("assigned_by").references(() => users.id, { onDelete: "set null" }), // admin who granted it manually
     reason: text("reason"), // admin note, e.g. "30-day Pro goodwill grant"
-    // Polymorphic, same style as adminAuditLogs.targetType/targetId — e.g.
-    // sourceRefType "referral_conversion" | "coupon_redemption" | "transaction".
+    // Polymorphic reference, like adminAuditLogs.targetType/targetId.
     sourceRefType: varchar("source_ref_type", { length: 50 }),
     sourceRefId: varchar("source_ref_id", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

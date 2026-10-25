@@ -10,7 +10,6 @@ export interface CreateNotificationInput {
   type: NotificationType;
   title: string;
   body?: string | null;
-  /** Where clicking the notification should take the user. */
   actionUrl?: string | null;
   /** Ids the UI needs to act inline (approve a request, open a share). */
   metadata?: Record<string, unknown>;
@@ -40,8 +39,8 @@ export async function createNotification(
     actionUrl: input.actionUrl ?? null,
     metadata: input.metadata ?? {},
   });
-  // Notifications arrive from background work, not from the user's own
-  // request, so their cached list and unread count are dropped here.
+  // Notifications arrive from background work, not the user's own request, so drop their cached
+  // list and unread count here.
   await bumpUserCache(input.userId);
 }
 
@@ -53,8 +52,7 @@ export async function listNotifications(
 
   const conditions = [eq(notifications.userId, userId)];
   if (query.status === "unread") conditions.push(isNull(notifications.readAt));
-  // Keyset pagination on createdAt — cheaper than OFFSET and stable while
-  // new notifications arrive at the top.
+  // Keyset pagination on createdAt: cheaper than OFFSET and stable while new notifications arrive.
   if (query.cursor) conditions.push(lt(notifications.createdAt, new Date(query.cursor)));
 
   const rows = await db
@@ -96,8 +94,7 @@ export async function getUnreadCount(userId: string): Promise<number> {
 }
 
 export async function markRead(userId: string, id: string): Promise<void> {
-  // Ownership in the WHERE, like everywhere else — someone else's
-  // notification id is indistinguishable from one that doesn't exist.
+  // Ownership in the WHERE, so someone else's notification id looks like one that doesn't exist.
   const [row] = await db
     .update(notifications)
     .set({ readAt: new Date() })

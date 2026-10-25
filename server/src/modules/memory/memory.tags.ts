@@ -2,7 +2,6 @@ import { and, eq, inArray } from "drizzle-orm";
 import { tags } from "../../db/schema";
 import type { Tx } from "./memory.types";
 
-// Resolves tag names to ids for a user, creating any that don't exist yet.
 export async function resolveTagIds(tx: Tx, userId: string, tagNames: string[]): Promise<string[]> {
   const uniqueNames = [...new Set(tagNames.map((name) => name.trim()).filter(Boolean))];
   if (uniqueNames.length === 0) return [];

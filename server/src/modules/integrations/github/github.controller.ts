@@ -10,7 +10,6 @@ import { connectGithub, disconnectGithub, getGithubConnection, syncGithubStars, 
 
 const integrationsUrl = (result?: string) => `${env.FRONTEND_URL}/app/integrations${result ? `?github=${result}` : ""}`;
 
-/** Whether the GitHub stars integration can be offered on this server at all. */
 export async function isGithubStarsAvailable(): Promise<boolean> {
   return (await isGithubStarsEnabled()) && (await isGithubStarsConfigured());
 }
@@ -40,8 +39,8 @@ export class GithubController {
       return res.redirect(integrationsUrl("error"));
     }
 
-    // The first sync can be several hundred repositories, so it runs after
-    // the redirect; the Integrations page shows the count as it arrives.
+    // The first sync can be hundreds of repos, so it runs after the redirect; the Integrations page
+    // shows the count as it arrives.
     void syncGithubStars(userId).catch((err) => logger.warn({ err, userId }, "[github-stars] first sync failed"));
     res.redirect(integrationsUrl("connected"));
   }

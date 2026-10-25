@@ -2,12 +2,9 @@ import { env } from "../../../config/env";
 import { UNSUBSCRIBE_URL_PLACEHOLDER } from "../unsubscribe";
 import { COLOR, bullets, button, divider, escapeHtml, eyebrow, heading, image, layout, panel, paragraph, type EmailContent, type Tone } from "./layout";
 
-// --- Admin-composed emails ---------------------------------------------------
-
 /**
- * What an admin builds in the composer (Admin > Emails): an optional label and headline, then these
- * blocks in order. Each maps to a component above, so a composed email can't look different from
- * the rest.
+ * What an admin builds in the composer: an optional label and headline, then these blocks in order.
+ * Each maps to a component above, so a composed email can't look unlike the rest.
  */
 export type EmailBlock =
   | { type: "text"; text: string }
@@ -53,10 +50,7 @@ function renderBlock(block: EmailBlock, isFirst: boolean): string {
   }
 }
 
-/**
- * The plain-text version of a composed email: what's stored on the campaign and used for the inbox
- * preview line.
- */
+/** The plain-text version of a composed email, stored on the campaign and used for the inbox preview. */
 export function composedEmailToText(content: ComposedEmail): string {
   return content.blocks
     .map((block) => {
@@ -78,7 +72,6 @@ export function composedEmailToText(content: ComposedEmail): string {
     .join("\n\n");
 }
 
-/** An email built in the admin composer. */
 export function composedEmailTemplate({ subject, content }: { subject: string; content: ComposedEmail }): EmailContent {
   const text = composedEmailToText(content);
   return {
@@ -99,7 +92,7 @@ export function withUnsubscribeUrl(html: string, url: string): string {
 }
 
 /**
- * A plain-text email an admin writes (the announcement "notify by email" option): their subject as
+ * A plain-text email an admin writes (the announcement "notify by email" option), their subject as
  * the headline.
  */
 export function adminComposedEmailTemplate({ subject, bodyText }: { subject: string; bodyText: string }): EmailContent {

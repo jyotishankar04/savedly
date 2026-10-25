@@ -1,5 +1,4 @@
-// The database schema, one file per area. Everything is re-exported here, so the rest of the code imports `db/schema` as before.
-// pg-enums.ts: the pgEnum types (their values live in db/enums.ts). relations.ts: how the tables relate (defineRelations).
+// The database schema, one file per area; everything is re-exported here so code imports `db/schema`.
 
 export * from "./pg-enums";
 export * from "./identity";

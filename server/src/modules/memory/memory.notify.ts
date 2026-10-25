@@ -7,9 +7,8 @@ import { eventDetectedEmailTemplate, memoryReminderEmailTemplate } from "../../p
 import { userTimeZone } from "../../shared/utils/time-zone";
 
 /**
- * The seam between AI event detection (via upsert-vectors.ts) and notifications/email.
- * Fire-and-forget like share/share.notify.ts: the memory is already committed, so a failure here
- * must never fail ingestion.
+ * The seam between AI event detection and notifications/email. Fire-and-forget like
+ * share/share.notify.ts: the memory is committed, so a failure must never fail ingestion.
  */
 
 /** Fire-and-forget wrapper so no caller ever has to remember to catch. */
@@ -17,8 +16,8 @@ function emit(what: string, run: () => Promise<unknown>): void {
   void run().catch((err) => logger.warn({ err }, `Failed to deliver notification: ${what}`));
 }
 
-// Below this, DetectEvent's guess is stored but silent (no notification, email or popup). Set above
-// 0.5 to absorb LLM calibration noise without dropping clearly stated events.
+// Below this, DetectEvent's guess is stored but silent. Set above 0.5 to absorb LLM calibration
+// noise without dropping clearly stated events.
 export const EVENT_DETECTION_CONFIDENCE_THRESHOLD = 0.6;
 
 export interface EventDetectedNotice {
@@ -75,10 +74,8 @@ export function notifyEventDetected(notice: EventDetectedNotice): void {
 
 export interface DuplicateDetectedNotice {
   userId: string;
-  /** The copy that was just saved. */
   memoryId: string;
   memoryTitle: string;
-  /** The one already in the library. */
   existingId: string;
   existingTitle: string;
 }

@@ -1,5 +1,4 @@
-// Requests to the platforms' own endpoints (fixed, known hosts, so no SSRF
-// checks needed beyond what fetchUrl does for the saved page itself).
+// Platform endpoints are fixed known hosts, so no SSRF checks beyond fetchUrl's for the saved page.
 
 const TIMEOUT_MS = 10_000;
 export const SAVEDLY_UA = "Mozilla/5.0 (compatible; SavedlyBot/1.0; +https://savedly.app)";

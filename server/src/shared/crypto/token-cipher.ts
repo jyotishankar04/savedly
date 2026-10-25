@@ -3,8 +3,8 @@ import { env } from "../../config/env";
 import { AppError } from "../errors/app-error";
 
 // AES-256-GCM at-rest encryption for OAuth tokens (calendar_connections). Reversible, unlike
-// scrypt-password.ts, because the server must decrypt to call the provider. An unset key degrades
-// calendar features (tokens unusable) instead of failing startup.
+// scrypt-password.ts, since the server must decrypt to call the provider. An unset key degrades
+// calendar features instead of failing startup.
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32;
 const IV_LENGTH = 12;

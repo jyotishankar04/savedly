@@ -15,9 +15,9 @@ interface StoredSection {
   secrets: Record<string, string>;
 }
 
-// One process runs the API and workers, so an in-memory cache plus a version counter is enough: a
-// save bumps the version and consumers (storage, vector store, mailer) rebuild on seeing a new one.
-// Hosted production reads the table only for hostedEditable sections (see readStored).
+// One process runs the API and workers, so a cache plus a version counter suffices: a save bumps it
+// and consumers (storage, vector store, mailer) rebuild on a new version. Hosted production reads
+// the table only for hostedEditable sections (see readStored).
 let version = 0;
 const cache = new Map<SectionId, StoredSection>();
 
@@ -74,7 +74,7 @@ function resolveWithSources(def: SectionDef, stored: StoredSection) {
 }
 
 /**
- * The effective configuration for one section: env, then settings (self-hosted or hostedEditable),
+ * The effective configuration for a section: env, then settings (self-hosted or hostedEditable),
  * then defaults.
  */
 export async function getSection<T extends ResolvedSection = ResolvedSection>(id: SectionId): Promise<T> {
@@ -83,7 +83,7 @@ export async function getSection<T extends ResolvedSection = ResolvedSection>(id
 }
 
 /**
- * What the admin Infrastructure page renders. Secret values never leave the server — only whether
+ * What the admin Infrastructure page renders. Secret values never leave the server, only whether
  * one is set.
  */
 export async function describeSections() {
@@ -116,7 +116,7 @@ export async function describeSections() {
 
 /**
  * Merges an admin's edit over what's stored, so a blank secret keeps the saved one. Secrets:
- * undefined = keep, "" = clear, anything else = replace. Fields set by env can't be overridden.
+ * undefined = keep, "" = clear, else replace. Fields set by env can't be overridden.
  */
 export async function mergeCandidate(id: SectionId, input: Record<string, unknown>): Promise<{ merged: ResolvedSection; next: StoredSection }> {
   const def = getSectionDef(id);

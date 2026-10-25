@@ -13,8 +13,9 @@ function firstNonEmpty(...values: (string | null | undefined)[]): string | null 
 }
 
 /**
- * One merge-and-decide step: browser capture > server metadata (og:* > twitter:* > HTML tags) per field, then platform artwork, then a generic domain card. A lower source never overwrites a higher one.
- * `previewSource` tracks where the image came from; "user" is reserved for a future manual edit.
+ * One merge step: browser capture > server metadata (og:* > twitter:* > HTML) per field, then
+ * platform artwork, then a generic domain card; a lower source never overwrites a higher.
+ * `previewSource` tracks the image's origin; "user" is reserved.
  */
 export function buildPreview(
   server: PreviewFields,

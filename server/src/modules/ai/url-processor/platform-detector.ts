@@ -2,8 +2,8 @@ import type { PlatformInfo } from "./types";
 import { extractReddit, extractTikTok, extractX, extractYouTube, unfurl, type SocialExtractor } from "./social";
 
 /**
- * Credential lookup for a platform that needs authenticated fetching. `envVar` names the secret,
- * resolved lazily so a platform without it just has no credential.
+ * Credential lookup for a platform needing authenticated fetching; `envVar` names the secret,
+ * resolved lazily.
  */
 interface PlatformAuthConfig {
   type: "cookie" | "bearer_token" | "api_key";
@@ -19,10 +19,10 @@ interface PlatformRule {
   extract?: { resourceTypes: string[]; read: SocialExtractor };
 }
 
-// Data, not branching: a new platform is a new row, never an `if (host...)` elsewhere. For
-// authenticated fetching add `auth: { type, envVar }` to its row.
-// resourceType is a per-platform classifier over the path (a GitHub URL can be a repo, issue, PR or
-// profile) and returns null rather than guessing.
+// Data, not branching: a new platform is a new row, never an `if (host...)` elsewhere; add `auth: {
+// type, envVar }` for authenticated fetching.
+// resourceType classifies by path (a GitHub URL can be a repo, issue, PR or profile) and returns
+// null rather than guessing.
 const PLATFORM_RULES: PlatformRule[] = [
   {
     platform: "instagram",
@@ -169,10 +169,7 @@ export function detectPlatform(url: string): PlatformInfo {
   };
 }
 
-/**
- * The reader for a URL's post or video, when its platform has one for that kind of page (see
- * `extract` above).
- */
+/** The reader for a URL's post or video, when its platform has one for that kind of page (see `extract`). */
 export function socialExtractorFor(url: string): SocialExtractor | null {
   const { platform, resourceType } = detectPlatform(url);
   const rule = PLATFORM_RULES.find((r) => r.platform === platform);
@@ -180,8 +177,8 @@ export function socialExtractorFor(url: string): SocialExtractor | null {
 }
 
 /**
- * The configured credential for a platform, if any; where an authenticated fetcher should read
- * secrets. Reads process.env directly because these are per-platform, optional and pluggable.
+ * The configured credential for a platform, if any. Reads process.env directly: these are
+ * per-platform, optional and pluggable.
  */
 export function getPlatformCredential(platform: string): { type: PlatformAuthConfig["type"]; value: string } | null {
   const rule = PLATFORM_RULES.find((r) => r.platform === platform);

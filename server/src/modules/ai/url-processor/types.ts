@@ -35,10 +35,7 @@ export interface PlatformInfo {
   platform: string | null;
   resourceType: string | null;
   domain: string;
-  /**
-   * Whether this platform has a configured credential (see getPlatformCredential) — signals that an
-   * authenticated fetch path is available, without exposing the credential itself.
-   */
+  /** Whether a credential is configured (getPlatformCredential), without exposing it. */
   hasAuth: boolean;
 }
 

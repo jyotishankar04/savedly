@@ -6,8 +6,8 @@ import { batchDeleteCollections, batchMergeCollections, batchVaultCollections } 
 import type { BatchResult } from "./batch.schema";
 
 /**
- * Every batch endpoint: refused while bulk actions are off or the batch exceeds the admin's limit;
- * otherwise runs on the user's ids and sends the BatchResult.
+ * Every batch endpoint: refused when bulk actions are off or the batch is over the admin's limit;
+ * else runs on the user's ids.
  */
 function batchHandler<T>(ids: (input: T) => string[], run: (userId: string, input: T) => Promise<BatchResult>) {
   return async (req: Request, res: Response) => {

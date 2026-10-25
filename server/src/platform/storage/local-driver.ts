@@ -4,13 +4,11 @@ import { join, resolve } from "node:path";
 import { env } from "../../config/env";
 import { PRESIGN_EXPIRES_SECONDS, STORAGE_KEY_PATTERN, type PresignedUpload, type StorageDriver } from "./storage.types";
 
-// A directory on disk.
-
 const filesDir = resolve(env.FILES_DIR);
 const localFileBase = () => `${env.SERVER_URL.replace(/\/$/, "")}/api/v1/files`;
 
-// Its own HMAC key, derived from (not equal to) the access-token secret, so an
-// upload token can never be read as anything else.
+// Its own HMAC key, derived from the access-token secret, so an upload token can never be read as
+// anything else.
 const uploadTokenKey = crypto.createHmac("sha256", env.JWT_ACCESS_SECRET).update("local-upload-token").digest();
 
 function signUpload(key: string, mimeType: string, expiresAt: number): string {

@@ -27,10 +27,7 @@ async function directoryBytes(dir: string): Promise<number> {
   return total;
 }
 
-/**
- * What a self-hosted operator needs at a glance: version, data size, which services are set up.
- * Served only when self-hosted.
- */
+/** Version, data size and which services are set up, for self-hosted operators. */
 export async function getSystemStatus() {
   const [[userCount], [memoryCount], dbSize, storage, vector, email, embeddings, google, github] = await Promise.all([
     db.select({ n: count() }).from(users),

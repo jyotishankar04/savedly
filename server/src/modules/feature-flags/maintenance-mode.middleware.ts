@@ -4,9 +4,9 @@ import { ApiResponse } from "../../shared/response/api-response";
 import { ACCESS_TOKEN_COOKIE } from "../../shared/utils/cookies";
 import { verifyAccessToken } from "../../shared/utils/jwt";
 
-// /announcements and /maintenance are public read-only data for the marketing site, which stays
-// usable. /billing/webhook must stay reachable: provider retries don't know about maintenance mode,
-// and blocking them only delays a plan change that already succeeded.
+// /announcements and /maintenance are public read-only data for the marketing site.
+// /billing/webhook must stay reachable: provider retries ignore maintenance mode, and blocking them
+// delays a plan change that already succeeded.
 const BYPASS_PATH_PREFIXES = ["/health", "/config", "/admin", "/auth", "/announcements", "/whats-new", "/maintenance", "/billing/webhook", "/email"];
 
 function extractToken(req: Request): string | null {
@@ -30,9 +30,8 @@ function requestIsFromAdmin(req: Request): boolean {
 }
 
 /**
- * Mounted early in routes/index.ts. In maintenance mode it blocks everything except
- * health/admin/auth routes and requests with an admin token, so an admin can log in and turn it
- * off.
+ * Mounted early. In maintenance mode it blocks everything except health/admin/auth and requests
+ * with an admin token, so an admin can turn it off.
  */
 export async function maintenanceMode(req: Request, res: Response, next: NextFunction) {
   if (BYPASS_PATH_PREFIXES.some((prefix) => req.path.startsWith(prefix))) {

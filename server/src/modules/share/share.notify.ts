@@ -12,7 +12,7 @@ import type { ShareRow } from "./share.access";
 
 /**
  * The single seam between sharing and notifications/email. Every function returns void and swallows
- * its failures: the share already succeeded, so a failed notification must not surface as a 500.
+ * failures: the share already succeeded, so a failed notification mustn't become a 500.
  */
 
 function noun(share: ShareRow): string {
@@ -32,8 +32,8 @@ export interface ShareInviteNotice {
 }
 
 export function notifyShareInvite(notice: ShareInviteNotice): void {
-  // An in-app notification needs an account. The invite is already stored as a pending grant and
-  // activates at signup; the email below fires regardless, since it goes to notice.email.
+  // An in-app notification needs an account. The invite is stored as a pending grant that activates
+  // at signup; the email still goes to notice.email.
   if (notice.granteeUserId) {
     emit("share invite", () =>
       createNotification({
@@ -79,8 +79,7 @@ export function notifyAccessRequested(notice: AccessRequestedNotice): void {
       title: `${notice.requesterName ?? "Someone"} wants access to your ${noun(notice.share)}`,
       body: "Approve or decline this request.",
       actionUrl: "/app/shared",
-      // shareId + requestId let the notifications page approve inline,
-      // rather than sending the owner off to find the right share dialog.
+      // shareId + requestId let the notifications page approve inline.
       metadata: {
         shareId: notice.share.id,
         requestId: notice.requestId,

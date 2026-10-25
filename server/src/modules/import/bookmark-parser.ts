@@ -1,7 +1,7 @@
 import { isHttpUrl } from "../../shared/utils/is-http-url";
 
-// Regex-based with no HTML parser, like the rest of the codebase's constrained-format parsing
-// (normalize-url.ts). Only the <A HREF> anchors matter; folders are flattened.
+// Regex, no HTML parser, like the other constrained-format parsing (normalize-url.ts). Only <A
+// HREF> anchors matter; folders are flattened.
 const ANCHOR_RE = /<A[^>]*HREF="([^"]+)"[^>]*>([^<]*)<\/A>/gi;
 
 const ENTITY_MAP: Record<string, string> = {

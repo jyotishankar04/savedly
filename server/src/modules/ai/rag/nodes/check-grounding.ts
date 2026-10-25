@@ -28,25 +28,22 @@ export const checkGroundingNode: GraphNode<typeof RAGState> = async (state, conf
   const answer =
     lastMessage && AIMessage.isInstance(lastMessage) && typeof lastMessage.content === "string" ? lastMessage.content : "";
 
-  // Nothing to ground (e.g. the model produced only tool calls, no final
-  // text yet) — treat as grounded so routing doesn't stall on an empty check.
+  // Nothing to ground (e.g. only tool calls so far): treat as grounded so routing doesn't stall.
   if (!answer) return { grounded: true };
 
   const userId = (config.context as { userId?: string } | undefined)?.userId ?? null;
   const threadId = (config.configurable as { thread_id?: string } | undefined)?.thread_id ?? null;
 
-  // No AI configured — nothing meaningful to check the answer against (and
-  // agentNode's reply in that case is already just the "connect your AI
-  // key" message), so treat as grounded rather than looping pointlessly.
+  // No AI configured: nothing to check against (agentNode already says "connect your AI key"), so
+  // treat as grounded.
   const groundingModel = userId ? (await getChatModel(userId, "fast", { kind: "ask", threadId }))?.withStructuredOutput(groundingSchema) : null;
   if (!groundingModel) return { grounded: true };
 
   const toolResults = collectToolResultsText(state.messages);
-  // Function replacers: saved text may contain "$&" and the like, which a
-  // plain string replacement would read as a pattern.
+  // Function replacers: saved text may contain "$&", which a string replacement would read as a pattern.
   const prompt = GROUNDING_CHECK_PROMPT.replace("{toolResults}", () => wrapUntrusted(toolResults, "tool results")).replace("{answer}", () => answer);
-  // Tagged so ai.service.ts filters this internal call out of the client stream; otherwise its raw
-  // `{"grounded":...}` JSON leaked as a fake assistant message.
+  // Tagged so ai.service.ts filters it from the client stream; otherwise its raw `{"grounded":...}`
+  // JSON leaked as a fake assistant message.
   const { grounded } = await groundingModel.invoke(
     prompt,
     withUsage(config, { userId, requestType: "rag:check_grounding", threadId }, { tags: [INTERNAL_EVENT_TAG] }),

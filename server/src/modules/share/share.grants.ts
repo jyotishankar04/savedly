@@ -7,10 +7,6 @@ import { notifyShareInvite } from "./share.notify";
 import { assertFeature } from "../plans/api";
 import { loadOwnedShare } from "./share.links";
 
-// -----------------------------------------------------------------------------
-// Grants
-// -----------------------------------------------------------------------------
-
 export interface GrantResponse {
   id: string;
   email: string;
@@ -41,8 +37,8 @@ export async function listGrants(userId: string, shareId: string): Promise<Grant
 }
 
 /**
- * Always creates a row and returns the same shape whether or not an account exists for the address,
- * so this isn't an account-enumeration oracle for anyone with a share.
+ * Always creates a row and returns the same shape whether or not the account exists, so this isn't
+ * an account-enumeration oracle.
  */
 export async function inviteByEmail(userId: string, shareId: string, email: string): Promise<GrantResponse> {
   const share = await loadOwnedShare(userId, shareId);
@@ -65,8 +61,8 @@ export async function inviteByEmail(userId: string, shareId: string, email: stri
       shareId,
       inviteeEmail: email,
       userId: existingUser?.id ?? null,
-      // An existing account is granted immediately; an unknown address waits
-      // for signup, where claimPendingGrantsForEmail activates it.
+      // An existing account is granted at once; an unknown address waits for signup
+      // (claimPendingGrantsForEmail).
       status: existingUser ? ShareGrantStatus.ACTIVE : ShareGrantStatus.PENDING,
       source: ShareGrantSource.DIRECT_INVITE,
       invitedBy: userId,
@@ -74,8 +70,7 @@ export async function inviteByEmail(userId: string, shareId: string, email: stri
     })
     .onConflictDoUpdate({
       target: [shareGrants.shareId, shareGrants.inviteeEmail],
-      // Re-inviting someone previously revoked should restore them rather
-      // than fail — that's what the owner means by typing the address again.
+      // Re-inviting a revoked person restores them: that's what typing the address again means.
       set: {
         userId: existingUser?.id ?? null,
         status: existingUser ? ShareGrantStatus.ACTIVE : ShareGrantStatus.PENDING,
@@ -98,8 +93,7 @@ export async function inviteByEmail(userId: string, shareId: string, email: stri
 }
 
 export async function revokeGrant(userId: string, shareId: string, grantId: string): Promise<void> {
-  // Ownership is enforced by joining through shares in the same statement —
-  // never load-then-check.
+  // Ownership is enforced by joining through shares in the same statement, never load-then-check.
   const [grant] = await db
     .select({ id: shareGrants.id })
     .from(shareGrants)
@@ -109,8 +103,7 @@ export async function revokeGrant(userId: string, shareId: string, grantId: stri
 
   if (!grant) throw new AppError("Invite not found", 404, "NOT_FOUND");
 
-  // Kept as a revoked row, not deleted: otherwise a pending invite would
-  // silently reactivate if that person signed up later.
+  // Kept as a revoked row, not deleted, or a pending invite would reactivate if that person signed up later.
   await db
     .update(shareGrants)
     .set({ status: ShareGrantStatus.REVOKED, updatedAt: new Date() })
@@ -118,8 +111,8 @@ export async function revokeGrant(userId: string, shareId: string, grantId: stri
 }
 
 /**
- * Called from the OAuth callback on every login, so an invite that arrived since sign-up isn't left pending.
- * Gated on a provider-verified email, otherwise a provider that doesn't verify addresses would let anyone claim invites sent to someone else.
+ * Called from the OAuth callback on every login so an invite that arrived since sign-up isn't left pending.
+ * Gated on a provider-verified email, or a provider that doesn't verify addresses would let anyone claim invites sent to someone else.
  */
 export async function claimPendingGrantsForEmail(
   userId: string,

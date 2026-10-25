@@ -15,8 +15,8 @@ import { getMemoryById } from "./memory.queries";
 import { resolveTagIds } from "./memory.tags";
 
 /**
- * Saves meant to be read or watched later: they start unread, in the Inbox. Notes and voice memos
- * are the user's own words.
+ * Saves meant to be read or watched later start unread, in the Inbox; notes and voice memos are the
+ * user's own words.
  */
 export const READ_LATER_TYPES = new Set<string>(["web", "video", "document", "image"]);
 
@@ -44,15 +44,14 @@ export async function createMemory(
   if (existing && input.onDuplicate === "ask") {
     throw new AppError("This is already in your library.", 409, "DUPLICATE_MEMORY", { existing });
   }
-  // What the pipeline's duplicate check should make of this memory. Decided
-  // here whenever the answer is already known, so it never asks twice.
+  // What the pipeline's duplicate check should make of this memory, decided here when already known
+  // so it never asks twice.
   const duplicateStatus = input.onDuplicate ? (existing ? DuplicateStatus.KEPT : DuplicateStatus.NONE) : null;
   const duplicateOf = existing ? { id: existing.id, title: existing.title } : null;
 
   const memoryId = await db.transaction(async (tx) => {
-    // An image memory with an uploaded attachment but no explicit preview gets
-    // one for free — this is what makes the list-view thumbnail show the real
-    // uploaded image without any client-side change.
+    // An image memory with an uploaded attachment gets it as its preview for free, so list
+    // thumbnails show the real image.
     const previewImageUrl =
       input.previewImageUrl ??
       (input.type === "image" ? input.attachments?.[0]?.fileUrl : undefined);
@@ -90,9 +89,8 @@ export async function createMemory(
           .insert(collectionMemories)
           .values(owned.map((collection) => ({ collectionId: collection.id, memoryId: row.id })));
 
-        // Filing straight into a vaulted collection hides the memory too —
-        // otherwise "vault this collection" wouldn't actually hide anything
-        // saved into it afterward.
+        // Filing into a vaulted collection hides the memory too, or "vault this collection"
+        // wouldn't hide later saves.
         if (owned.some((collection) => collection.isVaulted)) {
           await tx.update(memories).set({ isVaulted: true }).where(eq(memories.id, row.id));
         }
@@ -109,9 +107,8 @@ export async function createMemory(
     return row.id;
   });
 
-  // Fire-and-forget: AI ingestion runs async in the background — a queue
-  // failure must never fail the create request itself. A note still being
-  // written waits until its writer stops.
+  // Fire-and-forget: a queue failure must never fail the create. A note still being written waits
+  // until its writer stops.
   (input.editing && input.type === "note" ? enqueueNoteRefresh(memoryId) : enqueueIngestion(memoryId)).catch((err) => {
     logger.error({ memoryId, err }, "Failed to enqueue ingestion job");
   });
@@ -120,7 +117,6 @@ export async function createMemory(
   return { ...detail, duplicateOf };
 }
 
-/** The columns an update changes: only the fields the request carried. */
 function columnsFromInput(input: UpdateMemoryInput): Record<string, unknown> {
   const columns: Record<string, unknown> = { updatedAt: new Date() };
   if (input.title !== undefined) columns.title = input.title;
@@ -130,8 +126,8 @@ function columnsFromInput(input: UpdateMemoryInput): Record<string, unknown> {
   if (input.isArchived !== undefined) columns.isArchived = input.isArchived;
   if (input.inTrash !== undefined) {
     columns.inTrash = input.inTrash;
-    // Starts or clears the 15-day purge clock (trash-purge.job.ts). Restoring clears it so a later
-    // trash starts a fresh window.
+    // Starts or clears the 15-day purge clock (trash-purge.job.ts); restoring clears it so a later
+    // trash starts fresh.
     columns.trashedAt = input.inTrash ? new Date() : null;
   }
   // Un-vaulting needs an unlocked vault (requireUnlockToUnvault at the route); vaulting needs no check.
@@ -171,8 +167,8 @@ async function replaceTags(tx: Tx, userId: string, id: string, tags: string[]): 
 }
 
 /**
- * A note's text changed: re-index it for search once editing stops, without re-running the AI. A
- * note not yet processed (written in the full-page editor) has its first processing pushed back.
+ * A note's text changed: re-index for search once editing stops, without re-running the AI; an
+ * unprocessed note (full-page editor) has its first processing pushed back.
  */
 function requeueEditedNote(id: string, type: string, status: string, input: UpdateMemoryInput): void {
   if (type !== MemoryType.NOTE || (input.content === undefined && input.title === undefined)) return;
@@ -216,8 +212,7 @@ export async function updateMemory(
 
 export async function deleteMemory(userId: string, id: string): Promise<void> {
   await assertOwnedMemory(userId, id);
-  // The memory's files go from storage too (memory-files.ts), not just the
-  // rows pointing at them: a permanent delete leaves nothing behind.
+  // Files go from storage too (memory-files.ts), so a permanent delete leaves nothing behind.
   const [deleted] = await withFileCleanup([id], () =>
     db
       .delete(memories)
@@ -229,9 +224,8 @@ export async function deleteMemory(userId: string, id: string): Promise<void> {
     throw new AppError("Memory not found", 404, "NOT_FOUND");
   }
 
-  // Only meaningful when VECTOR_STORE_PROVIDER=upstash — pgvector cleans up
-  // via cascade automatically. Best-effort: an orphaned vector costs a
-  // little storage, but must never block the delete response.
+  // Only for VECTOR_STORE_PROVIDER=upstash (pgvector cascades). Best effort: an orphaned vector
+  // costs a little storage but must never block the delete.
   getVectorStore()
     .then((store) => store.deleteMemoryVectors(id))
     .catch((err) => {

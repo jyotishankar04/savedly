@@ -65,8 +65,6 @@ export async function removeRoadmapVote(slug: string, userId: string) {
   return roadmapVotesFor(userId);
 }
 
-// ---- Admin -----------------------------------------------------------------------
-
 /** Every item, hidden ones too, in column order, with vote counts. */
 export async function listRoadmapItems() {
   const [items, counts] = await Promise.all([db.select().from(roadmapItems).orderBy(...byOrder), voteCounts()]);
@@ -141,7 +139,6 @@ export async function updateRoadmapItem(id: string, input: UpdateRoadmapItemInpu
   return { before, after };
 }
 
-/** Sets one column's order to the order of `ids`. */
 export async function reorderRoadmap(input: ReorderRoadmapInput) {
   await db.transaction(async (tx) => {
     for (const [index, id] of input.ids.entries()) {

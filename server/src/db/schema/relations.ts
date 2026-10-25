@@ -1,8 +1,5 @@
 import { defineRelations } from "drizzle-orm";
 
-// -----------------------------------------------------------------------------
-// 41. Relations
-// -----------------------------------------------------------------------------
 export const  relations = defineRelations({
   users: {
     authIdentities: { relation: "hasMany", foreignKey: "userId" },

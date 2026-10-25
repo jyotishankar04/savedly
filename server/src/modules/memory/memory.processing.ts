@@ -11,8 +11,7 @@ import { assertOwnedMemory } from "./memory.commands";
 import { getMemoryById } from "./memory.queries";
 
 // The extension submits what the live DOM gave it (POST /:id/browser-capture); stored as-is, then
-// re-run through ingestion so buildPreview can upgrade the preview
-// (docs/URL_CAPTURE_AND_PREVIEW.md).
+// re-run through ingestion so buildPreview can upgrade the preview.
 export async function submitBrowserCapture(
   userId: string,
   id: string,
@@ -32,8 +31,8 @@ export async function submitBrowserCapture(
   return getMemoryById(userId, id);
 }
 
-// Re-runs ingestion on demand ("retry preview"). A failed refresh leaves the earlier preview alone:
-// upsertVectors writes a field only when its state value is non-null.
+// Re-runs ingestion on demand ("retry preview"); a failed refresh keeps the earlier preview
+// (upsertVectors writes only non-null fields).
 export async function refreshPreview(userId: string, id: string, options: { retitle?: boolean } = {}): Promise<MemoryDetail> {
   await assertOwnedMemory(userId, id);
 
@@ -41,8 +40,8 @@ export async function refreshPreview(userId: string, id: string, options: { reti
     .update(memories)
     .set({ status: MemoryStatus.PROCESSING, updatedAt: new Date() })
     .where(and(eq(memories.id, id), eq(memories.userId, userId)));
-  // Asked to read a post that was never read: its title came from nothing (the
-  // link alone), so it goes back to the placeholder for the post to name it.
+  // Asked to read a post that was never read: its title came from nothing, so it goes back to the
+  // placeholder for the post to name.
   if (options.retitle) {
     await db
       .update(memories)

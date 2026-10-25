@@ -50,7 +50,6 @@ export function memoryReminderEmailTemplate({
   summary?: string | null;
   /** The page itself, for a saved link. */
   link?: string | null;
-  /** The memory in Savedly. */
   url: string;
   /** Where to turn these emails off. */
   settingsUrl: string;
@@ -73,7 +72,6 @@ export function memoryReminderEmailTemplate({
   };
 }
 
-/** "3 days ago", "2 weeks ago": how long a save has been waiting. */
 function waitingFor(iso: string, now: Date): string {
   const days = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 86_400_000));
   if (days === 0) return "today";

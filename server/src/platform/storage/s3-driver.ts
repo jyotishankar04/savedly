@@ -2,8 +2,6 @@ import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } fro
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PRESIGN_EXPIRES_SECONDS, type PresignedUpload, type StorageDriver } from "./storage.types";
 
-// Any S3-compatible store.
-
 export interface S3Settings {
   endpoint?: string;
   region?: string;
@@ -25,9 +23,9 @@ export class S3StorageDriver implements StorageDriver {
       endpoint: settings.endpoint || undefined,
       forcePathStyle: !!settings.forcePathStyle,
       credentials: { accessKeyId: settings.accessKeyId, secretAccessKey: settings.secretAccessKey },
-      // The SDK signs a checksum header on every request, which for a presigned URL is computed
-      // against an empty body, so the client's real PUT never matches and R2 rejects it with 403.
-      // Only compute one when an API requires it.
+      // The SDK signs a checksum header on every request; for a presigned URL it's computed against
+      // an empty body, so the client's real PUT never matches and R2 rejects it with 403. Compute
+      // one only when an API requires it.
       requestChecksumCalculation: "WHEN_REQUIRED",
     });
     this.publicUrl = settings.publicUrl.replace(/\/$/, "");
@@ -35,9 +33,8 @@ export class S3StorageDriver implements StorageDriver {
 
   async createUpload(key: string, mimeType: string): Promise<PresignedUpload> {
     const command = new PutObjectCommand({ Bucket: this.settings.bucket, Key: key, ContentType: mimeType });
-    // signableHeaders forces content-type into the signature (it isn't
-    // signed by default — only x-amz-* headers are) — without this, the
-    // store accepts a PUT with any Content-Type, silently ignoring ours.
+    // signableHeaders puts content-type in the signature (only x-amz-* headers are signed by
+    // default); otherwise the store accepts a PUT with any Content-Type.
     const uploadUrl = await getSignedUrl(this.client, command, {
       expiresIn: PRESIGN_EXPIRES_SECONDS,
       signableHeaders: new Set(["content-type"]),

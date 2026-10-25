@@ -1,7 +1,6 @@
-// Every email carries a plain-text version beside the designed one: HTML-only mail reads as a
-// marketing blast to spam filters, and it's what text-only mail apps show. Our templates are
-// table-based, so this only turns their structure into readable lines and links into "label:
-// address".
+// Every email carries a plain-text version: HTML-only mail reads as a marketing blast to spam
+// filters, and it's what text-only apps show. Our templates are table-based, so this only turns
+// structure into lines and links into "label: address".
 
 const ENTITIES: Record<string, string> = {
   "&amp;": "&",
@@ -47,9 +46,8 @@ export function htmlToText(html: string): string {
     .map((line) => line.replace(/[ \t ]+/g, " ").trim())
     .filter((line, i, all) => line !== "" || all[i - 1] !== "");
 
-  // The templates put a marker (a step number, a bullet, a month, a "·"
-  // between footer links) in its own table cell, which lands on its own
-  // line. Join each one to the text it belongs with.
+  // The templates put a marker (step number, bullet, month, "·" between footer links) in its own
+  // table cell, landing on its own line; join each to the text it belongs with.
   const out: string[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];

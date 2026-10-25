@@ -33,8 +33,8 @@ export interface SendMailInput {
 }
 
 /**
- * The only place nodemailer is imported outside this file. The transport is rebuilt when an admin
- * saves new email settings.
+ * The only place nodemailer is imported outside this file; the transport is rebuilt when an admin
+ * saves email settings.
  */
 export class Mailer {
   private active: { version: number; settings: SmtpSettings; transporter: Transporter | null } | null = null;
@@ -52,9 +52,8 @@ export class Mailer {
   }
 
   /**
-   * Throws on failure on purpose: it runs in the email worker, which owns retries and status
-   * through BullMQ attempts. Fire-and-forget handling belongs at the enqueue site
-   * (email.service.ts).
+   * Throws on failure on purpose: it runs in the email worker, which owns retries via BullMQ
+   * attempts. Fire-and-forget handling belongs at the enqueue site (email.service.ts).
    */
   async send(input: SendMailInput): Promise<void> {
     const { settings, transporter } = await this.current();

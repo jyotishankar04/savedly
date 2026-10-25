@@ -3,8 +3,8 @@ import { authenticate } from "../../shared/middlewares/authenticate";
 import { requireAdmin } from "../../shared/middlewares/require-admin";
 import { InstanceSettingsController } from "./instance-settings.controller";
 
-// Mounted at /admin/instance-settings. The list is readable everywhere (hosted production shows
-// "Set by environment"); saving needs SELF_HOSTED or a hostedEditable section (see saveSection).
+// Mounted at /admin/instance-settings. Readable everywhere (hosted shows "Set by environment");
+// saving needs SELF_HOSTED or a hostedEditable section (saveSection).
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, InstanceSettingsController.list);

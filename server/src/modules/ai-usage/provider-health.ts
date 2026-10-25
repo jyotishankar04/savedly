@@ -1,7 +1,7 @@
 import { cacheRedis } from "../../config/redis";
 
-// Whether the instance's AI is answering. When the provider runs out of credits every step fails
-// quietly, so the last refusal is kept for admins and cleared by the next success.
+// Whether the instance's AI is answering: when the provider runs out of credits every step fails
+// quietly, so the last refusal is kept for admins until a call works.
 
 const KEY = "ai:provider-health";
 /** A refusal older than this says nothing about now. */
@@ -11,13 +11,12 @@ export interface AiHealth {
   ok: boolean;
   problem: "no-credits" | null;
   provider: string | null;
-  /** When the provider last refused for this reason. */
   since: string | null;
 }
 
 /**
- * Why a provider refused: one of the two operator-actionable reasons. Both are HTTP 429, told apart
- * by the error's code and wording.
+ * Why a provider refused (the two operator-actionable reasons). Both are HTTP 429, told apart by
+ * code and wording.
  */
 export function providerRefusal(err: unknown): "no-credits" | "rate-limit" | null {
   const e = err as { status?: number; code?: string; message?: string; lc_error_code?: string } | null;
@@ -27,11 +26,10 @@ export function providerRefusal(err: unknown): "no-credits" | "rate-limit" | nul
   return null;
 }
 
-// Whether this process believes the flag is set, so a working call only
-// talks to Redis when there may be something to clear.
+// Whether this process believes the flag is set, so a working call only touches Redis when there's
+// something to clear.
 let flagged = true;
 
-/** The instance's own AI account refused for lack of credits. */
 export function recordNoCredits(provider: string): void {
   flagged = true;
   const value = JSON.stringify({ provider, since: new Date().toISOString() });
@@ -39,7 +37,6 @@ export function recordNoCredits(provider: string): void {
   void cacheRedis.set(KEY, value, "EX", TTL_SECONDS, "NX").catch(() => {});
 }
 
-/** A call on the instance's own AI account worked. */
 export function recordAiWorking(): void {
   if (!flagged) return;
   flagged = false;

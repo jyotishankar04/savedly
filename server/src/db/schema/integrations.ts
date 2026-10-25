@@ -3,8 +3,7 @@ import { users } from "./identity";
 import { memories } from "./library";
 import { calendarProviderEnum } from "./pg-enums";
 
-// Calendar write-access tokens, separate from login identities. One connection per (user,
-// provider); tokens are AES-256-GCM ciphertext.
+// Calendar write-access tokens (AES-256-GCM), separate from login identities; one per (user, provider).
 export const calendarConnections = pgTable(
   "calendar_connections",
   {
@@ -17,8 +16,7 @@ export const calendarConnections = pgTable(
     encryptedRefreshToken: text("encrypted_refresh_token"), // null if the provider didn't return one
     accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }).notNull(),
     scope: text("scope").notNull(),
-    // The connected account's own email, for "Connected as jane@gmail.com"
-    // UI copy without ever having to decrypt a token just to display it.
+    // The connected account's email, so "Connected as ..." needs no token decryption.
     providerAccountEmail: text("provider_account_email"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -32,9 +30,7 @@ export const calendarConnections = pgTable(
   ]
 );
 
-// One per user: the GitHub account whose starred repositories are added to
-// their library (modules/integrations/github). The token only identifies the
-// account and reads the stars it has made public.
+// One per user: the GitHub account whose stars are added to the library (modules/integrations/github).
 export const githubConnections = pgTable(
   "github_connections",
   {
@@ -65,8 +61,7 @@ export const githubConnections = pgTable(
   (table) => [uniqueIndex("uq_github_connections_user").on(table.userId)],
 );
 
-// One row per memory and provider event created through the API, so a memory isn't pushed twice and
-// its remote event can be found later.
+// One row per memory and provider event, so a memory isn't pushed twice and its remote event can be found.
 export const calendarEventLinks = pgTable(
   "calendar_event_links",
   {

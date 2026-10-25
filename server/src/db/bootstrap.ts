@@ -5,8 +5,7 @@ import { env } from "../config/env";
 import { db } from "./index";
 import { seedCore } from "./seed-core";
 
-// Runs on every start of the self-hosted container: applies migrations, then seeds roles, flags and
-// plans. Both are idempotent.
+// Runs on every self-hosted start: migrations, then seed roles, flags and plans (idempotent).
 async function bootstrap() {
   const migrationsFolder = resolve(env.MIGRATIONS_DIR);
   console.log(`[bootstrap] applying migrations from ${migrationsFolder}`);

@@ -12,10 +12,7 @@ const clock = (seconds: number) => {
   return `${h ? `${h}:${String(m).padStart(2, "0")}` : m}:${String(s).padStart(2, "0")}`;
 };
 
-/**
- * A post as one readable document for the pipeline to summarize, tag and embed, instead of a page's
- * stripped HTML.
- */
+/** A post as one readable document for the pipeline, instead of a page's stripped HTML. */
 export function postAsText(post: SocialPost): string {
   const who = post.author?.name && post.author?.handle ? `${post.author.name} (@${post.author.handle})` : post.author?.handle ? `@${post.author.handle}` : post.author?.name;
   const what = { post: "Post", video: "Video", short: "Short", reel: "Reel" }[post.kind];

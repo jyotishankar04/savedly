@@ -8,10 +8,7 @@ export type { VectorStore, VectorUpsertInput, VectorChunkInput } from "./types";
 
 let active: { version: number; store: VectorStore } | null = null;
 
-/**
- * pgvector on this Postgres by default; Upstash or Pinecone when configured (VECTOR_STORE_PROVIDER,
- * or Admin -> Infrastructure). Rebuilt when settings change.
- */
+/** pgvector by default; Upstash or Pinecone when configured. Rebuilt when settings change. */
 export async function getVectorStore(): Promise<VectorStore> {
   if (active && active.version === settingsVersion()) return active.store;
   const settings = await getSection("vector");

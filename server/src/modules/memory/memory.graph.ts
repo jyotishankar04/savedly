@@ -4,8 +4,6 @@ import { memories } from "../../db/schema";
 import { SEMANTIC_SIMILARITY_FLOOR } from "../ai/api";
 import { attachCollections, attachTags } from "./memory.queries";
 
-// --- Memory graph -----------------------------------------------------------
-
 export interface GraphNode {
   id: string;
   title: string;
@@ -32,23 +30,20 @@ export interface MemoryGraph {
   truncated: boolean;
 }
 
-// A force-directed layout stops being readable (and stops simulating cheaply)
-// well before a few thousand nodes, so the graph is capped at the most recent
-// slice rather than paginated — there's no useful "page 2" of a graph.
+// A force-directed layout stops being readable and cheap well before thousands of nodes, so cap at
+// the most recent slice; a graph has no useful "page 2".
 const GRAPH_NODE_LIMIT = 500;
 
-// Per-memory nearest neighbours. Low on purpose: every node contributing its
-// top-N is already 2N edges once reciprocal pairs merge, and a denser graph
-// reads as a hairball rather than structure.
+// Per-memory neighbours, low on purpose: each node's top-N is already 2N edges once reciprocal
+// pairs merge, and denser reads as a hairball.
 const GRAPH_SEMANTIC_NEIGHBORS = 5;
 
 // A group of n memories sharing a tag or collection is a clique of n(n-1)/2 edges, so broad groups
-// ("article") would dominate while saying nothing specific. At <= 8 sharing implies relatedness;
-// beyond that it's a category.
+// ("article") would dominate; at <= 8 sharing implies relatedness, beyond that it's a category.
 const MAX_SHARED_GROUP_SIZE = 8;
 
-// Sharing this many tags or collections is a maximally strong link; it rescales counts to the 0..1
-// range of semantic similarity so merged edge weights stay comparable (see mergeEdges).
+// Sharing this many tags or collections is a maximally strong link; rescales counts to 0..1 like
+// semantic similarity so merged weights compare (see mergeEdges).
 const MAX_SHARED_GROUP_OVERLAP = 3;
 
 /** The node set, defined once, reused by every edge query below. */
@@ -61,8 +56,8 @@ const graphNodeCte = (userId: string) => sql`
 `;
 
 /**
- * Each node's top-K most similar siblings, with the same `1 - (a <=> b)` conversion as the vector store but self-referential.
- * Scanning inside the CTE, not the HNSW table, keeps "which memories are nodes" in one place; at GRAPH_NODE_LIMIT the worst case is 500x500 distances, fine for Postgres. Revisit if the cap rises a lot.
+ * Each node's top-K similar siblings, with the vector store's `1 - (a <=> b)` conversion but self-referential.
+ * Scanning inside the CTE, not the HNSW table, keeps "which memories are nodes" in one place; the worst case at GRAPH_NODE_LIMIT is 500x500 distances, fine for Postgres. Revisit if the cap rises a lot.
  */
 async function semanticEdges(userId: string): Promise<GraphEdge[]> {
   const rows = await db.execute<{ source: string; target: string; score: number }>(sql`
@@ -125,8 +120,7 @@ async function sharedGroupEdges(
 
 /**
  * One line per pair even when related several ways. Semantic wins the styling (the signal the user
- * didn't create); weight keeps the strongest contribution, which works because every kind is
- * normalised to 0..1.
+ * didn't create); weight keeps the strongest contribution, which works as every kind is 0..1.
  */
 const EDGE_KIND_PRECEDENCE: Record<GraphEdgeKind, number> = { semantic: 3, tag: 2, collection: 1 };
 
@@ -151,7 +145,6 @@ function mergeEdges(edgeSets: GraphEdge[][]): GraphEdge[] {
   return [...merged.values()];
 }
 
-/** Nodes + edges for the /app/graph view. */
 export async function getMemoryGraph(userId: string): Promise<MemoryGraph> {
   const [{ value: total }] = await db
     .select({ value: count() })

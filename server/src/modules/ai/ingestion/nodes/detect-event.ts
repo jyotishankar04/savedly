@@ -34,12 +34,11 @@ Context (title / domain / URL):
 Respond as strict JSON: {{"hasEvent": true or false, "eventAt": "ISO string or null", "confidence": 0.0}}`,
 );
 
-// Unlike sibling nodes, this catches errors: event detection is pure enrichment, so a flaky call or
-// bad date degrades to "no event" instead of failing the memory.
+// Unlike sibling nodes this catches errors: detection is enrichment, so a flaky call or bad date
+// means "no event", not a failed memory.
 export async function detectEvent(state: IngestionStateType): Promise<IngestionUpdate> {
   const noContent = !state.rawContent && !state.correctedCaption && !state.caption;
-  // Finding events is a plan feature; without it this step is skipped (and
-  // costs no AI).
+  // A plan feature; without it the step is skipped and costs no AI.
   if (noContent || !(await planHasFeature(state.userId, "aiEventDetection"))) {
     return { detectedEventAt: null, eventDetectionConfidence: null };
   }

@@ -8,9 +8,9 @@ import { resolveEffectivePlan } from "./plans.catalog";
 import { isWithinLimit } from "./plans.limits";
 import { platformOnly, startOfCurrentMonth } from "./plans.usage";
 
-// Plan features: what a plan unlocks beyond volume, stored in plans.features; all on when
-// self-hosted. Gating only blocks adding new things; existing vault items, shares and calendar
-// links stay readable and removable after a downgrade.
+// What a plan unlocks beyond volume, stored in plans.features; all on when self-hosted. Gating only
+// blocks adding new things; existing vault items, shares and calendar links stay readable and
+// removable after a downgrade.
 
 export const PLAN_FEATURES = {
   // Read mid-sentence: "Your plan doesn't include <label>."
@@ -51,8 +51,8 @@ export async function assertFeature(userId: string, feature: PlanFeature): Promi
 }
 
 /**
- * Plans with `managedAi` (AI included) supply all of a user's AI on the platform key: their own
- * keys are kept but unused, and new ones can't be added. Never true when self-hosted.
+ * Plans with `managedAi` (AI included) supply all AI on the platform key: the user's own keys are
+ * kept but unused, and new ones can't be added. Never true when self-hosted.
  */
 export async function planHasManagedAi(userId: string, dbClient: DbOrTx = db): Promise<boolean> {
   if (env.SELF_HOSTED) return false;
@@ -60,20 +60,16 @@ export async function planHasManagedAi(userId: string, dbClient: DbOrTx = db): P
   return plan.features?.managedAi === true;
 }
 
-// ---------------------------------------------------------------------------
-// Included AI — may this call run on the platform's key?
-// ---------------------------------------------------------------------------
-
 export type IncludedAiPurpose =
   | { kind: "save"; memoryId: string | null }
   | { kind: "ask"; threadId: string | null };
 
-// How long after a question is admitted its follow-up model calls (the
-// agent, grounding check, retries) still ride on that admission.
+// How long after a question is admitted its follow-up model calls (agent, grounding check, retries)
+// ride on that admission.
 const ASK_ADMISSION_WINDOW_MS = 15 * 60 * 1000;
 
 /**
- * Whether a call for this purpose may use included AI, given the plan quota. Asked only when the user has no key for the role.
+ * Whether a call for this purpose may use included AI, given the plan quota; asked only when the user has no key for the role.
  * - save: one memory is one unit however many ingestion calls it takes; one already on included AI this month keeps going, a new one needs room under AI_MONTHLY_SAVES.
  * - ask: admitted once per question by streamAsk (the platform-tagged "ask:query" row); calls in that thread ride on it.
  */

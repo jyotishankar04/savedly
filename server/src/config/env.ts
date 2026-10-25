@@ -4,8 +4,7 @@ import { loadSelfHostSecrets } from "./self-host-secrets";
 dotenv.config();
 loadSelfHostSecrets();
 
-// "true"/"false" strings from the environment — z.coerce.boolean() would read
-// the string "false" as true.
+// z.coerce.boolean() would read the string "false" as true.
 const envFlag = z
   .enum(["true", "false"])
   .default("false")
@@ -14,29 +13,20 @@ const envFlag = z
 const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-    // Self-hosted install: every external service gets a working default, billing is off and plan
-    // limits are lifted. Hosted production leaves this false.
+    // Self-hosted: external services get working defaults, billing is off, plan limits are lifted.
     SELF_HOSTED: envFlag,
-    // A self-hosted install asks GitHub, about twice a day, whether a newer
-    // release exists, and tells the admin. Set to false to never make that
-    // request. UPDATE_CHECK_URL points it at another release list (a fork).
+    // Self-hosted installs check GitHub about twice a day for a newer release; false disables it.
+    // UPDATE_CHECK_URL points at a fork's releases.
     UPDATE_CHECK: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
     UPDATE_CHECK_URL: z.string().url().optional(),
-    // How many saved items are processed at once. Each makes several AI calls,
-    // so lower it if the AI provider reports rate limits (a free-tier key);
-    // 1 processes them strictly one after another.
+    // Items processed at once; lower it if the AI provider rate-limits.
     INGESTION_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(4),
-    // The public help box on the website answers with the instance's own AI
-    // key. This is the most questions it will answer in a day, from everyone
-    // together; past it, the box says it is busy. 0 turns it off.
+    // Daily cap on the public help box (instance AI key), across everyone; 0 turns it off.
     HELP_ASSISTANT_DAILY_LIMIT: z.coerce.number().int().min(0).default(500),
-    // Where a self-hosted install keeps its generated secrets and, with the
-    // local storage driver, uploaded files. Both are Docker volumes in
-    // docker-compose.yml.
+    // Where a self-hosted install keeps generated secrets and local uploads (Docker volumes).
     SECRETS_DIR: z.string().default("./.secrets"),
     FILES_DIR: z.string().default("./data/files"),
-    // Proxy hops to trust for req.ip (rate limits, sessions). Add one per reverse proxy in front of
-    // the server.
+    // Proxy hops to trust for req.ip; add one per reverse proxy.
     TRUST_PROXY: z.coerce.number().int().min(0).default(0),
     PORT: z.coerce.number().default(4000),
     LOG_LEVEL: z
@@ -62,34 +52,28 @@ const envSchema = z
     JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
     JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 
-    // Signs the share-link password proof cookie. Kept separate from JWT_ACCESS_SECRET so a share
-    // token can never pass authenticate().
+    // Signs the share-link password cookie; separate from JWT_ACCESS_SECRET so a share token can't
+    // pass authenticate().
     SHARE_TOKEN_SECRET: z.string().min(32, "SHARE_TOKEN_SECRET must be at least 32 characters"),
 
-    // Signs the vault-unlock proof cookie — same token-confusion reasoning
-    // as SHARE_TOKEN_SECRET, kept as its own secret rather than reused.
+    // Signs the vault-unlock cookie; a separate secret for the same reason as SHARE_TOKEN_SECRET.
     VAULT_TOKEN_SECRET: z.string().min(32, "VAULT_TOKEN_SECRET must be at least 32 characters"),
 
-    // Required in hosted production (see the superRefine below); optional
-    // when SELF_HOSTED, where email + password sign-in works on its own and
-    // OAuth can be added later from the admin Infrastructure settings.
+    // Required in hosted production (see superRefine below); optional when self-hosted.
     GOOGLE_CLIENT_ID: z.string().min(1).optional(),
     GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
     GITHUB_CLIENT_ID: z.string().min(1).optional(),
     GITHUB_CLIENT_SECRET: z.string().min(1).optional(),
 
-    // Cloudflare R2 — hosted production's file storage. Same rule as OAuth:
-    // required unless SELF_HOSTED, where uploads default to local disk
-    // (FILES_DIR) and any S3-compatible store can be set up in settings.
+    // Cloudflare R2, hosted file storage: required unless self-hosted (local disk by default).
     R2_ACCOUNT_ID: z.string().min(1).optional(),
     R2_ACCESS_KEY_ID: z.string().min(1).optional(),
     R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
     R2_BUCKET_NAME: z.string().min(1).optional(),
     R2_PUBLIC_URL: z.string().url("R2_PUBLIC_URL must be a valid URL").optional(),
 
-    // Vector storage backend — local/dev uses the pgvector columns already
-    // on `memories`/`memory_chunks`; production points at Upstash Vector
-    // instead, so vector search load never competes with the primary DB.
+    // Vector backend: pgvector locally; Upstash or Pinecone in production so search load stays off
+    // the primary DB.
     VECTOR_STORE_PROVIDER: z.enum(["pgvector", "upstash", "pinecone"]).default("pgvector"),
     UPSTASH_VECTOR_REST_URL: z.string().url().optional(),
     UPSTASH_VECTOR_REST_TOKEN: z.string().optional(),
@@ -97,16 +81,15 @@ const envSchema = z
     PINECONE_API_KEY: z.string().optional(),
     PINECONE_INDEX_HOST: z.string().optional(),
 
-    // Embeddings are the one role the platform pays for, so semantic search works from sign-up. A
-    // user's own embeddings key takes priority. Optional.
+    // The one role the platform pays for, so semantic search works from sign-up. A user's own key
+    // takes priority.
     EMBEDDINGS_PROVIDER: z.enum(["openai", "google", "custom"]).default("openai"),
     EMBEDDINGS_API_KEY: z.string().optional(),
     EMBEDDINGS_MODEL: z.string().default("text-embedding-3-small"),
     EMBEDDINGS_BASE_URL: z.string().url().optional(),
 
-    // Platform keys for included AI, used by plans with an AI allowance when the user has no key of
-    // their own (see canUseIncludedAi). Admin -> Infrastructure can edit them; a value here
-    // overrides and locks that field. Unset means bring-your-own-key.
+    // Platform keys for included AI (see canUseIncludedAi); Admin -> Infrastructure can edit, and a
+    // value here overrides and locks the field.
     PLATFORM_AI_FAST_PROVIDER: z.enum(["openai", "anthropic", "groq", "google", "openrouter", "custom"]).optional(),
     PLATFORM_AI_FAST_API_KEY: z.string().optional(),
     PLATFORM_AI_FAST_MODEL: z.string().optional(),
@@ -119,15 +102,13 @@ const envSchema = z
     // Only for a "custom" (OpenAI-compatible) provider above.
     PLATFORM_AI_BASE_URL: z.string().url().optional(),
 
-    // Billing, hosted only. Without a provider, /billing returns 503 BILLING_NOT_CONFIGURED and
-    // nothing else is affected.
+    // Hosted only. Without a provider /billing returns 503 BILLING_NOT_CONFIGURED.
     BILLING_PROVIDER: z.enum(["dodo"]).optional(),
     DODO_PAYMENTS_API_KEY: z.string().optional(),
     // The webhook signing secret from the Dodo dashboard (starts "whsec_").
     DODO_PAYMENTS_WEBHOOK_KEY: z.string().optional(),
     DODO_PAYMENTS_ENVIRONMENT: z.enum(["test_mode", "live_mode"]).default("test_mode"),
-    // Dodo product id per paid plan, as JSON keyed by plan key. The charged price is the product's
-    // price in Dodo.
+    // Dodo product id per paid plan, as JSON keyed by plan key.
     DODO_PRODUCT_IDS: z
       .string()
       .optional()
@@ -153,17 +134,14 @@ const envSchema = z
     LANGFUSE_SECRET_KEY: z.string().optional(),
     LANGFUSE_BASE_URL: z.string().url().default("http://localhost:3001"),
 
-    // Calendar OAuth reuses the Google client (enable the Calendar API and the calendar.events scope on it).
-    // AES-256-GCM key for stored OAuth tokens: 32 bytes, base64 (node -e
-    // "console.log(require('crypto').randomBytes(32).toString('base64'))"). Without it, calendar
-    // routes return 503 CALENDAR_NOT_CONFIGURED.
+    // AES-256-GCM key for stored OAuth tokens (32 bytes, base64: `openssl rand -base64 32`). Unset:
+    // calendar routes return 503.
     TOKEN_ENCRYPTION_KEY: z.string().optional(),
     // Signs the calendar-connect OAuth state. Its own secret so the token can't be read as any other kind.
     CALENDAR_STATE_SECRET: z.string().min(32, "CALENDAR_STATE_SECRET must be at least 32 characters"),
   })
   .superRefine((data, ctx) => {
-    // Hosted production needs OAuth and object storage; local development falls back to email
-    // sign-in and local disk.
+    // Hosted production needs OAuth and object storage; local dev falls back to email sign-in and local disk.
     if (data.SELF_HOSTED || data.NODE_ENV !== "production") return;
     const requiredInProduction = [
       "GOOGLE_CLIENT_ID",
@@ -240,9 +218,8 @@ const envSchema = z
     }
   );
 
-// A value left empty in .env (`GOOGLE_CLIENT_ID=""`, as .env.example ships
-// them) means "not set", the same as leaving the line out. Without this an
-// optional setting fails validation for being an empty string.
+// An empty value in .env (as .env.example ships) means "not set"; otherwise optional settings fail
+// validation.
 const definedEnv = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== ""));
 
 export const env = envSchema.parse(definedEnv);

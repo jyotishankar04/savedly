@@ -5,14 +5,12 @@ import { getStorage, STORAGE_KEY_PATTERN } from "../../platform/storage";
 import { logger } from "../../shared/utils/logger";
 
 /**
- * Files in our own storage that memories own (attachments, extension screenshots, preview image, images in a note), so a permanent delete removes the bytes too. Only our own URLs count; someone else's og:image is left alone.
- * Collect keys before deleting rows (collectMemoryFileKeys), delete rows, then deleteUnusedFiles; a key still used by a surviving memory is kept.
+ * Files in our own storage that memories own (attachments, screenshots, preview image, images in a note), so a permanent delete removes the bytes too; only our own URLs count.
+ * Collect keys before deleting rows (collectMemoryFileKeys), delete rows, then deleteUnusedFiles; a key a surviving memory still uses is kept.
  */
 
-// Any URL inside a note's text (markdown or HTML).
 const URL_IN_TEXT = /https?:\/\/[^\s"'<>()]+/g;
 
-/** The storage keys of every file the given memories own. */
 export async function collectMemoryFileKeys(memoryIds: string[]): Promise<string[]> {
   if (memoryIds.length === 0) return [];
   const storage = await getStorage();
@@ -30,15 +28,14 @@ export async function collectMemoryFileKeys(memoryIds: string[]): Promise<string
   const keys = new Set<string>();
   for (const url of urls) {
     const key = storage.keyFromUrl(url.replace(/[.,;:!?]+$/, ""));
-    // Only keys of the shape our uploads get (upload.service.ts), so nothing
-    // else in the bucket can ever be touched from here.
+    // Only keys shaped like our uploads (upload.service.ts), so nothing else in the bucket can be touched.
     if (key && STORAGE_KEY_PATTERN.test(key)) keys.add(key);
   }
   return [...keys];
 }
 
 /**
- * Deletes each key's file unless a memory outside `deletedIds` still points at it. Best effort: a
+ * Deletes each key's file unless a memory outside `deletedIds` still uses it. Best effort: a
  * failure is logged and never fails the delete.
  */
 export async function deleteUnusedFiles(keys: string[], deletedIds: string[]): Promise<number> {

@@ -5,9 +5,8 @@ import { users } from "./identity";
 import { collections, memories } from "./library";
 import { shareAccessRequestStatusEnum, shareGrantSourceEnum, shareGrantStatusEnum, shareLinkAccessEnum, shareResourceTypeEnum } from "./pg-enums";
 
-// Sharing: one row per shared resource, plus grants and access requests. Two independent axes:
-// shares.linkAccess (what the link does) and shareGrants (who is invited), so a link can be public
-// while named people are also invited.
+// One row per shared resource. Two independent axes: shares.linkAccess (what the link does) and
+// shareGrants (who is invited), so a link can be public while people are also invited.
 export const shares = pgTable(
   "shares",
   {
@@ -16,8 +15,8 @@ export const shares = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    // A discriminator plus exactly one populated FK, not a polymorphic id: real FKs give ON DELETE
-    // CASCADE, so deleting a collection never leaves a live slug pointing at nothing.
+    // A discriminator plus exactly one populated FK: real FKs give ON DELETE CASCADE, so a deleted
+    // collection never leaves a live slug.
     resourceType: shareResourceTypeEnum("resource_type").notNull(),
     collectionId: uuid("collection_id").references(() => collections.id, { onDelete: "cascade" }),
     memoryId: uuid("memory_id").references(() => memories.id, { onDelete: "cascade" }),
@@ -25,14 +24,12 @@ export const shares = pgTable(
     slug: varchar("slug", { length: 32 }).notNull().unique(),
     linkAccess: shareLinkAccessEnum("link_access").notNull().default(ShareLinkAccess.DISABLED),
 
-    // scrypt, see modules/share/share.password.ts. passwordUpdatedAt is
-    // stamped into every unlock token, so changing or clearing the password
-    // invalidates the cookies already handed out without tracking them.
+    // scrypt (share.password.ts). passwordUpdatedAt is in every unlock token, so changing or
+    // clearing the password invalidates issued cookies.
     passwordHash: text("password_hash"),
     passwordUpdatedAt: timestamp("password_updated_at", { withTimezone: true }),
 
-    // Off by default: people paste these links around without expecting
-    // search engines to pick them up. Only ever honoured for public links.
+    // Off by default; only honoured for public links.
     allowSearchIndexing: boolean("allow_search_indexing").notNull().default(false),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
 
@@ -72,9 +69,8 @@ export const shareGrants = pgTable(
       .notNull()
       .references(() => shares.id, { onDelete: "cascade" }),
 
-    // Null until somebody signs up with this address — the email, not the
-    // user, is the natural key here, because an owner can invite a person
-    // who has no account yet.
+    // Null until someone signs up with the address: the email is the key, since an owner can invite
+    // someone without an account.
     userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
     // Always stored lowercased; users.email is plain varchar, not citext.
     inviteeEmail: varchar("invitee_email", { length: 255 }).notNull(),
@@ -93,8 +89,7 @@ export const shareGrants = pgTable(
   (table) => [
     uniqueIndex("uq_share_grants_share_email").on(table.shareId, table.inviteeEmail),
     index("idx_share_grants_user_status").on(table.userId, table.status),
-    // Drives the claim at signup. Revoked rows are kept rather than deleted
-    // precisely so a revoked invite can't quietly reactivate later.
+    // Drives the claim at signup. Revoked rows are kept so a revoked invite can't reactivate.
     index("idx_share_grants_pending_email").on(table.inviteeEmail).where(sql`${table.userId} IS NULL`),
   ]
 );
@@ -106,9 +101,8 @@ export const shareAccessRequests = pgTable(
     shareId: uuid("share_id")
       .notNull()
       .references(() => shares.id, { onDelete: "cascade" }),
-    // Requesting access requires an account: it gives the owner a real
-    // identity to approve, lets approval create a grant directly, and makes
-    // anonymous spam impossible.
+    // Requesting needs an account: it gives the owner an identity to approve and makes anonymous
+    // spam impossible.
     requesterUserId: uuid("requester_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -134,9 +128,8 @@ export const shareAccessRequests = pgTable(
   ]
 );
 
-// Share views: one row per de-duplicated view, not per request. recordShareView inserts only if the
-// viewer has no row within the dedup window (refreshes and StrictMode double effects aren't
-// visits).
+// One row per de-duplicated view, not per request: recordShareView inserts only if the viewer has
+// no row in the dedup window.
 export const shareViews = pgTable(
   "share_views",
   {
@@ -144,20 +137,15 @@ export const shareViews = pgTable(
     shareId: uuid("share_id")
       .notNull()
       .references(() => shares.id, { onDelete: "cascade" }),
-    // Null for an anonymous visitor. Kept on delete (set null, not cascade)
-    // so a share's view history — and its counts — survive the viewer's
-    // account being deleted later.
+    // Null for anonymous. Set null on delete so view history survives the viewer's account.
     viewerUserId: uuid("viewer_user_id").references(() => users.id, { onDelete: "set null" }),
-    // Only for anonymous dedup/uniqueness — never a raw IP. Salted per-share
-    // (see share.service.ts) so the same hash can't correlate one visitor
-    // across two different shares.
+    // Anonymous dedup only, never a raw IP; salted per share so it can't correlate a visitor across shares.
     viewerIpHash: varchar("viewer_ip_hash", { length: 64 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_share_views_share_created").on(table.shareId, table.createdAt),
-    // The dedup check's own access path: "has this viewer already got a
-    // row for this share recently".
+    // The dedup check's access path.
     index("idx_share_views_share_viewer").on(table.shareId, table.viewerUserId),
     index("idx_share_views_share_ip").on(table.shareId, table.viewerIpHash),
   ]

@@ -13,9 +13,8 @@ import * as shareService from "./share.service";
 
 /**
  * Turns a gate decision into the HTTP error the client branches on. auth_required is 401, not 403:
- * optionalAuthenticate drops an expired access token silently, so a returning grantee would
- * otherwise be told to request access they already have. The client's refresh interceptor fires
- * only on 401.
+ * optionalAuthenticate silently drops an expired access token, so a returning grantee would be told
+ * to request access they already have, and the client's refresh interceptor fires only on 401.
  */
 function gateError(decision: Exclude<ReturnType<typeof describe>, null>): AppError {
   switch (decision.code) {
@@ -79,8 +78,8 @@ export class SharePublicController {
     }
 
     if (decision.outcome !== "allow") {
-      // A gated link exposes only the stub: no real title, so nothing
-      // meaningful can reach a crawler or a link unfurler.
+      // A gated link exposes only the stub (no real title), so nothing meaningful reaches a crawler
+      // or unfurler.
       return res.json(
         ApiResponse.success({
           mode: "gated" as const,
@@ -134,8 +133,7 @@ export class SharePublicController {
       readUnlockedShares(req)
     );
 
-    // Only a link that is actually asking for a password can be unlocked.
-    // Anything else gets the same 404 an unknown slug does.
+    // Only a link asking for a password can be unlocked; anything else gets the same 404 as an unknown slug.
     if (decision.outcome === "not_found") throw new AppError("Not found", 404, "NOT_FOUND");
 
     const share =
@@ -150,8 +148,8 @@ export class SharePublicController {
     const ok = await verifySharePassword(req.body.password, share.passwordHash);
     if (!ok) throw new AppError("Incorrect password", 401, "SHARE_PASSWORD_INCORRECT");
 
-    // Carry forward any other links this browser already unlocked, so
-    // opening a second protected share doesn't sign you out of the first.
+    // Carry forward other links already unlocked, so opening a second protected share doesn't sign
+    // you out of the first.
     const existing = readUnlockedShares(req).filter((entry) => entry.id !== share.id);
     const pv = share.passwordUpdatedAt?.getTime() ?? 0;
     setShareTokenCookie(res, signShareToken({ typ: "share", shares: [...existing, { id: share.id, pv }] }));
@@ -244,8 +242,7 @@ export class ShareController {
     res.json(ApiResponse.success(await getShareViewSummary(req.user!.id, req.params.id as string)));
   }
 
-  // The total view count is on every plan; the daily chart and the list of
-  // who viewed are plan features.
+  // The total view count is on every plan; the daily chart and viewer list are plan features.
   static async viewers(req: Request, res: Response) {
     await assertFeature(req.user!.id, "shareAnalyticsViewers");
     res.json(ApiResponse.success(await listShareViewers(req.user!.id, req.params.id as string)));

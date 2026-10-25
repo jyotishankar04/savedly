@@ -1,9 +1,9 @@
 const TRACKING_PARAM_PATTERNS = [/^utm_/i, /^fbclid$/i, /^gclid$/i, /^igshid$/i, /^mc_[a-z]+$/i, /^ref$/i, /^ref_src$/i];
 
 /**
- * Lowercased host with tracking params, fragment and trailing slash stripped, for duplicate
- * detection (memories.normalized_url). Null for anything not a parseable http(s) URL; it never
- * throws, since detection must not fail a save.
+ * Lowercased host, tracking params, fragment and trailing slash stripped, for duplicate detection
+ * (memories.normalized_url). Null for non-http(s) URLs; never throws, since detection mustn't fail
+ * a save.
  */
 export function normalizeUrl(rawUrl: string | null | undefined): string | null {
   if (!rawUrl) return null;

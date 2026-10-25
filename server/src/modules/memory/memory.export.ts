@@ -11,8 +11,7 @@ export async function exportAllMemories(userId: string): Promise<MemoryDetail[]>
   const rows = await db
     .select()
     .from(memories)
-    // Vaulted memories are always excluded: export is a data-portability feature, not vault-aware,
-    // whether or not the vault is unlocked.
+    // Vaulted memories are always excluded: export isn't vault-aware, unlocked or not.
     .where(and(eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false)))
     .orderBy(desc(memories.createdAt));
 
@@ -36,8 +35,8 @@ export async function exportAllMemories(userId: string): Promise<MemoryDetail[]>
 }
 
 /**
- * The same library as exportAllMemories, as a zipped Open Knowledge Format bundle (see
- * okf-export.ts). Vaulted collections are left out, like vaulted memories.
+ * The same library as a zipped Open Knowledge Format bundle (okf-export.ts); vaulted collections
+ * are left out, like vaulted memories.
  */
 export async function exportOkfBundle(userId: string): Promise<Uint8Array> {
   const [items, collectionRows] = await Promise.all([

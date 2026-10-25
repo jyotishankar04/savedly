@@ -8,8 +8,7 @@ const chunkSchema = z.object({
   tokenCount: z.number().optional(),
 });
 
-// Mirrors BrowserCapturePayload (url-processor/types.ts) — kept as its own
-// zod shape here since StateSchema fields need one.
+// Mirrors BrowserCapturePayload (url-processor/types.ts); StateSchema fields need their own zod shape.
 const browserCaptureSchema = z.object({
   title: z.string().optional(),
   description: z.string().optional(),
@@ -27,42 +26,35 @@ export const IngestionState = new StateSchema({
   userId: z.string(),
   mediaType: z.enum(["web", "video", "note", "image", "document", "voice"]),
 
-  // Inputs the ingestion pipeline works from — whatever's already on the
-  // memory row at creation time (url for web/video, content for note,
-  // the first attachment's fileUrl/mimeType for image/document).
+  // Inputs from the memory row at creation: url (web/video), content (note), first attachment's
+  // fileUrl/mimeType (image/document).
   url: z.string().nullable().default(null),
   attachmentUrl: z.string().nullable().default(null),
   attachmentMimeType: z.string().nullable().default(null),
-  // Never overwritten — used by UpsertVectors to decide whether the
-  // AI-generated title should fill in for the schema's "Untitled" default
-  // rather than clobber a title the user actually typed.
+  // Never overwritten; UpsertVectors uses it to tell a default "Untitled" from a title the user typed.
   existingTitle: z.string().default("Untitled"),
-  // The memory's own `content` at creation. For a note it's the body (never touched by
-  // CorrectCaption); otherwise a short caption, whose spelling CorrectCaption fixes without
-  // changing rawContent.
+  // The memory's own `content` at creation: a note's body (never changed by CorrectCaption), else a
+  // short caption CorrectCaption spell-fixes without touching rawContent.
   caption: z.string().default(""),
 
   // Populated by the per-media-type node (ParseWebContent/NormalizeNote/etc).
   rawContent: z.string().default(""),
 
-  // ParseWebContent-only (docs/URL_CAPTURE_AND_PREVIEW.md). Raw browser
-  // capture from the extension (POST /:id/browser-capture), seeded by the
-  // worker from memories.browser_capture — null if none was ever submitted.
+  // ParseWebContent only: raw capture from the extension, seeded from memories.browser_capture;
+  // null if never submitted.
   browserCapture: browserCaptureSchema.nullable().default(null),
   platform: z.string().nullable().default(null),
   resourceType: z.string().nullable().default(null),
   fetchStatus: z.string().nullable().default(null),
   canonicalUrl: z.string().nullable().default(null),
-  // Final, merged values (server metadata + browser capture, priority-
-  // resolved by buildPreview) — what actually gets written to the memory row.
+  // Final merged values (server metadata + browser capture, via buildPreview), written to the memory row.
   previewImageUrl: z.string().nullable().default(null),
   faviconUrl: z.string().nullable().default(null),
   previewStatus: z.string().nullable().default(null),
   previewSource: z.string().nullable().default(null),
   sourceDomain: z.string().nullable().default(null),
-  // og:title/og:description (or browser-captured equivalents) — a fallback
-  // tier for UpsertVectors below the AI-generated title/summary, so a real
-  // page title still wins over "Untitled" even if AI enrichment itself fails.
+  // og:title/description (or browser equivalents): a fallback below the AI title/summary, so a real
+  // page title beats "Untitled" if AI fails.
   previewTitle: z.string().nullable().default(null),
   previewDescription: z.string().nullable().default(null),
   // A social post or video, read from its platform by ParseWebContent (url-processor/social).
@@ -71,13 +63,11 @@ export const IngestionState = new StateSchema({
   // CorrectCaption output — null when skipped (note body, or no caption).
   correctedCaption: z.string().nullable().default(null),
 
-  // DetectContentType output — open-vocabulary (not a fixed enum, unlike
-  // resourceCategory below) plus whatever structured fields make sense for
-  // that specific type (a recipe's ingredients, a task's due date, ...).
+  // DetectContentType output: open-vocabulary (unlike resourceCategory) plus fields for that type
+  // (a recipe's ingredients, a task's due date).
   contentType: z.string().nullable().default(null),
   extractedFields: z.record(z.string(), z.string()).default({}),
-  // Regex re-check for an embedded URL, a backstop for the client's detection, so a note containing
-  // a link still gets typed and its url set.
+  // Regex re-check for an embedded URL, so a note containing a link still gets typed and its url set.
   detectedUrl: z.string().nullable().default(null),
 
   // ClassifyIntent output.
@@ -85,14 +75,12 @@ export const IngestionState = new StateSchema({
   inferredIntent: z.string().nullable().default(null),
   intentConfidence: z.number().nullable().default(null),
 
-  // DetectEvent output: a best-guess ISO date/time and confidence. Null/null when none was detected
-  // or the node degraded (it never throws).
+  // DetectEvent output: a best-guess ISO date/time and confidence; null/null when none or the node degraded.
   detectedEventAt: z.string().nullable().default(null),
   eventDetectionConfidence: z.number().nullable().default(null),
 
-  // ResearchContext output: what a web search said a short or unreadable
-  // save is (a bare name: a film, a book…), for every step after it. Null
-  // when it didn't search.
+  // ResearchContext output: what a web search said a short or unreadable save is, for later steps;
+  // null when it didn't search.
   webResearch: z
     .object({
       query: z.string(),
@@ -109,9 +97,7 @@ export const IngestionState = new StateSchema({
   aiSummary: z.string().nullable().default(null),
   suggestedTags: z.array(z.string()).default([]),
 
-  // OrganizeCollection output — the decision only; UpsertVectors is where
-  // the actual collection row gets created/linked, alongside every other
-  // write this pipeline makes.
+  // OrganizeCollection's decision only; UpsertVectors creates or links the collection row.
   collectionAction: z.enum(["existing", "new", "none"]).default("none"),
   collectionName: z.string().nullable().default(null),
   collectionIcon: z.string().nullable().default(null),

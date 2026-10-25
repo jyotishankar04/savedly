@@ -8,16 +8,14 @@ import { getSection } from "../../../platform/instance-settings/instance-setting
 import { getOAuthCredentials } from "../../auth/api";
 import { platformCredential, platformEmbeddingsCredential } from "../../ai/api";
 
-// What a new self-hosted install still has to decide, for the setup panel. AI is required; the
-// other services work with a default the admin can accept.
+// What a new self-hosted install still has to decide: AI is required, the rest have acceptable defaults.
 
 export const SETUP_ITEMS = ["ai", "storage", "email", "signIn"] as const;
 export type SetupItemId = (typeof SETUP_ITEMS)[number];
 
 const REQUIRED: ReadonlySet<SetupItemId> = new Set(["ai"]);
 
-// Which defaults the admin has accepted. Kept in the settings table under its
-// own key; it isn't a section in the registry, so no form is drawn for it.
+// Which defaults the admin accepted; stored under its own key, not a registry section, so no form is drawn.
 const SKIPS_ROW = "setup";
 
 async function readSkips(): Promise<Partial<Record<SetupItemId, boolean>>> {
@@ -28,8 +26,7 @@ async function readSkips(): Promise<Partial<Record<SetupItemId, boolean>>> {
 async function isDone(item: SetupItemId): Promise<boolean> {
   switch (item) {
     case "ai":
-      // Summaries and Ask need a model; search by meaning needs embeddings.
-      // An OpenAI key covers both by itself (see platformEmbeddingsCredential).
+      // Summaries and Ask need a model, search by meaning needs embeddings; an OpenAI key covers both.
       return !!(await platformCredential(AiRole.REASONING)) && !!(await platformEmbeddingsCredential());
     case "storage":
       return (await getSection("storage")).driver === "s3";

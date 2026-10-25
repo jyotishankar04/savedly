@@ -3,9 +3,8 @@ import { whatsNewItems } from "../../db/schema";
 import { WhatsNewKind } from "../../db/enums";
 
 // The latest release for the "What's new" popup, newest first. An admin loads it from Admin >
-// What's new ("Load the latest release"), replacing every card; afterwards they're ordinary cards
-// to edit, reorder or switch off. Pictures are short looping WebP files of the website
-// (client/public).
+// What's new, replacing every card; afterwards they're ordinary cards to edit, reorder or switch
+// off. Pictures are short looping WebP files (client/public).
 
 const EXTENSION_PAGE = "/chrome-extension";
 

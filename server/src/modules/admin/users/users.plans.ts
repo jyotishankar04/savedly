@@ -10,8 +10,8 @@ import { adminChangeSubscription, billingStatus } from "../../billing/api";
 import type { GrantPlanInput } from "./users.schema";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 
-// Plans on a user's page. The effective plan is the newest active assignment, so a grant takes over
-// from a subscription and removing it hands back. Billing is never touched.
+// The effective plan is the newest active assignment: a grant takes over from a subscription and
+// removing it hands back. Billing is never touched.
 
 export async function getUserPlan(userId: string) {
   const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
@@ -49,8 +49,7 @@ export async function getUserPlan(userId: string) {
   const live = (row: (typeof history)[number]) =>
     row.status === PlanAssignmentStatus.ACTIVE && (!row.endsAt || row.endsAt > now);
 
-  // The live Dodo subscription, when there's a provider: whether the admin
-  // form changes it (active) or can only grant over it (cancelled / none).
+  // The live Dodo subscription: whether the admin form changes it (active) or can only grant over it.
   const billing = await billingStatus(userId)
     .then((b) => b.subscription)
     .catch(() => null);
@@ -75,8 +74,7 @@ export async function grantPlan(userId: string, input: GrantPlanInput, adminUser
   const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);
   if (!user) throw new AppError("User not found", 404, "NOT_FOUND");
 
-  // Someone paying through Dodo: change the real subscription instead of
-  // laying a grant over it, so billing and the app never disagree.
+  // Paying through Dodo: change the real subscription, so billing and the app agree.
   const changed = await adminChangeSubscription(userId, input.planKey);
   if (changed) {
     await logAdminAction({
@@ -94,8 +92,7 @@ export async function grantPlan(userId: string, input: GrantPlanInput, adminUser
   const [plan] = await db.select().from(plans).where(eq(plans.key, input.planKey)).limit(1);
   if (!plan) throw new AppError("Plan not found", 404, "NOT_FOUND");
 
-  // The best running plan wins (resolveEffectivePlan), so a grant at or
-  // below what they've paid for would do nothing. Say so instead.
+  // The best running plan wins, so a grant at or below what they pay for does nothing; say so.
   const paid = (await billingStatus(userId).catch(() => ({ subscription: null }))).subscription;
   if (paid && plan.sortOrder <= paid.sortOrder) {
     const until = paid.periodEnd

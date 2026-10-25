@@ -30,10 +30,8 @@ export const updateEventTool = tool(
     assertTarget(input);
     const startAt = input.start ? new Date(input.start).toISOString() : undefined;
 
-    // Same shape as create_calendar_event's result, so the Ask UI shows the
-    // moved event as a card too.
+    // Same shape as create_calendar_event's result, so the moved event shows as a card too.
     if (input.memoryId) {
-      // Updates the memory's date and any synced Google Calendar copy.
       await updateEventForMemory(userId, input.memoryId, { title: input.title, startAt, durationMinutes: input.durationMinutes });
       const memory = await getMemoryById(userId, input.memoryId);
       const start = memory.eventAt ? memory.eventAt.toISOString() : (startAt ?? null);

@@ -3,9 +3,6 @@ import { sql } from "drizzle-orm";
 import { AccentColor, OrganizeMode, SettingsTheme, UserStatus } from "../enums";
 import { accentColorEnum, organizeModeEnum, providerEnum, settingsThemeEnum, userStatusEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 1. Users Table
-// -----------------------------------------------------------------------------
 export const users = pgTable(
   "users",
   {
@@ -16,14 +13,13 @@ export const users = pgTable(
     status: userStatusEnum("status").notNull().default(UserStatus.ACTIVE),
     emailVerified: boolean("email_verified").notNull().default(false),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-    // Vault PIN, scrypt-hashed. Embedded as the `pv` claim in unlock tokens, so changing it
-    // invalidates earlier unlocks.
-    // Email + password sign-in hash (scrypt); null for accounts that only use Google or GitHub.
+    // Vault PIN (scrypt); its `pv` claim in unlock tokens means changing it invalidates earlier unlocks.
+    // Email + password hash (scrypt); null for Google/GitHub-only accounts.
     passwordHash: text("password_hash"),
     vaultPinHash: text("vault_pin_hash"),
     vaultPinUpdatedAt: timestamp("vault_pin_updated_at", { withTimezone: true }),
-    // When account deletion was requested (status becomes DELETED). The grace period before
-    // account-deletion.job.ts removes the row; logging in before the cutoff clears it.
+    // When deletion was requested (status DELETED). account-deletion.job.ts removes the row after
+    // the grace period; logging in before then clears it.
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -34,9 +30,6 @@ export const users = pgTable(
   (table) => [index("idx_users_deleted_at").on(table.deletedAt).where(sql`${table.status} = 'deleted'`)]
 );
 
-// -----------------------------------------------------------------------------
-// 2. OAuth Auth Identities Table
-// -----------------------------------------------------------------------------
 export const authIdentities = pgTable(
   "auth_identities",
   {
@@ -65,9 +58,6 @@ export const authIdentities = pgTable(
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 3. Dynamic Roles Table (Supports Free, Pro, Admin, Custom)
-// -----------------------------------------------------------------------------
 export const roles = pgTable("roles", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 100 }).notNull().unique(), // e.g. "user", "admin" — access level, NOT billing tier (see `plans`)
@@ -80,9 +70,6 @@ export const roles = pgTable("roles", {
     .$onUpdate(() => new Date()),
 });
 
-// -----------------------------------------------------------------------------
-// 4. Dynamic Permissions Table
-// -----------------------------------------------------------------------------
 export const permissions = pgTable("permissions", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 100 }).notNull().unique(), // e.g. "bookmarks:export", "ai:summarize", "billing:manage"
@@ -95,9 +82,6 @@ export const permissions = pgTable("permissions", {
     .$onUpdate(() => new Date()),
 });
 
-// -----------------------------------------------------------------------------
-// 5. Role Permissions (Dynamic Role <-> Permission mapping)
-// -----------------------------------------------------------------------------
 export const rolePermissions = pgTable(
   "role_permissions",
   {
@@ -119,9 +103,6 @@ export const rolePermissions = pgTable(
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 6. User Roles (Dynamic User <-> Role assignment)
-// -----------------------------------------------------------------------------
 export const userRoles = pgTable(
   "user_roles",
   {
@@ -145,9 +126,6 @@ export const userRoles = pgTable(
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 7. Refresh Tokens Table
-// -----------------------------------------------------------------------------
 export const refreshTokens = pgTable(
   "refresh_tokens",
   {
@@ -168,9 +146,6 @@ export const refreshTokens = pgTable(
   (table) => [index("idx_refresh_tokens_user_id").on(table.userId)]
 );
 
-// -----------------------------------------------------------------------------
-// 8. Sessions Table
-// -----------------------------------------------------------------------------
 export const sessions = pgTable(
   "sessions",
   {
@@ -197,9 +172,6 @@ export const sessions = pgTable(
   (table) => [index("idx_sessions_user_id").on(table.userId)]
 );
 
-// -----------------------------------------------------------------------------
-// 9. Devices Table
-// -----------------------------------------------------------------------------
 export const devices = pgTable(
   "devices",
   {
@@ -231,9 +203,6 @@ export const devices = pgTable(
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 10. User Onboarding Table (answers collected by the /onboard questionnaire)
-// -----------------------------------------------------------------------------
 export const userOnboarding = pgTable("user_onboarding", {
   userId: uuid("user_id")
     .primaryKey()
@@ -273,14 +242,12 @@ export const userSettings = pgTable("user_settings", {
   // Emails for reminders set with "Remind me" (the in-app notification always comes).
   notifyReminderEmails: boolean("notify_reminder_emails").notNull().default(true),
   notifyProductUpdates: boolean("notify_product_updates").notNull().default(false),
-  // Set when the user opts out of announcement emails (the link in the email,
-  // or Settings > Notifications). Null means they get them. Account emails,
-  // such as a share invitation, are sent either way.
+  // Opt-out of announcement emails; null means subscribed. Account emails (e.g. share invites) are
+  // always sent.
   emailUnsubscribedAt: timestamp("email_unsubscribed_at", { withTimezone: true }),
   theme: settingsThemeEnum("theme").notNull().default(SettingsTheme.SYSTEM),
   accentColor: accentColorEnum("accent_color").notNull().default(AccentColor.BLUE),
-  // IANA name ("Asia/Kolkata"), set from the browser. Event detection reads
-  // "3 pm" in this zone; null = unknown, treated as UTC.
+  // IANA name set from the browser; event detection reads "3 pm" in it. Null is treated as UTC.
   timezone: varchar("timezone", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })

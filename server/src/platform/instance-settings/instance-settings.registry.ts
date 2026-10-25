@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-// Everything a self-hosted admin can configure in Admin -> Infrastructure, one section per service.
+// Everything a self-hosted admin configures in Admin -> Infrastructure, one section per service.
 // Each field names its env var(s) (env wins over the table) and whether it's a secret (encrypted,
-// never sent back). Hosted production is env-only, except `hostedEditable` sections.
+// never sent back). Hosted production is env-only except `hostedEditable` sections.
 // The client renders the page from this metadata (describeSections), so adding a field here is the
 // whole change.
 
@@ -31,8 +31,8 @@ export interface SectionDef {
   /** Used when neither env nor the settings table sets a field. */
   defaults: Record<string, FieldValue | undefined>;
   /**
-   * Hosted production and local dev only, layered over `defaults`: the values that kept this
-   * service working before self-hosting (e.g. email defaulting to the dev Mailhog).
+   * Hosted production and local dev only, over `defaults`: values that kept the service working
+   * before self-hosting (e.g. email defaulting to Mailhog).
    */
   hostedDefaults?: Record<string, FieldValue | undefined>;
   /** Validates a merged section before it's saved. */
@@ -41,7 +41,7 @@ export interface SectionDef {
   testable: boolean;
   /**
    * Also editable (and read from the table) on hosted production, for things changed without a
-   * redeploy, like which models included AI runs on.
+   * redeploy, like which models included AI uses.
    */
   hostedEditable?: boolean;
 }
@@ -69,9 +69,8 @@ const r2Endpoint = () => {
 
 const AI_PROVIDERS = ["openai", "anthropic", "google", "groq", "openrouter", "custom"] as const;
 
-// Included AI: one provider/key/model per role, mirroring PLATFORM_AI_* in
-// env. Fields are named `${role}Provider`, `${role}ApiKey`, `${role}Model`,
-// `${role}BaseUrl`; ai.providers.ts platformCredential reads them.
+// Included AI: one provider/key/model per role, mirroring PLATFORM_AI_* in env; fields are
+// `${role}Provider/ApiKey/Model/BaseUrl`, read by platformCredential.
 const INCLUDED_AI_ROLES = [
   { role: "reasoning", env: "REASONING", label: "Ask", placeholder: "Model name, for example gpt-5-mini" },
   { role: "fast", env: "FAST", label: "Saving", placeholder: "Model name, for example gpt-5-nano" },

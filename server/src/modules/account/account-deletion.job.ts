@@ -10,7 +10,6 @@ import { ACCOUNT_DELETION_GRACE_DAYS, hardDeleteAccount } from "./account.servic
 const QUEUE_NAME = "account-deletion";
 const JOB_NAME = "sweep";
 
-// Same cadence as trash-purge.job.ts.
 const SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 const deletionQueue = new Queue(QUEUE_NAME, { connection: redis });
@@ -41,7 +40,6 @@ export async function sweepExpiredDeletions(): Promise<number> {
   return purged;
 }
 
-/** Mirrors startTrashPurgeWorker's shape — call once from server.ts. */
 export async function startAccountDeletionWorker(): Promise<Worker> {
   sweepExpiredDeletions().catch((err) => logger.error({ err }, "[account-deletion] initial sweep failed"));
 

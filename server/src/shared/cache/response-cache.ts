@@ -16,9 +16,8 @@ const TTL_SECONDS = 60;
 const VERSION_TTL_SECONDS = 24 * 60 * 60;
 const MAX_BODY_BYTES = 512 * 1024;
 
-// Only reads of the signed-in user's own data. Left out on purpose: /admin
-// (must be live), /billing (follows webhooks), /vault and /files, and the
-// public or unauthenticated routes, which have no user to key on.
+// Only reads of the signed-in user's own data. Left out on purpose: /admin (must be live), /billing
+// (follows webhooks), /vault and /files, and public routes (no user to key on).
 const CACHEABLE_PREFIXES = [
   "/auth/me",
   "/settings",
@@ -37,21 +36,20 @@ const CACHEABLE_PREFIXES = [
   "/integrations/calendar/events",
 ];
 
-// The same for every visitor, signed in or not, and changed only by an admin:
-// the announcement banner, the maintenance notice, the plan list, the sign-in
-// options and the instance config.
+// Same for every visitor and changed only by an admin: the announcement banner, maintenance notice,
+// plan list, sign-in options and instance config.
 const PUBLIC_PATHS = new Set(["/announcements/active", "/whats-new/active", "/maintenance/status", "/plans", "/auth/providers", "/config"]);
 const PUBLIC_SCOPE = "public";
 
-// A fresh self-hosted install reports this until its first account exists,
-// and that sign-up isn't an admin write, so it's never stored.
+// A fresh self-hosted install reports this until its first account exists, and that sign-up isn't
+// an admin write, so it's never stored.
 const NEEDS_SETUP = '"needsSetup":true';
 
 // Downloads, and the status the client polls while a save is being processed.
 const NEVER_CACHED = [/^\/memories\/export/, /\/processing-status$/, /^\/ai-settings\/models/];
 
-// A memory still being processed changes without the user doing anything, so
-// a response that shows one is never stored.
+// A memory still processing changes without the user doing anything, so a response showing one is
+// never stored.
 const IN_FLUX = '"status":"processing"';
 
 const versionKey = (scope: string) => `rc:v:${scope}`;
@@ -119,8 +117,8 @@ export async function responseCache(req: Request, res: Response, next: NextFunct
   const userId = isPublic ? null : userIdOf(req);
   if (!isPublic && !userId) return next();
 
-  // A POST that only renders something back (the email composer's preview,
-  // fired on every edit) changes no data, so there's nothing to invalidate.
+  // A POST that only renders something back (the email composer's preview, fired on every edit)
+  // changes no data, so nothing to invalidate.
   const readOnlyPost = req.method === "POST" && req.path.endsWith("/preview");
   if (userId && !readOnlyPost && req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
     invalidateOnWrite(userId, req, res);

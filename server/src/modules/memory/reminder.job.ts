@@ -14,9 +14,9 @@ const SWEEP_INTERVAL_MS = 60 * 1000;
 const reminderQueue = new Queue(QUEUE_NAME, { connection: redis });
 
 /**
- * Brings back every memory whose reminder is due: unread again, remindedAt set, remindAt cleared,
- * then a notification and (unless off) an email. Claimed with one UPDATE … RETURNING so two servers
- * never send twice. A trashed memory's reminder waits until restored.
+ * Brings back every memory whose reminder is due (unread, remindedAt set, remindAt cleared), then
+ * notifies and emails unless off. One UPDATE … RETURNING claims them, so two servers never send
+ * twice. A trashed memory's reminder waits until restored.
  */
 export async function sendDueReminders(): Promise<number> {
   const now = new Date();
@@ -52,7 +52,6 @@ export async function sendDueReminders(): Promise<number> {
   return due.length;
 }
 
-/** Mirrors startTrashPurgeWorker: one sweep now, then every minute. Call once from server.ts. */
 export async function startReminderWorker(): Promise<Worker> {
   sendDueReminders().catch((err) => logger.error({ err }, "[reminders] initial sweep failed"));
   await reminderQueue.upsertJobScheduler(JOB_NAME, { every: SWEEP_INTERVAL_MS }, { name: JOB_NAME });

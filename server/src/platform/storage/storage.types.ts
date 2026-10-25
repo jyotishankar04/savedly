@@ -1,8 +1,7 @@
 // Where uploaded files live, behind one interface: "s3" (any S3-compatible store; the client PUTs
 // straight to it with a presigned URL) and "local" (a directory on disk; the client PUTs to
-// /api/v1/files/upload/:key with a signed token, files served from /api/v1/files/:key). Keys are
-// random UUIDs plus the extension, so URLs are unguessable in both: the "anyone with the link"
-// model.
+// /api/v1/files/upload/:key with a signed token, served from /api/v1/files/:key). Keys are random
+// UUIDs plus the extension, so URLs are unguessable in both: the "anyone with the link" model.
 
 export interface PresignedUpload {
   uploadUrl: string;

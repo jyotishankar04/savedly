@@ -5,14 +5,10 @@ import { collections, collectionMemories, memories, memoryTags, tags } from "../
 import { assertFeature } from "../plans/api";
 import type { BatchDeleteInput, BatchMoveToCollectionInput, BatchRestoreInput, BatchResult, BatchTagInput, BatchUncollectInput, BatchReadInput, BatchRemindInput, BatchUpdateStatusInput } from "./batch.schema";
 
-/**
- * Add or remove tags on several memories. Mode: "add" (union), "remove" (only those), "replace"
- * (set exactly).
- */
+/** Mode: "add" (union), "remove" (only those), "replace" (set exactly). */
 export async function batchTagMemories(userId: string, input: BatchTagInput): Promise<BatchResult> {
   const result: BatchResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
 
-  // Verify all memories belong to this user
   const owned = await db
     .select({ id: memories.id })
     .from(memories)
@@ -26,7 +22,6 @@ export async function batchTagMemories(userId: string, input: BatchTagInput): Pr
 
   try {
     await db.transaction(async (tx) => {
-      // Resolve tag names to IDs, creating missing ones
       const tagIds: string[] = [];
       for (const tagName of input.tagNames) {
         let [tag] = await tx
@@ -45,17 +40,14 @@ export async function batchTagMemories(userId: string, input: BatchTagInput): Pr
       }
 
       if (input.mode === "replace") {
-        // Delete all existing tags for these memories
         await tx.delete(memoryTags).where(inArray(memoryTags.memoryId, input.memoryIds));
       } else if (input.mode === "remove") {
-        // Delete only specified tags
         await tx
           .delete(memoryTags)
           .where(and(inArray(memoryTags.memoryId, input.memoryIds), inArray(memoryTags.tagId, tagIds)));
       }
 
       if (input.mode === "add" || input.mode === "replace") {
-        // Insert new tags (add or replace mode)
         const pairs = input.memoryIds.flatMap((memoryId) => tagIds.map((tagId) => ({ memoryId, tagId })));
         await tx.insert(memoryTags).values(pairs).onConflictDoNothing();
       }
@@ -71,14 +63,10 @@ export async function batchTagMemories(userId: string, input: BatchTagInput): Pr
   return result;
 }
 
-/**
- * Move or add memories to a collection. Mode: "add" keeps existing collections; "move" removes the
- * others first.
- */
+/** Mode: "add" keeps existing collections; "move" removes the others first. */
 export async function batchMoveToCollection(userId: string, input: BatchMoveToCollectionInput): Promise<BatchResult> {
   const result: BatchResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
 
-  // Verify all memories belong to this user and collection exists
   const [collection] = await db
     .select({ id: collections.id })
     .from(collections)
@@ -103,19 +91,15 @@ export async function batchMoveToCollection(userId: string, input: BatchMoveToCo
   try {
     await db.transaction(async (tx) => {
       if (input.mode === "move") {
-        // Remove from all other collections
         await tx
           .delete(collectionMemories)
           .where(
             and(
               inArray(collectionMemories.memoryId, input.memoryIds),
-              // Ensure we're only deleting from this user's collections
-              // (subquery to verify ownership)
             ),
           );
       }
 
-      // Add to target collection
       const pairs = input.memoryIds.map((memoryId) => ({ collectionId: input.collectionId, memoryId }));
       await tx.insert(collectionMemories).values(pairs).onConflictDoNothing();
 
@@ -146,9 +130,8 @@ export async function batchDeleteMemories(userId: string, input: BatchDeleteInpu
   result.processed = input.memoryIds.length;
 
   if (input.permanent) {
-    // One at a time through deleteMemory, so a bulk permanent delete cleans up
-    // exactly what a single one does: files in storage and an external vector
-    // store (Upstash, Pinecone) as well as the rows.
+    // One at a time through deleteMemory, so a bulk permanent delete cleans up exactly what a
+    // single one does (files, external vectors, rows).
     for (const id of input.memoryIds) {
       try {
         await deleteMemory(userId, id);
@@ -163,7 +146,6 @@ export async function batchDeleteMemories(userId: string, input: BatchDeleteInpu
 
   try {
     await db.transaction(async (tx) => {
-      // Soft delete (move to trash)
       await tx
         .update(memories)
         .set({ inTrash: true, trashedAt: new Date() })
@@ -179,9 +161,6 @@ export async function batchDeleteMemories(userId: string, input: BatchDeleteInpu
   return result;
 }
 
-/**
- * Restore memories from trash (deletedAt = null).
- */
 export async function batchRestoreMemories(userId: string, input: BatchRestoreInput): Promise<BatchResult> {
   const result: BatchResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
 
@@ -213,9 +192,6 @@ export async function batchRestoreMemories(userId: string, input: BatchRestoreIn
   return result;
 }
 
-/**
- * Toggle favorite, archived, or vaulted status on multiple memories.
- */
 export async function batchUpdateMemoryStatus(userId: string, input: BatchUpdateStatusInput): Promise<BatchResult> {
   const result: BatchResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
   // Same rule as one at a time (memory.service updateMemory): the vault is a plan feature.
@@ -234,9 +210,8 @@ export async function batchUpdateMemoryStatus(userId: string, input: BatchUpdate
 
   try {
     await db.transaction(async (tx) => {
-      // The columns are isArchived / isFavorite / isVaulted. These used to be
-      // written as archived / favorite / vaulted, which Drizzle drops without
-      // a word, so bulk favourite, archive and vault never did anything.
+      // Columns are isArchived / isFavorite / isVaulted: the old names were silently dropped by
+      // Drizzle, so bulk favourite, archive and vault did nothing.
       const updates: Partial<typeof memories.$inferInsert> = {};
       if (input.archived !== undefined) updates.isArchived = input.archived;
       if (input.favorite !== undefined) updates.isFavorite = input.favorite;
@@ -256,8 +231,6 @@ export async function batchUpdateMemoryStatus(userId: string, input: BatchUpdate
   return result;
 }
 
-// --- Collections, and taking memories out of one ------------------------------
-
 /** All-or-nothing ownership, like the memory batches: one stranger's id and nothing happens. */
 export async function ownsAllCollections(userId: string, ids: string[]): Promise<boolean> {
   const owned = await db
@@ -274,7 +247,6 @@ export const failAll = (count: number, err: unknown): BatchResult => ({
   errors: [{ id: "all", error: err instanceof Error ? err.message : "Unknown error" }],
 });
 
-/** Takes memories out of one collection. The memories themselves stay. */
 export async function batchUncollectMemories(userId: string, input: BatchUncollectInput): Promise<BatchResult> {
   const count = input.memoryIds.length;
   const owned = await db
@@ -294,7 +266,6 @@ export async function batchUncollectMemories(userId: string, input: BatchUncolle
   }
 }
 
-/** The Inbox: marks memories read, or unread again. */
 export async function batchSetRead(userId: string, input: BatchReadInput): Promise<BatchResult> {
   const count = input.memoryIds.length;
   try {
@@ -309,7 +280,6 @@ export async function batchSetRead(userId: string, input: BatchReadInput): Promi
   }
 }
 
-/** "Remind me" on several at once: each is snoozed until then (or the reminders cancelled). */
 export async function batchSetReminder(userId: string, input: BatchRemindInput): Promise<BatchResult> {
   const count = input.memoryIds.length;
   try {

@@ -44,10 +44,7 @@ export async function attachCollections(memoryIds: string[]): Promise<Map<string
   return map;
 }
 
-/**
- * A note's own opening words, as plain text: what its card shows (the AI summary comes later, or
- * never without AI).
- */
+/** A note's opening words as plain text, for its card (the AI summary comes later, or never without AI). */
 export function noteExcerpt(markdown: string | null): string | null {
   if (!markdown) return null;
   const text = markdown
@@ -118,9 +115,8 @@ export function toListItem(
 }
 
 /**
- * The scoping (userId, inTrash, isArchived, isVaulted, type, isFavorite, collectionId, tag) shared
- * by the list and hybrid-search paths; not the `q` predicate, which each path handles itself.
- * Returns null when a collectionId/tag filter matches no memories, so the caller returns empty
+ * The scoping shared by the list and hybrid-search paths, not the `q` predicate (each path handles
+ * it). Returns null when a collectionId/tag filter matches no memories, so the caller returns empty
  * without querying.
  */
 async function buildFilterConditions(
@@ -131,8 +127,7 @@ async function buildFilterConditions(
     eq(memories.userId, userId),
     eq(memories.inTrash, query.inTrash ?? false),
     eq(memories.isArchived, query.isArchived ?? false),
-    // Like inTrash: hidden by default, shown only when asked. Only the vault page asks, and
-    // /vault/unlock proving the PIN is enforced at the route.
+    // Like inTrash: hidden by default; only the vault page asks, and the route enforces the unlocked PIN.
     eq(memories.isVaulted, query.isVaulted ?? false),
   ];
 
@@ -192,8 +187,8 @@ export async function listMemories(
     .select()
     .from(memories)
     .where(where)
-    // The Inbox and the snoozed list read in their own order: what came back
-    // (or arrived) most recently first, and the next reminder first.
+    // The Inbox and snoozed list have their own order: most recently returned or arrived first, and
+    // the next reminder first.
     .orderBy(
       query.snoozed
         ? asc(memories.remindAt)
@@ -218,7 +213,7 @@ export async function listMemories(
 
 /**
  * Hybrid (semantic + lexical, RRF) search for a non-empty `q`. candidateLimit scales with the page so RRF has headroom, capped at 200.
- * `total` is ranked.length: distinct memories matched across both legs after the floor and facet filter (about 2x candidateLimit). It's an approximation, fine because the search page doesn't paginate on it.
+ * `total` is ranked.length (distinct matches across both legs after the floor and facet filter, about 2x candidateLimit): an approximation, fine as the search page doesn't paginate on it.
  */
 async function searchMemories(
   userId: string,
@@ -248,8 +243,8 @@ async function searchMemories(
     .from(memories)
     .where(and(eq(memories.userId, userId), inArray(memories.id, pageIds)));
 
-  // RRF's order doesn't survive a plain `IN (...)` fetch, so reorder with a Map, as
-  // attachTags/attachCollections do, rather than array_position/CASE.
+  // RRF's order doesn't survive a plain `IN (...)` fetch; reorder with a Map (as attachTags does)
+  // rather than array_position/CASE.
   const rowsById = new Map(rows.map((row) => [row.id, row]));
   const orderedRows = pageIds
     .map((id) => rowsById.get(id))
@@ -335,7 +330,6 @@ export async function attachAttachments(memoryIds: string[]): Promise<Map<string
   return map;
 }
 
-/** Highlights for many memories at once, oldest first, for the export. */
 export async function attachHighlights(memoryIds: string[]): Promise<Map<string, MemoryDetail["highlights"]>> {
   const map = new Map<string, MemoryDetail["highlights"]>();
   if (memoryIds.length === 0) return map;

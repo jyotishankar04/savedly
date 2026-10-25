@@ -22,19 +22,15 @@ export interface UserWithRoles extends UserRecord {
   onboardingCompleted: boolean;
 }
 
-/**
- * Keeps the stored avatar in sync with the OAuth provider's current one, without clobbering it with
- * a null/missing value.
- */
+/** Syncs the avatar with the OAuth provider's, never clobbering it with null. */
 async function syncAvatar(userId: string, currentAvatarUrl: string | null, providerAvatarUrl: string | null): Promise<void> {
   if (!providerAvatarUrl || providerAvatarUrl === currentAvatarUrl) return;
   await db.update(users).set({ avatarUrl: providerAvatarUrl }).where(eq(users.id, userId));
 }
 
 /**
- * Logging in during the grace period is the undo for a pending deletion. Returns null once the
- * grace period has elapsed (even if the sweep hasn't purged the row), and the caller must not let
- * the login succeed.
+ * Logging in during the grace period undoes a pending deletion. Returns null after it elapses (even
+ * if the sweep hasn't purged the row), and the caller must not let the login succeed.
  */
 async function reactivateIfWithinGracePeriod(user: UserRecord & { deletedAt?: Date | null }): Promise<UserRecord | null> {
   if (user.status !== UserStatus.DELETED) return null;
@@ -153,8 +149,7 @@ export async function getUserWithRoles(userId: string): Promise<UserWithRoles> {
     .where(eq(userOnboarding.userId, userId))
     .limit(1);
 
-  // Credential hashes never leave the server (this object is what GET
-  // /auth/me returns).
+  // Credential hashes never leave the server (this is what GET /auth/me returns).
   const { passwordHash: _passwordHash, vaultPinHash: _vaultPinHash, ...safeUser } = user;
 
   return {
@@ -164,9 +159,7 @@ export async function getUserWithRoles(userId: string): Promise<UserWithRoles> {
   };
 }
 
-// -----------------------------------------------------------------------------
-// Email + password (self-hosted installs; a feature flag in hosted production)
-// -----------------------------------------------------------------------------
+// Email + password (self-hosted; a feature flag in hosted production)
 
 export async function assignAdminRole(userId: string): Promise<void> {
   const [adminRole] = await db.select().from(roles).where(eq(roles.name, "admin")).limit(1);
@@ -179,10 +172,7 @@ export async function assignAdminRole(userId: string): Promise<void> {
     .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] });
 }
 
-/**
- * True until the very first account exists — the self-hosted "create your admin account" screen
- * keys off this.
- */
+/** True until the first account exists; the "create your admin account" screen keys off this. */
 export async function hasAnyUser(): Promise<boolean> {
   const [row] = await db.select({ id: users.id }).from(users).limit(1);
   return !!row;
@@ -196,15 +186,13 @@ export async function registerWithPassword(input: {
   const email = input.email.trim().toLowerCase();
   const passwordHash = await hashPassword(input.password);
 
-  // Serialized on an advisory lock so two sign-ups racing on a fresh install
-  // can't both see "no users yet" and both become admin.
+  // Advisory lock so two sign-ups racing on a fresh install can't both become admin.
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('savedly:first-user'))`);
 
     const [existing] = await tx.select().from(users).where(eq(users.email, email)).limit(1);
     if (existing) {
-      // Never attach a password to an account someone created through
-      // Google/GitHub — that would let anyone who knows the address claim it.
+      // Never attach a password to a Google/GitHub account: anyone who knows the address could claim it.
       throw new AppError(
         existing.passwordHash
           ? "An account with this email already exists. Sign in instead."
@@ -233,8 +221,8 @@ export async function loginWithPassword(emailInput: string, password: string): P
   const email = emailInput.trim().toLowerCase();
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
-  // verifyPassword burns the same work when there's no hash, so a missing
-  // account and a wrong password take the same time.
+  // verifyPassword does the same work with no hash, so a missing account and a wrong password take
+  // equally long.
   const ok = await verifyPassword(password, user?.passwordHash ?? null);
   if (!user || !ok) {
     throw new AppError("Email or password is incorrect", 401, "INVALID_CREDENTIALS");

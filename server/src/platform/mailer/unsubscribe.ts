@@ -28,8 +28,8 @@ export function unsubscribePageUrl(userId: string): string {
 }
 
 /**
- * The List-Unsubscribe headers (RFC 8058): an "Unsubscribe" button in Gmail and others, which POSTs
- * to the API with no page shown.
+ * List-Unsubscribe headers (RFC 8058): an "Unsubscribe" button in Gmail and others, which POSTs to
+ * the API with no page shown.
  */
 export function unsubscribeHeaders(userId: string): Record<string, string> {
   return {

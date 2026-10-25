@@ -6,8 +6,7 @@ import plansRoutes from "./plans/plans.routes";
 import emailRoutes from "./email/email.routes";
 import systemRoutes from "./system/system.routes";
 
-// Aggregates the admin sub-modules, mounted at /api/v1/admin. Each owns its own files; add a
-// surface with one more router.use line.
+// Aggregates the admin sub-modules at /api/v1/admin; add a surface with one more router.use line.
 const router = Router();
 
 router.use("/users", usersRoutes);

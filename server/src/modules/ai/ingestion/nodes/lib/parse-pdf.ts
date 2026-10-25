@@ -5,9 +5,8 @@ import { type UsageContext } from "../../../credentials";
 import { logger } from "../../../../../shared/utils/logger";
 
 const MAX_CONTENT_LENGTH = 20000;
-// Above this page count, extracting (and paying an LLM to digest) the whole
-// document stops being worth it — page 1 + a summary noting it's partial
-// beats either failing or silently truncating mid-document.
+// Above this, digesting the whole document isn't worth it: page 1 plus a summary beats failing or
+// silently truncating.
 const LARGE_PDF_PAGE_THRESHOLD = 8;
 
 const summaryPrompt = ChatPromptTemplate.fromTemplate(
@@ -34,8 +33,8 @@ async function summarizeFirstPage(pageOneText: string, totalPages: number, usage
 }
 
 /**
- * Text from a PDF's bytes. Small documents return full text (truncated to MAX_CONTENT_LENGTH); over
- * LARGE_PDF_PAGE_THRESHOLD pages only page 1 is read and summarized. Never throws: degrades to "".
+ * Text from a PDF: small ones in full (up to MAX_CONTENT_LENGTH), over LARGE_PDF_PAGE_THRESHOLD
+ * pages only page 1, summarized. Never throws: degrades to "".
  */
 export async function extractPdfContent(data: ArrayBuffer | Buffer, usage: UsageContext, caption?: string): Promise<string> {
   const parser = new PDFParse({ data });

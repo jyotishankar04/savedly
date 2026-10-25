@@ -1,8 +1,8 @@
 import { index, jsonb, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { users } from "./identity";
 
-// Global key/value config (auth toggles, signups, maintenance mode, ...), so a new flag needs no
-// migration. Read through feature-flags.service.ts getters.
+// Global key/value config (toggles, maintenance mode, ...), so a flag needs no migration; read via
+// feature-flags.service.ts.
 export const featureFlags = pgTable(
   "feature_flags",
   {
@@ -20,9 +20,8 @@ export const featureFlags = pgTable(
   (table) => [index("idx_feature_flags_category").on(table.category)]
 );
 
-// Self-hosted only: infrastructure an admin configures in Admin -> Infrastructure, one row per
-// section. Secret fields are encrypted in `secret_value` and never returned. Hosted production
-// never reads this table.
+// Self-hosted only: infrastructure configured in Admin -> Infrastructure, one row per section.
+// Secrets are encrypted in `secret_value` and never returned; hosted production never reads this.
 export const instanceSettings = pgTable("instance_settings", {
   section: varchar("section", { length: 50 }).primaryKey(),
   value: jsonb("value").notNull().default({}),

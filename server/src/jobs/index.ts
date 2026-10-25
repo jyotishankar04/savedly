@@ -9,8 +9,8 @@ import { startGithubStarsWorker } from "../modules/integrations/github/github.jo
 import { logger } from "../shared/utils/logger";
 
 /**
- * One background job: a BullMQ worker a feature owns. To add one, export its start…Worker() and add
- * a line to BACKGROUND_JOBS; to remove one, delete its line.
+ * A BullMQ worker a feature owns. Add one by exporting its start…Worker() and adding a line to
+ * BACKGROUND_JOBS; remove it by deleting the line.
  */
 interface BackgroundJob {
   /** How the job is named in the log: "<name> started". */
@@ -21,8 +21,7 @@ interface BackgroundJob {
   ifItFails: string;
 }
 
-// Same process as the API for now — fine for dev, see the AI ingestion plan
-// for splitting this into its own process/deployment in production.
+// Same process as the API for now; see the AI ingestion plan for splitting it out.
 const BACKGROUND_JOBS: BackgroundJob[] = [
   { name: "Ingestion worker", start: startIngestionWorker, ifItFails: "Failed to start ingestion worker — AI ingestion will not run" },
   { name: "Trash purge worker", start: startTrashPurgeWorker, ifItFails: "Failed to start trash purge worker — trashed memories will not be auto-deleted" },
@@ -34,8 +33,8 @@ const BACKGROUND_JOBS: BackgroundJob[] = [
 ];
 
 /**
- * Starts every job without waiting on the others; one failing never stops the rest or the server.
- * The returned list fills as workers come up, so shutdown closes whichever are running.
+ * Starts every job independently; one failing never stops the rest. The returned list fills as
+ * workers come up, so shutdown closes whichever are running.
  */
 export function startBackgroundJobs(): Worker[] {
   const workers: Worker[] = [];

@@ -31,8 +31,7 @@ export async function listActiveWhatsNew() {
 }
 
 export async function createWhatsNew(input: CreateWhatsNewInput, adminUserId: string) {
-  // A new card goes on top of the stack: the newest thing is what a
-  // returning visitor hasn't seen.
+  // A new card goes on top: the newest thing is what a returning visitor hasn't seen.
   const [{ min }] = await db.select({ min: sql<number>`coalesce(min(${whatsNewItems.sortOrder}), 1)::int` }).from(whatsNewItems);
   const [row] = await db
     .insert(whatsNewItems)

@@ -5,9 +5,6 @@ import { CollectionSource, MemoryStatus, HighlightColor } from "../enums";
 import { users } from "./identity";
 import { collectionSourceEnum, highlightColorEnum, memoryStatusEnum, memoryTypeEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 12. Collections Table
-// -----------------------------------------------------------------------------
 export const collections = pgTable(
   "collections",
   {
@@ -18,14 +15,12 @@ export const collections = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     icon: varchar("icon", { length: 50 }).notNull().default("📁"),
     description: text("description"),
-    // "system" collections (onboarding defaults, AI groupings) are hidden behind a toggle and never
-    // count against the collection limit. Conversion to "user" is one-way; convertedFromSystemAt
-    // marks it.
+    // "system" collections (onboarding, AI groupings) are hidden behind a toggle and don't count
+    // toward the limit; conversion to "user" is one-way.
     source: collectionSourceEnum("source").notNull().default(CollectionSource.USER),
     convertedFromSystemAt: timestamp("converted_from_system_at", { withTimezone: true }),
-    // Hides the whole collection (and cascades isVaulted onto every memory
-    // in it — see vault.service.ts) from every normal read path until the
-    // vault PIN is unlocked.
+    // Hides the collection, and cascades isVaulted onto its memories (vault.service.ts), until the
+    // PIN is unlocked.
     isVaulted: boolean("is_vaulted").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -39,9 +34,6 @@ export const collections = pgTable(
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 13. Memories Table
-// -----------------------------------------------------------------------------
 export const memories = pgTable(
   "memories",
   {
@@ -50,14 +42,11 @@ export const memories = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     type: memoryTypeEnum("type").notNull(),
-    // Always exists once POST /memories returns — this describes enrichment
-    // progress, never whether the memory itself succeeded or failed to save.
+    // Enrichment progress only; the memory exists once POST /memories returns.
     status: memoryStatusEnum("status").notNull().default(MemoryStatus.PROCESSING),
     title: text("title").notNull().default("Untitled"),
     url: text("url"),
-    // Lowercased host, tracking params/fragment/trailing-slash stripped —
-    // for non-blocking duplicate detection (see normalize-url.ts). Null for
-    // non-link memories.
+    // Normalized for duplicate detection (normalize-url.ts); null for non-links.
     normalizedUrl: text("normalized_url"),
     content: text("content"),
     description: text("description"),
@@ -65,59 +54,48 @@ export const memories = pgTable(
     faviconUrl: text("favicon_url"),
     previewImageUrl: text("preview_image_url"),
     keywords: text("keywords").array(),
-    // URL capture & preview system (docs/URL_CAPTURE_AND_PREVIEW.md) — all
-    // null until ingestion runs, or forever null for non-link memories.
+    // URL capture and preview fields (docs/URL_CAPTURE_AND_PREVIEW.md): null until ingestion runs,
+    // and for non-links.
     previewStatus: text("preview_status"),
     previewSource: text("preview_source"),
     platform: text("platform"),
     resourceType: text("resource_type"),
     canonicalUrl: text("canonical_url"),
-    // Diagnostics only — never shown to the user directly, see UI_COPY in
-    // the plan ("Preview unavailable", not "Cloudflare blocked our crawler").
+    // Diagnostics only, never shown directly (UI says "Preview unavailable").
     fetchStatus: text("fetch_status"),
     captureMethod: text("capture_method"),
-    // Duplicate detection: null until checked, then "none", "pending" (found, awaiting the user) or
-    // "kept". duplicateOfId has no foreign key: it's a hint that may outlive the original.
+    // Null until checked, then "none", "pending" or "kept". duplicateOfId has no FK: a hint that
+    // may outlive the original.
     duplicateStatus: varchar("duplicate_status", { length: 16 }),
     duplicateOfId: uuid("duplicate_of_id"),
-    // Raw browser-observed metadata from the Chrome extension's
-    // POST /:id/browser-capture, consumed by the ingestion pipeline's merge
-    // step and kept for re-merging on a later /refresh-preview.
+    // Metadata from the extension's POST /:id/browser-capture, kept for re-merging on /refresh-preview.
     browserCapture: jsonb("browser_capture"),
-    // A social post or video as read from its platform (ai/url-processor/
-    // social): author, text, media, counts, a YouTube video's chapters and
-    // transcript. Null for any other link, and until ingestion runs.
+    // A social post or video as read from its platform (author, text, media, transcript); null for
+    // other links.
     socialPost: jsonb("social_post"),
     isFavorite: boolean("is_favorite").notNull().default(false),
     isArchived: boolean("is_archived").notNull().default(false),
     inTrash: boolean("in_trash").notNull().default(false),
-    // When this became true. Null while inTrash is false (never trashed, or
-    // restored). Drives the 15-day safety window before the purge job hard-
-    // deletes it — see modules/memory/trash-purge.job.ts.
+    // When it became true; null otherwise. Starts the 15-day window before trash-purge.job.ts deletes it.
     trashedAt: timestamp("trashed_at", { withTimezone: true }),
-    // The Inbox (read later). Null = unread: links, videos, documents and
-    // pictures start unread; notes and voice memos (written by the user) start
-    // read. Opening it, or "Mark as read", sets it; a due reminder clears it.
+    // Inbox: null = unread. Links, videos, documents and pictures start unread; notes and voice
+    // memos start read. A due reminder clears it.
     readAt: timestamp("read_at", { withTimezone: true }),
-    // "Remind me": when it should come back. Until then it's snoozed (hidden
-    // from the Inbox); at that time the reminder job makes it unread again,
-    // notifies, records remindedAt and clears this.
+    // Snoozed (hidden from the Inbox) until this time; then the reminder job makes it unread,
+    // notifies, sets remindedAt and clears this.
     remindAt: timestamp("remind_at", { withTimezone: true }),
     remindedAt: timestamp("reminded_at", { withTimezone: true }),
-    // Hidden from every normal read until the vault PIN is unlocked. Also set when the memory is in
-    // a vaulted collection, so reads don't need to join collection_memories.
+    // Hidden until the PIN is unlocked; also set when in a vaulted collection, so reads needn't
+    // join collection_memories.
     isVaulted: boolean("is_vaulted").notNull().default(false),
-    // User-set date for something this memory is about; null means none. Powers "Add to calendar"
-    // (a Google link or .ics, no OAuth).
+    // User-set date this memory is about; null means none. Powers "Add to calendar" (Google link or .ics).
     eventAt: timestamp("event_at", { withTimezone: true }),
-    // How long that event runs, in minutes. Null means the 1-hour default —
-    // set by the calendar when an event is created, moved or resized there.
+    // Event length in minutes; null means the 1-hour default.
     eventDurationMinutes: integer("event_duration_minutes"),
-    // AI-guessed date from DetectEvent, never user-set. It becomes eventAt only when the user
-    // confirms, through updateMemory.
+    // AI-guessed date (DetectEvent), never user-set; becomes eventAt only when the user confirms
+    // via updateMemory.
     suggestedEventAt: timestamp("suggested_event_at", { withTimezone: true }),
-    // 0.0-1.0 confidence from DetectEvent. Only values over EVENT_DETECTION_CONFIDENCE_THRESHOLD
-    // trigger notifications; lower guesses are stored silently.
+    // DetectEvent confidence (0-1); only above EVENT_DETECTION_CONFIDENCE_THRESHOLD does it notify.
     eventDetectionConfidence: real("event_detection_confidence"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -125,21 +103,17 @@ export const memories = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
 
-    // AI ingestion (docs/AI_REQUIREMENTS.md) — populated async by the
-    // ingestion pipeline after create, all nullable until that job runs.
+    // Filled asynchronously by ingestion after create; nullable until then.
     documentEmbedding: vector("document_embedding", EMBEDDING_DIMENSIONS),
-    // Populated by a DB trigger from title/description/inferred_intent/content
-    // (see the ingestion migration) — the app never writes this column.
+    // Filled by a DB trigger from title/description/intent/content; the app never writes it.
     ftsTokens: tsvector("fts_tokens"),
     resourceCategory: text("resource_category"),
     inferredIntent: text("inferred_intent"),
     intentConfidence: real("intent_confidence"),
-    // Open-vocabulary content type ("recipe", "task", ...) plus the structured fields
-    // DetectContentType pulled out for it.
+    // Open-vocabulary content type ("recipe", "task", ...) plus the fields DetectContentType extracted.
     contentType: text("content_type"),
     extractedFields: jsonb("extracted_fields"),
-    // What the web research step found for this memory (shown under "What Savedly understood");
-    // null when it didn't search.
+    // What the web research step found ("What Savedly understood"); null when it didn't search.
     // Every highlight's passage and note, so keyword search finds a memory by what was highlighted.
     highlightsText: text("highlights_text"),
     webResearch: jsonb("web_research").$type<{ query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string }>(),
@@ -151,15 +125,11 @@ export const memories = pgTable(
     // The reminder job's sweep, and the Inbox's unread list.
     index("idx_memories_remind_at").on(table.remindAt).where(sql`${table.remindAt} IS NOT NULL`),
     index("idx_memories_user_unread").on(table.userId, table.createdAt).where(sql`${table.readAt} IS NULL`),
-    // The purge job's whole query is "trashed items older than the cutoff" —
-    // partial so it stays tiny (almost every memory has in_trash = false).
+    // Partial: the purge query only looks at trashed rows, and almost every memory isn't.
     index("idx_memories_trashed_at").on(table.trashedAt).where(sql`${table.inTrash} = true`),
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 14. Collection <-> Memory Junction Table
-// -----------------------------------------------------------------------------
 export const collectionMemories = pgTable(
   "collection_memories",
   {
@@ -197,9 +167,6 @@ export const memoryHighlights = pgTable(
   (table) => [index("idx_memory_highlights_memory").on(table.memoryId), index("idx_memory_highlights_user").on(table.userId)],
 );
 
-// -----------------------------------------------------------------------------
-// 15. Tags Table (scoped per-user — a tag name is only unique within its owner)
-// -----------------------------------------------------------------------------
 export const tags = pgTable(
   "tags",
   {
@@ -213,9 +180,6 @@ export const tags = pgTable(
   (table) => [uniqueIndex("uq_tags_user_name").on(table.userId, table.name)]
 );
 
-// -----------------------------------------------------------------------------
-// 16. Memory <-> Tag Junction Table
-// -----------------------------------------------------------------------------
 export const memoryTags = pgTable(
   "memory_tags",
   {
@@ -232,9 +196,6 @@ export const memoryTags = pgTable(
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 17. Attachments Table (files uploaded to R2 and linked to a memory)
-// -----------------------------------------------------------------------------
 export const attachments = pgTable(
   "attachments",
   {
@@ -250,9 +211,6 @@ export const attachments = pgTable(
   (table) => [index("idx_attachments_memory_id").on(table.memoryId)]
 );
 
-// -----------------------------------------------------------------------------
-// 18. Memory Chunks Table (semantic chunks for RAG retrieval, AI ingestion)
-// -----------------------------------------------------------------------------
 export const memoryChunks = pgTable(
   "memory_chunks",
   {

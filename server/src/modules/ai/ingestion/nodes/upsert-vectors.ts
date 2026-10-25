@@ -16,8 +16,7 @@ type CorrectedType = MemoryType.VIDEO | MemoryType.WEB;
 async function assignCollection(tx: Tx, state: IngestionStateType): Promise<string | null> {
   if ((state.collectionAction !== "existing" && state.collectionAction !== "new") || !state.collectionName) return null;
 
-  // Two saves finishing together could each decide to create "Birthdays";
-  // holding a per-user lock while looking up and creating keeps it to one.
+  // Two saves finishing together could both create "Birthdays"; a per-user lock keeps it to one.
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`collections:${state.userId}`}))`);
 
   const userCollections = await tx
@@ -35,8 +34,7 @@ async function assignCollection(tx: Tx, state: IngestionStateType): Promise<stri
         name: state.collectionName,
         icon: collectionIcon(state.collectionIcon),
         description: state.collectionDescription,
-        // A normal, visible collection: nothing is paid or limited any more, so
-        // there is no reason to hide what the AI files things into.
+        // A normal visible collection: nothing is limited now, so nothing needs hiding.
         source: CollectionSource.USER,
       })
       .returning({ id: collections.id });
@@ -48,9 +46,8 @@ async function assignCollection(tx: Tx, state: IngestionStateType): Promise<stri
 }
 
 /**
- * The client's detection may have missed a link; DetectContentType's regex found one, so correct
- * the stored type and url. Known limitation: this doesn't re-run ParseWebContent, so the chunked
- * content is still the note text.
+ * The client may have missed a link that DetectContentType's regex found, so correct the type and
+ * url. Known limitation: ParseWebContent isn't re-run, so the chunks are still the note text.
  */
 function correctedMemoryType(state: IngestionStateType): { reclassifiedAsLink: boolean; correctedType: CorrectedType | undefined } {
   const reclassifiedAsLink = !state.url && !!state.detectedUrl;
@@ -79,8 +76,8 @@ function isTitledByItsUrl(state: IngestionStateType): boolean {
 }
 
 /**
- * Reaching here means no earlier node threw ("failed" is only for a thrown error, see worker.ts). A
- * link-type memory is "ready" only with a real preview image; everything else is "partial".
+ * Reaching here means no node threw ("failed" is only for a throw, see worker.ts). A link memory is
+ * "ready" only with a real preview image, otherwise "partial".
  */
 function finalStatusFor(state: IngestionStateType, effectiveType: CorrectedType | MediaType): MemoryStatus {
   const isLinkType = effectiveType === MemoryType.WEB || effectiveType === MemoryType.VIDEO;
@@ -94,12 +91,10 @@ function memoryRowUpdate(
 ) {
   const { correctedType, reclassifiedAsLink, urlTitle, finalStatus } = fixes;
   return {
-    // Never overwrite a title the user typed; fill only over a placeholder. Prefers the AI title,
-    // then the page's own title.
+    // Never overwrite a user-typed title; fill only over a placeholder, preferring the AI title,
+    // then the page's.
     title: isPlaceholderTitle(state.existingTitle) || urlTitle ? (state.aiTitle ?? state.previewTitle ?? undefined) : undefined,
-    // Spelling/grammar-corrected version of what the user typed as a
-    // caption — never runs for "note" (see correctCaption.ts), so a
-    // note's own body is never touched here.
+    // Spelling-corrected caption; never runs for notes (correctCaption.ts), so a note's body is untouched.
     content: state.correctedCaption ?? undefined,
     description: state.aiSummary ?? state.previewDescription ?? undefined,
     resourceCategory: state.resourceCategory,
@@ -113,9 +108,7 @@ function memoryRowUpdate(
     webResearch: state.webResearch ?? undefined,
     type: correctedType,
     url: reclassifiedAsLink ? (state.detectedUrl as string) : undefined,
-    // Only ParseWebContent (web/video) ever populates these — leaves
-    // other types' existing previewImageUrl (e.g. an image attachment's)
-    // untouched.
+    // Only ParseWebContent (web/video) sets these; other types' images (e.g. an attachment's) are left alone.
     previewImageUrl: state.previewImageUrl ?? undefined,
     faviconUrl: state.faviconUrl ?? undefined,
     source: state.sourceDomain ?? undefined,
@@ -141,9 +134,8 @@ async function linkSuggestedTags(tx: Tx, state: IngestionStateType): Promise<voi
 }
 
 /**
- * Skipped when embeddings weren't configured for this run: document_embedding is nullable but
- * memory_chunks.embedding is NOT NULL, so there's no valid empty vector. A re-ingestion keeps the
- * earlier embedding.
+ * Skipped without embeddings configured: document_embedding is nullable but memory_chunks.embedding
+ * is NOT NULL, so there's no empty vector. A re-ingest keeps the earlier one.
  */
 async function storeEmbeddings(state: IngestionStateType): Promise<void> {
   if (state.documentEmbedding.length === 0) return;
@@ -168,8 +160,7 @@ async function notifyIfEventDetected(state: IngestionStateType): Promise<void> {
     .innerJoin(users, eq(users.id, memories.userId))
     .where(eq(memories.id, state.memoryId))
     .limit(1);
-  // A real eventAt already on the row means a date was confirmed (agent tool or the "New event"
-  // form), so don't ask again.
+  // A real eventAt means a date was already confirmed (agent tool or "New event" form); don't ask again.
   if (!row?.email || row.eventAt) return;
   notifyEventDetected({
     userId: state.userId,
@@ -180,8 +171,8 @@ async function notifyIfEventDetected(state: IngestionStateType): Promise<void> {
   });
 }
 
-// Follows docs/AI_REQUIREMENTS.md's UpsertPgVector, split in two: scalar AI outputs always live on
-// the `memories` row; only embeddings go through the swappable VectorStore.
+// Follows docs/AI_REQUIREMENTS.md's UpsertPgVector, split: scalar AI outputs live on `memories`;
+// only embeddings use the swappable VectorStore.
 export async function upsertVectors(state: IngestionStateType): Promise<IngestionUpdate> {
   const { reclassifiedAsLink, correctedType } = correctedMemoryType(state);
   const urlTitle = isTitledByItsUrl(state);

@@ -19,9 +19,8 @@ const VAULT_PATH = "/api/v1";
 
 const baseCookieOptions = {
   httpOnly: true,
-  // A self-hosted install is often reached over plain http:// on a home
-  // network, where browsers drop Secure cookies and sign-in silently fails —
-  // so there it follows the public URL's scheme instead.
+  // A self-hosted install is often on plain http:// at home, where browsers drop Secure cookies and
+  // sign-in silently fails, so it follows the public URL's scheme.
   secure: env.SELF_HOSTED ? env.FRONTEND_URL.startsWith("https://") : env.NODE_ENV === "production",
   sameSite: "lax" as const,
 };
@@ -58,9 +57,8 @@ export function clearOAuthStateCookie(res: Response) {
   res.clearCookie(OAUTH_STATE_COOKIE, { ...baseCookieOptions, path: AUTH_PATH });
 }
 
-// Where to land after OAuth when sign-in started from a shared link. Holds only a validated
-// same-site path (see assertSafeNextPath in the auth module), with the 10-minute life of the state
-// cookie.
+// Where to land after OAuth when sign-in began from a shared link. Holds only a validated same-site
+// path (assertSafeNextPath in the auth module), with the state cookie's 10-minute life.
 export function setOAuthNextCookie(res: Response, next: string) {
   res.cookie(OAUTH_NEXT_COOKIE, next, {
     ...baseCookieOptions,
@@ -73,8 +71,7 @@ export function clearOAuthNextCookie(res: Response) {
   res.clearCookie(OAUTH_NEXT_COOKIE, { ...baseCookieOptions, path: AUTH_PATH });
 }
 
-// Scoped to the public share routes so an unlock proof isn't attached to
-// every other API call the browser makes.
+// Scoped to the public share routes so an unlock proof isn't sent with every other API call.
 export function setShareTokenCookie(res: Response, token: string) {
   res.cookie(SHARE_TOKEN_COOKIE, token, {
     ...baseCookieOptions,
@@ -87,10 +84,10 @@ export function clearShareTokenCookie(res: Response) {
   res.clearCookie(SHARE_TOKEN_COOKIE, { ...baseCookieOptions, path: SHARE_PATH });
 }
 
-// Scoped to the whole API (see VAULT_PATH). Deliberately no `maxAge`: a session cookie dies when
-// the browser closes, and the 30-minute idle timeout comes from the token's own `exp` (see
-// signVaultToken), re-issued on each vault-gated request, so it stays unlocked until you close the
-// browser or go quiet for 30 minutes.
+// Scoped to the whole API (see VAULT_PATH). No `maxAge` on purpose: a session cookie dies when the
+// browser closes, and the 30-minute idle timeout comes from the token's own `exp` (signVaultToken),
+// re-issued on each vault-gated request, so it stays unlocked until you close the browser or go
+// quiet for 30 minutes.
 export function setVaultTokenCookie(res: Response, token: string) {
   res.cookie(VAULT_TOKEN_COOKIE, token, { ...baseCookieOptions, path: VAULT_PATH });
 }

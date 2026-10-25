@@ -20,8 +20,8 @@ const resultSchema = z.object({
 export type CreateMemoryResult = z.infer<typeof resultSchema>;
 
 /**
- * The agent's write path for a note or link, calling the same service as the capture UI so
- * ingestion runs afterward. Limited to "note"/"web": the agent can't produce file attachments.
+ * The agent's write path for a note or link, through the same service as the capture UI. Limited to
+ * "note"/"web": it can't produce attachments.
  */
 export const createMemoryTool = tool(
   async (

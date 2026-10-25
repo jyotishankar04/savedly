@@ -2,8 +2,8 @@ const VIDEO_HOSTS = ["youtube.com", "youtu.be", "vimeo.com", "tiktok.com", "twit
 const URL_PATTERN = /https?:\/\/\S+/i;
 
 /**
- * Regex backstop for the client's own link detection (client/lib/detect-memory-type.ts): finds the
- * first URL in a text, mirroring the client's logic.
+ * Regex backstop for the client's link detection (client/lib/detect-memory-type.ts): the first URL
+ * in a text.
  */
 export function extractUrl(text: string): URL | null {
   const match = text.match(URL_PATTERN);
@@ -17,8 +17,8 @@ export function extractUrl(text: string): URL | null {
 }
 
 /**
- * The link a note really is: a URL with at most a short comment around it. Null for a note that
- * merely contains a link (Markdown or longer writing), which must stay a note.
+ * The link a note really is: a URL with at most a short comment. Null for a note that merely
+ * contains a link, which stays a note.
  */
 export function linkOfNote(text: string): URL | null {
   const url = extractUrl(text);

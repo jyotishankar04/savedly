@@ -14,10 +14,9 @@ interface Insights {
   suggestedTags: string[];
 }
 
-// Adapted from docs/AI_REQUIREMENTS.md's GenerateAIInsights, extended with DetectContentType's output.
-// `context` (title/domain/URL/caption) covers the empty-content case: without it the model wrote a
-// summary about the absence of content, which was embedded and could outrank real results. The
-// instruction below is the actual fix.
+// Adapted from docs/AI_REQUIREMENTS.md, plus DetectContentType's output. `context` covers empty
+// content: without it the model summarized the absence of content, which was embedded and could
+// outrank real results.
 const prompt = ChatPromptTemplate.fromTemplate(
   `${UNTRUSTED_RULE}
 

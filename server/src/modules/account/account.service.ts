@@ -6,17 +6,10 @@ import { logger } from "../../shared/utils/logger";
 import { getVectorStore } from "../ai/api";
 import { deleteMemory, collectMemoryFileKeys, deleteUnusedFiles, ownFileKey } from "../memory/api";
 
-/**
- * How long a soft-deleted account is recoverable before the sweep hard-deletes it. Logging back in
- * during this window (auth.service.ts's findOrCreateUser) is the cancellation mechanism — no
- * separate "undo" button needed.
- */
+/** How long a soft-deleted account is recoverable; logging back in during it cancels the deletion. */
 export const ACCOUNT_DELETION_GRACE_DAYS = 30;
 
-/**
- * "Move all to trash" — bulk, reversible, rides the existing 15-day trash-purge sweep unchanged. No
- * cascade/vector-store concerns since trashing isn't deleting.
- */
+/** Bulk and reversible: rides the existing 15-day trash purge. */
 export async function trashAllMemories(userId: string): Promise<number> {
   const result = await db
     .update(memories)
@@ -27,8 +20,8 @@ export async function trashAllMemories(userId: string): Promise<number> {
 }
 
 /**
- * "Delete permanently": removes every memory through deleteMemory (so vectors and files go too),
- * then the user's collections and tags. One bad row never aborts the rest.
+ * "Delete permanently": every memory goes through deleteMemory (vectors and files too), then
+ * collections and tags. One bad row never aborts the rest.
  */
 export async function deleteAllMemoriesNow(userId: string): Promise<{ deleted: number; failed: number; collections: number; tags: number }> {
   const rows = await db.select({ id: memories.id }).from(memories).where(eq(memories.userId, userId));
@@ -43,8 +36,7 @@ export async function deleteAllMemoriesNow(userId: string): Promise<{ deleted: n
       logger.error({ userId, memoryId: id, err }, "[account] failed to delete a memory during clear-all");
     }
   }
-  // Collections and tags only once every memory is gone, so a failed memory
-  // (rare) keeps its collection rather than being left uncategorised.
+  // Collections and tags go only after all memories, so a failed memory keeps its collection.
   let removedCollections = 0;
   let removedTags = 0;
   if (failed === 0) {
@@ -54,10 +46,7 @@ export async function deleteAllMemoriesNow(userId: string): Promise<{ deleted: n
   return { deleted, failed, collections: removedCollections, tags: removedTags };
 }
 
-/**
- * Revokes every refresh token and session for the user, so an account delete signs them out
- * everywhere at once.
- */
+/** Revokes every refresh token and session, so a delete signs the user out everywhere. */
 export async function revokeAllSessionsForUser(userId: string): Promise<void> {
   await db
     .update(refreshTokens)
@@ -67,9 +56,8 @@ export async function revokeAllSessionsForUser(userId: string): Promise<void> {
 }
 
 /**
- * Soft account delete — status -> DELETED, deletedAt = now, every session revoked immediately. The
- * actual wipe happens later via account-deletion.job.ts's sweep, cancelled if the user logs back in
- * first.
+ * Soft delete: status DELETED, deletedAt now, sessions revoked. account-deletion.job.ts wipes later
+ * unless the user logs back in.
  */
 export async function softDeleteAccount(userId: string): Promise<void> {
   await db.update(users).set({ status: UserStatus.DELETED, deletedAt: new Date() }).where(eq(users.id, userId));
@@ -77,9 +65,8 @@ export async function softDeleteAccount(userId: string): Promise<void> {
 }
 
 /**
- * Hard delete. Other users.id FKs either cascade or set null (audit rows are kept), so only
- * sessions and vectors need clearing first. Vectors go before the delete because the cascade
- * removes the memories rows.
+ * Other users.id FKs cascade or set null (audit rows kept), so only sessions and vectors need
+ * clearing, vectors before the delete because the cascade removes the memories rows.
  */
 export async function hardDeleteAccount(userId: string): Promise<void> {
   await revokeAllSessionsForUser(userId);
@@ -99,9 +86,8 @@ export async function hardDeleteAccount(userId: string): Promise<void> {
       .catch((err) => logger.error({ userId, memoryId: id, err }, "[account] vector cleanup failed during hard delete"));
   }
 
-  // Assignments outlive the user (user_id is set null), so end them first:
-  // otherwise a deleted user's grant or subscription would stay "active"
-  // with no one on it, and count in Admin -> Overview's given-away totals.
+  // Assignments outlive the user (user_id set null), so end them first or they'd stay "active" and
+  // inflate Admin's given-away totals.
   await db
     .update(userPlanAssignments)
     .set({ status: PlanAssignmentStatus.CANCELLED, endsAt: new Date() })

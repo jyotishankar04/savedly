@@ -4,7 +4,6 @@ import { requireAdmin } from "../../shared/middlewares/require-admin";
 import { RoadmapController } from "./roadmap.controller";
 import { validateCreateRoadmapItem, validateReorderRoadmap, validateUpdateRoadmapItem } from "./roadmap.validator";
 
-// Mounted at /admin/roadmap: Admin > Roadmap.
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, RoadmapController.list);

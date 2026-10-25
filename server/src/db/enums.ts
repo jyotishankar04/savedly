@@ -11,9 +11,7 @@ export enum Provider {
   GITHUB = "github",
 }
 
-// Which calendar API a calendar_connections row authenticates against —
-// distinct from Provider above, which is login identity, not calendar
-// write access. See calendar_connections' own doc comment in schema.ts.
+// Calendar API a calendar_connections row authenticates against; not the login Provider.
 export enum CalendarProvider {
   GOOGLE = "google",
   MICROSOFT = "microsoft",
@@ -30,8 +28,7 @@ export enum SettingsTheme {
   DARK = "dark",
 }
 
-// The accent a person can pick for the app (Settings > Appearance). The
-// colours themselves are in client/app/globals.css.
+// Accent colour choices (Settings > Appearance); the colours are in client/app/globals.css.
 export enum AccentColor {
   BLUE = "blue",
   PURPLE = "purple",
@@ -52,8 +49,7 @@ export enum MemoryType {
   VOICE = "voice",
 }
 
-// A memory always exists once POST /memories returns — this only ever
-// describes how much enrichment it received, never whether it exists.
+// A memory always exists once POST /memories returns; this only says how much enrichment it got.
 export enum MemoryStatus {
   PROCESSING = "processing",
   READY = "ready",
@@ -73,8 +69,7 @@ export enum BlogPostStatus {
   PUBLISHED = "published",
 }
 
-// Where an item sits on the public roadmap (see roadmapItems): being built
-// now, or planned next. What has shipped is the changelog, not this table.
+// Roadmap position: being built now or planned next. Shipped work is the changelog.
 export enum RoadmapStatus {
   NOW = "now",
   NEXT = "next",
@@ -106,8 +101,8 @@ export enum ShareResourceType {
 }
 
 /**
- * What the share link does, independent of per-user grants. DISABLED keeps the row and slug, so
- * re-publishing reuses the same URL.
+ * What the share link does, independent of grants. DISABLED keeps the row and slug, so
+ * re-publishing reuses the URL.
  */
 export enum ShareLinkAccess {
   DISABLED = "disabled",
@@ -143,30 +138,24 @@ export enum NotificationType {
   SHARE_REVOKED = "share_revoked",
   EVENT_DETECTED = "event_detected",
   DUPLICATE_DETECTED = "duplicate_detected",
-  // A reminder the user set on a memory ("Remind me tomorrow") is due.
   MEMORY_REMINDER = "memory_reminder",
 }
 
 export enum PlanLimitType {
   MEMORY_COUNT = "memory_count",
-  // AI quotas cap included AI only (the platform's key); own-key use is never limited. 0 = none,
-  // null = unlimited. AI_MONTHLY_SAVES is one per saved item; AI_MONTHLY_QUERIES is the Ask quota.
+  // AI quotas cap included AI only (platform key); own-key use is never limited. 0 = none, null = unlimited.
   AI_MONTHLY_QUERIES = "ai_monthly_queries",
   AI_MONTHLY_SAVES = "ai_monthly_saves",
-  // Retired: image reads count as AI processing for their save now. Kept
-  // only because Postgres can't drop an enum value; nothing sets or reads it.
+  // Retired (image reads count in AI_MONTHLY_SAVES); kept because Postgres can't drop an enum value.
   AI_MONTHLY_VISION_QUERIES = "ai_monthly_vision_queries",
   // Largest single upload, in MB — a per-file cap, not a running total.
   MAX_FILE_MB = "max_file_mb",
-  // Imports (bookmark files, Pocket/Raindrop exports...) started this month.
   IMPORT_MONTHLY_COUNT = "import_monthly_count",
   STORAGE_MB = "storage_mb",
   COLLECTION_COUNT = "collection_count",
-  // Counts shares whose link is set to "public". Free plans get a handful;
-  // the other sharing modes are gated by plans.features instead.
+  // Counts shares whose link is "public"; other sharing modes are gated by plans.features.
   PUBLIC_SHARE_COUNT = "public_share_count",
-  // Web lookups this month: the research step on saves and Ask's web search.
-  // The search service is always the platform's, so every lookup counts.
+  // Web lookups this month (saves and Ask); the search service is always the platform's, so all count.
   WEB_SEARCH_MONTHLY = "web_search_monthly",
 }
 
@@ -177,9 +166,7 @@ export enum PlanBillingInterval {
   ONE_TIME = "one_time",
 }
 
-// A user has at most one ACTIVE assignment at a time — inserting a new
-// active one flips the previous one to SUPERSEDED (see plans.service.ts),
-// mirroring how announcements.isActive is kept singular.
+// At most one ACTIVE assignment per user: a new one flips the old to SUPERSEDED (plans.service.ts).
 export enum PlanAssignmentStatus {
   ACTIVE = "active",
   EXPIRED = "expired",
@@ -191,13 +178,11 @@ export enum PlanAssignmentStatus {
 export enum PlanAssignmentSource {
   ADMIN_MANUAL = "admin_manual",
   SIGNUP_DEFAULT = "signup_default",
-  // A paid plan bought through the billing provider (modules/billing).
   SUBSCRIPTION = "subscription",
 }
 
-// TRANSACTIONAL = system-triggered (welcome, status-changed, share events),
-// never sent via the bulk composer. The other four are what the admin
-// composer's category select offers.
+// TRANSACTIONAL is system-triggered and never sent via the bulk composer; the others are the
+// composer's choices.
 export enum EmailCategory {
   TRANSACTIONAL = "transactional",
   MARKETING = "marketing",
@@ -206,9 +191,7 @@ export enum EmailCategory {
   CUSTOM = "custom",
 }
 
-// Which HTML builder rendered the message — kept separate from `category`
-// (why it was sent) so a marketing and an announcement bulk send, both
-// rendered by the same generic template, stay distinguishable in history.
+// Which HTML builder rendered the message, separate from `category` (why it was sent).
 export enum EmailTemplateKey {
   WELCOME = "welcome",
   USER_STATUS_CHANGED = "user_status_changed",
@@ -245,8 +228,7 @@ export enum ReportType {
   FEATURE = "feature",
 }
 
-// Named providers get a first-class client; CUSTOM is any OpenAI-compatible endpoint and is the
-// only one that needs baseUrl.
+// CUSTOM is any OpenAI-compatible endpoint and the only one that needs baseUrl.
 export enum AiCredentialProvider {
   OPENAI = "openai",
   ANTHROPIC = "anthropic",
@@ -257,8 +239,8 @@ export enum AiCredentialProvider {
   OPENROUTER = "openrouter",
 }
 
-// The model slots (fast, reasoning, vision) plus embeddings, each pointed at a saved credential and
-// model. EMBEDDINGS is pinned to 1536 dimensions to match the vector(1536) columns.
+// Model slots (fast, reasoning, vision) plus embeddings. EMBEDDINGS is pinned to 1536 dimensions
+// (the vector(1536) columns).
 export enum AiRole {
   FAST = "fast",
   REASONING = "reasoning",
@@ -280,7 +262,6 @@ export enum ReportStatus {
   RESOLVED = "resolved",
   DECLINED = "declined",
 }
-// The colours a highlight on a saved page can have.
 export enum HighlightColor {
   YELLOW = "yellow",
   GREEN = "green",

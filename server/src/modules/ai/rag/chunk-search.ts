@@ -28,8 +28,8 @@ interface ChunkLegResult {
 }
 
 /**
- * Lexical leg for chunks, always Postgres, computed on the fly: memory_chunks has no tsvector
- * column, and adding one is a migration. Chunk volume per user is small; revisit if slow.
+ * Always Postgres, computed on the fly: memory_chunks has no tsvector column and adding one is a
+ * migration. Chunk volume per user is small; revisit if slow.
  */
 async function chunkLexicalSearch(userId: string, queryText: string, limit: number): Promise<ChunkLegResult[]> {
   const tsQuery = sql`plainto_tsquery('english', ${queryText})`;
@@ -73,8 +73,8 @@ async function chunkSemanticSearch(userId: string, queryText: string, limit: num
 }
 
 /**
- * Chunk-level hybrid retrieval for the Ask agent's searchMemories tool: retrieves passages, then
- * rolls winners up to their memories, each shown once with its best chunk as the snippet.
+ * Chunk-level hybrid retrieval for Ask's searchMemories: retrieves passages, then rolls winners up
+ * to memories, each shown once with its best chunk.
  */
 export async function chunkHybridSearch(userId: string, query: string, limit: number): Promise<RetrievedMemory[]> {
   const candidateLimit = limit * 4;
@@ -94,8 +94,7 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
     lexicalResults.map((r) => ({ memoryId: r.chunkId, score: r.score })),
   );
 
-  // Roll up to one result per memory (best-ranked chunk wins), preserving
-  // RRF order.
+  // Roll up to one result per memory (best chunk wins), keeping RRF order.
   const bestChunkByMemory = new Map<string, { chunkId: string; rrfScore: number }>();
   for (const { memoryId: chunkId, rrfScore } of merged) {
     const chunk = contentByChunkId.get(chunkId);
@@ -139,8 +138,8 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
     });
   }
 
-  // Memories with no chunks (a link saved with little page text) can only be
-  // found at the memory level — top up with those when chunks came up short.
+  // Memories with no chunks (a link with little text) are only found at memory level: top up with
+  // those when chunks fall short.
   if (results.length < limit) {
     const extra = await memoryLevelResults(userId, query, limit - results.length, new Set(results.map((r) => r.memoryId)));
     results.push(...extra);
@@ -149,8 +148,8 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
 }
 
 /**
- * With no matching chunks (nothing embedded yet), search whole memories by keyword
- * (memories.fts_tokens) and return their summary and text as the passage.
+ * With no matching chunks (nothing embedded yet), search whole memories by keyword (fts_tokens) and
+ * return summary and text as the passage.
  */
 async function memoryLevelResults(userId: string, query: string, limit: number, exclude: Set<string>): Promise<RetrievedMemory[]> {
   const filters = [eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false)];

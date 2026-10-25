@@ -40,8 +40,8 @@ const ALL_FEATURES: Record<string, boolean> = {
   insightsFullHistory: true,
 };
 
-// What each hosted plan unlocks (plans.service.ts PLAN_FEATURES). Every
-// hosted plan runs on AI we supply (managedAi): hosted users never add keys.
+// What each hosted plan unlocks. All hosted plans run on supplied AI (managedAi); hosted users
+// never add keys.
 const FREE_FEATURES: Record<string, boolean> = {
   ...ALL_FEATURES,
   vault: false,
@@ -86,9 +86,9 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
   return Object.entries(all).map(([limitType, limitValue]) => ({ limitType: limitType as PlanLimitType, limitValue }));
 }
 
-// Hosted plans (Free, Lite, Pro) differ by volume, monthly AI allowance and features; admins edit
-// the values without a deploy. Prices aren't seeded: paid plans start at 0 ("Price coming soon",
-// checkout refuses) until an admin sets one.
+// Free, Lite and Pro differ by volume, monthly AI and features; admins edit values without a
+// deploy. Prices aren't seeded (paid plans start at 0: "Price coming soon", checkout refuses) until
+// an admin sets one.
 const LITE_LIMITS = limits({
   [PlanLimitType.STORAGE_MB]: 5 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 50,
@@ -129,9 +129,8 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
     }),
     features: FREE_FEATURES,
   },
-  // Two paid plans, each billed monthly or yearly. sortOrder ranks upgrades:
-  // Lite monthly < Lite yearly < Pro monthly < Pro yearly. Pro keeps its
-  // original "ai-*" keys (payment product IDs and assignments point at them).
+  // Two paid plans, monthly or yearly; sortOrder ranks upgrades (Lite monthly < Lite yearly < Pro
+  // monthly < Pro yearly). Pro keeps its "ai-*" keys (product IDs and assignments point at them).
   ...(["monthly", "yearly"] as const).flatMap((interval, i) => {
     const billingInterval = interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY;
     return [
@@ -165,9 +164,8 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
   }),
 ];
 
-// Plans that used to be offered. db:plans:reset switches them off (never
-// deletes them), so anyone still assigned one keeps resolving to it until
-// their subscription ends, but nobody new can buy it.
+// Plans no longer offered: db:plans:reset switches them off (never deletes), so current holders
+// keep them until their subscription ends.
 const RETIRED_HOSTED_PLAN_KEYS = ["own-key-monthly", "own-key-yearly"];
 const RETIRED_LIMIT_TYPES = [PlanLimitType.AI_MONTHLY_VISION_QUERIES];
 
@@ -189,13 +187,13 @@ const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
 ];
 
 /**
- * Idempotent (onConflictDoNothing), run by `pnpm db:seed` and on every self-hosted start. Never
- * overwrites an admin's edits.
+ * Idempotent (onConflictDoNothing); run by `pnpm db:seed` and every self-hosted start. Never
+ * overwrites admin edits.
  */
 /**
- * Writes the default plans' names, descriptions, features and limits over the database (inserting
- * missing plans): `pnpm db:plans:reset`. Never touches price, currency, isActive or isDefault,
- * except that retired plans are switched off.
+ * `pnpm db:plans:reset`: writes the default plans' names, descriptions, features and limits
+ * (inserting missing ones). Never touches price, currency, isActive or isDefault, except that
+ * retired plans are switched off.
  */
 export async function resetPlanDefaults(): Promise<string[]> {
   const touched: string[] = [];
@@ -208,8 +206,7 @@ export async function resetPlanDefaults(): Promise<string[]> {
       .returning({ key: plans.key });
     touched.push(...retired.map((p) => `${p.key} (retired)`));
   }
-  // Image reads used to have their own allowance; they're part of AI
-  // processing for a save now, so the old limit rows go.
+  // Image reads are part of a save's AI processing now, so the old limit rows go.
   await db.delete(planLimits).where(inArray(planLimits.limitType, RETIRED_LIMIT_TYPES));
   for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
     await db
@@ -290,8 +287,7 @@ async function upsertLimits(tx: DbOrTx, planId: string, limits: NonNullable<Crea
 
 export async function createPlan(input: CreatePlanInput, adminUserId: string, ipAddress?: string) {
   return db.transaction(async (tx) => {
-    // Only one plan may be the signup default at a time — same
-    // flip-others-first pattern as announcements.isActive.
+    // Only one signup default: flip the others first.
     if (input.isDefault) {
       await tx.update(plans).set({ isDefault: false }).where(eq(plans.isDefault, true));
     }
@@ -343,8 +339,7 @@ export async function updatePlan(planId: string, input: UpdatePlanInput, adminUs
     const [after] = await tx
       .update(plans)
       .set({
-        // Always set, so .set() never gets an empty object (Drizzle throws "No values to set" on a
-        // limits-only PATCH).
+        // Always set, so .set() is never empty (Drizzle throws on a limits-only PATCH).
         updatedAt: new Date(),
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),

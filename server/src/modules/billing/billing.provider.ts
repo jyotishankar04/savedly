@@ -1,6 +1,5 @@
-// What the billing service needs from a payment provider. Dodo Payments is
-// the one adapter today (dodo.provider.ts); another merchant of record
-// (Polar, Paddle) or Razorpay slots in behind the same interface.
+// What billing needs from a payment provider. Dodo is the one adapter (dodo.provider.ts); Polar,
+// Paddle or Razorpay slot in behind the same interface.
 
 export type SubscriptionEventKind =
   | "active" // started, renewed, resumed, plan changed — access runs to periodEnd
@@ -37,14 +36,14 @@ export interface BillingProvider {
   customerPortalUrl(customerId: string): Promise<string>;
   /**
    * Moves a subscription to another product, billing the prorated difference now. Returns a payment
-   * page when the customer must confirm the charge, else null (the saved method was charged).
+   * page when the customer must confirm, else null (the saved method was charged).
    */
   changePlan(
     subscriptionId: string,
     productId: string,
     /**
-     * "prorated": bill the difference now (a customer moving up). "next_renewal": no charge now;
-     * the new price applies from the next renewal.
+     * "prorated": bill the difference now (moving up). "next_renewal": nothing now, new price from
+     * the next renewal.
      */
     billing?: "prorated" | "next_renewal",
   ): Promise<{ paymentUrl: string | null }>;
@@ -52,14 +51,11 @@ export interface BillingProvider {
   cancelAtPeriodEnd(subscriptionId: string): Promise<void>;
   /** What changePlan would charge right now (prorated, tax included), without changing anything. */
   previewChangePlan(subscriptionId: string, productId: string): Promise<{ amountMinor: number; taxMinor: number | null; currency: string }>;
-  /**
-   * Verifies the signature and returns the event, or null for event types billing ignores. Throws
-   * on a bad signature.
-   */
+  /** Verifies the signature and returns the event, or null for ignored types. Throws on a bad signature. */
   parseWebhook(rawBody: string, headers: Record<string, string>): SubscriptionEvent | null;
   /**
-   * The customer's live subscriptions read from the provider as "active" events, so a purchase
-   * shows even if its webhook is late or lost. Looks up by email when there's no id yet.
+   * Live subscriptions read from the provider as "active" events, so a purchase shows even if its
+   * webhook is late or lost. Looks up by email without an id.
    */
   listLiveSubscriptions(input: { customerId: string | null; email: string }): Promise<SubscriptionEvent[]>;
   /** One subscription as it is right now, or null when there's nothing to act on (e.g. still pending). */

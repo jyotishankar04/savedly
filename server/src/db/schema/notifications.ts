@@ -3,9 +3,6 @@ import { sql } from "drizzle-orm";
 import { users } from "./identity";
 import { notificationTypeEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 14c. Notifications
-// -----------------------------------------------------------------------------
 export const notifications = pgTable(
   "notifications",
   {
@@ -17,9 +14,8 @@ export const notifications = pgTable(
     title: varchar("title", { length: 200 }).notNull(),
     body: text("body"),
     actionUrl: varchar("action_url", { length: 500 }),
-    // Deliberately no FK — unlike a share row, a notification should outlive
-    // the thing it refers to ("X shared Y with you" still reads fine after Y
-    // is deleted, and silently vanishing history is worse than a dead link).
+    // No FK on purpose: a notification should outlive what it refers to ("X shared Y with you"
+    // still reads fine after Y is deleted).
     metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
     readAt: timestamp("read_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

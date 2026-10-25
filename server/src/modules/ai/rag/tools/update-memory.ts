@@ -26,8 +26,8 @@ async function applyUpdate({ memoryId, ...patch }: Input, runtime: RagRuntime): 
     const userId = runtime.context?.userId;
     if (!userId) throw new Error("update_memory: missing userId in runtime context");
 
-    // Without bulk actions on the plan, one tag/collection change per
-    // question: "tag all my links" can't become the same edit made one by one.
+    // Without bulk actions, one tag/collection change per question, so "tag all my links" can't be
+    // done one by one.
     const organizing = patch.tags !== undefined || patch.collectionIds !== undefined;
     if (organizing && !(await planHasFeature(userId, "batchOperations")) && !takeOrganizeSlot(runtime.context?.turnId)) {
       throw new Error(
@@ -39,9 +39,8 @@ async function applyUpdate({ memoryId, ...patch }: Input, runtime: RagRuntime): 
     return resultSchema.parse({ id: updated.id, title: updated.title });
 }
 
-// Replacing a memory's text can't be undone, so that one change waits for a
-// yes. Renames, tags, favorites and filing are small and easy to put back,
-// and stay instant.
+// Replacing a memory's text can't be undone, so it waits for a yes; renames, tags, favorites and
+// filing are easy to undo and stay instant.
 const replaceTextAfterConfirming = confirmFirst(
   "update_memory",
   async ({ memoryId }: Input, userId) => `Replace the text of "${shortTitle((await getMemoryById(userId, memoryId)).title)}" (the current text is not kept)`,

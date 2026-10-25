@@ -13,8 +13,8 @@ interface ContentTypeExtraction {
   extractedFields: Record<string, string>;
 }
 
-// Deliberately open-vocabulary (no category list). Runs first so raw text ("a recipe", a link with
-// a comment) is identified and split into fields before later steps.
+// Open-vocabulary (no category list); runs first so raw text is identified and split into fields
+// before later steps.
 const prompt = ChatPromptTemplate.fromTemplate(
   `${UNTRUSTED_RULE}
 
@@ -42,9 +42,9 @@ Respond as strict JSON: {{"contentType": "...", "extractedFields": {{...}}}}`,
 );
 
 export async function detectContentType(state: IngestionStateType): Promise<IngestionUpdate> {
-  // Regex backstop for the client's detection, only for text the user typed (notes) and only when
-  // the note is that link (see linkOfNote). For images, documents and voice, rawContent is OCR or a
-  // transcript, and a URL seen there must never turn the memory into a link.
+  // Regex backstop for the client, only for typed text (notes) that is just a link (see
+  // linkOfNote). For images, documents and voice, rawContent is OCR or a transcript, and a URL seen
+  // there must never make the memory a link.
   const detectedUrl = state.mediaType === "note" && !state.url ? linkOfNote(state.rawContent) : null;
 
   if (!state.rawContent) {

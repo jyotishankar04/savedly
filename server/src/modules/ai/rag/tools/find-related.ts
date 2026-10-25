@@ -9,8 +9,8 @@ import { lexicalSearch } from "../../search/lexical-search";
 import { hybridSearch } from "../../search/hybrid-search";
 import { excerpt, requireUserId, type RagRuntime } from "./shared";
 
-// Cosine similarity (text-embedding-3-small) below which a memory isn't
-// shown as related; search's own floor (0.2) is too loose for "like this".
+// Cosine similarity (text-embedding-3-small) below which a memory isn't "related"; search's 0.2
+// floor is too loose for "like this".
 const RELATED_FLOOR = 0.3;
 
 const inputSchema = z
@@ -24,9 +24,8 @@ const inputSchema = z
 export const findRelatedTool = tool(
   async ({ memory: description, memoryId: givenId, limit = 6 }: z.infer<typeof inputSchema>, runtime: RagRuntime) => {
     const userId = requireUserId(runtime, "find_related");
-    // Described rather than named by id: the best match is the memory meant.
-    // Memory-level search (titles included), so "the LeetCode one" finds it
-    // even when the memory has no text chunks.
+    // Described, not named by id: the best match is meant. Memory-level search (titles included),
+    // so "the LeetCode one" works even without text chunks.
     const memoryId =
       givenId ??
       (
@@ -42,8 +41,7 @@ export const findRelatedTool = tool(
     if (memory.isVaulted) throw new Error("That memory is in the user's private vault, which Ask can't open.");
 
     const about = [memory.title, memory.description, excerpt(memory.content, 1500), memory.tags.join(", ")].filter(Boolean).join("\n");
-    // By meaning when embeddings exist; by shared words otherwise.
-    // Only reasonably close matches: below this, "related" is noise.
+    // By meaning when embeddings exist, else by shared words; below the floor, "related" is noise.
     let hits = (await semanticSearch(userId, about, limit + 1)).filter((h) => h.score >= RELATED_FLOOR).map((h) => h.memoryId);
     if (hits.length === 0) {
       const words = [memory.title, ...memory.tags].join(" ");

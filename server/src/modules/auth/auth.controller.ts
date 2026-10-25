@@ -33,8 +33,7 @@ async function isProviderAvailable(provider: "google" | "github"): Promise<boole
 }
 
 function sendWelcomeEmail(user: { id: string; email: string; name: string | null }) {
-  // Never blocks/fails the signup itself — a failed welcome send
-  // shouldn't fail account creation.
+  // A failed welcome email mustn't fail signup.
   const { subject, html } = welcomeEmailTemplate({ name: user.name });
   sendEmail({
     to: user.email,
@@ -88,8 +87,8 @@ async function handleOAuthCallback(req: Request, res: Response, exchangeCode: (c
       sendWelcomeEmail(user);
     }
 
-    // Runs on every login, not just signup, so an invite that arrived in between isn't left
-    // pending. Claims only when the provider vouched for the email.
+    // Runs on every login so an invite that arrived since sign-up isn't left pending; only when the
+    // provider vouched for the email.
     await claimPendingGrantsForEmail(user.id, user.email, user.emailVerified).catch(() => {});
 
     const userWithRoles = await getUserWithRoles(user.id);
@@ -102,9 +101,8 @@ async function handleOAuthCallback(req: Request, res: Response, exchangeCode: (c
 
     setAuthCookies(res, tokens);
 
-    // Onboarding still comes first for a new account, but carries the
-    // destination through so an invited user finishes on the thing they
-    // were invited to rather than a generic dashboard.
+    // Onboarding comes first for a new account but carries the destination, so an invited user
+    // lands on what they were invited to.
     const destination = userWithRoles.onboardingCompleted
       ? (nextPath ?? "/app")
       : `/onboard${nextPath ? `?next=${encodeURIComponent(nextPath)}` : ""}`;
@@ -146,8 +144,7 @@ export class AuthController {
       isSignupsEnabled(),
       hasAnyUser(),
     ]);
-    // needsSetup: a fresh self-hosted install with no accounts yet — the
-    // client shows "Create your admin account" instead of the sign-in page.
+    // needsSetup: a fresh self-hosted install with no accounts; the client shows "Create your admin account".
     res.status(200).json(
       ApiResponse.success({ google, github, password, signupsEnabled, needsSetup: env.SELF_HOSTED && !anyUser }),
     );
@@ -159,9 +156,7 @@ export class AuthController {
     }
     const { user, isFirstUser } = await registerWithPassword(req.body as RegisterInput);
     await assignDefaultRole(user.id);
-    // The first account on a self-hosted install owns it. The same goes for
-    // a local development database, so the admin pages are reachable
-    // without editing the database by hand.
+    // The first account on a self-hosted install owns it, as on a local dev database.
     if (isFirstUser && (env.SELF_HOSTED || env.NODE_ENV === "development")) await assignAdminRole(user.id);
     sendWelcomeEmail(user);
 

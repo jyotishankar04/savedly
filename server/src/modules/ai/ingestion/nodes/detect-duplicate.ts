@@ -6,9 +6,9 @@ import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
 /**
- * Is this save already in the library? Runs for saves made without someone looking at the app
- * (extension shortcut, phone share, API) and notifies to keep both. Saves from the app are asked
- * first, and re-runs are skipped. No model call; exact matches only (memory/duplicates.ts).
+ * Is this already in the library? Runs for unattended saves (extension shortcut, phone share, API)
+ * and notifies to keep both. App saves are asked first; re-runs skip. No model call; exact matches
+ * only.
  */
 export async function detectDuplicate(state: IngestionStateType): Promise<IngestionUpdate> {
   const [memory] = await db

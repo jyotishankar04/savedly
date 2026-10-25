@@ -31,13 +31,12 @@ export async function getPlanLimits(planId: string, dbClient: DbOrTx = db): Prom
 
 /**
  * The plan in effect for a user: the active, unexpired assignment, else the isDefault plan. Throws
- * if neither exists, so a deployment with no default plan fails loudly instead of treating every
- * limit as unlimited.
+ * if neither exists, so a deployment without a default fails loudly instead of treating every limit
+ * as unlimited.
  */
 /**
- * The plan a user gets now. With several running (a subscription and an admin grant), the best by
- * sortOrder wins (newest on a tie), so a grant can add to what someone pays for but never reduce
- * it.
+ * The plan a user gets now. With several running (subscription and admin grant) the best by
+ * sortOrder wins (newest on a tie): a grant can add to what someone pays for but never reduce it.
  */
 export async function resolveEffectivePlan(userId: string, dbClient: DbOrTx = db) {
   const [row] = await dbClient

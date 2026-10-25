@@ -56,8 +56,8 @@ export const searchMemoriesByDateTool = tool(
 
     const label = endDate && endDate !== date ? `${date} to ${endDate}` : date;
 
-    // Validated, not just cast, to catch a malformed result before the model or client sees it.
-    // Shares search_memories' schema so the client renders both the same way.
+    // Validated, not just cast, so a malformed result never reaches the model or client; shares
+    // search_memories' schema so the client renders both alike.
     return searchMemoriesResultSchema.parse({
       query: label,
       memories: rows.map((row) => ({
@@ -67,8 +67,8 @@ export const searchMemoriesByDateTool = tool(
         source: row.source,
         url: row.url,
         faviconUrl: row.faviconUrl,
-        // Shorter than search_memories' snippets: a date listing has many items to summarize, so
-        // keep each small for latency.
+        // Shorter than search_memories' snippets: a date listing summarizes many items, so keep
+        // each small for latency.
         snippet: (row.description ?? row.content ?? "").slice(0, 160),
       })),
     });

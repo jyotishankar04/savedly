@@ -9,7 +9,7 @@ const scrypt = promisify(crypto.scrypt) as (
 ) => Promise<Buffer>;
 
 // Node's only password-grade KDF with no native dependency (bcrypt and argon2 need one). Shared by
-// share passwords, the vault PIN and email + password accounts, all hashed rarely enough that "no
+// share passwords, the vault PIN and email + password accounts, hashed rarely enough that "no
 // native build" is the right trade.
 const N = 2 ** 15;
 const R = 8;
@@ -17,8 +17,8 @@ const P = 1;
 const KEY_LEN = 32;
 const SALT_LEN = 32;
 
-// 128 * N * r is exactly 32 MiB, which is Node's *default* maxmem — scrypt
-// throws if it needs the whole ceiling, so this has to be raised explicitly.
+// 128 * N * r is exactly 32 MiB, Node's *default* maxmem, and scrypt throws if it needs the whole
+// ceiling, so raise it explicitly.
 const MAX_MEM = 64 * 1024 * 1024;
 
 const SCHEME = "scrypt";
@@ -35,9 +35,9 @@ export async function hashPassword(plain: string): Promise<string> {
 }
 
 /**
- * Always does the full derivation, even when nothing is set; otherwise "nothing configured" would
- * return instantly while a wrong guess took ~100ms, which is enough to probe whether a share or
- * vault is protected.
+ * Always does the full derivation, even when nothing is set: otherwise "nothing configured" returns
+ * instantly while a wrong guess takes ~100ms, enough to probe whether a share or vault is
+ * protected.
  */
 export async function verifyPassword(plain: string, stored: string | null): Promise<boolean> {
   const parsed = stored ? parse(stored) : null;

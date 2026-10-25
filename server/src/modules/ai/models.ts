@@ -18,18 +18,17 @@ const bareModelId = (model: string) => model.toLowerCase().replace(/^.*\//, "");
 /** OpenAI's reasoning models: the o-series and the GPT-5 family. */
 const isOpenAiReasoningModel = (model: string) => /^(o\d|gpt-5)/.test(bareModelId(model));
 
-// These reject any temperature except the default with a 400 ("Only the
-// default (1) value is supported") — OpenAI's reasoning models, and Claude
-// from Opus 4.7 on. Sending one crashed every Fast-role step of ingestion.
+// These reject any temperature but the default with a 400: OpenAI reasoning models and Claude from
+// Opus 4.7. Sending one crashed every Fast-role step.
 function rejectsCustomTemperature(model: string): boolean {
   const id = bareModelId(model);
   return isOpenAiReasoningModel(id) || /^claude-(opus-4-[7-9]|opus-[5-9]|sonnet-[5-9]|fable|mythos)/.test(id);
 }
 
 /**
- * Per-tier call settings, shared by live calls and the Settings test, so a role that passes its
- * test works in ingestion. Fast/vision get a low temperature where allowed, and OpenAI reasoning
- * models low effort (gpt-5-nano spent ~3,000 hidden tokens per screenshot at the default).
+ * Per-tier settings shared by live calls and the Settings test, so a role that passes its test
+ * works in ingestion. Fast/vision get low temperature, and OpenAI reasoning models low effort
+ * (gpt-5-nano spent ~3,000 hidden tokens per screenshot at the default).
  */
 function tierOptions(credential: ProviderCredentialInput, tier: ModelTier): { temperature?: number; reasoningEffort?: "low" } {
   const quickJob = tier === "fast" || tier === "vision";
@@ -67,9 +66,8 @@ export function buildChatModel(credential: ProviderCredentialInput, tier: ModelT
 }
 
 /**
- * Groq and Anthropic have no embeddings API — throws, since this is only ever reached via a code
- * path that already excludes them (the settings UI's provider choices for the embeddings role, and
- * testCredential below).
+ * Groq and Anthropic have no embeddings API: throws, since callers already exclude them (settings
+ * UI, testCredential).
  */
 export function buildEmbeddings(credential: ProviderCredentialInput): EmbeddingsInterface {
   if (credential.provider === AiCredentialProvider.GROQ || credential.provider === AiCredentialProvider.ANTHROPIC) {
@@ -83,9 +81,9 @@ export function buildEmbeddings(credential: ProviderCredentialInput): Embeddings
   });
 }
 
-// Fast tier: small extraction/classification calls in ingestion. Reasoning tier: Ask Savedly and
-// anything needing judgment. Both are the user's chosen model for that role. `purpose` lets the
-// call fall back to included AI when there's no own key (see resolveCredential).
+// Fast: small extraction and classification calls in ingestion. Reasoning: Ask Savedly and anything
+// needing judgment. `purpose` lets the call fall back to included AI when there's no own key (see
+// resolveCredential).
 export async function getChatModel(
   userId: string,
   tier: "fast" | "reasoning",
@@ -97,8 +95,8 @@ export async function getChatModel(
 }
 
 /**
- * A model on the instance's own key, for work done on nobody's behalf (the public help box).
- * There's no plan to check, so the caller must bound the cost.
+ * A model on the instance's key for work on nobody's behalf (the public help box); no plan to
+ * check, so the caller must bound the cost.
  */
 export async function getPlatformChatModel(tier: "fast" | "reasoning"): Promise<BaseChatModel | null> {
   const credential = await platformCredential(tier === "fast" ? AiRole.FAST : AiRole.REASONING);
@@ -113,7 +111,7 @@ export interface ResolvedEmbeddings {
 
 /**
  * Returned with provider and model so usage logs show the real choice. The user's own embeddings
- * credential wins; otherwise the platform's (EMBEDDINGS_API_KEY).
+ * credential wins, else the platform's.
  */
 export async function getEmbeddings(userId: string): Promise<ResolvedEmbeddings | null> {
   const credential = (await ownCredential(userId, AiRole.EMBEDDINGS)) ?? (await platformEmbeddingsCredential());
@@ -133,8 +131,8 @@ export async function getVisionModels(userId: string, memoryId: string | null): 
   return [buildChatModel(resolved.credential, "vision", resolved.platform)];
 }
 
-// Under bring-your-own-key there's one model per role, so this wraps getChatModel and keeps
-// existing invokeWithFallback call sites working.
+// One model per role under bring-your-own-key, so this wraps getChatModel for existing
+// invokeWithFallback callers.
 export async function getTextFallbackModels(userId: string, purpose?: IncludedAiPurpose): Promise<BaseChatModel[]> {
   const model = await getChatModel(userId, "fast", purpose);
   return model ? [model] : [];

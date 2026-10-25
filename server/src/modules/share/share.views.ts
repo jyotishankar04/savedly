@@ -6,25 +6,21 @@ import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
 
 /**
- * A request is not a view: reloads, network retries and React StrictMode's double effect each cause
- * extra hits. Anything from the same viewer within this window collapses into the recorded view;
- * only the first inserts a row and bumps the counter. 30 minutes is the usual analytics session
- * boundary.
+ * A request is not a view: reloads, retries and React StrictMode's double effect cause extra hits.
+ * Hits from the same viewer in this window collapse into the recorded view; only the first inserts
+ * a row and bumps the counter. 30 minutes is the usual analytics session.
  */
 const VIEW_DEDUP_WINDOW_MS = 30 * 60 * 1000;
 
 /**
- * Salted per share, so a viewer can't be correlated across shares, and the raw IP is never stored.
- * For de-duplicating anonymous visits, not identifying people.
+ * Salted per share so a viewer can't be correlated across shares; the raw IP is never stored. For
+ * de-duplicating anonymous visits, not identifying people.
  */
 function hashViewerIp(ip: string, shareId: string): string {
   return crypto.createHash("sha256").update(`${ip}:${shareId}`).digest("hex");
 }
 
-/**
- * Fire-and-forget: recording a view must never slow or fail a page load. Dedupes by signed-in
- * identity, else by hashed IP.
- */
+/** Fire-and-forget: must never slow or fail a page load. Dedupes by signed-in identity, else hashed IP. */
 export function recordShareView(shareId: string, viewerUserId: string | null, ip: string): void {
   void (async () => {
     const ipHash = viewerUserId ? null : hashViewerIp(ip, shareId);
@@ -122,9 +118,8 @@ export interface ShareViewerEntry {
 }
 
 /**
- * The owner-only "who viewed this" list, most recent first. Signed-in viewers carry their identity;
- * anonymous rows carry neither name nor email (shown as "Anonymous visitor"), and the hashed IP
- * isn't enough to track anyone, by design.
+ * Owner-only "who viewed this", newest first. Anonymous rows carry no name or email ("Anonymous
+ * visitor"); the hashed IP can't track anyone, by design.
  */
 export async function listShareViewers(
   userId: string,

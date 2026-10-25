@@ -6,8 +6,7 @@ import { aiUsageLogs } from "../../db/schema";
 import { logger } from "../../shared/utils/logger";
 import { providerRefusal, recordAiWorking, recordNoCredits } from "./provider-health";
 
-// Kept here (not imported from ai.providers.ts) so this module stays free of
-// the providers' import graph; ai.providers.ts re-exports the same value.
+// Kept here, not imported from ai.providers.ts, so this module avoids the providers' import graph.
 export const PLATFORM_AI_TAG = "sfl:platform";
 
 export interface LogAiUsageEntry {
@@ -43,10 +42,6 @@ export async function logAiUsage(entry: LogAiUsageEntry): Promise<void> {
   }
 }
 
-/**
- * Maps a LangChain `Serialized.id` (e.g. ["langchain","chat_models","groq","ChatGroq"]) to our
- * provider vocabulary.
- */
 function providerFromClassName(className: string): string {
   if (className.includes("Groq")) return "groq";
   if (className.includes("OpenAI")) return "openai";
@@ -61,24 +56,22 @@ interface UsageCallbackParams {
 }
 
 /**
- * Callback handler passed to a model's `.invoke()`. LangChain reports every call through it however
- * deeply wrapped, unlike usage_metadata, which call sites often don't see.
+ * Callback passed to a model's `.invoke()`: LangChain reports every call through it however deeply
+ * wrapped.
  */
 export function createUsageCallback(params: UsageCallbackParams): BaseCallbackHandler {
   let className = "unknown";
   let platform = false;
 
   return BaseCallbackHandler.fromMethods({
-    // Chat models reach this through LangChain's handleChatModelStart ->
-    // handleLLMStart fallback, which passes the run's tags along — a model
-    // built on the platform's key (included AI) carries PLATFORM_AI_TAG.
+    // Chat models arrive via handleChatModelStart -> handleLLMStart, which keeps the run's tags; a
+    // platform-key model carries PLATFORM_AI_TAG.
     handleLLMStart(llm, _prompts, _runId, _parentRunId, _extraParams, tags) {
       className = llm.id?.at(-1) ?? "unknown";
       platform = !!tags?.includes(PLATFORM_AI_TAG);
     },
-    // The instance's own AI account running dry is the one failure nobody
-    // sees: every step is skipped quietly. Kept for the admin area
-    // (ai/provider-health.ts). A user's own key is theirs to look after.
+    // The instance's own AI account running dry is silent (steps are skipped), so it's recorded for
+    // admins (ai/provider-health.ts). A user's own key is theirs.
     handleLLMError(err: unknown) {
       if (platform && providerRefusal(err) === "no-credits") recordNoCredits(providerFromClassName(className));
     },
@@ -108,8 +101,8 @@ export function createUsageCallback(params: UsageCallbackParams): BaseCallbackHa
 }
 
 /**
- * Config for a model call inside a graph node: keeps the node's callbacks (streamEvents, Langfuse)
- * and adds the usage logger. Passing `{ callbacks }` alone replaces them and stopped Ask streaming.
+ * Config for a model call in a graph node: keeps the node's callbacks (streamEvents, Langfuse) and
+ * adds usage logging. Passing `{ callbacks }` alone replaces them and stopped Ask streaming.
  */
 export function withUsage(config: RunnableConfig | undefined, params: UsageCallbackParams, extra?: RunnableConfig): RunnableConfig {
   return mergeConfigs(config, extra, { callbacks: [createUsageCallback(params)] });

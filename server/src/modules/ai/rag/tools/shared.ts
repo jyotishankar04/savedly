@@ -2,8 +2,6 @@ import type { ToolRuntime } from "@langchain/core/tools";
 import { listCollections, collectionNameKey } from "../../../collection/api";
 import type { ragToolContextSchema } from "./search-memories";
 
-// Small helpers the Ask tools share.
-
 export type RagRuntime = ToolRuntime<unknown, typeof ragToolContextSchema>;
 
 export function requireUserId(runtime: RagRuntime, toolName: string): string {
@@ -22,8 +20,8 @@ export function excerpt(text: string | null | undefined, max: number): string {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * A collection's id from its id or name (case-insensitive, exact first, then "contains"). Throws a
- * readable error listing candidate names when none match.
+ * A collection's id from its id or name (case-insensitive, exact first, then "contains"); throws a
+ * readable error listing candidates when none match.
  */
 export async function resolveCollectionId(userId: string, nameOrId: string): Promise<{ id: string; name: string }> {
   const collections = await listCollections(userId, { includeSystem: true, isVaulted: false });
@@ -44,9 +42,8 @@ export async function resolveCollectionId(userId: string, nameOrId: string): Pro
   return { id: match.id, name: match.name };
 }
 
-// Plans without bulk actions get one organizing change (tags or
-// collections) per question, so Ask can't turn "tag all my links" into
-// the same edit made one memory at a time. Keyed by question (turnId).
+// Plans without bulk actions get one organizing change (tags or collections) per question, so "tag
+// all my links" can't become the same edit one by one. Keyed by turnId.
 const organizedInTurn = new Map<string, number>();
 
 export function takeOrganizeSlot(turnId: string | undefined): boolean {

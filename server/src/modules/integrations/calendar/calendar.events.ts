@@ -56,7 +56,6 @@ export async function pushMemoryToCalendar(
   return { htmlLink: created.htmlLink };
 }
 
-/** Where a memory's event lives on each connected calendar, to open it there. */
 export async function eventLinksForMemory(
   userId: string,
   memoryId: string,
@@ -72,10 +71,7 @@ export async function eventLinksForMemory(
 
 export interface MergedCalendarEvent {
   id: string;
-  /**
-   * "savedly" for an event that only exists as a memory's eventAt (no connected provider, or not
-   * yet pushed); otherwise which provider it was fetched from.
-   */
+  /** "savedly" for an event that exists only as a memory's eventAt; otherwise the provider it came from. */
   source: "savedly" | CalendarProviderKey;
   title: string;
   description: string | null;
@@ -83,15 +79,11 @@ export interface MergedCalendarEvent {
   endAt: string;
   /** Provider's own UI link, or null for an event that only exists in Savedly. */
   htmlLink: string | null;
-  /**
-   * The Savedly memory backing this event, when there is one — lets the client link through to it
-   * either way.
-   */
+  /** The Savedly memory behind this event, when there is one, so the client can link to it. */
   memoryId: string | null;
   /**
-   * The provider's own event id, for a provider-sourced event with no memoryId — needed to
-   * edit/delete it directly since there's no memory to key off. Null for an event that only exists
-   * in Savedly.
+   * The provider's event id for a provider-sourced event with no memoryId, needed to edit/delete it
+   * directly. Null for Savedly-only events.
    */
   externalEventId: string | null;
   /** A whole-day event: startAt/endAt are midnight UTC of its dates (end exclusive). */
@@ -99,9 +91,8 @@ export interface MergedCalendarEvent {
 }
 
 /**
- * Merges each connected provider's real events with every memory that has an eventAt in range and
- * isn't already one of those events (calendar_event_links), so dated memories show without
- * duplicates.
+ * Merges each connected provider's events with every memory that has an eventAt in range and isn't
+ * already one of them (calendar_event_links), so dated memories show without duplicates.
  */
 export async function listEvents(userId: string, range: { from: Date; to: Date }): Promise<MergedCalendarEvent[]> {
   const connections = await getConnections(userId);
@@ -125,8 +116,7 @@ export async function listEvents(userId: string, range: { from: Date; to: Date }
           allDay: event.allDay,
         }));
       } catch (err) {
-        // One provider having a bad day (expired grant, transient 5xx)
-        // shouldn't blank out the whole calendar view.
+        // One provider failing (expired grant, 5xx) shouldn't blank the whole calendar.
         logger.warn({ err, provider }, "[calendar] listEvents provider fetch failed");
         return [];
       }
@@ -208,9 +198,9 @@ export interface CreateStandaloneEventResult {
 }
 
 /**
- * The one path for the "New event" dialog and the create_calendar_event agent tool: creates a
- * memory with eventAt confirmed, then pushes to each connected provider best-effort. One provider
- * failing doesn't fail the others or the memory.
+ * The one path for the "New event" dialog and the create_calendar_event tool: creates a memory with
+ * eventAt confirmed, then pushes to each provider best-effort; one provider failing doesn't fail
+ * the others or the memory.
  */
 export async function createStandaloneCalendarEvent(
   userId: string,
@@ -291,18 +281,15 @@ export interface UpdateStandaloneEventInput {
 }
 
 /**
- * Edits an event with a memory behind it (nearly all of them). Updates the memory, then best-effort
- * re-syncs each provider it was pushed to (calendar_event_links). The memory is the source of
- * truth; sync is best-effort.
+ * Edits an event with a memory behind it (nearly all): updates the memory, then best-effort
+ * re-syncs each provider it was pushed to. The memory is the source of truth.
  */
 export async function updateEventForMemory(userId: string, memoryId: string, input: UpdateStandaloneEventInput): Promise<void> {
   const memory = await getMemoryById(userId, memoryId);
 
   const patch: { title?: string; description?: string; eventAt?: string } = {};
   if (input.title !== undefined) patch.title = input.title;
-  // updateMemorySchema's description has no null-to-clear convention
-  // (unlike eventAt) — an explicit null here just means "no description",
-  // which an empty string represents just as well.
+  // updateMemorySchema's description has no null-to-clear convention (unlike eventAt), so null means "".
   if (input.description !== undefined) patch.description = input.description ?? "";
   if (input.startAt !== undefined) patch.eventAt = input.startAt;
   if (Object.keys(patch).length > 0) await updateMemory(userId, memoryId, patch);
@@ -340,8 +327,8 @@ export async function updateEventForMemory(userId: string, memoryId: string, inp
 }
 
 /**
- * Removes an event with a memory: deletes synced copies on each provider first (best-effort, an
- * unreachable provider doesn't block it), then clears eventAt. The memory itself is kept.
+ * Removes an event with a memory: deletes synced provider copies first (best-effort), then clears
+ * eventAt. The memory is kept.
  */
 export async function deleteEventForMemory(userId: string, memoryId: string): Promise<void> {
   const links = await db.select().from(calendarEventLinks).where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
@@ -361,10 +348,7 @@ export async function deleteEventForMemory(userId: string, memoryId: string): Pr
   await setEventDuration(userId, memoryId, null);
 }
 
-/**
- * Edits or removes an external event that lives only on a connected calendar (no memory, no link
- * row), so users can manage those from the same page.
- */
+/** Edits or removes an external event that lives only on a connected calendar (no memory or link row). */
 export async function updateExternalCalendarEvent(
   userId: string,
   provider: CalendarProviderKey,

@@ -13,9 +13,9 @@ export function startOfCurrentMonth(): Date {
 type UsageCounter = (userId: string, dbClient: DbOrTx) => Promise<number>;
 
 /**
- * How each limit type is counted: one function per type, since each lives on a different table with
- * its own rule (collections count source='user'; AI counts only user-initiated Ask queries, see the
- * "ask:" prefix in ai.routes.ts). A new PlanLimitType fails to compile until it has an entry.
+ * One counter per limit type, since each lives on a different table with its own rule (collections
+ * count source='user'; AI counts only user-initiated Ask queries, see the "ask:" prefix in
+ * ai.routes.ts). A new PlanLimitType fails to compile until it has an entry.
  */
 const USAGE_COUNTERS: Record<PlanLimitType, UsageCounter> = {
   [PlanLimitType.MEMORY_COUNT]: async (userId, dbClient) => {
@@ -41,13 +41,11 @@ const USAGE_COUNTERS: Record<PlanLimitType, UsageCounter> = {
     const bytes = Number(row?.value ?? 0);
     return Math.ceil(bytes / (1024 * 1024));
   },
-  // The three AI quotas count only *included* AI — calls that ran on the
-  // platform's key, which the usage logger tags with metadata.source =
-  // "platform". Calls on a user's own key never count.
+  // The three AI quotas count only *included* AI: calls on the platform key, tagged metadata.source
+  // = "platform". Calls on a user's own key never count.
   [PlanLimitType.AI_MONTHLY_QUERIES]: async (userId, dbClient) => {
-    // Exact match on "ask:query", not a "rag:%" prefix — a single question
-    // fans out into several rag:* rows internally, so counting those would
-    // overcount. streamAsk logs exactly one "ask:query" row per question.
+    // Exact match on "ask:query", not "rag:%": one question fans out into several rag:* rows, which
+    // would overcount. streamAsk logs one "ask:query" per question.
     const [row] = await dbClient
       .select({ value: sql<number>`count(*)::int` })
       .from(aiUsageLogs)
@@ -62,8 +60,8 @@ const USAGE_COUNTERS: Record<PlanLimitType, UsageCounter> = {
     return row?.value ?? 0;
   },
   [PlanLimitType.AI_MONTHLY_SAVES]: async (userId, dbClient) => {
-    // One per memory the ingestion pipeline enriched on the platform key,
-    // however many ingestion:* calls that took.
+    // One per memory the ingestion pipeline enriched on the platform key, however many ingestion:*
+    // calls it took.
     const [row] = await dbClient
       .select({ value: sql<number>`count(distinct ${aiUsageLogs.memoryId})::int` })
       .from(aiUsageLogs)
@@ -94,11 +92,10 @@ const USAGE_COUNTERS: Record<PlanLimitType, UsageCounter> = {
   },
   // Retired: part of AI_MONTHLY_SAVES now.
   [PlanLimitType.AI_MONTHLY_VISION_QUERIES]: async () => 0,
-  // A per-file cap, checked against each upload's size — there's no
-  // running total to report.
+  // A per-file cap checked against each upload's size; there's no running total.
   [PlanLimitType.MAX_FILE_MB]: async () => 0,
   [PlanLimitType.PUBLIC_SHARE_COUNT]: async (userId, dbClient) => {
-    // Only links set to "public" count; invite-only or password shares are gated by a feature flag.
+    // Only "public" links count; invite-only or password shares are gated by a feature flag.
     // `shares` is imported directly because share.service imports this module.
     const [row] = await dbClient
       .select({ value: sql<number>`count(*)::int` })
@@ -108,7 +105,6 @@ const USAGE_COUNTERS: Record<PlanLimitType, UsageCounter> = {
   },
 };
 
-/** Current usage for one limit type. */
 export function getCurrentUsage(userId: string, limitType: PlanLimitType, dbClient: DbOrTx = db): Promise<number> {
   return USAGE_COUNTERS[limitType](userId, dbClient);
 }

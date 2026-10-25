@@ -4,8 +4,8 @@ import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
 /**
- * `document` memories are PDF-only today (upload.constants.ts). Parsing, including the large-PDF
- * path, is in lib/parse-pdf.ts, shared with parseWebContent.
+ * `document` memories are PDF-only today (upload.constants.ts); parsing is in lib/parse-pdf.ts,
+ * shared with parseWebContent.
  */
 export async function extractDocText(state: IngestionStateType): Promise<IngestionUpdate> {
   if (!state.attachmentUrl) {
@@ -24,8 +24,7 @@ export async function extractDocText(state: IngestionStateType): Promise<Ingesti
     logNode(state.memoryId, "extractDocText", { attachmentUrl: state.attachmentUrl, contentLength: rawContent.length });
     return { rawContent };
   } catch (err) {
-    // A corrupt/unreadable PDF shouldn't fail ingestion — downstream nodes
-    // just work with an empty content string (title-only classification).
+    // A corrupt PDF shouldn't fail ingestion: later nodes get empty content.
     logNode(state.memoryId, "extractDocText", { attachmentUrl: state.attachmentUrl, error: err instanceof Error ? err.message : String(err) });
     return { rawContent: "" };
   }

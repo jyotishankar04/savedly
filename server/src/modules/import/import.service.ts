@@ -23,8 +23,7 @@ export async function runImport(userId: string, input: ImportInput) {
   }
   await assertWithinLimit(userId, PlanLimitType.IMPORT_MONTHLY_COUNT, 1);
 
-  // Dedupe within the batch itself first — two identical lines in one paste
-  // must not create two memory rows.
+  // Dedupe within the batch: two identical lines in one paste mustn't make two memories.
   const seen = new Set<string>();
   const inBatchUnique: ParsedItem[] = [];
   for (const item of parsed) {
@@ -42,8 +41,7 @@ export async function runImport(userId: string, input: ImportInput) {
     );
   }
 
-  // Upfront bulk dedupe against the DB — one query for all of the user's
-  // existing normalizedUrls, not a per-row lookup.
+  // One upfront query for all the user's normalizedUrls, not a lookup per row.
   const existingRows = await db
     .select({ normalizedUrl: memories.normalizedUrl })
     .from(memories)
@@ -96,8 +94,7 @@ export async function runImport(userId: string, input: ImportInput) {
     return { batchId: batch.id, created: memoryRows };
   });
 
-  // Fired after commit — mirrors sendBulkEmail's shape, batched directly
-  // against the queue rather than calling enqueueIngestion per row.
+  // After commit, batched straight to the queue (like sendBulkEmail).
   await enqueueIngestionBulk(created.map((m) => m.id));
 
   return { batchId, totalCount: inBatchUnique.length, createdCount: created.length, skippedCount: duplicates.length };
@@ -111,9 +108,8 @@ export async function getImportBatch(userId: string, batchId: string) {
     .limit(1);
   if (!batch) throw new AppError("Import batch not found", 404, "NOT_FOUND");
 
-  // "Still processing" reflects the created memories' async ingestion status,
-  // not the batch row itself — runImport is synchronous end-to-end, so the
-  // batch summary is already final by the time this is called.
+  // "Still processing" is the created memories' ingestion status; runImport is synchronous, so the
+  // batch row is already final.
   const [{ value: stillProcessing }] = await db
     .select({ value: count() })
     .from(memories)

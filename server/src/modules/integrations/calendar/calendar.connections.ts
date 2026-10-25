@@ -8,13 +8,10 @@ import { getGoogleAccountEmail, isGoogleCalendarConfigured, refreshGoogleAccessT
 import type { CalendarTokenExchange } from "./calendar.types";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 
-// One provider today. The key stays a type (and the functions below stay
-// keyed by it) so a second calendar can be added without reshaping callers.
+// One provider today; the key stays a type so a second calendar can be added without reshaping callers.
 export type CalendarProviderKey = "google";
 
-// A token is refreshed once it's within this window of expiring, rather
-// than waiting for it to actually fail — avoids a request racing an
-// about-to-expire token.
+// Refresh a token once within this window of expiry, so a request doesn't race an expiring token.
 const REFRESH_SKEW_MS = 5 * 60 * 1000;
 
 export async function isProviderConfigured(_provider: CalendarProviderKey): Promise<boolean> {
@@ -32,8 +29,8 @@ export interface CalendarConnectionSummary {
   expiresAt: Date;
 }
 
-// Connections already tried for a missing account email this process, so a
-// connection that can't tell us doesn't cost a Google call on every read.
+// Connections already tried for a missing account email this process, so one that can't tell us
+// doesn't cost a Google call per read.
 const emailLookupTried = new Set<string>();
 
 /** Fills in which account a connection belongs to, for ones saved without it. Best effort. */
@@ -58,8 +55,7 @@ async function backfillAccountEmail(userId: string, provider: CalendarProviderKe
 }
 
 export async function getConnections(userId: string): Promise<CalendarConnectionSummary[]> {
-  // Google only: a connection left over from a provider that has since been
-  // removed is ignored rather than surfaced as something the app can use.
+  // Google only: a connection from a removed provider is ignored.
   const rows = await db
     .select()
     .from(calendarConnections)
@@ -96,9 +92,8 @@ export async function connectCalendar(
       target: [calendarConnections.userId, calendarConnections.provider],
       set: {
         encryptedAccessToken: values.encryptedAccessToken,
-        // A reconnect without a fresh refresh_token (e.g. a second
-        // prompt=consent that Google still sometimes short-circuits) keeps
-        // the existing one rather than nulling out a still-valid token.
+        // A reconnect without a fresh refresh_token (Google sometimes short-circuits
+        // prompt=consent) keeps the existing one.
         encryptedRefreshToken: values.encryptedRefreshToken ?? undefined,
         accessTokenExpiresAt: values.accessTokenExpiresAt,
         scope: values.scope,
@@ -106,8 +101,8 @@ export async function connectCalendar(
       },
     });
 
-  // The connection list is cached per user. This runs from the provider's redirect with no session,
-  // so without the bump the page would say "not connected" for up to a minute.
+  // The connection list is cached per user, and this runs from the provider's redirect with no
+  // session, so without the bump the page says "not connected" for up to a minute.
   await bumpUserCache(userId);
 }
 
@@ -129,8 +124,7 @@ export async function getValidAccessToken(userId: string, provider: CalendarProv
   if (!expiresSoon) return decryptToken(row.encryptedAccessToken);
 
   if (!row.encryptedRefreshToken) {
-    // Expired with no refresh token on file — the stored access token is
-    // useless; surface as "not connected" rather than returning a dead token.
+    // Expired with no refresh token: the stored access token is useless, so report "not connected".
     return null;
   }
 

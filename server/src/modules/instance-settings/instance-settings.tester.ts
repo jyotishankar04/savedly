@@ -10,8 +10,8 @@ import type { SectionId } from "../../platform/instance-settings/instance-settin
 import type { ResolvedSection } from "../../platform/instance-settings/instance-settings.service";
 
 /**
- * The "Test connection" button: runs the candidate settings (form values over what's saved) against
- * the real service before saving. Throws a readable message on failure.
+ * "Test connection": runs the candidate settings (form values over what's saved) against the real
+ * service before saving; throws a readable message on failure.
  */
 export async function testSection(id: SectionId, settings: ResolvedSection): Promise<string> {
   switch (id) {
@@ -60,8 +60,8 @@ export async function testSection(id: SectionId, settings: ResolvedSection): Pro
       return "Created a test embedding.";
     }
     case "includedAi": {
-      // One tiny real call per role that's on, so a wrong key or model name
-      // shows up here instead of in someone's first save.
+      // One tiny real call per active role, so a wrong key or model shows up here, not on someone's
+      // first save.
       const roles = [
         [AiRole.REASONING, "Ask"],
         [AiRole.FAST, "Saving"],

@@ -45,8 +45,8 @@ function coerce(value: unknown): unknown {
 }
 
 /**
- * Model output is untrusted: LangGraph validates updates after a step, so one malformed field used
- * to fail the save. Each field is checked here, repaired if possible, else dropped.
+ * Model output is untrusted and LangGraph validates updates after a step, so one malformed field
+ * used to fail the save: check each field, repair or drop.
  */
 export function sanitize(name: string, memoryId: string, update: IngestionUpdate): IngestionUpdate {
   const clean: Record<string, unknown> = {};
@@ -62,8 +62,8 @@ export function sanitize(name: string, memoryId: string, update: IngestionUpdate
 }
 
 /**
- * AI enrichment is optional: a provider error in one step must not discard the rest. The step keeps
- * its defaults and the memory is saved with whatever succeeded.
+ * Enrichment is optional: a provider error in one step keeps its defaults and the memory is saved
+ * with what succeeded.
  */
 function optional(name: string, node: (state: IngestionStateType) => Promise<IngestionUpdate>) {
   return async (state: IngestionStateType): Promise<IngestionUpdate> => {
@@ -84,8 +84,8 @@ function optional(name: string, node: (state: IngestionStateType) => Promise<Ing
   };
 }
 
-// Follows docs/AI_REQUIREMENTS.md's ingestion state machine, plus CorrectCaption,
-// DetectContentType, DetectEvent and OrganizeCollection. Run order is drawn below.
+// Follows docs/AI_REQUIREMENTS.md plus CorrectCaption, DetectContentType, DetectEvent and
+// OrganizeCollection; run order below.
 const PARSER_NODES = ["parseWebContent", "transcribeAudio", "processImageVision", "extractDocText", "normalizeNote"] as const;
 
 const builder = new StateGraph(IngestionState)
@@ -105,8 +105,8 @@ const builder = new StateGraph(IngestionState)
   .addNode("generateAiInsights", optional("generateAiInsights", generateAiInsights))
   .addNode("organizeCollection", optional("organizeCollection", organizeCollection))
   .addNode("semanticChunker", semanticChunker)
-  // Optional too: a bad or missing embeddings key never fails a save — the
-  // memory is kept, just not findable by meaning until it's re-indexed.
+  // Optional too: a bad or missing embeddings key never fails a save, the memory just isn't
+  // findable by meaning until re-indexed.
   .addNode("generateEmbeddings", optional("generateEmbeddings", generateEmbeddings))
   .addNode("upsertVectors", upsertVectors)
   .addConditionalEdges(START, routeMediaType, {
@@ -117,8 +117,8 @@ const builder = new StateGraph(IngestionState)
     normalizeNote: "normalizeNote",
   });
 
-// Steps run as soon as their inputs are ready, in parallel where independent. Longest chain:
-// caption -> intent -> insights -> collection.
+// Steps run as soon as inputs are ready, in parallel where independent. Longest chain: caption ->
+// intent -> insights -> collection.
 // 
 //   parser ─┬─ researchContext ─┬─ correctCaption ── classifyIntent ─┬─ generateAiInsights ─┬─ organizeCollection ─┐
 //           │                   └─ detectContentType ────────────────┤                      │                      ├─ upsertVectors

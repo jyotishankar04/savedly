@@ -9,8 +9,7 @@ import type { SubscriptionEvent } from "./billing.provider";
 import { bumpUserCache } from "../../shared/cache/response-cache";
 import { SUBSCRIPTION_REF, callProvider, requireProvider } from "./billing.gateway";
 
-// Access runs a little past the billing date so a renewal that lands a few
-// hours late never flickers someone back to Free.
+// Access runs a bit past the billing date so a late renewal never flickers someone to Free.
 const RENEWAL_GRACE_MS = 3 * 24 * 60 * 60 * 1000;
 
 async function resolveUser(event: SubscriptionEvent): Promise<string | null> {
@@ -59,8 +58,8 @@ export async function handleWebhook(rawBody: string, headers: Record<string, str
     .returning({ id: billingEvents.id });
   if (!fresh) return; // already handled
 
-  // Deliveries arrive late and out of order, so the event only says which subscription changed;
-  // what's applied is the provider's current state. If that read fails, the event itself is used.
+  // Deliveries are late and out of order, so the event only names the subscription; apply the
+  // provider's current state (the event itself if that read fails).
   const delivered = event;
   const latest = await billing.getSubscription(delivered.subscriptionId).catch((err) => {
     logger.warn({ err, subscriptionId: delivered.subscriptionId }, "[billing] couldn't re-read subscription; using the event");
@@ -78,8 +77,8 @@ export async function handleWebhook(rawBody: string, headers: Record<string, str
 }
 
 /**
- * Reads the user's live subscriptions from the provider and applies them. The billing page calls it
- * after checkout so the plan shows even if the webhook is slow. Safe to repeat.
+ * Reads live subscriptions from the provider and applies them; the billing page calls it after
+ * checkout so the plan shows even if the webhook is slow. Safe to repeat.
  */
 export async function syncSubscriptions(userId: string): Promise<{ applied: number }> {
   const billing = requireProvider();
@@ -88,14 +87,12 @@ export async function syncSubscriptions(userId: string): Promise<{ applied: numb
   const [customer] = await db.select().from(billingCustomers).where(eq(billingCustomers.userId, userId)).limit(1);
 
   const events = await billing.listLiveSubscriptions({ customerId: customer?.customerId ?? null, email: user.email });
-  // Only subscriptions that are provably this user's: bought from this
-  // account (our userId in the metadata), or under a customer already linked
-  // to it. A bare email match isn't enough.
+  // Only provably this user's subscriptions: our userId in the metadata, or under an already linked
+  // customer. An email match isn't enough.
   const mine = events.filter((e) => e.userId === userId || (!e.userId && customer?.customerId === e.customerId));
 
-  // Also re-read every subscription the user's plan already rests on, so a
-  // stale assignment (a lost or out-of-order webhook) is corrected too —
-  // including one that's been cancelled, which the live list leaves out.
+  // Also re-read subscriptions the plan already rests on, correcting a stale assignment (lost or
+  // out-of-order webhook), including cancelled ones the live list omits.
   const linked = await db
     .select({ ref: userPlanAssignments.sourceRefId })
     .from(userPlanAssignments)
@@ -143,8 +140,8 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
   const now = new Date();
 
   await db.transaction(async (tx) => {
-    // Providers send several events for one subscription at once (Dodo sends .active and .renewed
-    // together); serializing per subscription stops two handlers each inserting an assignment.
+    // Providers send several events per subscription at once (Dodo sends .active and .renewed
+    // together); per-subscription serialization stops two handlers each inserting an assignment.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`billing:${event.subscriptionId}`}))`);
 
     const refMatch = and(
@@ -160,8 +157,7 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
         if (current) {
           await tx.update(userPlanAssignments).set({ planId, status: PlanAssignmentStatus.ACTIVE, endsAt }).where(refMatch);
         } else {
-          // A new subscription replaces any other subscription-bought plan
-          // (e.g. one bought before a plan was retired).
+          // A new subscription replaces any other subscription-bought plan (e.g. one from a retired plan).
           await tx
             .update(userPlanAssignments)
             .set({ status: PlanAssignmentStatus.SUPERSEDED, endsAt: now })
@@ -187,14 +183,13 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
         return;
       }
       case "past_due":
-        // The provider is retrying the charge; access continues until the
-        // assignment's endsAt (period end + grace), on the plan it's for.
+        // The provider is retrying the charge: access continues until endsAt (period end + grace)
+        // on that plan.
         if (current) await tx.update(userPlanAssignments).set({ planId }).where(refMatch);
         return;
       case "cancelled": {
         if (!current) return;
-        // Paid-for time is kept: access runs to the end of the period, on the
-        // plan the subscription was on when it was cancelled.
+        // Paid-for time is kept: access runs to period end on the plan it was cancelled on.
         const endsAt = event.periodEnd && event.periodEnd > now ? event.periodEnd : now;
         await tx
           .update(userPlanAssignments)

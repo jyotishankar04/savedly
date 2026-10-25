@@ -9,8 +9,8 @@ import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
 import { getSection } from "../../../platform/instance-settings/instance-settings.service";
 
-// A self-hosted backup as one download: the database, local uploaded files and optionally the
-// secrets file. Built in a temp folder and streamed.
+// A self-hosted backup as one download: database, local uploads and optionally the secrets file;
+// built in a temp folder and streamed.
 
 // One at a time: a dump is heavy, and two would fight over the same disk.
 let running = false;

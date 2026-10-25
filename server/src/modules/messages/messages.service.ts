@@ -7,9 +7,8 @@ import { ContactMessageStatus, ReportStatus } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import type { ListContactQuery, ListReportsQuery } from "./messages.schema";
 
-// Admin > Messages: what people send from the website, in one place.
-// Contact-page messages (contactMessages) and bug reports and ideas from
-// /report (reports), each with a status the team moves along.
+// Admin > Messages: contact-page messages (contactMessages) and bug reports and ideas from /report
+// (reports), each with a status the team moves along.
 
 const PAGE_SIZE = 30;
 const like = (q: string) => `%${q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
@@ -126,11 +125,8 @@ export async function messageCounts() {
   };
 }
 
-// ---- Replies ----------------------------------------------------------------------
-
 export type ReplyKind = "contact" | "report";
 
-/** The replies sent so far, oldest first, with who sent each. */
 export async function listReplies(kind: ReplyKind, targetId: string) {
   return db
     .select({ id: messageReplies.id, body: messageReplies.body, toEmail: messageReplies.toEmail, createdAt: messageReplies.createdAt, adminName: users.name, adminEmail: users.email })
@@ -144,9 +140,8 @@ const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;
 const paragraphs = (text: string) => escape(text).replace(/\r?\n/g, "<br>");
 
 /**
- * Emails a reply to the person who wrote in, quoting their message, from the server address with
- * Reply-To set to the contact address. Saved for the reading pane; a contact message becomes
- * Replied, an open report Reviewing.
+ * Emails a reply to the sender, quoting their message, with Reply-To set to the contact address.
+ * Saved for the reading pane; a contact message becomes Replied, an open report Reviewing.
  */
 export async function sendReply(kind: ReplyKind, targetId: string, body: string, adminUserId: string) {
   const target =

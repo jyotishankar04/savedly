@@ -5,7 +5,7 @@ import type { SearchLegResult } from "./types";
 
 /**
  * Always Postgres (tsvector/GIN has no Upstash equivalent). `filterConditions` must already carry
- * the list path's scoping; this adds only the full-text predicate.
+ * the list path's scoping; this adds the full-text predicate.
  */
 export async function lexicalSearch(
   queryText: string,

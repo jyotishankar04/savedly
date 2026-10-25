@@ -1,5 +1,3 @@
-// The public API of the email module: what other modules may import from it.
-// Nothing here is a router (that's index.ts): importing it never loads this module's HTTP layer.
-// Add a line when another module needs something; keep it small.
+// Public API of the email module: what other modules may import (never routers; see index.ts).
 
 export { sendEmail } from "./email.service";

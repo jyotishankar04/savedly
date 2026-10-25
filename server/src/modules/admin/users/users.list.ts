@@ -39,8 +39,8 @@ async function attachRoles<T extends { id: string }>(items: T[]): Promise<(T & {
 }
 
 /**
- * The effective plan is the active, unexpired assignment, else the default plan: the same rule as
- * resolveEffectivePlan, duplicated because this runs batched across many users.
+ * Effective plan: active unexpired assignment, else the default. Same rule as resolveEffectivePlan,
+ * duplicated because this runs batched over many users.
  */
 async function activeAssignmentCondition() {
   const now = new Date();
@@ -58,8 +58,7 @@ async function attachPlans<T extends { id: string }>(items: T[]): Promise<(T & {
     .from(userPlanAssignments)
     .innerJoin(plans, eq(plans.id, userPlanAssignments.planId))
     .where(and(sql`${userPlanAssignments.userId} IN ${ids}`, await activeAssignmentCondition()))
-    // Ascending, so the Map below keeps each user's best plan — the same
-    // rule as plans.service.ts resolveEffectivePlan.
+    // Ascending, so the Map keeps each user's best plan (same rule as resolveEffectivePlan).
     .orderBy(plans.sortOrder, userPlanAssignments.startsAt);
 
   const planByUser = new Map(assignmentRows.map((r) => [r.userId, { key: r.key, name: r.name }]));
@@ -107,8 +106,8 @@ export async function listUsers(
     const explicitIds = explicitRows.map((r) => r.userId).filter((id): id is string => id != null);
 
     if (targetPlan.isDefault) {
-      // Anyone without ANY active assignment is implicitly on the default
-      // plan — not just anyone without one to *this* plan.
+      // Anyone with no active assignment at all is on the default plan, not only those without one
+      // for this plan.
       const anyActiveRows = await db.select({ userId: userPlanAssignments.userId }).from(userPlanAssignments).where(await activeAssignmentCondition());
       const excludeIds = anyActiveRows.map((r) => r.userId).filter((id): id is string => id != null);
       conditions.push(

@@ -85,8 +85,7 @@ process.on("SIGINT", () => {
   });
 });
 
-// A rejection nobody handled is a bug: log it (which also reports it) and
-// keep serving, as Node would otherwise only print it.
+// An unhandled rejection is a bug: log it (which also reports it) and keep serving.
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason instanceof Error ? reason : new Error(String(reason)) }, "Unhandled promise rejection");
 });

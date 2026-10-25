@@ -6,8 +6,8 @@ export const createReportSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(5000),
   email: z.string().email().max(255).optional(),
-  // Where the submitter was: a page path or full URL. Only length-capped, since it's diagnostic
-  // text, not a link anyone follows.
+  // Where the submitter was (page path or URL); only length-capped, as it's diagnostic text, not a
+  // followed link.
   pageUrl: z.string().max(2000).optional(),
 });
 

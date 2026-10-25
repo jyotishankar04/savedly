@@ -44,20 +44,18 @@ import { maintenanceMode } from "../modules/feature-flags/maintenance-mode.middl
 
 const router = Router();
 
-// Blocks non-admin traffic app-wide when maintenance mode is on. Runs before
-// every route mount so it can gate all of them; bypasses /health, /admin,
-// and /auth internally.
+// Blocks non-admin traffic app-wide in maintenance mode; runs before every route mount and bypasses
+// /health, /admin and /auth itself.
 router.use(maintenanceMode);
 
-// Serves a signed-in user's repeat reads from Redis and drops them on that
-// user's next write. After maintenanceMode, so a cached read can't slip past it.
+// Serves a signed-in user's repeat reads from Redis, dropped on their next write. After
+// maintenanceMode so a cached read can't slip past it.
 router.use(responseCache);
 
 router.use("/health", healthRoutes);
 router.use("/config", configRoutes);
 router.use("/help", helpAssistantRoutes);
-// Before /auth: GitHub only redirects to paths under the sign-in callback, so
-// the stars integration's callback lives there.
+// Before /auth: GitHub only redirects under the sign-in callback, so the stars callback lives there.
 router.use(GITHUB_STARS_CALLBACK_PATH, githubStarsCallbackRouter);
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);

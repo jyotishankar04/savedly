@@ -17,8 +17,8 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-// A post with this little text is mostly its picture: the picture is described, so search and Ask
-// find it by what's in it.
+// A post with this little text is mostly its picture, so the picture is described and search finds
+// it by what's in it.
 const SHORT_POST_CHARS = 280;
 
 async function fromSocialPost(
@@ -32,8 +32,7 @@ async function fromSocialPost(
   // A cover the person picked in the extension stays theirs.
   const imageUrl = state.browserCapture?.imageUrl ?? postImage;
 
-  // Always English: a transcript with no English track is translated (and the post's text and
-  // search use that).
+  // Always English: a transcript without an English track is translated.
   if (post.transcript) post = { ...post, transcript: await transcriptInEnglish(post.transcript, { userId: state.userId, requestType: "ingestion:transcript_translate", memoryId: state.memoryId }) };
 
   let rawContent = postAsText(post);
@@ -90,9 +89,7 @@ async function fromPdf(state: IngestionStateType, pageUrl: string, fetchResult: 
     resourceType,
     fetchStatus: fetchResult.status,
     canonicalUrl: fetchResult.finalUrl ?? pageUrl,
-    // A PDF has no natural thumbnail image, so this stays "partial" —
-    // same as any other link with no OG image today — rather than
-    // claiming an "available" preview that doesn't exist.
+    // No natural thumbnail, so stay "partial" rather than claim an "available" preview.
     previewImageUrl: null,
     faviconUrl: defaultFaviconUrl(pageUrl),
     previewStatus: "partial",
@@ -119,9 +116,8 @@ async function fromImage(state: IngestionStateType, pageUrl: string, fetchResult
     resourceType,
     fetchStatus: fetchResult.status,
     canonicalUrl: imageUrl,
-    // The URL literally *is* the image — a perfect thumbnail, and this is
-    // what upgrades previewStatus to "available" (upsertVectors then
-    // promotes the memory to "ready" instead of "partial").
+    // The URL is the image: a perfect thumbnail, which makes previewStatus "available" (the memory
+    // then becomes "ready").
     previewImageUrl: imageUrl,
     faviconUrl: defaultFaviconUrl(pageUrl),
     previewStatus: "available",
@@ -141,15 +137,14 @@ function fromPage(
   readerWasTried: boolean,
 ): IngestionUpdate {
   // `html` is non-empty for "success" and "javascript_required": a JS-shell page still ships a real
-  // <head> (title, og:*, favicon), so don't gate this on success. With no HTML at all, the origin's
-  // /favicon.ico is still a fair guess.
+  // <head>, so don't gate on success. With no HTML, the origin's /favicon.ico is a fair guess.
   const serverMetadata = fetchResult.html
     ? extractServerMetadata(fetchResult.html, fetchResult.finalUrl ?? pageUrl)
     : { title: null, description: null, imageUrl: null, canonicalUrl: null, faviconUrl: defaultFaviconUrl(pageUrl) };
 
   const preview = buildPreview(serverMetadata, state.browserCapture, { platform, resourceType, domain, hasAuth });
-  // A post or video whose reader came back empty (removed, private): its page is the platform's app
-  // shell, whose text is menus and footers. Only its preview tags are worth keeping.
+  // A post or video whose reader came back empty (removed, private) has only the platform's app
+  // shell as text: keep just its preview tags.
   const rawContent = fetchResult.html && !readerWasTried ? stripHtml(fetchResult.html).slice(0, MAX_CONTENT_LENGTH) : "";
 
   logNode(state.memoryId, "parseWebContent", {
@@ -181,8 +176,8 @@ function fromPage(
 
 /**
  * The core of URL capture and preview (docs/URL_CAPTURE_AND_PREVIEW.md): safe fetch, platform
- * detection, metadata, merge with what the extension sent, and a preview that's never blank. A
- * failed fetch never fails the memory.
+ * detection, metadata, merge with the extension's, and a preview that's never blank. A failed fetch
+ * never fails the memory.
  */
 export async function parseWebContent(state: IngestionStateType): Promise<IngestionUpdate> {
   if (!state.url) {
@@ -195,16 +190,15 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
   const detected = detectPlatform(pageUrl);
   const { platform, resourceType, domain } = detected;
 
-  // A social post or video: read from its platform, not as a web page. When
-  // that fails it falls through to the page fetch below, as before.
+  // A social post or video is read from its platform; if that fails, fall through to the page fetch.
   const read = socialExtractorFor(pageUrl);
   const post = read ? await read(pageUrl).catch(() => null) : null;
   if (post) return fromSocialPost(state, post, { platform, resourceType, domain });
 
   const fetchResult = await fetchUrl(pageUrl);
 
-  // A pasted URL is always "web" client-side, so a public PDF or image link is only caught here.
-  // Both branches fire on a genuine 200; anything else falls through to the HTML logic below.
+  // A pasted URL is always "web" client-side, so a public PDF or image link is only caught here, on
+  // a genuine 200.
   if (fetchResult.status === "success" && fetchResult.contentType?.includes("application/pdf") && fetchResult.binaryData) {
     return fromPdf(state, pageUrl, fetchResult, fetchResult.binaryData, { platform, resourceType, domain });
   }

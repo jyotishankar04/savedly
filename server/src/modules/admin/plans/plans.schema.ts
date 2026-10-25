@@ -22,9 +22,8 @@ export const createPlanSchema = z.object({
   features: z.record(z.string(), z.boolean()).default({}),
 });
 
-// `key` is excluded: it's the stable id, set once.
-// Each field is redeclared without `.default()`: Zod's .default() fires for omitted fields even
-// under .partial(), which would reset them on every PATCH.
+// `key` is excluded (stable id, set once). Fields have no `.default()`: Zod fires defaults for
+// omitted fields even under .partial(), resetting them on every PATCH.
 export const updatePlanSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   description: z.string().max(2000).optional(),

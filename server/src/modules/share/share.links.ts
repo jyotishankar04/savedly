@@ -9,7 +9,6 @@ import type { ShareRow } from "./share.access";
 import type { CreateShareInput, ListSharesQuery, UpdateShareInput } from "./share.schema";
 import { assertFeature, assertWithinLimit } from "../plans/api";
 
-/** 96 bits — same generator the old collections.publicSlug used. */
 function generateShareSlug(): string {
   return crypto.randomBytes(12).toString("base64url");
 }
@@ -50,8 +49,8 @@ function toResponse(share: ShareRow, grantCount = 0, pendingRequestCount = 0): S
 }
 
 /**
- * Confirms the caller owns the resource. Scoped by userId in the WHERE (not loaded then checked),
- * so someone else's resource looks like one that doesn't exist.
+ * Confirms the caller owns the resource; scoped by userId in the WHERE, so someone else's looks
+ * nonexistent.
  */
 async function assertOwnsResource(
   userId: string,
@@ -173,9 +172,8 @@ export async function updateShare(userId: string, shareId: string, patch: Update
   if (patch.expiresAt !== undefined) updates.expiresAt = patch.expiresAt;
 
   if (patch.password !== undefined) {
-    // Bumping passwordUpdatedAt is what invalidates every unlock cookie
-    // already handed out — including on clear, so removing a password
-    // doesn't leave stale proofs valid if it's later set again.
+    // Bumping passwordUpdatedAt invalidates every issued unlock cookie, including on clear, so
+    // removing a password leaves no stale proof valid if one is set again.
     updates.passwordHash = patch.password === null ? null : await hashSharePassword(patch.password);
     updates.passwordUpdatedAt = new Date();
   }
@@ -187,9 +185,8 @@ export async function updateShare(userId: string, shareId: string, patch: Update
     throw new AppError("Set a password before switching this link to password-protected", 400, "BAD_REQUEST");
   }
 
-  // Switching a link to a plan feature needs the plan; a link that already
-  // works that way keeps working after a downgrade, and can always be made
-  // public (within the public-link allowance) or turned off.
+  // Switching a link to a plan feature needs the plan; one that already works that way keeps
+  // working after a downgrade, and can always be made public (within the allowance) or turned off.
   const addsPassword =
     (nextAccess === ShareLinkAccess.PASSWORD && existing.linkAccess !== ShareLinkAccess.PASSWORD) ||
     (typeof patch.password === "string" && !existing.passwordHash);
@@ -198,8 +195,8 @@ export async function updateShare(userId: string, shareId: string, patch: Update
     await assertFeature(userId, "privateShareRequests");
   }
 
-  // Only switching a link *to* public counts against the plan's public-link
-  // allowance; a link that's already public was counted when it went public.
+  // Only switching *to* public counts against the allowance; an already public link was counted
+  // when it went public.
   if (nextAccess === ShareLinkAccess.PUBLIC && existing.linkAccess !== ShareLinkAccess.PUBLIC) {
     await assertWithinLimit(userId, PlanLimitType.PUBLIC_SHARE_COUNT, 1);
   }
@@ -300,8 +297,8 @@ export async function listSharedWithMe(userId: string): Promise<SharedWithMeItem
 }
 
 /**
- * Only for the unlock endpoint, which runs before the caller has proven anything. Password
- * verification is the gate, so never use this as a general "load by slug".
+ * Only for the unlock endpoint, which runs before the caller proved anything; password verification
+ * is the gate, so never use this as a general "load by slug".
  */
 export async function getShareBySlugForUnlock(slug: string): Promise<ShareRow | null> {
   const [row] = await db

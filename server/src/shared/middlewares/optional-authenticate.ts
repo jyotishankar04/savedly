@@ -3,8 +3,8 @@ import { extractToken } from "./authenticate";
 import { verifyAccessToken } from "../utils/jwt";
 
 /**
- * Populates `req.user` when the caller is signed in and does nothing otherwise, for routes serving both audiences (a shared link is readable by anonymous visitors, its owner and its grantees). `authenticate` can't: it 401s first.
- * An invalid or expired token counts as anonymous, so a stale cookie doesn't break a public page. Handlers that must tell "expired" from "never signed in" answer 401 themselves so the client's refresh interceptor can retry.
+ * Sets `req.user` when signed in and does nothing otherwise, for routes serving both audiences (a shared link is readable by anonymous visitors, its owner and grantees); `authenticate` can't, it 401s first.
+ * An invalid or expired token counts as anonymous so a stale cookie doesn't break a public page. Handlers that must tell "expired" from "never signed in" answer 401 themselves so the client's refresh interceptor can retry.
  */
 export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction) {
   const token = extractToken(req);

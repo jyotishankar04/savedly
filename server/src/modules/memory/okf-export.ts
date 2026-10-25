@@ -3,8 +3,8 @@ import { zipSync, strToU8 } from "fflate";
 import type { MemoryDetail } from "./memory.types";
 
 // "Export as OKF": the library as an Open Knowledge Format v0.2 bundle
-// (github.com/GoogleCloudPlatform/open-knowledge-format/SPEC.md): Markdown files per memory and
-// collection with YAML front matter (`type` required), plus index.md listings and a log.md.
+// (github.com/GoogleCloudPlatform/open-knowledge-format/SPEC.md): Markdown per memory and
+// collection with YAML front matter (`type` required), index.md listings and a log.md.
 
 export interface OkfCollection {
   id: string;
@@ -69,7 +69,6 @@ export function buildOkfBundle(items: MemoryDetail[], collections: OkfCollection
   }
   const generated = { by: "process:savedly-export", at: iso(now) };
 
-  // --- memories -------------------------------------------------------------
   for (const m of items) {
     const resource = m.url ?? m.attachments[0]?.fileUrl ?? undefined;
     const memberOf = m.collections.filter((c) => collectionSlug.has(c.id));
@@ -104,7 +103,6 @@ export function buildOkfBundle(items: MemoryDetail[], collections: OkfCollection
       }) + `\n${body.join("\n").trimEnd()}\n`;
   }
 
-  // --- collections ----------------------------------------------------------
   for (const c of collections) {
     const members = membersByCollection.get(c.id) ?? [];
     const body = [`# ${c.name}`, ""];
@@ -127,7 +125,6 @@ export function buildOkfBundle(items: MemoryDetail[], collections: OkfCollection
       }) + `\n${body.join("\n").trimEnd()}\n`;
   }
 
-  // --- indexes and log (reserved files: no front matter except the root index) --
   files["memories/index.md"] = [
     "# Memories",
     "",

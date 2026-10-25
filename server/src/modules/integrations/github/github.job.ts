@@ -5,9 +5,8 @@ import { isGithubStarsEnabled } from "../../feature-flags/api";
 import { isGithubStarsConfigured } from "./github-client";
 import { syncAllGithubConnections } from "./github.service";
 
-// Picks up newly starred repositories without anyone pressing a button.
-// Twice a day: a new star shows up the same day, and each account costs one
-// small request to GitHub when nothing changed.
+// Picks up new stars without a button press, twice a day: a new star appears the same day, and an
+// unchanged account costs one small request.
 
 const QUEUE_NAME = "github-stars";
 const JOB_NAME = "sync-all";
@@ -21,7 +20,6 @@ async function run(): Promise<void> {
   if (result.accounts > 0) logger.info(result, "[github-stars] scheduled sync finished");
 }
 
-/** Mirrors startTrashPurgeWorker's shape: call once from server.ts. Safe to call on every restart. */
 export async function startGithubStarsWorker(): Promise<Worker> {
   await queue.upsertJobScheduler(JOB_NAME, { every: SYNC_INTERVAL_MS }, { name: JOB_NAME });
   const worker = new Worker(QUEUE_NAME, () => run(), { connection: redis });

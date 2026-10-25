@@ -9,7 +9,6 @@ export class FeatureFlagsController {
     res.status(200).json(ApiResponse.success(flags));
   }
 
-  /** Public — lets every client (marketing, platform, auth) know whether to gate itself, with no auth round trip. */
   static async maintenanceStatus(_req: Request, res: Response) {
     const [enabled, message] = await Promise.all([isMaintenanceMode(), getMaintenanceMessage()]);
     res.status(200).json(ApiResponse.success({ enabled, message }));

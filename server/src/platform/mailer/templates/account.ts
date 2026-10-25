@@ -2,8 +2,6 @@ import { env } from "../../../config/env";
 import { UserStatus } from "../../../db/enums";
 import { COLOR, button, escapeHtml, eyebrow, heading, layout, panel, paragraph, steps, type EmailContent, type Tone } from "./layout";
 
-// --- Templates ---------------------------------------------------------------
-
 /** Welcome: a greeting and the three things worth doing first. */
 export function welcomeEmailTemplate({ name }: { name: string | null }): EmailContent {
   const product = env.SMTP_FROM_NAME;
@@ -75,8 +73,8 @@ const STATUS_COPY: Record<UserStatus, { subject: string; label: string; tone: To
 /** Account status: a coloured notice, and where to turn if it's a mistake. */
 export function userStatusChangedEmailTemplate({ name, status }: { name: string | null; status: UserStatus }): EmailContent {
   const copy = STATUS_COPY[status];
-  // These go out from a no-reply address, so "reply to this email" would
-  // lead nowhere: the contact page is where a person can actually reach us.
+  // These go from a no-reply address, so "reply" leads nowhere; the contact page is where a person
+  // can reach us.
   const contact = copy.contact
     ? panel(
         `<p style="margin:0;font-size:14px;line-height:1.55;color:${COLOR.body};">Think this is a mistake, or have a question? <a href="${env.FRONTEND_URL}/contact" style="color:${COLOR.primary};font-weight:600;text-decoration:underline;">Contact us</a> and we'll look into it.</p>`,

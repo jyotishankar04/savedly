@@ -1,8 +1,8 @@
 import { fetchJson } from "./http";
 import type { SocialPost } from "./types";
 
-// A TikTok video, from TikTok's oEmbed: its caption, author and thumbnail.
-// What's said in it is only in the audio, which isn't read.
+// A TikTok video via oEmbed: caption, author, thumbnail. What's said in it is only in the audio,
+// which isn't read.
 
 export async function extractTikTok(url: string): Promise<SocialPost | null> {
   if (!/\/video\/\d+/.test(url)) return null;

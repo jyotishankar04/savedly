@@ -10,9 +10,8 @@ import { createUsageCallback } from "../ai-usage/api";
 
 export type RewriteMode = "fix" | "improve" | "shorten";
 
-// The note editor's "Write with AI": the whole note (a note, or the note on a
-// link or a file), rewritten one of three ways, returned for the person to look at. Nothing is saved here; the editor
-// replaces its text only when they choose to.
+// The note editor's "Write with AI": rewrites the whole note one of three ways and returns it;
+// nothing is saved until the person accepts it.
 
 const TASKS: Record<RewriteMode, string> = {
   fix: "Correct spelling, grammar and punctuation only. Change nothing else: not the wording, the tone or the order. Where a misspelling could be more than one word, choose the one that fits what's around it (in a packing list, \"chargr\" is a charger).",
@@ -114,8 +113,8 @@ export async function rewriteNote(
   // Any memory's note: a note's own text, or the note written beside a link or a file.
   if (!input.markdown.trim()) throw new AppError("The note is empty.", 400, "EMPTY_NOTE");
 
-  // Part of the note's own AI processing for the month: the first AI use on a
-  // note this month counts as one AI save (canUseIncludedAi), later ones don't.
+  // Part of the note's AI processing for the month: the first AI use on a note this month counts as
+  // one AI save (canUseIncludedAi), later ones don't.
   const model = await getChatModel(userId, "fast", { kind: "save", memoryId });
   if (!model) {
     throw new AppError("AI isn't available right now: this month's AI saves are used up, or no AI key is set.", 403, "AI_UNAVAILABLE");
@@ -124,7 +123,8 @@ export async function rewriteNote(
   const text = await prompt.pipe(model).pipe(new StringOutputParser()).invoke(
     {
       task: TASKS[input.mode],
-      // A selection may be a few words in the middle of a sentence: it must come back as a few words, not a whole note.
+      // A selection may be a few words in the middle of a sentence: it must come back as a few
+      // words, not a whole note.
       scope: !input.part
         ? "Below is the whole note."
         : input.context

@@ -111,12 +111,12 @@ export async function updateUserStatus(
 }
 
 /**
- * Immediate, irreversible wipe for clearing test accounts. Refused in production, not just hidden
- * in the UI. Reuses hardDeleteAccount.
+ * Immediate, irreversible wipe for clearing test accounts; refused in production, not just hidden
+ * in the UI.
  */
 /**
- * An admin adds an account directly: name, email, temporary password and role. Works with public
- * signups off; needs password sign-in (always on when self-hosted).
+ * An admin adds an account directly (name, email, temporary password, role). Works with signups
+ * off; needs password sign-in (always on when self-hosted).
  */
 export async function createUserByAdmin(input: CreateUserInput, adminUserId: string, ipAddress?: string) {
   if (!(await isPasswordAuthEnabled())) {
@@ -175,8 +175,8 @@ export async function setUserPassword(userId: string, input: SetUserPasswordInpu
 }
 
 export async function deleteUserForDev(userId: string, adminUserId: string, ipAddress?: string) {
-  // A self-hosted install runs with NODE_ENV=production, and its admin is the
-  // operator, so deleting accounts is theirs to do.
+  // A self-hosted install runs with NODE_ENV=production and its admin is the operator, so it may
+  // delete accounts.
   if (env.NODE_ENV === "production" && !env.SELF_HOSTED) {
     throw new AppError("Deleting users from the admin panel is disabled in production", 403, "FORBIDDEN");
   }

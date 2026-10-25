@@ -5,7 +5,7 @@ import { verifyAccessToken } from "../utils/jwt";
 
 /**
  * Bearer header first, cookie second. Exported so optional-authenticate.ts shares the precedence:
- * the extension sends a Bearer header and the web client a cookie, and drifting apart would
+ * the extension sends a Bearer header, the web client a cookie, and drifting apart would
  * authenticate different callers.
  */
 export function extractToken(req: Request): string | null {

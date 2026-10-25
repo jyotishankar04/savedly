@@ -2,9 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 
-// Secrets a self-hosted install generates on first boot into SECRETS_DIR/secrets.json and reloads
-// on later boots, so sessions, vault unlocks and encrypted keys survive restarts. An explicit env
-// var wins.
+// Generated on first self-hosted boot into SECRETS_DIR/secrets.json and reloaded after, so sessions
+// and encrypted keys survive restarts. An env var wins.
 const GENERATED_SECRETS = [
   "JWT_ACCESS_SECRET",
   "JWT_REFRESH_SECRET",
@@ -20,10 +19,7 @@ function generate(key: (typeof GENERATED_SECRETS)[number]): string {
   return randomBytes(48).toString("base64url");
 }
 
-/**
- * Runs before env.ts parses, and only when SELF_HOSTED=true. Hosted production must set every
- * secret explicitly.
- */
+/** Runs before env.ts parses, only when SELF_HOSTED=true; hosted production must set secrets explicitly. */
 export function loadSelfHostSecrets(): void {
   if (process.env.SELF_HOSTED !== "true") return;
 

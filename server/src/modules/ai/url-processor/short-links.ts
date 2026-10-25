@@ -1,7 +1,7 @@
 import { assertSafeUrl } from "./server-fetcher";
 
-// Short links (lnkd.in, t.co, redd.it, bit.ly, ...) are followed to the page they point at, one
-// redirect chain with each hop checked by assertSafeUrl, only for these services.
+// Short links (lnkd.in, t.co, redd.it, bit.ly, ...) are followed to their page, one redirect chain
+// with each hop checked by assertSafeUrl, only for these services.
 
 const SHORTENERS = new Set([
   "lnkd.in", "t.co", "bit.ly", "tinyurl.com", "ow.ly", "buff.ly", "dlvr.it", "trib.al", "shorturl.at", "cutt.ly", "rebrand.ly", "is.gd", "rb.gy",
@@ -32,8 +32,8 @@ export async function resolveShortLink(url: string): Promise<string> {
         continue;
       }
       if (!response.ok) return url;
-      // Some answer with a page that names the destination instead of redirecting:
-      // lnkd.in's "this link will take you to a page that's not on LinkedIn", or a meta refresh.
+      // Some answer with a page naming the destination instead of redirecting (lnkd.in's
+      // interstitial, a meta refresh).
       const html = (await response.text()).slice(0, 200_000);
       const named =
         /<a[^>]+data-tracking-control-name="external_url_click"[^>]+href="([^"]+)"/.exec(html)?.[1] ??

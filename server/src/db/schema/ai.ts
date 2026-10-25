@@ -3,8 +3,7 @@ import { users } from "./identity";
 import { memories } from "./library";
 import { aiCredentialProviderEnum, aiRoleEnum } from "./pg-enums";
 
-// Ask Savedly chat threads: listing and naming only; messages live in LangGraph's checkpointer
-// tables, keyed by this id.
+// Ask Savedly threads: listing and naming only; messages live in LangGraph's checkpointer tables.
 export const threads = pgTable(
   "threads",
   {
@@ -22,8 +21,7 @@ export const threads = pgTable(
   (table) => [index("idx_threads_user_id").on(table.userId)]
 );
 
-// Per-call token and cost record for the admin AI-usage dashboard. FKs are "set null" so cost
-// history survives deletions.
+// Per-call token and cost record; FKs are "set null" so cost history survives deletions.
 export const aiUsageLogs = pgTable(
   "ai_usage_logs",
   {
@@ -69,8 +67,8 @@ export const aiCredentials = pgTable(
   (table) => [index("idx_ai_credentials_user_id").on(table.userId)]
 );
 
-// One row per user per role: the saved credential and model for that role. `verifiedAt` is set
-// after a successful test call. No row means unconfigured, and that AI step is skipped.
+// One row per user per role. `verifiedAt` is set after a successful test call; no row means
+// unconfigured (step skipped).
 export const userAiRoleAssignments = pgTable(
   "user_ai_role_assignments",
   {

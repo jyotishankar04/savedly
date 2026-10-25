@@ -11,17 +11,12 @@ import { normalizeUrl } from "../../memory/api";
 import { remainingWithinLimit } from "../../plans/api";
 import { GithubAuthError, STARS_PAGE_SIZE, getGithubViewer, listStarredRepos, revokeGithubToken, type StarredRepo } from "./github-client";
 
-// GitHub stars: a connected account's starred repos are added as ordinary saved links, so each is
-// read, summarized and searchable. The first sync takes the most recent stars; later ones only new
-// stars.
+// GitHub stars become ordinary saved links, read, summarized and searchable. The first sync takes
+// the most recent; later ones only new stars.
 
-/**
- * The first sync stops here. Someone with thousands of stars gets their most recent ones, not a
- * flooded library.
- */
+/** The first sync stops here: thousands of stars give the most recent ones, not a flooded library. */
 export const FIRST_SYNC_MAX = 500;
 
-/** How long someone must wait before pressing "Sync now" again. */
 const MANUAL_SYNC_COOLDOWN_MS = 60 * 1000;
 
 const REVOKED_MESSAGE = "GitHub no longer accepts this connection. Connect again to keep adding your stars.";
@@ -55,7 +50,6 @@ export async function getGithubConnection(userId: string): Promise<GithubConnect
   };
 }
 
-/** Saves (or replaces) the user's GitHub connection after they approve it on GitHub. */
 export async function connectGithub(userId: string, token: { accessToken: string; scope: string }): Promise<void> {
   const viewer = await getGithubViewer(token.accessToken);
   const values = {
@@ -67,8 +61,7 @@ export async function connectGithub(userId: string, token: { accessToken: string
     lastError: null,
   };
   const existing = await findConnection(userId);
-  // Connecting a different GitHub account starts over; reconnecting the same one carries on where
-  // it left off.
+  // A different GitHub account starts over; the same one carries on.
   const sameAccount = existing?.githubUserId === viewer.id;
   await db
     .insert(githubConnections)
@@ -87,10 +80,7 @@ export async function disconnectGithub(userId: string): Promise<void> {
   void revokeGithubToken(decryptToken(row.encryptedAccessToken));
 }
 
-/**
- * The stars made since `since`, oldest first. On a first sync (`since` null), the most recent
- * FIRST_SYNC_MAX.
- */
+/** Stars made since `since`, oldest first; on a first sync (null), the most recent FIRST_SYNC_MAX. */
 async function fetchNewStars(token: string, since: Date | null): Promise<StarredRepo[]> {
   const found: StarredRepo[] = [];
   const maxPages = since ? 50 : FIRST_SYNC_MAX / STARS_PAGE_SIZE;
@@ -122,7 +112,7 @@ export interface GithubSyncResult {
 }
 
 /**
- * Adds stars made since the last sync. Never throws for an expected problem (revoked access, full
+ * Adds stars since the last sync. Never throws for an expected problem (revoked access, full
  * library): the reason is recorded on the connection and shown on the Integrations page.
  */
 export async function syncGithubStars(userId: string): Promise<GithubSyncResult> {
@@ -148,8 +138,8 @@ export async function syncGithubStars(userId: string): Promise<GithubSyncResult>
     .where(and(eq(memories.userId, userId), eq(memories.inTrash, false)));
   const saved = new Set(existing.map((row) => row.normalizedUrl).filter((v): v is string => Boolean(v)));
 
-  // Oldest first, so that if the library fills up, the stars left over are
-  // the newest ones and the cursor can stop just before them.
+  // Oldest first, so if the library fills, the leftover stars are the newest and the cursor stops
+  // just before them.
   let room = await remainingWithinLimit(userId, PlanLimitType.MEMORY_COUNT);
   const toAdd: StarredRepo[] = [];
   let alreadySaved = 0;

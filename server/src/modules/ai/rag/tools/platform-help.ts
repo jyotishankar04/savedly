@@ -3,7 +3,7 @@ import { z } from "zod";
 import { env } from "../../../../config/env";
 import { logger } from "../../../../shared/utils/logger";
 
-// Answers "how do I…" questions from the Help Center's guides, read live from /api/help
+// Answers "how do I…" from the Help Center guides, read live from /api/help
 // (client/app/api/help/route.ts) so the site stays the single source of truth.
 
 interface HelpAction {
@@ -101,8 +101,7 @@ export async function loadSitePages(): Promise<SitePage[]> {
 
 /**
  * The guides and tools that best answer a question: the best guide, a second only if nearly as
- * relevant, and any tool named. Shared with the public help box (modules/help-assistant), which
- * passes a higher `minScore`.
+ * relevant, and any tool named. Shared with the public help box, which passes a higher `minScore`.
  */
 export async function findHelp(question: string, minScore = 1): Promise<{ topics: HelpGuide[]; relatedTools: HelpTool[] }> {
   const { guides, tools } = await loadHelp();
@@ -120,8 +119,8 @@ const inputSchema = z.object({
   question: z.string().min(1).describe("The user's question about how to use Savedly, in their own words."),
 });
 
-// The model gets the guide text and the button names, never links (given paths, it invented URLs).
-// The UI gets the links as the tool's artifact and renders buttons
+// The model gets guide text and button names, never links (given paths it invented URLs); the UI
+// gets the links as the tool's artifact and renders buttons
 // (client/components/ask/help-actions.tsx).
 export const platformHelpTool = tool(
   async ({ question }: z.infer<typeof inputSchema>) => {

@@ -9,8 +9,7 @@ import { chunkHybridSearch } from "../chunk-search";
 export const ragToolContextSchema = z.object({ userId: z.string(), turnId: z.string().optional(), threadId: z.string().optional() });
 export type RAGToolContext = z.infer<typeof ragToolContextSchema>;
 
-// The documented result shape the client's memory-result cards rely on (the tool's structured
-// return is what the renderer matches).
+// The result shape the client's memory cards match on.
 export const searchMemoriesResultSchema = z.object({
   query: z.string(),
   memories: z.array(
@@ -40,8 +39,7 @@ export const searchMemoriesTool = tool(
 
     const results = await chunkHybridSearch(userId, query, limit);
 
-    // Validated (not just TS-cast) — a malformed internal result should
-    // never silently reach the model or a future client renderer.
+    // Validated (not just cast): a malformed result must never reach the model or client.
     return searchMemoriesResultSchema.parse({
       query,
       memories: results.map((r) => ({

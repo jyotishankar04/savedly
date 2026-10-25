@@ -11,8 +11,7 @@ if (sentryEnabled) {
     dsn: env.SENTRY_DSN,
     environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV,
     release: env.APP_VERSION || undefined,
-    // Nothing that carries what people save or who they are. beforeSend
-    // below removes the same things again, in case a default changes.
+    // Nothing that identifies people or holds what they save; beforeSend strips the same again.
     dataCollection: {
       userInfo: false,
       cookies: false,
@@ -25,15 +24,12 @@ if (sentryEnabled) {
     },
     // server.ts logs unhandled rejections itself, and the logger reports them.
     integrations: (defaults) => defaults.filter((integration) => integration.name !== "OnUnhandledRejection"),
-    // Errors only. No performance tracing: it needs the SDK loaded before
-    // every other module, and the request log already has timings.
+    // Errors only: tracing needs the SDK loaded first, and the request log has timings.
     tracesSampleRate: 0,
-    // No trail of earlier log lines and outgoing requests attached to each
-    // error: those lines and URLs can hold what a user saved or searched for.
+    // Breadcrumbs can hold what a user saved or searched for.
     maxBreadcrumbs: 0,
     beforeSend(event) {
-      // The request itself is dropped whole: its URL holds ids and search
-      // text. The route pattern (error-handler.ts) says where it happened.
+      // The URL holds ids and search text; the route pattern (error-handler.ts) says where it happened.
       delete event.request;
       const route = event.extra?.route;
       event.transaction = typeof route === "string" ? route : undefined;
@@ -55,8 +51,8 @@ function plainFields(fields: Record<string, unknown>): Record<string, string | n
   return out;
 }
 
-// The same message, with no error behind it, at most once in this long.
-// A provider outage logs one line per AI step; one report says it all.
+// The same message with no error behind it is reported at most once per window: an outage logs a
+// line per AI step.
 const MESSAGE_QUIET_MS = 5 * 60_000;
 const lastSent = new Map<string, number>();
 

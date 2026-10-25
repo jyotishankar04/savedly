@@ -2,13 +2,13 @@ import { fetchUrl } from "../server-fetcher";
 import { decodeEntities, parseCount } from "./http";
 import type { SocialPost } from "./types";
 
-// Instagram, Threads, LinkedIn, Facebook: read like a link preview (WhatsApp, Slack): one request
-// for the saved page and only its public preview tags. Their robots.txt is about crawling; this is
-// the one page the person chose (docs/URL_CAPTURE_AND_PREVIEW.md).
+// Instagram, Threads, LinkedIn, Facebook: read like a link preview (one request, public preview
+// tags only). Their robots.txt is about crawling; this is the one page the person chose
+// (docs/URL_CAPTURE_AND_PREVIEW.md).
 
 /**
- * A page's <meta> tags by property or name, decoded. Reads the quotes properly, so an apostrophe in
- * a caption doesn't cut it short.
+ * A page's <meta> tags, decoded; parses quotes properly so an apostrophe in a caption doesn't cut
+ * it short.
  */
 function metaTags(html: string): Map<string, string> {
   const tags = new Map<string, string>();
@@ -34,7 +34,6 @@ function linkedData(html: string): LinkedData[] {
       const data = JSON.parse(block!) as LinkedData | LinkedData[];
       for (const item of Array.isArray(data) ? data : [data]) out.push(...(Array.isArray(item["@graph"]) ? (item["@graph"] as LinkedData[]) : [item]));
     } catch {
-      // A broken block is skipped.
     }
   }
   return out;
@@ -79,9 +78,8 @@ const PARSERS: Record<string, (tags: Map<string, string>, html: string) => Field
     const m = /^(.*?)\s*\(@([\w.]+)\)/.exec(tags.get("og:title") ?? "");
     return { author: m ? { name: m[1] || undefined, handle: m[2], url: `https://www.threads.net/@${m[2]}` } : undefined, text: tags.get("og:description") };
   },
-  // The page's JSON-LD (a SocialMediaPosting, or a VideoObject for a video
-  // post) has the whole post: text, author, date, counts, the video's cover
-  // and transcript. The preview tags are a fallback: "the opening | N comments on LinkedIn".
+  // The page's JSON-LD (SocialMediaPosting, or VideoObject) has the whole post; the preview tags
+  // are the fallback.
   linkedin: (tags, html) => {
     const item = linkedData(html).find((d) => /SocialMediaPosting|VideoObject|Article|DiscussionForumPosting/.test(String(d["@type"])));
     const fallback = (tags.get("og:description") ?? "").replace(/\s*\|\s*\d[\d,.]*\s+comments? on LinkedIn\s*$/i, "").trim();

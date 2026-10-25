@@ -1,9 +1,8 @@
 import { decodeEntities, fetchJson } from "./http";
 import type { SocialPost } from "./types";
 
-// A post on X: from the endpoint X's own embedded posts read
-// (cdn.syndication.twimg.com), with text, author, media, a quoted post and
-// counts; or, failing that, from X's oEmbed (text and author only).
+// An X post from the endpoint X's embeds use (cdn.syndication.twimg.com): text, author, media,
+// quoted post, counts; else oEmbed (text and author).
 
 export function xPostId(url: string): string | null {
   return /\/status(?:es)?\/(\d+)/.exec(url)?.[1] ?? null;
@@ -51,7 +50,8 @@ export async function extractX(url: string): Promise<SocialPost | null> {
     const media = (tweet.mediaDetails ?? []).filter((m) => m.media_url_https).map((m) => {
       const { width, height } = m.original_info ?? {};
       if (m.type === "photo") return { type: "image" as const, url: m.media_url_https!, aspect: width && height ? width / height : undefined };
-      // The MP4 a browser plays itself: the best one up to ~2.5 Mbit/s, which looks sharp without a huge download.
+      // The MP4 a browser plays itself: the best one up to ~2.5 Mbit/s, which looks sharp without a
+      // huge download.
       const files = (m.video_info?.variants ?? []).filter((v) => v.content_type === "video/mp4").sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0));
       const file = files.find((v) => (v.bitrate ?? 0) <= 2_500_000) ?? files[files.length - 1];
       const [w, h] = m.video_info?.aspect_ratio ?? [];

@@ -7,8 +7,7 @@ import { logger } from "../../shared/utils/logger";
 import type { BillingProvider } from "./billing.provider";
 import { createDodoProvider } from "./dodo.provider";
 
-// Paid plans for the hosted service. Never active on a self-hosted install
-// (the routes aren't even mounted — see routes/index.ts).
+// Hosted only: the routes aren't mounted on a self-hosted install (routes/index.ts).
 
 export const SUBSCRIPTION_REF = "dodo_subscription";
 
@@ -39,8 +38,7 @@ export class BillingGateway {
       return await fn();
     } catch (err) {
       logger.error({ err }, `[billing] ${what} failed`);
-      // A 4xx is the provider refusing the request (e.g. changing a cancelled
-      // subscription), not an outage — say why instead of "try again".
+      // A 4xx is the provider refusing (e.g. changing a cancelled subscription), not an outage: say why.
       const status = (err as { status?: number }).status;
       if (status && status >= 400 && status < 500) {
         const reason = String((err as Error).message ?? "").replace(/^\d{3}\s*/, "").trim();

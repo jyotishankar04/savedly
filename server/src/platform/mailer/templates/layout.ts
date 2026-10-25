@@ -1,8 +1,8 @@
 import { env } from "../../../config/env";
 import { UNSUBSCRIBE_URL_PLACEHOLDER } from "../unsubscribe";
 
-// The email design system. Every email is built from these pieces for one minimal look: a white
-// column of text, the brand blue for the one action, hairlines instead of boxes.
+// The email design system: every email is built from these pieces for one minimal look (a white
+// column of text, the brand blue for the one action, hairlines instead of boxes).
 // Mail clients aren't browsers (Outlook uses Word's engine, many strip <style>), so everything is
 // tables and inline styles with plain hex colours, no web fonts or flexbox, and it reads fine with
 // images blocked.
@@ -37,9 +37,10 @@ const TONE: Record<Tone, { fg: string; bg: string }> = {
   neutral: { fg: COLOR.body, bg: COLOR.neutralSoft },
 };
 
-/** Escapes text for safe HTML embedding — every template that interpolates
- * user-supplied strings (names, titles, admin-composed body text) runs it
- * through this first. */
+/**
+ * Escapes text for HTML; every template runs user-supplied strings (names, titles, admin text)
+ * through it first.
+ */
 export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -48,8 +49,6 @@ export function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
-
-// --- Components --------------------------------------------------------------
 
 /** The small label above a headline: what kind of email this is. Plain coloured text, no box. */
 export function eyebrow(text: string, tone: Tone = "primary"): string {
@@ -64,8 +63,10 @@ export function paragraph(html: string, opts?: { muted?: boolean; top?: number }
   return `<p style="margin:${opts?.top ?? 14}px 0 0;font-size:15px;line-height:1.65;color:${opts?.muted ? COLOR.muted : COLOR.body};">${html}</p>`;
 }
 
-/** The one action an email asks for. A table cell, not a styled link, so the
- * whole pill is coloured and clickable in Outlook too. */
+/**
+ * The one action an email asks for: a table cell, not a styled link, so the whole pill is coloured
+ * and clickable in Outlook too.
+ */
 export function button(label: string, url: string): string {
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 0;">
     <tr>
@@ -76,8 +77,7 @@ export function button(label: string, url: string): string {
   </table>`;
 }
 
-/** Sets something apart (the shared item, the event, a notice) with a thin line
- * down its left side in the tone's colour, rather than a filled box. */
+/** Sets something apart with a thin left line in the tone's colour, not a filled box. */
 export function panel(html: string, tone: Tone = "neutral"): string {
   const line = tone === "neutral" ? COLOR.border : TONE[tone].fg;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0;">
@@ -152,10 +152,10 @@ export function dateTile(date: Date): string {
   </table>`;
 }
 
-// --- Layout ------------------------------------------------------------------
-
-/** Why this person got the email. Everyone with an account gets the first;
- * a share invitation can reach someone who has never heard of the product. */
+/**
+ * Why this person got the email: everyone with an account gets the first; a share invite can reach
+ * someone who's never heard of the product.
+ */
 type FooterReason =
   | { kind: "account" }
   | { kind: "shared"; by: string }
@@ -239,8 +239,7 @@ export function layout(bodyHtml: string, opts: { preheader: string; footer?: Foo
 </html>`;
 }
 
-/** Splits plain text on blank lines into paragraphs — the admin composer's
- * only authoring surface is a plain textarea, no rich-text editor. */
+/** Splits plain text on blank lines into paragraphs; the composer's only input is a plain textarea. */
 export function plainTextToHtmlParagraphs(text: string): string {
   return text
     .split(/\n\s*\n/)

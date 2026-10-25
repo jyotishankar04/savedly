@@ -38,8 +38,7 @@ const TOP_TAGS = 10;
 const TOP_COLLECTIONS = 6;
 const TOP_DOMAINS = 8;
 const ACTIVITY_DAYS = 365;
-// Without the insightsFullHistory plan feature, the activity chart covers
-// the last 30 days.
+// Without the insightsFullHistory feature, the activity chart covers the last 30 days.
 const SHORT_ACTIVITY_DAYS = 30;
 
 function daysAgo(days: number): Date {
@@ -49,8 +48,7 @@ function daysAgo(days: number): Date {
 }
 
 /** Every stat covers the user's live memories; trashed ones are excluded, as on every read path. */
-// Vaulted memories are excluded unconditionally — insights never reflects
-// vault contents, whether or not the vault happens to be unlocked.
+// Vaulted memories are always excluded: insights never reflect the vault, unlocked or not.
 const liveMemories = (userId: string) =>
   and(eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false));
 
@@ -116,10 +114,7 @@ async function getByType(userId: string): Promise<CountedLabel[]> {
   return rows;
 }
 
-/**
- * The AI's "other" bucket and an un-analysed null mean the same to a reader; folding them avoids
- * two "Other" slices.
- */
+/** The AI's "other" and an un-analysed null mean the same to a reader; folding avoids two "Other" slices. */
 async function getByCategory(userId: string): Promise<CountedLabel[]> {
   const label = sql<string>`coalesce(nullif(${memories.resourceCategory}, 'other'), 'uncategorized')`;
 

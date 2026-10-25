@@ -5,13 +5,8 @@ import { ShareAccessRequestStatus, ShareGrantSource, ShareGrantStatus, ShareLink
 import { AppError } from "../../shared/errors/app-error";
 import { notifyAccessDecision, notifyAccessRequested } from "./share.notify";
 
-// A denied request shouldn't be re-openable immediately — the partial
-// unique index only stops duplicate *pending* rows.
+// A denied request can't be re-opened at once: the partial unique index only stops duplicate *pending* rows.
 const DENIED_REQUEST_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
-
-// -----------------------------------------------------------------------------
-// Access requests
-// -----------------------------------------------------------------------------
 
 export interface AccessRequestResponse {
   id: string;
@@ -67,8 +62,7 @@ export async function listRequestsForOwner(userId: string, shareId?: string): Pr
 export async function requestAccess(userId: string, slug: string, message?: string): Promise<{ status: string }> {
   const [share] = await db.select().from(shares).where(eq(shares.slug, slug)).limit(1);
 
-  // Same 404 as an unknown slug — asking for access to a link that isn't in
-  // request mode must not confirm the link exists.
+  // Same 404 as an unknown slug: asking a link not in request mode must not confirm it exists.
   if (!share || share.linkAccess !== ShareLinkAccess.REQUEST) {
     throw new AppError("Not found", 404, "NOT_FOUND");
   }
@@ -94,8 +88,8 @@ export async function requestAccess(userId: string, slug: string, message?: stri
     throw new AppError("Your previous request was declined", 403, "SHARE_ACCESS_DENIED");
   }
 
-  // Idempotent: the partial unique index allows only one pending row, so a
-  // repeated click reports the existing request rather than erroring.
+  // Idempotent: the partial unique index allows one pending row, so a repeat click reports the
+  // existing request.
   const [row] = await db
     .insert(shareAccessRequests)
     .values({ shareId: share.id, requesterUserId: userId, message: message ?? null })

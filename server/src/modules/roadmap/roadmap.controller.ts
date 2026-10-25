@@ -30,8 +30,6 @@ export class RoadmapController {
     res.status(200).json(ApiResponse.success(await removeRoadmapVote(req.params.slug as string, req.user!.id)));
   }
 
-  // ---- Admin
-
   static async list(_req: Request, res: Response) {
     res.status(200).json(ApiResponse.success(await listRoadmapItems()));
   }

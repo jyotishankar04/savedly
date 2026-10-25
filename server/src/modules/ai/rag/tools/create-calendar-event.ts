@@ -22,8 +22,8 @@ const inputSchema = z.object({
     .describe("How long the event lasts, in minutes. Defaults to 60 if the user didn't say."),
 });
 
-// Also what the Ask UI turns into an event card (date, time, and buttons to
-// open it in Google Calendar, the app's calendar, and the note).
+// Also what the Ask UI turns into an event card (date, time, buttons to open it in Google Calendar,
+// the app and the note).
 const resultSchema = z.object({
   memoryId: z.string(),
   title: z.string(),
@@ -36,10 +36,7 @@ const resultSchema = z.object({
 
 export type CreateCalendarEventResult = z.infer<typeof resultSchema>;
 
-/**
- * The agent's write path into the calendar: calls the same service as the "New event" dialog, so
- * both behave identically.
- */
+/** The agent's write path into the calendar: the same service as the "New event" dialog. */
 export const createCalendarEventTool = tool(
   confirmFirst(
     "create_calendar_event",

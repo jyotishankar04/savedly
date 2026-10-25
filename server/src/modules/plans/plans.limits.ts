@@ -5,8 +5,8 @@ import { env } from "../../config/env";
 import { getPlanLimits, resolveEffectivePlan } from "./plans.catalog";
 import { getCurrentUsage } from "./plans.usage";
 
-// Limits a plan without its own row gets instead of unlimited: web lookups are paid calls, so older
-// or retired plans stay at the Free level until an admin sets one.
+// Limits a plan without its own row gets instead of unlimited: web lookups are paid, so older or
+// retired plans stay at the Free level until an admin sets one.
 const LIMIT_WHEN_UNSET: Partial<Record<PlanLimitType, number>> = {
   [PlanLimitType.WEB_SEARCH_MONTHLY]: 10,
 };
@@ -24,8 +24,7 @@ async function checkLimit(userId: string, limitType: PlanLimitType, delta: numbe
 
   const { plan } = await resolveEffectivePlan(userId, dbClient);
   const set = (await getPlanLimits(plan.id, dbClient))[limitType];
-  // A missing row normally means unlimited; for limits that cost us money per use, it means the
-  // Free amount instead.
+  // A missing row normally means unlimited; for limits that cost money per use it means the Free amount.
   const limitValue = set !== undefined ? set : (LIMIT_WHEN_UNSET[limitType] ?? null);
   if (limitValue === null) return { ok: true, planName: plan.name, limitValue: null, current: 0 }; // unlimited
 
@@ -50,7 +49,7 @@ function formatMb(mb: number): string {
 }
 
 /**
- * Throws 403 PLAN_LIMIT_EXCEEDED if adding `delta` would go over the plan. Null = unlimited; never
+ * Throws 403 PLAN_LIMIT_EXCEEDED if adding `delta` would exceed the plan. Null = unlimited; never
  * limited when self-hosted.
  */
 export async function assertWithinLimit(userId: string, limitType: PlanLimitType, delta = 1, dbClient: DbOrTx = db): Promise<void> {
@@ -67,10 +66,7 @@ export async function assertWithinLimit(userId: string, limitType: PlanLimitType
   });
 }
 
-/**
- * How many more of `limitType` the user's plan allows. Null = unlimited. For callers that add as
- * many as fit.
- */
+/** How many more of `limitType` the plan allows (null = unlimited), for callers that add as many as fit. */
 export async function remainingWithinLimit(userId: string, limitType: PlanLimitType, dbClient: DbOrTx = db): Promise<number | null> {
   const result = await checkLimit(userId, limitType, 0, dbClient);
   return result.limitValue === null ? null : Math.max(0, result.limitValue - result.current);
@@ -81,7 +77,6 @@ export async function isWithinLimit(userId: string, limitType: PlanLimitType, de
   return (await checkLimit(userId, limitType, delta, dbClient)).ok;
 }
 
-/** Throws if a single file is bigger than the plan allows. */
 export async function assertFileSizeAllowed(userId: string, fileSizeBytes: number): Promise<void> {
   if (env.SELF_HOSTED) return;
   const { plan } = await resolveEffectivePlan(userId);

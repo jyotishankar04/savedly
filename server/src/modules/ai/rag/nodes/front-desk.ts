@@ -11,10 +11,9 @@ import { turnIsConfirmation } from "../tools/confirm";
 const classifySchema = z.object({ inScope: z.boolean() });
 
 /**
- * A cheap gate before the agent: an off-topic request ("write me a poem") gets a direct decline
- * instead of reaching the tool-calling agent, whose prompt only guards against fabricating about
- * saved content. Two calls so the decline streams like agentNode's replies, not as a hand-built
- * AIMessage (see check-grounding.ts).
+ * A cheap gate: off-topic requests ("write me a poem") get a decline instead of reaching the agent,
+ * whose prompt only guards against fabricating about saved content. Two calls so the decline
+ * streams like agentNode's replies (see check-grounding.ts).
  */
 export const frontDeskNode: GraphNode<typeof RAGState> = async (state, config) => {
   const lastMessage = state.messages.at(-1);
@@ -24,19 +23,16 @@ export const frontDeskNode: GraphNode<typeof RAGState> = async (state, config) =
   const userId = (config.context as { userId?: string } | undefined)?.userId ?? null;
   const threadId = (config.configurable as { thread_id?: string } | undefined)?.thread_id ?? null;
 
-  // No AI configured at all — skip this cheap pre-filter and let agentNode
-  // be the single place that surfaces the "connect your AI key" message,
-  // rather than duplicating that decision here too.
+  // No AI configured: skip this pre-filter and let agentNode be the one place that says "connect
+  // your AI key".
   if (!userId) return { inScope: true };
-  // "Yes" to a question Ask itself asked (confirm.ts) is part of that
-  // request, not a new off-topic message.
+  // "Yes" to a question Ask asked (confirm.ts) belongs to that request, not a new off-topic message.
   if (turnIsConfirmation((config.context as { turnId?: string } | undefined)?.turnId)) return { inScope: true };
   const classifyModel = (await getChatModel(userId, "fast", { kind: "ask", threadId }))?.withStructuredOutput(classifySchema);
   if (!classifyModel) return { inScope: true };
 
   const prompt = FRONT_DESK_CLASSIFY_PROMPT.replace("{query}", () => query);
-  // Tagged internal — this classifier call must never leak into the client
-  // stream (same reasoning as checkGrounding's tagged call).
+  // Tagged internal so this classifier call never leaks into the client stream.
   const { inScope } = await classifyModel.invoke(
     prompt,
     withUsage(config, { userId, requestType: "rag:front_desk_classify", threadId }, { tags: [INTERNAL_EVENT_TAG] }),

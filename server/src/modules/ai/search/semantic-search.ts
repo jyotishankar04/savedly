@@ -4,8 +4,7 @@ import { logAiUsage } from "../../ai-usage/api";
 import { logger } from "../../../shared/utils/logger";
 import type { SearchLegResult } from "./types";
 
-// Below this, embedding the query is wasted cost for a near-meaningless
-// vector — the lexical leg handles short queries fine on its own.
+// Below this, embedding the query wastes cost; the lexical leg handles short queries.
 export const MIN_SEMANTIC_QUERY_LENGTH = 3;
 
 /**

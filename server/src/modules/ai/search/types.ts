@@ -1,6 +1,7 @@
-/** One leg's ranked candidate — score is leg-specific (cosine similarity for
- *  the semantic leg, ts_rank_cd for the lexical leg) and only ever used for
- *  within-leg ordering before RRF fusion collapses both legs to rank-only. */
+/**
+ * One leg's candidate: score is leg-specific (cosine similarity, ts_rank_cd) and only orders within
+ * the leg before RRF.
+ */
 export interface SearchLegResult {
   memoryId: string;
   score: number;

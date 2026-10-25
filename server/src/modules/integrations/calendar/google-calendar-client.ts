@@ -10,14 +10,13 @@ import type {
   RemoteCalendarEvent,
 } from "./calendar.types";
 
-// Plain fetch(), no googleapis SDK, like the GitHub OAuth code. A separate OAuth flow from the
-// login-only one, which asks for "openid email profile" with no access_type and never gets a
-// refresh_token. It reuses GOOGLE_CLIENT_ID/SECRET (incremental authorization) with its own
-// callback and access_type=offline&prompt=consent, which reliably returns one.
+// Plain fetch(), no googleapis SDK. A separate flow from login ("openid email profile", no
+// access_type, so no refresh_token): it reuses GOOGLE_CLIENT_ID/SECRET (incremental authorization)
+// with its own callback and access_type=offline&prompt=consent, which reliably returns a
+// refresh_token.
 
 const GOOGLE_CALENDAR_CALLBACK_URL = `${env.SERVER_URL}/api/v1/integrations/calendar/google/callback`;
-// "openid email" so the userinfo call below can say which Google account
-// was connected; calendar.events alone doesn't include the address.
+// "openid email" so the userinfo call can say which account connected; calendar.events alone has no address.
 const GOOGLE_CALENDAR_SCOPE = "openid email https://www.googleapis.com/auth/calendar.events";
 
 export async function isGoogleCalendarConfigured(): Promise<boolean> {
@@ -33,9 +32,8 @@ export async function buildGoogleCalendarAuthUrl(state: string): Promise<string>
     scope: GOOGLE_CALENDAR_SCOPE,
     state,
     access_type: "offline",
-    // Forces Google to return a refresh_token every time, unlike the login
-    // flow's prompt=select_account — otherwise a repeat connection (e.g.
-    // reconnecting after a revoke) may come back with no refresh_token at all.
+    // Forces a refresh_token every time (unlike login's select_account); otherwise reconnecting
+    // after a revoke may return none.
     prompt: "consent",
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -78,8 +76,8 @@ export async function exchangeGoogleCalendarCode(code: string): Promise<Calendar
 }
 
 /**
- * Which Google account a token belongs to. userinfo needs the "email" scope; older connections fall
- * back to the primary calendar's name.
+ * Which Google account a token belongs to; userinfo needs "email", so older connections fall back
+ * to the primary calendar's name.
  */
 export async function getGoogleAccountEmail(accessToken: string): Promise<string | null> {
   const headers = { Authorization: `Bearer ${accessToken}` };
@@ -172,8 +170,7 @@ export async function deleteGoogleCalendarEvent(accessToken: string, eventId: st
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
-  // 404/410 means it's already gone — deleting an already-deleted event
-  // should behave the same as a successful delete, not an error.
+  // 404/410 means already gone: deleting it again should succeed.
   if (!response.ok && response.status !== 404 && response.status !== 410) {
     throw new AppError("Failed to delete Google Calendar event", 502, "CALENDAR_EVENT_DELETE_FAILED");
   }
@@ -186,9 +183,7 @@ export async function listGoogleCalendarEvents(
   const params = new URLSearchParams({
     timeMin: range.timeMinIso,
     timeMax: range.timeMaxIso,
-    // Expands recurring events into their individual occurrences within
-    // the range, sorted — otherwise a weekly standup would come back as
-    // one row with no way to tell which occurrence falls in this window.
+    // Expands recurring events into occurrences in range, sorted; otherwise a weekly standup is one row.
     singleEvents: "true",
     orderBy: "startTime",
     maxResults: "250",
@@ -212,9 +207,7 @@ export async function listGoogleCalendarEvents(
     }>;
   };
 
-  // An all-day event has `date` (no time component) instead of `dateTime` —
-  // normalized to midnight UTC so every event on the merged list has a
-  // real startAt/endAt regardless of which shape Google returned.
+  // An all-day event has `date`, not `dateTime`: normalized to midnight UTC so every event has startAt/endAt.
   return (body.items ?? []).map((item) => ({
     externalEventId: item.id,
     title: item.summary ?? "(No title)",

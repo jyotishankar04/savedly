@@ -5,8 +5,7 @@ import { collectionMemories, collections, memories, memoryTags, tags, users } fr
 import { MemoryType } from "./enums";
 import { seedCore } from "./seed-core";
 
-// Sample memories are seeded against whichever real account signed up first.
-// Sign in once (and complete onboarding), then run this.
+// Seeded against the first real account that signed up: sign in and finish onboarding first.
 async function seedMemories() {
   const [user] = await db
     .select({ id: users.id, email: users.email })

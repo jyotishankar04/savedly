@@ -13,9 +13,8 @@ const inputSchema = z.object({
 });
 
 /**
- * "Remind me about this on Friday": snoozes a memory until then, then it returns to the top of the
- * Inbox with a notification (and email unless off). No confirmation: nothing is lost and it can be
- * changed.
+ * "Remind me about this on Friday": snoozes the memory, then it returns to the top of the Inbox
+ * with a notification (and email unless off). No confirmation: nothing is lost.
  */
 export const setReminderTool = tool(
   async ({ memoryId, remindAt }: z.infer<typeof inputSchema>, runtime: RagRuntime) => {

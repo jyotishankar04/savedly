@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { ImportSourceType } from "../../db/enums";
 
-// Mirrors the email module's recipients.userIds.max(5000) cap precedent —
-// bounds worst-case ingestion-queue load from one request.
+// Bounds worst-case ingestion-queue load from one request (like the email recipients cap).
 export const IMPORT_MAX_URLS = 1000;
 
 export const importSchema = z.object({

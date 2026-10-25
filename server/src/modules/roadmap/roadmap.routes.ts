@@ -4,9 +4,8 @@ import { optionalAuthenticate } from "../../shared/middlewares/optional-authenti
 import { RoadmapController } from "./roadmap.controller";
 import { validateRoadmapVote } from "./roadmap.validator";
 
-// Mounted at /roadmap. Anyone can read the roadmap and the counts (with
-// their own votes when signed in); voting needs an account, one vote per
-// person per planned item.
+// Mounted at /roadmap. Anyone can read the roadmap and counts (with their own votes when signed
+// in); voting needs an account, one vote per person per planned item.
 const router = Router();
 
 router.get("/", RoadmapController.roadmap);

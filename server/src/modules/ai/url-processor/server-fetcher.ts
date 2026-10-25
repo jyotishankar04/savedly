@@ -36,8 +36,8 @@ function isPrivateIPv6(ip: string): boolean {
 }
 
 /**
- * Blocks SSRF before any request leaves: protocol allowlist, localhost, and every resolved IP (so a
- * hostname can't point at a private or metadata address). Every redirect hop is re-checked.
+ * Blocks SSRF before any request: protocol allowlist, localhost, and every resolved IP (a hostname
+ * can't point at a private or metadata address). Every redirect hop is re-checked.
  */
 export async function assertSafeUrl(rawUrl: string): Promise<URL> {
   let url: URL;
@@ -93,8 +93,8 @@ function parseRobotsTxt(text: string, pathname: string): boolean {
 }
 
 /**
- * We don't try to get around robots.txt — if it disallows us, we don't fetch the page at all. Fails
- * open (allowed) on any error reaching robots.txt itself.
+ * We don't get around robots.txt: if it disallows us, we don't fetch. Fails open if robots.txt
+ * itself can't be reached.
  */
 async function isAllowedByRobots(url: URL): Promise<boolean> {
   try {
@@ -136,8 +136,8 @@ function looksLikeJsShell(html: string): boolean {
 }
 
 /**
- * SSRF-safe, robots-respecting fetch with a normalized outcome; never throws (every failure maps to a FetchStatus).
- * `robots: "skip"` is for social/unfurl.ts only: one fetch of the one page a person saved, like a link preview.
+ * SSRF-safe, robots-respecting fetch with a normalized outcome; never throws. `robots: "skip"` is
+ * for social/unfurl.ts only: one fetch of the one page a person saved, like a link preview.
  */
 export async function fetchUrl(rawUrl: string, options: { robots?: "respect" | "skip" } = {}): Promise<UrlFetchResult> {
   const fetchedAt = new Date().toISOString();
@@ -191,7 +191,7 @@ export async function fetchUrl(rawUrl: string, options: { robots?: "respect" | "
       const tooLarge = !!contentLength && Number(contentLength) > MAX_RESPONSE_BYTES;
 
       if (contentType && !contentType.includes("text/html") && !contentType.includes("application/xhtml")) {
-        // A PDF is the one non-HTML type we can use (extractPdfContent). Everything else, images
+        // A PDF is the one non-HTML type we use (extractPdfContent); everything else, images
         // included, returns without a body.
         if (contentType.includes("application/pdf") && !tooLarge) {
           const binaryData = await readBounded(response, MAX_RESPONSE_BYTES);

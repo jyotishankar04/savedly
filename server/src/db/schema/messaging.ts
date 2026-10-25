@@ -3,7 +3,6 @@ import { ContactMessageStatus, EmailStatus, ReportStatus } from "../enums";
 import { users } from "./identity";
 import { contactMessageStatusEnum, emailCategoryEnum, emailStatusEnum, emailTemplateKeyEnum, reportStatusEnum, reportTypeEnum } from "./pg-enums";
 
-
 // One row per admin bulk email, fanned out to N email_messages rows. Automatic emails have no campaign.
 export const emailCampaigns = pgTable(
   "email_campaigns",
@@ -12,8 +11,7 @@ export const emailCampaigns = pgTable(
     category: emailCategoryEnum("category").notNull(),
     subject: varchar("subject", { length: 255 }).notNull(),
     bodyText: text("body_text").notNull(),
-    // Recorded so the history view can show "sent to all users" vs. a named
-    // list without re-deriving it from the individual message rows.
+    // Kept so history can show "sent to all users" vs a named list.
     recipientFilter: jsonb("recipient_filter").$type<{ all: true } | { userIds: string[] }>().notNull(),
     recipientCount: integer("recipient_count").notNull(),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -22,25 +20,20 @@ export const emailCampaigns = pgTable(
   (table) => [index("idx_email_campaigns_created").on(table.createdAt)]
 );
 
-// One row per send attempt, the single source of truth for delivery status. The email worker loads
-// and updates it by id.
+// One row per send attempt: the source of truth for delivery status, updated by the email worker.
 export const emailMessages = pgTable(
   "email_messages",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    // Null for every system/automatic send — only the admin bulk composer
-    // groups messages under a campaign.
+    // Null for system sends; only the admin bulk composer uses campaigns.
     campaignId: uuid("campaign_id").references(() => emailCampaigns.id, { onDelete: "cascade" }),
-    // Null when the recipient has no account yet (e.g. a share invite sent
-    // to an email address that hasn't signed up) — recipientEmail is the
-    // one field every row is guaranteed to have.
+    // Null when the recipient has no account yet; recipientEmail is always set.
     recipientUserId: uuid("recipient_user_id").references(() => users.id, { onDelete: "set null" }),
     recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
     category: emailCategoryEnum("category").notNull(),
     templateKey: emailTemplateKeyEnum("template_key").notNull(),
     subject: varchar("subject", { length: 255 }).notNull(),
-    // The rendered HTML actually handed to nodemailer — kept for delivery
-    // debugging/audit even though Mailhog also stores its own copy.
+    // The HTML actually handed to nodemailer, kept for debugging and audit.
     bodyHtml: text("body_html").notNull(),
     status: emailStatusEnum("status").notNull().default(EmailStatus.QUEUED),
     error: text("error"),
@@ -55,9 +48,8 @@ export const emailMessages = pgTable(
   ]
 );
 
-// Messages from the website's contact page (/contact). Saved before the team
-// is emailed, so none is lost when email is off or fails; read and answered
-// in Admin > Messages. userId is set when the person was signed in.
+// Contact-page messages, saved before the team is emailed so none is lost; answered in Admin >
+// Messages. userId set when signed in.
 export const contactMessages = pgTable(
   "contact_messages",
   {
@@ -79,9 +71,8 @@ export const contactMessages = pgTable(
   (table) => [index("idx_contact_messages_status_created").on(table.status, table.createdAt)]
 );
 
-// Replies sent from Admin > Messages to someone who wrote in: a contact
-// message or a report ("kind" says which, "targetId" which one). Kept so the
-// conversation shows in the reading pane; the email itself goes to them.
+// Replies from Admin > Messages to a contact message or report ("kind" and "targetId" say which),
+// kept for the reading pane.
 export const messageReplies = pgTable(
   "message_replies",
   {
@@ -96,8 +87,7 @@ export const messageReplies = pgTable(
   (table) => [index("idx_message_replies_target").on(table.kind, table.targetId, table.createdAt)]
 );
 
-// Bug reports and feature requests from the public /report page (userId set when signed in). No
-// admin UI yet; use drizzle-kit studio.
+// Bug reports and feature requests from /report (userId set when signed in); no admin UI yet.
 export const reports = pgTable(
   "reports",
   {
@@ -105,13 +95,11 @@ export const reports = pgTable(
     type: reportTypeEnum("type").notNull(),
     title: varchar("title", { length: 200 }).notNull(),
     description: text("description").notNull(),
-    // Optional even when signed in — someone reporting a bug on behalf of a
-    // teammate, or just preferring not to be tied to their account email.
+    // Optional even when signed in.
     email: varchar("email", { length: 255 }),
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     status: reportStatusEnum("status").notNull().default(ReportStatus.OPEN),
-    // Where they were when they hit "report a bug" — real diagnostic value
-    // (which page, which app route) that a free-text description often omits.
+    // The page they reported from: diagnostic detail a description often omits.
     pageUrl: text("page_url"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })

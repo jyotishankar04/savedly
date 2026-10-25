@@ -4,15 +4,13 @@ import { localDriver, localMetaPath } from "./local-driver";
 import { createS3Driver, type S3Settings } from "./s3-driver";
 import type { StorageDriver } from "./storage.types";
 
-// Where uploaded files live: storage.types.ts (the interface), local-driver.ts, s3-driver.ts.
-// Everything other code needs is exported from here.
+// Storage: storage.types.ts (the interface), local-driver.ts, s3-driver.ts; everything other code
+// needs is exported here.
 export { PRESIGN_EXPIRES_SECONDS, STORAGE_KEY_PATTERN, type PresignedUpload, type StorageDriver } from "./storage.types";
 export { LocalStorageDriver, localDriver, localMetaPath, verifyLocalUploadToken } from "./local-driver";
 export { S3StorageDriver, createS3Driver, type S3Settings } from "./s3-driver";
 
-// ---------------------------------------------------------------------------
-// The active driver — rebuilt whenever an admin saves new storage settings.
-// ---------------------------------------------------------------------------
+// The active driver: rebuilt whenever an admin saves storage settings.
 
 let active: { version: number; driver: StorageDriver } | null = null;
 
@@ -24,10 +22,9 @@ export async function getStorage(): Promise<StorageDriver> {
   return driver;
 }
 
-
 /**
- * The bytes behind a file URL. Our own files are read straight from storage (a local-disk URL isn't
- * reachable like a public R2 URL); anything else is fetched over HTTP.
+ * The bytes behind a file URL: our own files are read straight from storage (a local-disk URL isn't
+ * reachable like a public R2 URL), anything else over HTTP.
  */
 export async function readFileUrl(url: string): Promise<Buffer> {
   const storage = await getStorage();
@@ -39,8 +36,8 @@ export async function readFileUrl(url: string): Promise<Buffer> {
 }
 
 /**
- * An image URL an AI provider can open. Local-disk files are on a URL only this server reaches, so
- * they're inlined as a data: URL; everything else passes through.
+ * An image URL an AI provider can open: local-disk files are inlined as a data: URL (only this
+ * server reaches them); everything else passes through.
  */
 export async function toModelImageUrl(url: string, mimeType?: string): Promise<string> {
   const storage = await getStorage();

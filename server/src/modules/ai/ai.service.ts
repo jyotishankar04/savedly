@@ -17,9 +17,7 @@ import { INTERNAL_EVENT_TAG } from "./rag/internal-tag";
 import { settlePending } from "./rag/tools/confirm";
 import type { CreateThreadInput } from "./ai.schema";
 
-// The synthetic "one user question" marker — distinct from the rag:* rows
-// createUsageCallback logs per LLM call inside the pipeline (front_desk,
-// agent, check_grounding can each fire more than once per question).
+// Marks one user question, unlike the rag:* rows logged per LLM call (several per question).
 const ASK_QUERY_REQUEST_TYPE = "ask:query";
 
 export interface ThreadResponse {
@@ -68,8 +66,8 @@ export interface ThreadMessage {
 }
 
 /**
- * Rebuilds the same shape live streaming produces (text and tool parts), so a resumed thread renders like a live one.
- * One assistant entry per human turn: a checkGrounding retry's second AIMessage is folded into it.
+ * Rebuilds what live streaming produces (text and tool parts) so a resumed thread renders the same.
+ * One assistant entry per human turn: a checkGrounding retry is folded in.
  */
 export async function getThreadMessages(userId: string, threadId: string): Promise<ThreadMessage[]> {
   await requireOwnedThread(userId, threadId);
@@ -112,8 +110,7 @@ export async function getThreadMessages(userId: string, threadId: string): Promi
           output: {
             kwargs: {
               content: typeof toolMessage.content === "string" ? toolMessage.content : JSON.stringify(toolMessage.content),
-              // Same shape the live stream carries: tools like get_platform_help put UI data
-              // (button links) here.
+              // Same shape as the live stream: tools like get_platform_help put UI data (button links) here.
               ...(toolMessage.artifact !== undefined ? { artifact: toolMessage.artifact } : {}),
             },
           },
@@ -122,17 +119,13 @@ export async function getThreadMessages(userId: string, threadId: string): Promi
       const text = typeof message.content === "string" ? message.content : "";
       if (text) currentParts.push({ type: "text", text });
     }
-    // ToolMessage/SystemMessage entries aren't emitted as their own items —
-    // ToolMessages are folded into the preceding AIMessage's parts above.
   }
   flushAssistant();
 
   return result;
 }
 
-/** streamEvents() surfaces every chat-model run inside the graph, including
- *  checkGrounding's internal structured-output call — drop anything tagged
- *  that way before it reaches the client (see nodes/check-grounding.ts). */
+/** Drops internally tagged runs (checkGrounding's structured-output call) before they reach the client. */
 async function* filterInternalEvents<T extends { tags?: string[] }>(stream: AsyncIterable<T>): AsyncGenerator<T> {
   for await (const event of stream) {
     if (event.tags?.includes(INTERNAL_EVENT_TAG)) continue;
@@ -140,24 +133,19 @@ async function* filterInternalEvents<T extends { tags?: string[] }>(stream: Asyn
   }
 }
 
-/**
- * Streams a turn as a standard web Response (Vercel AI SDK UI Message Stream Protocol), so a client
- * using @ai-sdk/react's useChat stays compatible.
- */
+/** Streams a turn as a web Response (Vercel AI SDK UI Message Stream Protocol), compatible with useChat. */
 export async function streamAsk(userId: string, threadId: string, query: string): Promise<Response> {
   await requireOwnedThread(userId, threadId);
 
-  // Included-AI admission happens once per question: without their own reasoning key, a user rides
-  // the platform key only if the plan's question allowance has room. The platform-tagged
-  // "ask:query" row is both the count and the ticket each model call checks. Awaited so it exists
-  // before the graph runs.
+  // Included-AI admission, once per question: without their own reasoning key a user rides the
+  // platform key only if the plan has question room. The platform-tagged "ask:query" row is both
+  // the count and the ticket model calls check; awaited so it exists before the graph runs.
   const ownKey = await hasOwnCredential(userId, AiRole.REASONING);
   const usesIncludedAi =
     !ownKey && !!(await platformCredential(AiRole.REASONING)) && (await isWithinLimit(userId, PlanLimitType.AI_MONTHLY_QUERIES, 1));
 
-  // No way to answer (the plan's questions are used up, or no AI at all):
-  // say why right away. Not counted as a question, and the graph isn't run —
-  // its fallback message would never reach the stream.
+  // Can't answer (quota used or no AI): say why now, don't count it, and skip the graph, whose
+  // fallback never reaches the stream.
   if (!ownKey && !usesIncludedAi) {
     const message = await askUnavailableMessage(userId);
     return createUIMessageStreamResponse({
@@ -180,14 +168,13 @@ export async function streamAsk(userId: string, threadId: string, query: string)
   });
   await ensureCheckpointerSetup();
 
-  // An action Ask asked about last turn runs only if this message, the
-  // user's own, is a yes; anything else discards it (rag/tools/confirm.ts).
+  // An action Ask asked about last turn runs only if this message (the user's own) is a yes
+  // (rag/tools/confirm.ts).
   const turnId = randomUUID();
   await settlePending(threadId, turnId, query);
 
   const eventStream = compiledRagGraph.streamEvents(
-    // retryCount is a LastValue channel, so reset it every turn; otherwise it stays capped after
-    // the first ungrounded answer and disables the retry loop.
+    // retryCount is a LastValue channel: reset it each turn or it stays capped and disables the retry loop.
     { messages: [new HumanMessage(query)], retryCount: 0 },
     {
       version: "v2",
@@ -196,8 +183,8 @@ export async function streamAsk(userId: string, threadId: string, query: string)
     },
   );
 
-  // toUIMessageStream's declared type is stale against its own JSDoc, which supports a
-  // streamEvents() stream; the filtered stream has the same shape, so this is a type-only gap.
+  // toUIMessageStream's declared type is stale against its JSDoc (streamEvents is supported); the
+  // shape is the same, so it's a type-only gap.
   return createUIMessageStreamResponse({
     stream: toUIMessageStream(filterInternalEvents(eventStream) as unknown as AsyncIterable<AIMessageChunk>),
   });

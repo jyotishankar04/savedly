@@ -10,17 +10,17 @@ export interface HybridSearchParams {
   /** Already trimmed, already known non-empty. */
   query: string;
   /**
-   * The same SQL[] the list path builds, used as the lexical leg's WHERE and re-checked against the
-   * semantic leg's candidates.
+   * The list path's SQL[], used as the lexical leg's WHERE and re-checked against the semantic
+   * candidates.
    */
   filterConditions: SQL[];
   candidateLimit: number;
 }
 
 /**
- * Runs both legs in parallel and RRF-merges (k=60) into a ranked memoryId list; the caller owns fetching full rows.
- * The semantic leg gets a facet post-filter the lexical leg doesn't need: lexical queries Postgres directly, but Upstash metadata doesn't mirror mutable facets (favorite, collection, tag), so filterConditions are re-checked with one small query on the semantic candidates.
- * Known tradeoff: with Upstash and a narrow facet filter, a true match could miss the global top-K cut. pgvector is unaffected. Follow-up: mirror `type` into Upstash metadata if it proves real.
+ * Runs both legs in parallel and RRF-merges (k=60) into a ranked memoryId list; the caller fetches the rows.
+ * The semantic leg needs a facet post-filter: Upstash metadata doesn't mirror mutable facets (favorite, collection, tag), so filterConditions are re-checked with one small query on its candidates.
+ * Known tradeoff: with Upstash and a narrow facet filter, a true match can miss the global top-K cut; pgvector is unaffected. Follow-up: mirror `type` into Upstash metadata.
  */
 export async function hybridSearch({
   userId,

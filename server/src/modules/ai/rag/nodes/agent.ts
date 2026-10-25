@@ -29,12 +29,12 @@ const MANAGED_AI_USED_UP_MESSAGE =
   "You've used this month's included questions. They reset at the start of next month; you can also move to a bigger plan in Settings → Plan & usage.";
 
 /**
- * Why Ask can't answer now, in the user's terms: included questions spent, or no AI. streamAsk also
- * uses it to reply before the graph runs, since a node's fixed message never reaches the stream.
+ * Why Ask can't answer, in the user's terms (quota spent, or no AI). streamAsk uses it before the
+ * graph runs, since a node's fixed message never reaches the stream.
  */
 export async function askUnavailableMessage(userId: string | null): Promise<string> {
-  // Included AI exists for this role but the plan's allowance is spent (or
-  // the plan has none) — say that, rather than implying nothing is set up.
+  // Included AI exists for this role but the allowance is spent (or the plan has none): say so, not
+  // that nothing is set up.
   const quotaIsTheReason = !!userId && !!(await platformCredential(AiRole.REASONING));
   const managed = !!userId && (await planHasManagedAi(userId));
   return quotaIsTheReason
@@ -48,13 +48,13 @@ export async function askUnavailableMessage(userId: string | null): Promise<stri
 
 /**
  * The conversation as the model sees it: tool results from the user's library are fenced as saved
- * content (untrusted.ts). Stored messages and what the client renders are unchanged.
+ * content (untrusted.ts); stored messages and the client view are unchanged.
  */
 export function fenceToolResults(messages: BaseMessage[]): BaseMessage[] {
   return messages.map((message) => {
     if (!ToolMessage.isInstance(message)) return message;
-    // Our own text, not the user's library: the app's help pages, an error
-    // we raised, and the "this needs a yes" answer the model must act on.
+    // Our own text, not the user's library: help pages, errors we raised, and the "needs a yes"
+    // answer the model must act on.
     if (message.name === PLATFORM_HELP_TOOL || message.status === "error") return message;
     const text = typeof message.content === "string" ? message.content : JSON.stringify(message.content);
     if (isConfirmationText(text)) return message;
@@ -77,8 +77,8 @@ function isConfirmationText(text: string): boolean {
 }
 
 /**
- * What the user's own message just settled (tools/confirm.ts). Tool names only: no saved text
- * reaches the system prompt.
+ * What the user's message just settled (confirm.ts). Tool names only: no saved text reaches the
+ * system prompt.
  */
 function confirmationNote(turnId: string | undefined): string {
   const { approvedTools, cancelled } = turnConfirmation(turnId);
@@ -92,8 +92,7 @@ function confirmationNote(turnId: string | undefined): string {
 }
 
 export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
-  // userId travels via LangGraph's `context` (set at streamAsk's invocation),
-  // not RAGState — it's per-turn identity, not checkpointed conversation state.
+  // userId travels in LangGraph's `context`, not RAGState: it's per-turn identity, not checkpointed state.
   const userId = (config.context as { userId?: string } | undefined)?.userId ?? null;
   const threadId = (config.configurable as { thread_id?: string } | undefined)?.thread_id ?? null;
 
@@ -101,14 +100,13 @@ export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
   if (!model) {
     return { messages: [new AIMessage(await askUnavailableMessage(userId))] };
   }
-  // bindTools is optional on BaseChatModel, but every model getChatModel returns supports it, so
-  // the non-null assertion is safe.
-  // search_web is offered only when web search is set up.
+  // bindTools is optional on BaseChatModel, but every model getChatModel returns has it. search_web
+  // is offered only when web search is set up.
   const webOn = await webSearchAvailable();
   const modelWithTools = model.bindTools!(webOn ? tools : tools.filter((t) => t.name !== "search_web"));
 
-  // Computed per invocation so "today" is the actual day, which search_memories_by_date needs to
-  // resolve "yesterday" or "last week". In the user's own time zone.
+  // Computed per invocation so "today" is correct for search_memories_by_date's "yesterday"; in the
+  // user's time zone.
   const timeZone = userId ? await userTimeZone(userId) : "UTC";
   const today = localDate(timeZone);
   const systemPrompt = `${AGENT_SYSTEM_PROMPT}\n\nToday's date is ${today} (right now it's ${localNow(timeZone)}; the user's time zone is ${timeZone}). A time the user gives without a zone is in their time zone: write datetimes with its offset, e.g. ${today}T15:00:00${utcOffset(timeZone)}.`;

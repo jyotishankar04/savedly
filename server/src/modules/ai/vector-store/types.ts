@@ -18,30 +18,22 @@ export interface VectorSearchResult {
 }
 
 export interface VectorChunkSearchResult {
-  /** memory_chunks.id — the merge key for RAG's chunk-level RRF (multiple
-   *  chunks can share a memoryId, so memoryId alone can't be the key). */
+  /** memory_chunks.id: the merge key for chunk-level RRF (a memoryId can have several chunks). */
   chunkId: string;
   memoryId: string;
   content: string;
   score: number;
 }
 
-/**
- * Where a memory's embeddings live: pgvector locally, Upstash or Pinecone in production
- * (VECTOR_STORE_PROVIDER).
- */
+/** Where a memory's embeddings live (VECTOR_STORE_PROVIDER). */
 export interface VectorStore {
   upsertMemoryVectors(input: VectorUpsertInput): Promise<void>;
   deleteMemoryVectors(memoryId: string): Promise<void>;
   /**
-   * Nearest-neighbor over document-level embeddings, scoped to userId and not trashed, best-first
-   * by cosine similarity. Doesn't know facets (favorite, archive, collection, tag, type); callers
-   * post-filter (see ../search/).
+   * Nearest-neighbor over document embeddings, scoped to the user and not trashed, best-first by
+   * cosine. No facets: callers post-filter (../search/).
    */
   searchByEmbedding(userId: string, embedding: number[], limit: number): Promise<VectorSearchResult[]>;
-  /**
-   * Nearest-neighbor over per-chunk embeddings for the Ask agent (../rag/), versus
-   * searchByEmbedding's document level. Same scoping and ordering.
-   */
+  /** Nearest-neighbor over chunk embeddings for Ask (../rag/); same scoping and ordering. */
   searchChunksByEmbedding(userId: string, embedding: number[], limit: number): Promise<VectorChunkSearchResult[]>;
 }

@@ -168,9 +168,7 @@ export const planAssignmentStatusEnum = pgEnum("plan_assignment_status", [
   PlanAssignmentStatus.SUPERSEDED,
 ]);
 
-// Trimmed to the two sources that still exist — REFERRAL_REWARD/
-// COUPON_REDEMPTION/PAYMENT were how a paid-tier assignment got granted;
-// nothing writes those anymore now that there's no billing.
+// Only the two sources still in use.
 export const planAssignmentSourceEnum = pgEnum("plan_assignment_source", [
   PlanAssignmentSource.ADMIN_MANUAL,
   PlanAssignmentSource.SIGNUP_DEFAULT,
@@ -216,16 +214,13 @@ export const importItemStatusEnum = pgEnum("import_item_status", [
   ImportItemStatus.FAILED,
 ]);
 
-// -----------------------------------------------------------------------------
-// 2b. Calendar Connections Table
-// -----------------------------------------------------------------------------
 export const calendarProviderEnum = pgEnum("calendar_provider", [
   CalendarProvider.GOOGLE,
   CalendarProvider.MICROSOFT,
 ]);
 
-// Highlights: passages marked on a saved page. prefix/suffix are a few dozen characters either
-// side, so a repeated passage can be found again.
+// Passages marked on a saved page; prefix/suffix (a few dozen characters) let a repeated passage be
+// found again.
 export const highlightColorEnum = pgEnum("highlight_color", [
   HighlightColor.YELLOW,
   HighlightColor.GREEN,

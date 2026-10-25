@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { EmailCategory, EmailStatus } from "../../../db/enums";
 
-// A button's link: a path inside the site ("/app/capture") or a full http(s)
-// address. Nothing else, so a composed email can't carry a javascript: or
-// data: link.
+// A site path ("/app/capture") or full http(s) address only, so a composed email can't carry a
+// javascript: or data: link.
 const linkSchema = z
   .string()
   .trim()

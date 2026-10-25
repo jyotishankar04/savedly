@@ -9,9 +9,7 @@ export const announcements = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     type: announcementTypeEnum("type").notNull().default(AnnouncementType.ANNOUNCEMENT),
-    // "full_page" blocks every page (marketing, platform, auth) except /admin,
-    // the same way maintenance mode does — for hard launch splashes, not the
-    // default sticky-banner treatment.
+    // "full_page" blocks every page except /admin, like maintenance mode; for launch splashes.
     displayMode: announcementDisplayModeEnum("display_mode").notNull().default(AnnouncementDisplayMode.BANNER),
     title: varchar("title", { length: 200 }).notNull(),
     message: text("message").notNull(),
@@ -34,8 +32,7 @@ export const announcements = pgTable(
   ]
 );
 
-// The public blog (/blog on the website). Written by admins, in Markdown.
-// Only published posts are ever returned by the public routes.
+// The public blog, Markdown written by admins; only published posts are served publicly.
 export const blogPosts = pgTable(
   "blog_posts",
   {
@@ -64,8 +61,7 @@ export const blogPosts = pgTable(
   (table) => [index("idx_blog_posts_status_published").on(table.status, table.publishedAt)]
 );
 
-// The public roadmap, ordered by sortOrder within each status. The slug comes from the first title
-// and never changes, so votes survive renames.
+// Public roadmap, ordered by sortOrder per status. The slug never changes, so votes survive renames.
 export const roadmapItems = pgTable(
   "roadmap_items",
   {
@@ -88,8 +84,7 @@ export const roadmapItems = pgTable(
   (table) => [index("idx_roadmap_items_status_order").on(table.status, table.sortOrder)]
 );
 
-// A signed-in person's vote for a planned roadmap item: one per person per
-// item. Deleting the item deletes its votes.
+// One vote per person per roadmap item; deleted with the item.
 export const roadmapVotes = pgTable(
   "roadmap_votes",
   {

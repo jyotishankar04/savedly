@@ -11,7 +11,7 @@ import { createUsageCallback } from "../ai-usage/api";
 //   findGuides  ->  writeAnswer      (one model call, with any matching guide and the FACTS)
 //               ->  declineQuestion  (an empty question: a fixed reply)
 // 
-// No tools, account or access to anyone's data. The limits that matter are cost
+// No tools, account or access to anyone's data; the limits that matter are cost
 // (help-assistant.routes.ts) and what it may claim (FACTS below).
 
 const linkSchema = z.object({ label: z.string(), href: z.string() });
@@ -36,8 +36,8 @@ export const HELP_SUPPORT_EMAIL = "support@savedly.app";
 
 const DECLINE = `I can only answer questions about Savedly, and I couldn't find that in our guides. Try the Help Center, or write to ${HELP_SUPPORT_EMAIL}.`;
 
-// Things people ask on a landing page that no how-to guide covers. Each line
-// is true of the product today; change them here when the product changes.
+// Things asked on the landing page that no guide covers; each is true today, so change them here
+// when the product changes.
 const FACTS = `- What Savedly is: a personal library for everything you save. You save links, notes, files and screenshots; it reads each one, writes a summary, tags it and files it in a collection; later you find it by searching in your own words or by asking the built-in assistant a question, which answers from what you saved and lists its sources.
 - How to sign in (also called logging in): click "Sign in" at the top of the site, then continue with Google, continue with GitHub, or enter your email and password. How to create an account (sign up, register): click "Get started" and do the same.
 - Passwords: an account made with Google or GitHub has no Savedly password; sign in with that same Google or GitHub account. There is no self-service password reset yet. Someone who signed up with an email and password and has forgotten it should write to ${HELP_SUPPORT_EMAIL}.
@@ -136,9 +136,8 @@ async function answer(state: HelpStateType, config: RunnableConfig) {
   );
   const { found, pageIds, text } = splitVerdict(typeof reply.content === "string" ? reply.content : "");
   if (!text) return { answer: DECLINE, answered: false, links: [] };
-  // The pages the model named come first (only ones that really exist), then
-  // the page that settles a price or sign-in question, then the matching
-  // guides, which are only shown under an answer that came from them.
+  // Pages the model named (that exist) first, then the page that settles a price or sign-in
+  // question, then matching guides (shown only under an answer that came from them).
   const named = pageIds.flatMap((id) => state.pages.filter((p) => p.id === id).map(({ label, href }) => ({ label, href })));
   const all = [
     ...named,
@@ -154,9 +153,9 @@ function decline() {
   return { answer: DECLINE, answered: false, links: [] };
 }
 
-// Every question goes to the model, which turns away off-topic ones. Skipping the model when no
-// guide matched refused "how to login": a keyword test can't tell off-topic from unusual wording.
-// Cost is bounded by the route limits.
+// Every question goes to the model, which turns away off-topic ones. Skipping it when no guide
+// matched refused "how to login": keywords can't tell off-topic from unusual wording. Cost is
+// bounded by the route limits.
 function route(state: HelpStateType): "answer" | "decline" {
   return state.question.trim() ? "answer" : "decline";
 }
@@ -186,8 +185,8 @@ export async function answerHelpQuestion(question: string): Promise<HelpAnswer> 
 export type HelpStreamEvent = { type: "delta"; text: string } | ({ type: "done" } & HelpAnswer);
 
 /**
- * The same pipeline streaming the answer as it's written. The leading "YES|" / "NO|" is held back;
- * it ends with one "done" carrying the answer and links.
+ * The same pipeline streaming as written; the leading "YES|"/"NO|" is held back and one "done"
+ * carries the answer and links.
  */
 export async function* streamHelpAnswer(question: string, signal?: AbortSignal): AsyncGenerator<HelpStreamEvent> {
   const stream = await helpGraph.stream({ question }, { streamMode: ["messages", "values"], signal });

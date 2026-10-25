@@ -7,8 +7,8 @@ import { AppError } from "../../shared/errors/app-error";
 import type { CreateCollectionInput, ListCollectionsQuery, UpdateCollectionInput } from "./collection.schema";
 
 /**
- * Every client shows a collection's icon as text, so it must be an emoji; anything else (an icon
- * name like "book") becomes the folder.
+ * Clients render a collection's icon as text, so it must be an emoji; anything else (like "book")
+ * becomes the folder.
  */
 export const DEFAULT_COLLECTION_ICON = "📁";
 export function collectionIcon(icon: string | undefined | null): string {
@@ -29,9 +29,8 @@ export interface CollectionResponse {
 }
 
 export async function listCollections(userId: string, query: ListCollectionsQuery): Promise<CollectionResponse[]> {
-  // Toggleable like memories' isVaulted — hidden by default; the vault page
-  // is the only caller that passes isVaulted=true, and only after the route
-  // guard (requireVaultUnlockedForQuery) has confirmed the PIN was entered.
+  // Like memories' isVaulted: hidden by default; only the vault page passes isVaulted=true, after
+  // the route guard confirmed the PIN.
   const conditions = [eq(collections.userId, userId), eq(collections.isVaulted, query.isVaulted)];
   if (!query.includeSystem) {
     conditions.push(eq(collections.source, CollectionSource.USER));
@@ -56,8 +55,8 @@ export async function listCollections(userId: string, query: ListCollectionsQuer
 }
 
 /**
- * One collection for its page, fetched by id so a just-made one (AI filing, another tab) opens at
- * once. Vaulted collections open only from the vault, so they read as not found here.
+ * One collection for its page, fetched by id so a just-made one opens at once. Vaulted collections
+ * open only from the vault, so they read as not found here.
  */
 export async function getCollection(userId: string, id: string): Promise<CollectionResponse> {
   const [row] = await db
@@ -81,8 +80,8 @@ export async function getCollection(userId: string, id: string): Promise<Collect
 }
 
 /**
- * The collections the user filed into most recently (from their latest saves, newest first, no
- * repeats), for one-tap filing in the extension.
+ * Collections the user filed into most recently (latest saves, newest first, no repeats), for
+ * one-tap filing in the extension.
  */
 export async function recentCollections(userId: string, limit = 6): Promise<{ id: string; name: string; icon: string }[]> {
   const rows = await db
@@ -101,8 +100,7 @@ export async function createCollection(
   userId: string,
   input: CreateCollectionInput,
 ): Promise<CollectionResponse> {
-  // Collections made through this endpoint are user-owned and the only ones that count against the
-  // limit; system collections come from internal processes.
+  // Made through this endpoint, so user-owned: the only ones that count toward the limit.
   await assertWithinLimit(userId, PlanLimitType.COLLECTION_COUNT, 1);
   const [row] = await db
     .insert(collections)
@@ -135,10 +133,9 @@ export async function updateCollection(
       throw new AppError("Collection not found", 404, "NOT_FOUND");
     }
 
-    // Vaulting a collection cascades to its memories, so read paths only check memories.isVaulted
-    // and never join collection_memories.
-    // Known imprecision, accepted: un-vaulting also un-vaults members vaulted individually.
-    // Tracking it would need its own column, not worth it for a one-click fix.
+    // Vaulting cascades to the collection's memories, so reads only check memories.isVaulted.
+    // Known imprecision, accepted: un-vaulting also un-vaults members vaulted individually
+    // (tracking it would need its own column).
     if (input.isVaulted !== undefined) {
       await tx
         .update(memories)
@@ -162,10 +159,7 @@ export async function updateCollection(
   return { ...row, memoryCount };
 }
 
-/**
- * One-way system -> user conversion. Nothing sets source back to "system", so a converted
- * collection can never revert.
- */
+/** One-way system -> user: nothing sets source back to "system". */
 export async function convertToUser(userId: string, id: string): Promise<CollectionResponse> {
   const [existing] = await db
     .select()

@@ -1,9 +1,9 @@
 import { fetchJson } from "./http";
 import type { SocialPost } from "./types";
 
-// A YouTube video: details from the player API and captions as a transcript. Asked as the iOS app,
-// because the web player's caption links need a proof-of-origin token and come back empty (checked
-// Oct 2026). Falls back to oEmbed.
+// A YouTube video: details from the player API, captions as a transcript. Asked as the iOS app: the
+// web player's caption links need a proof-of-origin token and come back empty (checked Oct 2026).
+// Falls back to oEmbed.
 
 const IOS_CLIENT = { clientName: "IOS", clientVersion: "20.10.4", deviceModel: "iPhone16,2", hl: "en" };
 const IOS_UA = "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3 like Mac OS X;)";
@@ -58,9 +58,9 @@ type CaptionData = { events?: { tStartMs?: number; segs?: { utf8?: string }[] }[
 const isEnglish = (code: string) => code.split("-")[0] === "en";
 
 /**
- * The transcript, in English when possible. Dubbed videos list an automatic track per dub, so: a
- * written English track, else the automatic English one, else YouTube's English translation of the
- * best track, else the track as is.
+ * English transcript when possible. Dubbed videos list an automatic track per dub, so: written
+ * English, else automatic English, else YouTube's English translation of the best track, else as
+ * is.
  */
 async function transcriptFrom(player: PlayerResponse): Promise<SocialPost["transcript"]> {
   const list = player.captions?.playerCaptionsTracklistRenderer;

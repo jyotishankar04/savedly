@@ -7,7 +7,6 @@ import { AppError } from "../../shared/errors/app-error";
 import { callProvider, customerIdFor, getProvider, requireProvider } from "./billing.gateway";
 import { applyForUser } from "./billing.webhooks";
 
-/** The user's live, provider-billed subscription and its plan, if they have one. */
 async function currentSubscription(userId: string) {
   const [row] = await db
     .select({ assignment: userPlanAssignments, plan: plans })
@@ -27,14 +26,13 @@ async function currentSubscription(userId: string) {
 }
 
 /**
- * Buy a plan or move up from the one you pay for. Plans rank by sortOrder; a subscriber can only
- * move up, which changes their existing subscription. Moving down is in the provider's billing
- * portal.
+ * Buy a plan or move up. Plans rank by sortOrder; a subscriber can only move up (changing their
+ * subscription); moving down is in the provider's portal.
  */
 /**
- * The paid subscription a plan rests on, with its live state from the provider. Only active or
- * past-due ones can change in place; a cancelled one gives access until its period ends, so moving
- * up means a new checkout.
+ * The paid subscription a plan rests on, with live provider state. Only active or past-due ones
+ * change in place; a cancelled one gives access until period end, so moving up needs a new
+ * checkout.
  */
 async function paidSubscription(userId: string) {
   const current = await currentSubscription(userId);
@@ -72,8 +70,8 @@ export async function billingStatus(userId: string) {
 }
 
 /**
- * A cancelled subscription can't move up in place; buying a plan at or below it would only cut its
- * paid time short.
+ * A cancelled subscription can't move up in place; buying at or below it would only cut its paid
+ * time short.
  */
 function assertAboveCancelled(target: { sortOrder: number }, sub: { plan: { name: string; sortOrder: number }; assignment: { endsAt: Date | null } }) {
   if (target.sortOrder <= sub.plan.sortOrder) {
@@ -85,9 +83,9 @@ function assertAboveCancelled(target: { sortOrder: number }, sub: { plan: { name
 }
 
 /**
- * What upgrading to `planKey` costs now. A subscriber moves up in place and the saved card is
- * charged the prorated difference, so the client shows this and asks before createCheckout with
- * confirmUpgrade. Others go through checkout, where the provider shows the price.
+ * What upgrading costs now. A subscriber moves up in place and the saved card is charged the
+ * prorated difference, so the client shows this and asks first (createCheckout with
+ * confirmUpgrade). Others go through checkout.
  */
 export async function previewUpgrade(userId: string, planKey: string) {
   const billing = requireProvider();
@@ -149,14 +147,13 @@ export async function createCheckout(userId: string, planKey: string, confirmUpg
   if (current && !current.changeable) assertAboveCancelled(plan, current);
   if (current?.changeable) {
     assertIsUpgrade(plan, current.plan);
-    // Moving up charges the saved card on the spot, with no payment page —
-    // never without the person having seen the amount and agreed.
+    // Moving up charges the saved card at once with no payment page, so never without the person
+    // seeing the amount and agreeing.
     if (!confirmUpgrade) {
       throw new AppError("Confirm the upgrade charge first.", 409, "UPGRADE_NEEDS_CONFIRMATION");
     }
     const { subscriptionId } = current;
-    // The provider sends subscription.plan_changed, which moves the
-    // assignment to the new plan (applySubscriptionEvent, same subscription).
+    // The provider's subscription.plan_changed moves the assignment to the new plan (applySubscriptionEvent).
     const { paymentUrl } = await callProvider("plan change", () => billing.changePlan(subscriptionId, productId));
     return { url: paymentUrl ?? `${base}?checkout=success` };
   }
@@ -174,9 +171,9 @@ export async function createCheckout(userId: string, planKey: string, confirmUpg
 }
 
 /**
- * Admin changes a user's plan on the real subscription so billing and the app agree. A paid plan
- * switches with nothing charged now (new price from next renewal); Free cancels at period end. Any
- * admin grant is ended. Returns null when the subscription can't be changed (the caller grants).
+ * Admin plan change on the real subscription so billing and the app agree. Paid plans switch with
+ * nothing charged now (new price at next renewal); Free cancels at period end; admin grants end.
+ * Null when it can't be changed (the caller grants).
  */
 export async function adminChangeSubscription(userId: string, planKey: string) {
   if (!getProvider()) return null;
@@ -192,8 +189,7 @@ export async function adminChangeSubscription(userId: string, planKey: string) {
     await callProvider("cancel at period end", () => billing.cancelAtPeriodEnd(sub.subscriptionId));
     outcome = { action: "cancelling", planName: sub.plan.name };
   } else {
-    // Keep their billing interval: someone paying yearly moves to the yearly
-    // version of the chosen plan.
+    // Keep their billing interval: yearly payers move to the yearly version.
     const tier = target.key.replace(/-(monthly|yearly|semi-annual|annual)$/, "");
     const [sameInterval] = await db
       .select()
