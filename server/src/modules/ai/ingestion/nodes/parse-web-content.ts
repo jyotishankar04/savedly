@@ -71,93 +71,73 @@ async function fromSocialPost(
   };
 }
 
-/**
- * The core of the URL capture & preview system (docs/URL_CAPTURE_AND_PREVIEW.md):
- * SSRF-safe fetch -> platform detection -> metadata extraction -> merge with
- * whatever the Chrome extension already submitted -> a preview that's never
- * blank, whether or not the fetch itself succeeded. A failed fetch here
- * never fails the memory — it only ever changes what UpsertVectors records
- * as previewStatus/previewSource, never whether the memory exists.
- */
-export async function parseWebContent(state: IngestionStateType): Promise<IngestionUpdate> {
-  if (!state.url) {
-    logNode(state.memoryId, "parseWebContent", { skipped: "no url" });
-    return { rawContent: "" };
-  }
+type PageContext = { platform: string | null; resourceType: string | null; domain: string };
+type FetchResult = Awaited<ReturnType<typeof fetchUrl>>;
 
-  // A short link (lnkd.in, t.co, redd.it, ...) is read as the page it leads to.
-  const pageUrl = await resolveShortLink(state.url);
-  const { platform, resourceType, domain, hasAuth } = detectPlatform(pageUrl);
+/** A link that is a PDF: its text, with no thumbnail to show. */
+async function fromPdf(state: IngestionStateType, pageUrl: string, fetchResult: FetchResult, binaryData: Buffer, { platform, resourceType, domain }: PageContext): Promise<IngestionUpdate> {
+  const rawContent = await extractPdfContent(
+    binaryData,
+    { userId: state.userId, requestType: "ingestion:pdf_summary", memoryId: state.memoryId },
+    state.caption || undefined,
+  );
+  logNode(state.memoryId, "parseWebContent", { url: pageUrl, fetchStatus: fetchResult.status, kind: "pdf", contentLength: rawContent.length });
+  return {
+    rawContent,
+    platform,
+    resourceType,
+    fetchStatus: fetchResult.status,
+    canonicalUrl: fetchResult.finalUrl ?? pageUrl,
+    // A PDF has no natural thumbnail image, so this stays "partial" —
+    // same as any other link with no OG image today — rather than
+    // claiming an "available" preview that doesn't exist.
+    previewImageUrl: null,
+    faviconUrl: defaultFaviconUrl(pageUrl),
+    previewStatus: "partial",
+    previewSource: "server",
+    sourceDomain: domain || null,
+    previewTitle: null,
+    previewDescription: null,
+  };
+}
 
-  // A social post or video: read from its platform, not as a web page. When
-  // that fails it falls through to the page fetch below, as before.
-  const read = socialExtractorFor(pageUrl);
-  const post = read ? await read(pageUrl).catch(() => null) : null;
-  if (post) return fromSocialPost(state, post, { platform, resourceType, domain });
+/** A link that is a bare image: described by the vision model, and its own thumbnail. */
+async function fromImage(state: IngestionStateType, pageUrl: string, fetchResult: FetchResult, { platform, resourceType, domain }: PageContext): Promise<IngestionUpdate> {
+  const imageUrl = fetchResult.finalUrl ?? pageUrl;
+  const rawContent = await analyzeImage(imageUrl, { userId: state.userId, requestType: "ingestion:vision", memoryId: state.memoryId });
+  logNode(state.memoryId, "parseWebContent", {
+    url: pageUrl,
+    fetchStatus: fetchResult.status,
+    kind: "image",
+    contentLength: rawContent.length,
+  });
+  return {
+    rawContent,
+    platform,
+    resourceType,
+    fetchStatus: fetchResult.status,
+    canonicalUrl: imageUrl,
+    // The URL literally *is* the image — a perfect thumbnail, and this is
+    // what upgrades previewStatus to "available" (upsertVectors then
+    // promotes the memory to "ready" instead of "partial").
+    previewImageUrl: imageUrl,
+    faviconUrl: defaultFaviconUrl(pageUrl),
+    previewStatus: "available",
+    previewSource: "server",
+    sourceDomain: domain || null,
+    previewTitle: null,
+    previewDescription: null,
+  };
+}
 
-  const fetchResult = await fetchUrl(pageUrl);
-
-  // A pasted URL is always mediaType "web" client-side (content-type isn't
-  // knowable before the fetch), so a public PDF or raw image link only ever
-  // reaches RouteMediaType as "web" — this is the one place that can catch
-  // it and extract something real instead of leaving it as a blank page.
-  // Both branches only fire on a genuine 200; any error/blocked/timeout
-  // status falls straight through to the existing HTML-oriented logic below,
-  // unchanged.
-  if (fetchResult.status === "success" && fetchResult.contentType?.includes("application/pdf") && fetchResult.binaryData) {
-    const rawContent = await extractPdfContent(
-      fetchResult.binaryData,
-      { userId: state.userId, requestType: "ingestion:pdf_summary", memoryId: state.memoryId },
-      state.caption || undefined,
-    );
-    logNode(state.memoryId, "parseWebContent", { url: pageUrl, fetchStatus: fetchResult.status, kind: "pdf", contentLength: rawContent.length });
-    return {
-      rawContent,
-      platform,
-      resourceType,
-      fetchStatus: fetchResult.status,
-      canonicalUrl: fetchResult.finalUrl ?? pageUrl,
-      // A PDF has no natural thumbnail image, so this stays "partial" —
-      // same as any other link with no OG image today — rather than
-      // claiming an "available" preview that doesn't exist.
-      previewImageUrl: null,
-      faviconUrl: defaultFaviconUrl(pageUrl),
-      previewStatus: "partial",
-      previewSource: "server",
-      sourceDomain: domain || null,
-      previewTitle: null,
-      previewDescription: null,
-    };
-  }
-
-  if (fetchResult.status === "success" && fetchResult.contentType?.includes("image/")) {
-    const imageUrl = fetchResult.finalUrl ?? pageUrl;
-    const rawContent = await analyzeImage(imageUrl, { userId: state.userId, requestType: "ingestion:vision", memoryId: state.memoryId });
-    logNode(state.memoryId, "parseWebContent", {
-      url: pageUrl,
-      fetchStatus: fetchResult.status,
-      kind: "image",
-      contentLength: rawContent.length,
-    });
-    return {
-      rawContent,
-      platform,
-      resourceType,
-      fetchStatus: fetchResult.status,
-      canonicalUrl: imageUrl,
-      // The URL literally *is* the image — a perfect thumbnail, and this is
-      // what upgrades previewStatus to "available" (upsertVectors then
-      // promotes the memory to "ready" instead of "partial").
-      previewImageUrl: imageUrl,
-      faviconUrl: defaultFaviconUrl(pageUrl),
-      previewStatus: "available",
-      previewSource: "server",
-      sourceDomain: domain || null,
-      previewTitle: null,
-      previewDescription: null,
-    };
-  }
-
+/** An ordinary web page: its text and the preview built from its tags (and from what the extension sent). */
+function fromPage(
+  state: IngestionStateType,
+  pageUrl: string,
+  fetchResult: FetchResult,
+  { platform, resourceType, domain, hasAuth }: PageContext & { hasAuth: boolean },
+  readerWasTried: boolean,
+): IngestionUpdate {
   // `html` is only ever non-empty for "success" or "javascript_required" (see
   // server-fetcher.ts) — a JS-shell SPA page (e.g. a LeetCode profile) still
   // ships a server-rendered <head> with a real <title>, og:* tags, and a
@@ -176,7 +156,7 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
   const preview = buildPreview(serverMetadata, state.browserCapture, { platform, resourceType, domain, hasAuth });
   // A post or video whose reader came back empty (removed, private): its page is the platform's app
   // shell, whose text is menus and footers. Only its preview tags are worth keeping.
-  const rawContent = fetchResult.html && !read ? stripHtml(fetchResult.html).slice(0, MAX_CONTENT_LENGTH) : "";
+  const rawContent = fetchResult.html && !readerWasTried ? stripHtml(fetchResult.html).slice(0, MAX_CONTENT_LENGTH) : "";
 
   logNode(state.memoryId, "parseWebContent", {
     url: pageUrl,
@@ -203,4 +183,48 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
     previewTitle: preview.title,
     previewDescription: preview.description,
   };
+}
+
+/**
+ * The core of the URL capture & preview system (docs/URL_CAPTURE_AND_PREVIEW.md):
+ * SSRF-safe fetch -> platform detection -> metadata extraction -> merge with
+ * whatever the Chrome extension already submitted -> a preview that's never
+ * blank, whether or not the fetch itself succeeded. A failed fetch here
+ * never fails the memory — it only ever changes what UpsertVectors records
+ * as previewStatus/previewSource, never whether the memory exists.
+ */
+export async function parseWebContent(state: IngestionStateType): Promise<IngestionUpdate> {
+  if (!state.url) {
+    logNode(state.memoryId, "parseWebContent", { skipped: "no url" });
+    return { rawContent: "" };
+  }
+
+  // A short link (lnkd.in, t.co, redd.it, ...) is read as the page it leads to.
+  const pageUrl = await resolveShortLink(state.url);
+  const detected = detectPlatform(pageUrl);
+  const { platform, resourceType, domain } = detected;
+
+  // A social post or video: read from its platform, not as a web page. When
+  // that fails it falls through to the page fetch below, as before.
+  const read = socialExtractorFor(pageUrl);
+  const post = read ? await read(pageUrl).catch(() => null) : null;
+  if (post) return fromSocialPost(state, post, { platform, resourceType, domain });
+
+  const fetchResult = await fetchUrl(pageUrl);
+
+  // A pasted URL is always mediaType "web" client-side (content-type isn't
+  // knowable before the fetch), so a public PDF or raw image link only ever
+  // reaches RouteMediaType as "web" — this is the one place that can catch
+  // it and extract something real instead of leaving it as a blank page.
+  // Both branches only fire on a genuine 200; any error/blocked/timeout
+  // status falls straight through to the existing HTML-oriented logic below,
+  // unchanged.
+  if (fetchResult.status === "success" && fetchResult.contentType?.includes("application/pdf") && fetchResult.binaryData) {
+    return fromPdf(state, pageUrl, fetchResult, fetchResult.binaryData, { platform, resourceType, domain });
+  }
+  if (fetchResult.status === "success" && fetchResult.contentType?.includes("image/")) {
+    return fromImage(state, pageUrl, fetchResult, { platform, resourceType, domain });
+  }
+
+  return fromPage(state, pageUrl, fetchResult, detected, !!read);
 }
