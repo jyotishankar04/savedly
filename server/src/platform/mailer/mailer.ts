@@ -22,20 +22,6 @@ export function createTransport(settings: SmtpSettings): Transporter {
   });
 }
 
-let active: { version: number; settings: SmtpSettings; transporter: Transporter | null } | null = null;
-
-async function current() {
-  if (active && active.version === settingsVersion()) return active;
-  const settings = (await getSection("email")) as unknown as SmtpSettings;
-  active = { version: settingsVersion(), settings, transporter: settings.enabled ? createTransport(settings) : null };
-  return active;
-}
-
-/** False on a self-hosted install until an admin sets up SMTP — every email then quietly skips. */
-export async function isEmailEnabled(): Promise<boolean> {
-  return (await current()).settings.enabled;
-}
-
 export interface SendMailInput {
   to: string;
   subject: string;
@@ -47,23 +33,47 @@ export interface SendMailInput {
 }
 
 /**
- * The only place nodemailer is imported outside this file. Deliberately
- * throws on failure rather than swallowing it — this runs inside the email
- * worker, which owns retry/status bookkeeping via BullMQ's own attempts
- * mechanism. Fire-and-forget error handling belongs at the enqueue site
- * (email.service.ts), not here.
+ * The only place nodemailer is imported outside this file. The transport is
+ * rebuilt whenever an admin saves new email settings.
  */
-export async function sendMail(input: SendMailInput): Promise<void> {
-  const { settings, transporter } = await current();
-  if (!transporter) throw new Error("Email isn't configured on this server");
-  await transporter.sendMail({
-    from: `"${settings.fromName}" <${settings.fromAddress}>`,
-    to: input.to,
-    subject: input.subject,
-    html: input.html,
-    // Sent as multipart/alternative: see html-to-text.ts for why.
-    text: htmlToText(input.html),
-    headers: input.headers,
-    replyTo: input.replyTo,
-  });
+export class Mailer {
+  private active: { version: number; settings: SmtpSettings; transporter: Transporter | null } | null = null;
+
+  private async current() {
+    if (this.active && this.active.version === settingsVersion()) return this.active;
+    const settings = (await getSection("email")) as unknown as SmtpSettings;
+    this.active = { version: settingsVersion(), settings, transporter: settings.enabled ? createTransport(settings) : null };
+    return this.active;
+  }
+
+  /** False on a self-hosted install until an admin sets up SMTP — every email then quietly skips. */
+  async isEnabled(): Promise<boolean> {
+    return (await this.current()).settings.enabled;
+  }
+
+  /**
+   * Deliberately throws on failure rather than swallowing it — this runs inside the email
+   * worker, which owns retry/status bookkeeping via BullMQ's own attempts
+   * mechanism. Fire-and-forget error handling belongs at the enqueue site
+   * (email.service.ts), not here.
+   */
+  async send(input: SendMailInput): Promise<void> {
+    const { settings, transporter } = await this.current();
+    if (!transporter) throw new Error("Email isn't configured on this server");
+    await transporter.sendMail({
+      from: `"${settings.fromName}" <${settings.fromAddress}>`,
+      to: input.to,
+      subject: input.subject,
+      html: input.html,
+      // Sent as multipart/alternative: see html-to-text.ts for why.
+      text: htmlToText(input.html),
+      headers: input.headers,
+      replyTo: input.replyTo,
+    });
+  }
 }
+
+const mailer = new Mailer();
+
+export const isEmailEnabled = () => mailer.isEnabled();
+export const sendMail = (input: SendMailInput) => mailer.send(input);
