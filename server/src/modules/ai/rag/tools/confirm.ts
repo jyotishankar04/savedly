@@ -3,17 +3,11 @@ import { cacheRedis } from "../../../../config/redis";
 import { userTimeZone } from "../../../../shared/utils/time-zone";
 import { requireUserId, type RagRuntime } from "./shared";
 
-// Ask asks before it acts.
-//
-// A tool wrapped in confirmFirst() doesn't act when the model calls it. It
-// writes down what it was asked to do and answers "this needs the user's
-// yes". The action runs only on the next turn, and only when that turn's own
-// user message is a confirmation. That check is made here, in code, against
-// the message the user sent (settlePending, called by streamAsk); nothing the
-// model says and nothing inside a saved page can approve an action.
-//
-// What then runs is the input that was written down and shown to the user,
-// not whatever the model passes the second time.
+// Ask asks before it acts. A tool wrapped in confirmFirst() only records what it was asked to do
+// and answers "needs the user's yes". It runs on the next turn, and only if that turn's user
+// message confirms (checked in code by settlePending, so nothing the model says or a saved page
+// contains can approve it). What runs is the input shown to the user, not what the model passes
+// later.
 
 export interface PendingAction {
   id: string;
@@ -46,9 +40,8 @@ const pendingKey = (threadId: string) => `ask:pending:${threadId}`;
 const actionKey = (tool: string, input: unknown) => createHash("sha256").update(`${tool}:${JSON.stringify(input)}`).digest("hex");
 
 /**
- * Ends the description of every tool that asks first. Without it a model
- * tends to ask "shall I?" itself and only then call the tool, which asks
- * again: the user confirms twice.
+ * Ends the description of every ask-first tool. Without it the model asks "shall I?" itself and the
+ * tool asks again, so the user confirms twice.
  */
 export const ASKS_FIRST_NOTE =
   " SAFE TO CALL RIGHT AWAY: this tool never acts on the first call. It shows the user a confirmation card and waits for their yes. So do NOT ask the user for permission yourself before calling it; call it as soon as you know the target, and let the card do the asking.";
@@ -99,9 +92,8 @@ interface Settled {
 const settledByTurn = new Map<string, Settled>();
 
 /**
- * Called once at the start of every question, with the user's own message.
- * Whatever was waiting is taken off the list either way: a yes approves it
- * for this turn only, anything else discards it.
+ * Called at the start of every question with the user's message. Whatever was waiting is cleared
+ * either way: a yes approves it for this turn only.
  */
 export async function settlePending(threadId: string, turnId: string, userMessage: string): Promise<void> {
   let stored: Stored | null = null;
@@ -180,9 +172,8 @@ export function isConfirmationRequest(value: unknown): value is ConfirmationRequ
 }
 
 /**
- * Wraps a tool that changes or removes something. `describe` says what will
- * happen, in the user's terms, and may throw when the request can't be done
- * at all (nothing is then left waiting). `run` does it.
+ * Wraps a tool that changes or removes something. `describe` says what will happen and may throw
+ * when it can't be done; `run` does it.
  */
 export function confirmFirst<I, R>(
   toolName: string,

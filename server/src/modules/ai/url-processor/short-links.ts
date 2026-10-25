@@ -1,9 +1,7 @@
 import { assertSafeUrl } from "./server-fetcher";
 
-// Short links stand for a page somewhere else (lnkd.in for a LinkedIn post,
-// t.co, redd.it, vm.tiktok.com, bit.ly, ...): to read the post they point
-// at, follow them to it first. One redirect chain, each hop checked like any
-// fetch (assertSafeUrl), and only for these services.
+// Short links (lnkd.in, t.co, redd.it, bit.ly, ...) are followed to the page they point at, one
+// redirect chain with each hop checked by assertSafeUrl, only for these services.
 
 const SHORTENERS = new Set([
   "lnkd.in", "t.co", "bit.ly", "tinyurl.com", "ow.ly", "buff.ly", "dlvr.it", "trib.al", "shorturl.at", "cutt.ly", "rebrand.ly", "is.gd", "rb.gy",

@@ -16,9 +16,8 @@ export async function seedRoles() {
 }
 
 /**
- * The rows the app can't run without — roles, default feature flags, default
- * plans. Idempotent (every insert is onConflictDoNothing), so it's safe to run
- * on every boot; the self-hosted container does exactly that (bootstrap.ts).
+ * The rows the app can't run without: roles, default flags and plans. Idempotent, so it runs on
+ * every boot.
  */
 export async function seedCore() {
   await seedRoles();

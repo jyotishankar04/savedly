@@ -6,9 +6,8 @@ export interface OAuthClientCredentials {
 }
 
 /**
- * Google/GitHub OAuth client credentials — from env in hosted production, or
- * from env or Admin -> Infrastructure on a self-hosted install. Null when the
- * provider isn't set up, which hides its sign-in button.
+ * Google/GitHub client credentials: env in hosted production, env or Admin -> Infrastructure when
+ * self-hosted. Null when not set up, which hides the sign-in button.
  */
 export async function getOAuthCredentials(provider: "google" | "github"): Promise<OAuthClientCredentials | null> {
   const section = await getSection(provider === "google" ? "googleAuth" : "githubAuth");

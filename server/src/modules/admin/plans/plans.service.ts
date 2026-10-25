@@ -86,14 +86,9 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
   return Object.entries(all).map(([limitType, limitValue]) => ({ limitType: limitType as PlanLimitType, limitValue }));
 }
 
-// Hosted plans: Free, Lite and Pro. They differ by volume, by how much AI the
-// platform supplies each month (the AI_MONTHLY_* quotas), and by features
-// (FREE/LITE/PRO_FEATURES). The values are starting points an admin edits in
-// Admin -> Plans & Limits without a deploy.
-//
-// Prices are deliberately NOT seeded: paid plans start at 0, which the
-// pricing page shows as "Price coming soon" and checkout refuses, until an
-// admin sets the real price (matching the payment provider's product).
+// Hosted plans (Free, Lite, Pro) differ by volume, monthly AI allowance and features; admins edit
+// the values without a deploy. Prices aren't seeded: paid plans start at 0 ("Price coming soon",
+// checkout refuses) until an admin sets one.
 const LITE_LIMITS = limits({
   [PlanLimitType.STORAGE_MB]: 5 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 50,
@@ -194,17 +189,12 @@ const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
 ];
 
 /**
- * Idempotent (onConflictDoNothing on both the plan and each limit), same
- * pattern as seedDefaultFlags — run via `pnpm db:seed` (src/db/seed.ts), and
- * on every start of a self-hosted container (db/bootstrap.ts). Never overwrites a value an admin has since
- * edited, unlike upsertLimits below (which is deliberately an overwrite,
- * for admin edits).
+ * Idempotent (onConflictDoNothing), run by `pnpm db:seed` and on every self-hosted start. Never
+ * overwrites an admin's edits.
  */
 /**
- * Writes the default plans' names, descriptions, features and limits over
- * what's in the database (inserting any plan that's missing), for moving an
- * existing database onto new defaults — `pnpm db:plans:reset`. Never touches
- * a plan's price, currency, isActive or isDefault, which are admin decisions —
+ * Writes the default plans' names, descriptions, features and limits over the database (inserting
+ * missing plans): `pnpm db:plans:reset`. Never touches price, currency, isActive or isDefault,
  * except that retired plans are switched off.
  */
 export async function resetPlanDefaults(): Promise<string[]> {
@@ -353,10 +343,8 @@ export async function updatePlan(planId: string, input: UpdatePlanInput, adminUs
     const [after] = await tx
       .update(plans)
       .set({
-        // Always present so .set() never receives an empty object — a
-        // limits-only PATCH (the admin UI's per-limit edit, and any
-        // scripted plan-limit update) would otherwise pass nothing here at
-        // all, and Drizzle throws "No values to set" on an empty .set().
+        // Always set, so .set() never gets an empty object (Drizzle throws "No values to set" on a
+        // limits-only PATCH).
         updatedAt: new Date(),
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),

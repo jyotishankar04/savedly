@@ -88,10 +88,8 @@ async function handleOAuthCallback(req: Request, res: Response, exchangeCode: (c
       sendWelcomeEmail(user);
     }
 
-    // Runs on every login, not just signup: an invite that arrives between
-    // account creation and this point would otherwise sit pending until the
-    // next sign-in. Only claims grants when the provider vouched for the
-    // email — see claimPendingGrantsForEmail.
+    // Runs on every login, not just signup, so an invite that arrived in between isn't left
+    // pending. Claims only when the provider vouched for the email.
     await claimPendingGrantsForEmail(user.id, user.email, user.emailVerified).catch(() => {});
 
     const userWithRoles = await getUserWithRoles(user.id);

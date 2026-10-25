@@ -6,31 +6,24 @@ import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
 
 /**
- * A request is not a view. A signed-in visitor reloading the page, a
- * flaky-network retry, and — concretely, the bug this exists to fix —
- * React StrictMode double-invoking a client effect in dev all produce more
- * than one HTTP hit per human visit. Anything from the same viewer inside
- * this window collapses into the view already recorded; only the first hit
- * in a window inserts a row and bumps the counter.
- *
- * 30 minutes is the same "session" boundary most web analytics tools use
- * for this exact reason — a coming-back-later visit is a new view, an
- * immediate refresh isn't.
+ * A request is not a view: reloads, network retries and React StrictMode's double effect each cause
+ * extra hits. Anything from the same viewer within this window collapses into the recorded view;
+ * only the first inserts a row and bumps the counter. 30 minutes is the usual analytics session
+ * boundary.
  */
 const VIEW_DEDUP_WINDOW_MS = 30 * 60 * 1000;
 
 /**
- * Salted per-share, not a global hash of the IP: a viewer's hash can't be
- * correlated across two different shares, and the raw IP is never stored.
- * This is for de-duplicating anonymous visits, not identifying people.
+ * Salted per share, so a viewer can't be correlated across shares, and the raw IP is never stored.
+ * For de-duplicating anonymous visits, not identifying people.
  */
 function hashViewerIp(ip: string, shareId: string): string {
   return crypto.createHash("sha256").update(`${ip}:${shareId}`).digest("hex");
 }
 
 /**
- * Fire-and-forget: recording a view must never slow down or fail a page
- * load. Dedupes by signed-in identity when there is one, else by hashed IP.
+ * Fire-and-forget: recording a view must never slow or fail a page load. Dedupes by signed-in
+ * identity, else by hashed IP.
  */
 export function recordShareView(shareId: string, viewerUserId: string | null, ip: string): void {
   void (async () => {
@@ -105,11 +98,7 @@ export interface DateCount {
   count: number;
 }
 
-/**
- * Sparse — only days that actually had a view, same convention
- * insights.service.ts's getActivity uses. The client fills the gaps to
- * draw a continuous chart.
- */
+/** Sparse: only days with a view (as insights' getActivity does); the client fills the gaps. */
 export async function getShareViewsDaily(userId: string, shareId: string): Promise<DateCount[]> {
   await assertOwnsShare(userId, shareId);
 
@@ -133,13 +122,9 @@ export interface ShareViewerEntry {
 }
 
 /**
- * The "who viewed this" list — owner-only, most recent first.
- *
- * Every row an existing (signed-in) user generated carries their identity;
- * anonymous rows carry neither name nor email and the client renders them
- * as "Anonymous visitor". There's no way to identify an anonymous viewer
- * beyond the hashed IP used for dedup, and that's deliberate — it's not
- * meant to be enough to track someone.
+ * The owner-only "who viewed this" list, most recent first. Signed-in viewers carry their identity;
+ * anonymous rows carry neither name nor email (shown as "Anonymous visitor"), and the hashed IP
+ * isn't enough to track anyone, by design.
  */
 export async function listShareViewers(
   userId: string,

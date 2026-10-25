@@ -3,10 +3,8 @@ import { customType } from "drizzle-orm/pg-core";
 // text-embedding-3-small — keep the schema and the embeddings client in sync.
 export const EMBEDDING_DIMENSIONS = 1536;
 
-// drizzle-orm has no built-in pgvector column type. The `vector` extension's
-// wire format is a plain string like "[0.1,0.2,...]", not JSON — pgvector
-// deliberately doesn't accept a JSON array literal here, hence the manual
-// bracket-join instead of JSON.stringify.
+// drizzle has no pgvector type. The wire format is a string like "[0.1,0.2]", not JSON, hence the
+// manual join.
 export const vector = (name: string, dimensions: number) =>
   customType<{ data: number[] }>({
     dataType() {

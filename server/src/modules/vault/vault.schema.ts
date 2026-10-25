@@ -1,9 +1,7 @@
 import { z } from "zod";
 
-// Digits-only, not a strong-password shape: this is a quick-glance lock for
-// content on your own device, not an account credential. 4–12 covers a
-// phone-style PIN through a short memorable passphrase without pretending
-// to be bcrypt-your-bank-password strength.
+// Digits-only, not a strong-password shape: a quick-glance lock for content on your own device, not
+// an account credential. 4-12 covers a phone PIN through a short passphrase.
 const pinSchema = z.string().min(4, "PIN must be at least 4 characters").max(64);
 
 export const setPinSchema = z.object({

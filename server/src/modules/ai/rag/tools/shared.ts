@@ -22,9 +22,8 @@ export function excerpt(text: string | null | undefined, max: number): string {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * A collection's id from its id or its name (case-insensitive, exact first,
- * then "contains"). Throws a readable error the model can relay when none
- * matches, listing the names it could have meant.
+ * A collection's id from its id or name (case-insensitive, exact first, then "contains"). Throws a
+ * readable error listing candidate names when none match.
  */
 export async function resolveCollectionId(userId: string, nameOrId: string): Promise<{ id: string; name: string }> {
   const collections = await listCollections(userId, { includeSystem: true, isVaulted: false });

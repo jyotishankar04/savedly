@@ -13,12 +13,9 @@ export function startOfCurrentMonth(): Date {
 type UsageCounter = (userId: string, dbClient: DbOrTx) => Promise<number>;
 
 /**
- * How each limit type is counted: one function per type, because each lives
- * on a different table with a different "what counts" rule (e.g. collections
- * only count source='user', AI usage only counts user-initiated Ask queries,
- * not ingestion/embedding background calls — see ai.routes.ts's "ask:"
- * requestType prefix). The Record type makes a new PlanLimitType fail to
- * compile until it has an entry here.
+ * How each limit type is counted: one function per type, since each lives on a different table with
+ * its own rule (collections count source='user'; AI counts only user-initiated Ask queries, see the
+ * "ask:" prefix in ai.routes.ts). A new PlanLimitType fails to compile until it has an entry.
  */
 const USAGE_COUNTERS: Record<PlanLimitType, UsageCounter> = {
   [PlanLimitType.MEMORY_COUNT]: async (userId, dbClient) => {
@@ -101,10 +98,8 @@ const USAGE_COUNTERS: Record<PlanLimitType, UsageCounter> = {
   // running total to report.
   [PlanLimitType.MAX_FILE_MB]: async () => 0,
   [PlanLimitType.PUBLIC_SHARE_COUNT]: async (userId, dbClient) => {
-    // Only links actually set to "public" count against the cap — an
-    // invite-only or password-protected share is gated by a features flag
-    // instead, not by this quota. The `shares` table is imported directly
-    // rather than calling share.service: that module imports this one.
+    // Only links set to "public" count; invite-only or password shares are gated by a feature flag.
+    // `shares` is imported directly because share.service imports this module.
     const [row] = await dbClient
       .select({ value: sql<number>`count(*)::int` })
       .from(shares)

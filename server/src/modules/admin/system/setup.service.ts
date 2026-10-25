@@ -8,10 +8,8 @@ import { getSection } from "../../../platform/instance-settings/instance-setting
 import { getOAuthCredentials } from "../../auth/api";
 import { platformCredential, platformEmbeddingsCredential } from "../../ai/api";
 
-// What a new self-hosted install still has to decide, for the setup panel in
-// the dashboard. AI is the one thing an install can't do without; the others
-// already work with a default (files on this disk, no email, password
-// sign-in), so the admin either sets them up or says the default is fine.
+// What a new self-hosted install still has to decide, for the setup panel. AI is required; the
+// other services work with a default the admin can accept.
 
 export const SETUP_ITEMS = ["ai", "storage", "email", "signIn"] as const;
 export type SetupItemId = (typeof SETUP_ITEMS)[number];

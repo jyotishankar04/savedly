@@ -45,11 +45,8 @@ export const checkGroundingNode: GraphNode<typeof RAGState> = async (state, conf
   // Function replacers: saved text may contain "$&" and the like, which a
   // plain string replacement would read as a pattern.
   const prompt = GROUNDING_CHECK_PROMPT.replace("{toolResults}", () => wrapUntrusted(toolResults, "tool results")).replace("{answer}", () => answer);
-  // Tagged so the streaming layer (ai.service.ts) can filter this internal
-  // structured-output call out of the client-visible stream — without this,
-  // streamEvents() surfaces every chat-model call in the graph, including
-  // this one, and its raw `{"grounded":...}` JSON leaks into the UI as a
-  // second fake assistant message (confirmed live before this fix).
+  // Tagged so ai.service.ts filters this internal call out of the client stream; otherwise its raw
+  // `{"grounded":...}` JSON leaked as a fake assistant message.
   const { grounded } = await groundingModel.invoke(
     prompt,
     withUsage(config, { userId, requestType: "rag:check_grounding", threadId }, { tags: [INTERNAL_EVENT_TAG] }),

@@ -1,10 +1,8 @@
 import { SAVEDLY_UA, decodeEntities } from "./http";
 import type { SocialPost } from "./types";
 
-// A Reddit post, from its own RSS feed (the post page sends bots nothing,
-// and the JSON API wants a login): title, author, date, its text or the link
-// it shares, and its top comments, often the reason it was saved. One
-// request, for the post the person saved, like the link-preview reads.
+// A Reddit post from its RSS feed (the page sends bots nothing and the JSON API wants a login):
+// title, author, text or shared link, and top comments. One request for the saved post.
 
 const TOP_COMMENTS = 5;
 

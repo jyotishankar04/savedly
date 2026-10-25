@@ -41,9 +41,8 @@ export async function listGrants(userId: string, shareId: string): Promise<Grant
 }
 
 /**
- * Always creates a row and always returns the same shape whether or not an
- * account exists for that address — otherwise this endpoint would be an
- * account-enumeration oracle for anyone with a share of their own.
+ * Always creates a row and returns the same shape whether or not an account exists for the address,
+ * so this isn't an account-enumeration oracle for anyone with a share.
  */
 export async function inviteByEmail(userId: string, shareId: string, email: string): Promise<GrantResponse> {
   const share = await loadOwnedShare(userId, shareId);
@@ -119,13 +118,8 @@ export async function revokeGrant(userId: string, shareId: string, grantId: stri
 }
 
 /**
- * Called from the OAuth callback for every login, not just signup — an
- * invite that lands between account creation and this call would otherwise
- * stay pending until the next login.
- *
- * Gated on a provider-verified email: without that check, signing in with a
- * provider that doesn't verify addresses would let anyone claim invites
- * sent to someone else.
+ * Called from the OAuth callback on every login, so an invite that arrived since sign-up isn't left pending.
+ * Gated on a provider-verified email, otherwise a provider that doesn't verify addresses would let anyone claim invites sent to someone else.
  */
 export async function claimPendingGrantsForEmail(
   userId: string,

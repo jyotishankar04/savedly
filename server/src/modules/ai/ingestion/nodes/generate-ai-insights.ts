@@ -14,20 +14,10 @@ interface Insights {
   suggestedTags: string[];
 }
 
-// Adapted from docs/AI_REQUIREMENTS.md's GenerateAIInsights node — extended
-// with DetectContentType's output so a recipe's title reflects its
-// ingredients, a task's summary reflects its due date, etc.
-//
-// `context` (title/domain/URL/caption) exists specifically for the empty-
-// content case: without it, a fetch failure (blocked scraper, JS-only page)
-// left the model nothing to work with but "no content available," and it
-// would write a summary *about the absence of content* ("this page appears
-// to be a placeholder with no content") instead of inferring anything real.
-// That sentence then becomes this memory's `description` AND gets embedded
-// for search — a handful of near-identical "no content" summaries across
-// different memories cluster in embedding space and can outrank genuinely
-// relevant results. The instruction below is the actual fix; `context` just
-// gives the model something better to reach for.
+// Adapted from docs/AI_REQUIREMENTS.md's GenerateAIInsights, extended with DetectContentType's output.
+// `context` (title/domain/URL/caption) covers the empty-content case: without it the model wrote a
+// summary about the absence of content, which was embedded and could outrank real results. The
+// instruction below is the actual fix.
 const prompt = ChatPromptTemplate.fromTemplate(
   `${UNTRUSTED_RULE}
 

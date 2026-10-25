@@ -26,9 +26,8 @@ export async function getStorage(): Promise<StorageDriver> {
 
 
 /**
- * The bytes behind a file URL. Reads our own files straight from storage —
- * a local-disk URL like http://localhost:4000/... isn't reachable the way
- * a public R2 URL is — and falls back to a plain HTTP fetch for anything else.
+ * The bytes behind a file URL. Our own files are read straight from storage (a local-disk URL isn't
+ * reachable like a public R2 URL); anything else is fetched over HTTP.
  */
 export async function readFileUrl(url: string): Promise<Buffer> {
   const storage = await getStorage();
@@ -40,9 +39,8 @@ export async function readFileUrl(url: string): Promise<Buffer> {
 }
 
 /**
- * An image URL an AI provider can actually open. Local-disk files live on a
- * URL only this server can reach, so they're inlined as a data: URL;
- * everything else (a public R2 URL, a web page's og:image) passes through.
+ * An image URL an AI provider can open. Local-disk files are on a URL only this server reaches, so
+ * they're inlined as a data: URL; everything else passes through.
  */
 export async function toModelImageUrl(url: string, mimeType?: string): Promise<string> {
   const storage = await getStorage();

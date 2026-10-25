@@ -5,16 +5,9 @@ import { users } from "./identity";
 import { collections, memories } from "./library";
 import { shareAccessRequestStatusEnum, shareGrantSourceEnum, shareGrantStatusEnum, shareLinkAccessEnum, shareResourceTypeEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 14b. Sharing — one row per shared resource, plus grants and access requests
-//
-// The four sharing "modes" are two orthogonal axes, not one setting:
-//   * shares.linkAccess  — what the *link* does (off / public / ask / password)
-//   * shareGrants        — which specific people have access, regardless of the link
-// So a link can be public while named people are also invited, and a grantee
-// still gets in when the link is switched off. Collapsing these into a single
-// enum would make those combinations unexpressible.
-// -----------------------------------------------------------------------------
+// Sharing: one row per shared resource, plus grants and access requests. Two independent axes:
+// shares.linkAccess (what the link does) and shareGrants (who is invited), so a link can be public
+// while named people are also invited.
 export const shares = pgTable(
   "shares",
   {
@@ -23,10 +16,8 @@ export const shares = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
 
-    // A discriminator plus exactly one populated FK, rather than a single
-    // polymorphic resource_id. Real FKs buy ON DELETE CASCADE, and both
-    // delete paths here are hard deletes — without it, deleting a collection
-    // would leave a live slug pointing at nothing.
+    // A discriminator plus exactly one populated FK, not a polymorphic id: real FKs give ON DELETE
+    // CASCADE, so deleting a collection never leaves a live slug pointing at nothing.
     resourceType: shareResourceTypeEnum("resource_type").notNull(),
     collectionId: uuid("collection_id").references(() => collections.id, { onDelete: "cascade" }),
     memoryId: uuid("memory_id").references(() => memories.id, { onDelete: "cascade" }),
@@ -143,16 +134,9 @@ export const shareAccessRequests = pgTable(
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 14b-2. Share views — one row per de-duplicated view, not per HTTP request
-//
-// A page load is not a view: a signed-in visitor refreshing, a router
-// retry, or (concretely) React StrictMode's dev-mode double-effect all
-// produce more than one request per human visit. share.service.ts's
-// recordShareView only inserts a row (and bumps shares.viewCount) when no
-// row already exists for the same viewer within the dedup window, so the
-// counter reflects visits, not requests.
-// -----------------------------------------------------------------------------
+// Share views: one row per de-duplicated view, not per request. recordShareView inserts only if the
+// viewer has no row within the dedup window (refreshes and StrictMode double effects aren't
+// visits).
 export const shareViews = pgTable(
   "share_views",
   {

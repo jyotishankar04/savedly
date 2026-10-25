@@ -30,18 +30,14 @@ export async function getPlanLimits(planId: string, dbClient: DbOrTx = db): Prom
 }
 
 /**
- * The plan currently in effect for a user: their active, not-yet-expired
- * assignment if one exists, else the plan marked isDefault. Throws if
- * neither exists — a misconfigured deployment (no default plan seeded)
- * should fail loudly here rather than silently letting every limit check
- * pass as unlimited.
+ * The plan in effect for a user: the active, unexpired assignment, else the isDefault plan. Throws
+ * if neither exists, so a deployment with no default plan fails loudly instead of treating every
+ * limit as unlimited.
  */
 /**
- * The plan a user gets right now. With several running at once (a paid
- * subscription and an admin grant), the best one wins — ranked by the
- * plans' sortOrder, newest first on a tie — so a grant can add to what
- * someone pays for but never take it away: what the payment provider says
- * they paid for is always the floor.
+ * The plan a user gets now. With several running (a subscription and an admin grant), the best by
+ * sortOrder wins (newest on a tie), so a grant can add to what someone pays for but never reduce
+ * it.
  */
 export async function resolveEffectivePlan(userId: string, dbClient: DbOrTx = db) {
   const [row] = await dbClient

@@ -19,10 +19,7 @@ export interface UrlFetchResult {
   html: string;
   fetchedAt: string;
   contentType: string | null;
-  // Only populated for a non-HTML "success" response we can actually do
-  // something with today (application/pdf) — null for HTML (parsed into
-  // `html` instead), for every other content-type, and for any non-success
-  // status.
+  // Set only for a non-HTML "success" we can use (application/pdf); null otherwise.
   binaryData: Buffer | null;
 }
 
@@ -38,7 +35,10 @@ export interface PlatformInfo {
   platform: string | null;
   resourceType: string | null;
   domain: string;
-  /** Whether this platform has a configured credential (see getPlatformCredential) — signals that an authenticated fetch path is available, without exposing the credential itself. */
+  /**
+   * Whether this platform has a configured credential (see getPlatformCredential) — signals that an
+   * authenticated fetch path is available, without exposing the credential itself.
+   */
   hasAuth: boolean;
 }
 

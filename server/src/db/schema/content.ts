@@ -3,10 +3,7 @@ import { AnnouncementDisplayMode, WhatsNewKind, RoadmapStatus, BlogPostStatus, A
 import { users } from "./identity";
 import { announcementDisplayModeEnum, announcementTypeEnum, blogPostStatusEnum, roadmapStatusEnum, whatsNewKindEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 21. Announcements Table (launch/update countdowns and banners — a history,
-//     not a singleton; "only one active" is enforced in the service layer)
-// -----------------------------------------------------------------------------
+// Launch/update banners and countdowns. A history; only one active at a time, enforced in the service.
 export const announcements = pgTable(
   "announcements",
   {
@@ -67,13 +64,8 @@ export const blogPosts = pgTable(
   (table) => [index("idx_blog_posts_status_published").on(table.status, table.publishedAt)]
 );
 
-// -----------------------------------------------------------------------------
-// The public roadmap (/roadmap): what's being built now and what's planned
-// next, managed from Admin > Roadmap. No dates, only an order (sortOrder
-// within each status). Shipped work is the changelog, not this table. The
-// slug is made from the first title and never changes, so votes keep their
-// item when the title is edited.
-// -----------------------------------------------------------------------------
+// The public roadmap, ordered by sortOrder within each status. The slug comes from the first title
+// and never changes, so votes survive renames.
 export const roadmapItems = pgTable(
   "roadmap_items",
   {
@@ -112,12 +104,7 @@ export const roadmapVotes = pgTable(
   (table) => [primaryKey({ columns: [table.itemSlug, table.userId] }), index("idx_roadmap_votes_user_id").on(table.userId)]
 );
 
-// -----------------------------------------------------------------------------
-// 21b. What's New Items Table (the cards in the landing page's "What's new"
-//      popup: features that shipped and ones that are coming. Unlike
-//      announcements, any number can be active at once; they show as a
-//      stack, in sort_order.)
-// -----------------------------------------------------------------------------
+// Cards in the "What's new" popup. Any number can be active; they show in sort_order.
 export const whatsNewItems = pgTable(
   "whats_new_items",
   {

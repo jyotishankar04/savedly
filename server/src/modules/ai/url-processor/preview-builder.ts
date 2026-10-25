@@ -13,18 +13,8 @@ function firstNonEmpty(...values: (string | null | undefined)[]): string | null 
 }
 
 /**
- * Single merge-and-decide step: priority is browser capture > server-
- * extracted metadata (itself already og:* > twitter:* > plain HTML, from
- * MetadataExtractor) for every field, then falls through platform-branded
- * artwork and finally a generic "just the domain" card — the real image
- * REAL IMAGE -> BROWSER IMAGE -> PLATFORM FALLBACK -> GENERIC FALLBACK
- * hierarchy the UI renders. Never lets a lower-quality source overwrite a
- * higher-quality one that's already present.
- *
- * `previewSource` here specifically tracks where the *image* came from —
- * that's the field the fallback hierarchy is really about. "user" is not
- * assigned by this pipeline today (reserved for a future manually-edited
- * preview); it exists in the type for that reason.
+ * One merge-and-decide step: browser capture > server metadata (og:* > twitter:* > HTML tags) per field, then platform artwork, then a generic domain card. A lower source never overwrites a higher one.
+ * `previewSource` tracks where the image came from; "user" is reserved for a future manual edit.
  */
 export function buildPreview(
   server: PreviewFields,

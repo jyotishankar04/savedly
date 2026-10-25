@@ -29,10 +29,8 @@ const MANAGED_AI_USED_UP_MESSAGE =
   "You've used this month's included questions. They reset at the start of next month; you can also move to a bigger plan in Settings → Plan & usage.";
 
 /**
- * Why Ask can't answer right now, in the user's terms: the plan's included
- * questions are spent, or AI isn't available at all. Also used by streamAsk
- * to reply before running the graph, since a fixed message returned from a
- * node never reaches the client stream (only model output is streamed).
+ * Why Ask can't answer now, in the user's terms: included questions spent, or no AI. streamAsk also
+ * uses it to reply before the graph runs, since a node's fixed message never reaches the stream.
  */
 export async function askUnavailableMessage(userId: string | null): Promise<string> {
   // Included AI exists for this role but the plan's allowance is spent (or
@@ -49,10 +47,8 @@ export async function askUnavailableMessage(userId: string | null): Promise<stri
 }
 
 /**
- * The conversation as the model should see it: what tools returned from the
- * user's library is fenced as saved content (untrusted.ts). Only the model's
- * view changes; the stored messages, and what the client renders from them,
- * stay as the tools wrote them.
+ * The conversation as the model sees it: tool results from the user's library are fenced as saved
+ * content (untrusted.ts). Stored messages and what the client renders are unchanged.
  */
 export function fenceToolResults(messages: BaseMessage[]): BaseMessage[] {
   return messages.map((message) => {
@@ -80,7 +76,10 @@ function isConfirmationText(text: string): boolean {
   }
 }
 
-/** What the user's own message just settled (tools/confirm.ts). Tool names only: no saved text reaches the system prompt. */
+/**
+ * What the user's own message just settled (tools/confirm.ts). Tool names only: no saved text
+ * reaches the system prompt.
+ */
 function confirmationNote(turnId: string | undefined): string {
   const { approvedTools, cancelled } = turnConfirmation(turnId);
   if (approvedTools.length) {
@@ -102,20 +101,14 @@ export const agentNode: GraphNode<typeof RAGState> = async (state, config) => {
   if (!model) {
     return { messages: [new AIMessage(await askUnavailableMessage(userId))] };
   }
-  // bindTools is typed optional on BaseChatModel (not every implementation
-  // supports tool calling) — every concrete model getChatModel can return
-  // (ChatOpenAI, ChatGroq, ChatAnthropic) does, so this is a safe non-null
-  // assertion.
-  // search_web is only offered when this server has web search set up, so the model never reaches for a tool that can't work.
+  // bindTools is optional on BaseChatModel, but every model getChatModel returns supports it, so
+  // the non-null assertion is safe.
+  // search_web is offered only when web search is set up.
   const webOn = await webSearchAvailable();
   const modelWithTools = model.bindTools!(webOn ? tools : tools.filter((t) => t.name !== "search_web"));
 
-  // Computed per-invocation (not baked into the static prompt string) so
-  // "today" is always the actual day the turn runs on — search_memories_by_date
-  // needs this to resolve relative terms like "yesterday" or "last week"
-  // into the absolute YYYY-MM-DD it requires.
-  // In the user's own time zone, so "tomorrow at 3pm" and "yesterday" mean
-  // what they mean where the user is.
+  // Computed per invocation so "today" is the actual day, which search_memories_by_date needs to
+  // resolve "yesterday" or "last week". In the user's own time zone.
   const timeZone = userId ? await userTimeZone(userId) : "UTC";
   const today = localDate(timeZone);
   const systemPrompt = `${AGENT_SYSTEM_PROMPT}\n\nToday's date is ${today} (right now it's ${localNow(timeZone)}; the user's time zone is ${timeZone}). A time the user gives without a zone is in their time zone: write datetimes with its offset, e.g. ${today}T15:00:00${utcOffset(timeZone)}.`;

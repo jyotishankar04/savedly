@@ -16,23 +16,14 @@ export const users = pgTable(
     status: userStatusEnum("status").notNull().default(UserStatus.ACTIVE),
     emailVerified: boolean("email_verified").notNull().default(false),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
-    // The vault PIN, scrypt-hashed (shared/crypto/scrypt-password.ts) — same
-    // KDF as share-link passwords. Null until the user sets one up. Embedded
-    // as the `pv` claim in the vault-unlock token, so changing the PIN
-    // invalidates every unlock proof already issued, the same trick used for
-    // share-link passwords.
-    // Email + password sign-in (self-hosted installs), scrypt-hashed with
-    // shared/crypto/scrypt-password.ts like the vault PIN. Null for accounts
-    // that only ever signed in through Google/GitHub.
+    // Vault PIN, scrypt-hashed. Embedded as the `pv` claim in unlock tokens, so changing it
+    // invalidates earlier unlocks.
+    // Email + password sign-in hash (scrypt); null for accounts that only use Google or GitHub.
     passwordHash: text("password_hash"),
     vaultPinHash: text("vault_pin_hash"),
     vaultPinUpdatedAt: timestamp("vault_pin_updated_at", { withTimezone: true }),
-    // When a soft account-deletion was requested (status flips to DELETED at
-    // the same time). Null while status !== DELETED. Drives the grace-period
-    // window before account-deletion.job.ts hard-deletes the row — see
-    // modules/account/. Logging back in before the cutoff (auth.service.ts's
-    // findOrCreateUser) clears this and flips status back to ACTIVE,
-    // cancelling the pending wipe.
+    // When account deletion was requested (status becomes DELETED). The grace period before
+    // account-deletion.job.ts removes the row; logging in before the cutoff clears it.
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -260,12 +251,7 @@ export const userOnboarding = pgTable("user_onboarding", {
     .$onUpdate(() => new Date()),
 });
 
-// -----------------------------------------------------------------------------
-// 11. User Settings Table (ai / capture / notifications / appearance toggles)
-// -----------------------------------------------------------------------------
-// No `default_collection_id` column yet — the `collections` table doesn't
-// exist in this schema yet (memory-capture layer, not built). The settings
-// API reports it as always null until that lands.
+// User settings: ai / capture / notifications / appearance toggles.
 export const userSettings = pgTable("user_settings", {
   userId: uuid("user_id")
     .primaryKey()

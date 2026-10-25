@@ -84,8 +84,8 @@ function waitingFor(iso: string, now: Date): string {
 }
 
 /**
- * The weekly email: a few saves from the Inbox that haven't been read yet,
- * each a link into Savedly with where it's from and how long it's waited.
+ * The weekly email: a few unread Inbox saves, each a link into Savedly with its source and how long
+ * it has waited.
  */
 export function weeklyDigestEmailTemplate({
   name,

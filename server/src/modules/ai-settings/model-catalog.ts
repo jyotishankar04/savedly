@@ -2,12 +2,9 @@ import { AiCredentialProvider } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
 import { OPENROUTER_BASE_URL } from "../ai/api";
 
-// OpenRouter publishes a free, keyless catalog of every model it routes to
-// (hundreds of models across dozens of providers) with prices, context
-// length, input modalities and supported parameters. It's the one source that
-// covers every provider, so prices and capabilities come from it instead of a
-// hardcoded list that goes stale. A user's own key is still asked for the
-// exact model IDs it can use (see listProviderModels).
+// OpenRouter's free keyless catalog covers every provider's models, prices and capabilities, so we
+// use it instead of a stale hardcoded list. A user's own key is still asked for the exact IDs it
+// can use.
 
 export interface CatalogModel {
   /** The model ID to enter for this provider. */
@@ -83,8 +80,8 @@ async function loadCatalog(): Promise<{ models: CatalogModel[]; fetchedAt: Date 
 }
 
 /**
- * Held in memory for 10 minutes; concurrent callers share one fetch. On a
- * failed refresh the last good copy is served rather than an error.
+ * Cached in memory for 10 minutes, concurrent callers share one fetch; a failed refresh serves the
+ * last good copy.
  */
 export async function getModelCatalog(): Promise<{ models: CatalogModel[]; fetchedAt: Date }> {
   if (catalogCache && Date.now() - catalogCache.fetchedAt.getTime() < CATALOG_TTL_MS) return catalogCache;
@@ -153,10 +150,8 @@ export interface ProviderModelList {
 }
 
 /**
- * Every model the user's own key can use, from that provider's own list
- * endpoint, enriched with price/capabilities from the catalog where the IDs
- * match. For OpenRouter the catalog itself is the list. `cacheKey` should
- * change when the key changes (e.g. include the credential's updatedAt).
+ * Every model the user's key can use, from the provider's list endpoint, enriched with catalog
+ * prices where IDs match. `cacheKey` should change when the key does.
  */
 export async function listProviderModels(
   provider: AiCredentialProvider,

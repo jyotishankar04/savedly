@@ -10,20 +10,10 @@ import type {
   RemoteCalendarEvent,
 } from "./calendar.types";
 
-// Plain fetch() throughout, no `googleapis` SDK — matches this codebase's
-// existing GitHub-OAuth-via-fetch convention (auth.service.ts) and avoids a
-// heavy dependency for the handful of REST calls this needs.
-//
-// Deliberately a SEPARATE OAuth flow from auth.service.ts's login-only
-// buildGoogleAuthUrl/exchangeGoogleCode: those request scope
-// "openid email profile" with no access_type, so Google never returns a
-// refresh_token there. This module reuses the same GOOGLE_CLIENT_ID/SECRET
-// (Google's incremental-authorization model allows requesting an
-// additional scope in a separate consent flow against the same OAuth
-// client — no new Google Cloud credentials needed, just enabling the
-// Calendar API and approving the calendar.events scope in the GCP console)
-// but with its own callback route and access_type=offline&prompt=consent,
-// which is required to reliably get a refresh_token back.
+// Plain fetch(), no googleapis SDK, like the GitHub OAuth code. A separate OAuth flow from the
+// login-only one, which asks for "openid email profile" with no access_type and never gets a
+// refresh_token. It reuses GOOGLE_CLIENT_ID/SECRET (incremental authorization) with its own
+// callback and access_type=offline&prompt=consent, which reliably returns one.
 
 const GOOGLE_CALENDAR_CALLBACK_URL = `${env.SERVER_URL}/api/v1/integrations/calendar/google/callback`;
 // "openid email" so the userinfo call below can say which Google account
@@ -88,9 +78,8 @@ export async function exchangeGoogleCalendarCode(code: string): Promise<Calendar
 }
 
 /**
- * Which Google account a token belongs to. userinfo needs the "email"
- * scope; connections made before it was requested fall back to the primary
- * calendar's name, which is the account's address unless renamed.
+ * Which Google account a token belongs to. userinfo needs the "email" scope; older connections fall
+ * back to the primary calendar's name.
  */
 export async function getGoogleAccountEmail(accessToken: string): Promise<string | null> {
   const headers = { Authorization: `Bearer ${accessToken}` };

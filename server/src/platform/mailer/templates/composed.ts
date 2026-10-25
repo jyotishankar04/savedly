@@ -5,10 +5,9 @@ import { COLOR, bullets, button, divider, escapeHtml, eyebrow, heading, image, l
 // --- Admin-composed emails ---------------------------------------------------
 
 /**
- * What an admin builds in the composer (Admin > Emails): an optional label
- * and headline, then any number of these blocks in order. Every block maps
- * to one of the components above, so a composed email can only ever look
- * like the rest of the system — there is no HTML to write or get wrong.
+ * What an admin builds in the composer (Admin > Emails): an optional label and headline, then these
+ * blocks in order. Each maps to a component above, so a composed email can't look different from
+ * the rest.
  */
 export type EmailBlock =
   | { type: "text"; text: string }
@@ -54,7 +53,10 @@ function renderBlock(block: EmailBlock, isFirst: boolean): string {
   }
 }
 
-/** The plain-text version of a composed email: what's stored on the campaign and used for the inbox preview line. */
+/**
+ * The plain-text version of a composed email: what's stored on the campaign and used for the inbox
+ * preview line.
+ */
 export function composedEmailToText(content: ComposedEmail): string {
   return content.blocks
     .map((block) => {
@@ -96,7 +98,10 @@ export function withUnsubscribeUrl(html: string, url: string): string {
   return html.split(UNSUBSCRIBE_URL_PLACEHOLDER).join(url);
 }
 
-/** A plain-text email an admin writes (the announcement "notify by email" option): their subject as the headline. */
+/**
+ * A plain-text email an admin writes (the announcement "notify by email" option): their subject as
+ * the headline.
+ */
 export function adminComposedEmailTemplate({ subject, bodyText }: { subject: string; bodyText: string }): EmailContent {
   return composedEmailTemplate({ subject, content: { blocks: [{ type: "text", text: bodyText }] } });
 }

@@ -9,12 +9,9 @@ import type { SendContactInput } from "./contact.schema";
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /**
- * A message from the website's contact page. Saved first, so it's never lost
- * and can be read and answered in Admin > Messages; then a copy goes to the
- * contact address (Admin > Infrastructure > Email) with Reply-To set to the
- * person who wrote, so answering is just pressing Reply. The email is best
- * effort: switched off or failing, the message is still saved and the person
- * still sees it arrive.
+ * A website contact message. Saved first (read and answered in Admin > Messages), then a
+ * best-effort copy is emailed to the contact address with Reply-To set to the sender. If the email
+ * fails, the message is still saved.
  */
 export async function sendContactMessage(input: SendContactInput, userId: string | null): Promise<{ id: string }> {
   const [row] = await db

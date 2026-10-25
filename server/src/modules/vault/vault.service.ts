@@ -16,9 +16,8 @@ export async function getVaultStatus(userId: string): Promise<VaultStatus> {
 }
 
 /**
- * First-time setup needs no current PIN. Changing an existing one does —
- * otherwise anyone with an already-open session (not the vault itself,
- * just the app) could silently swap the PIN out from under the real owner.
+ * First-time setup needs no current PIN; changing one does, otherwise anyone with an open app
+ * session could swap the PIN from under the owner.
  */
 export async function setVaultPin(userId: string, input: SetPinInput): Promise<void> {
   const [row] = await db.select({ vaultPinHash: users.vaultPinHash }).from(users).where(eq(users.id, userId)).limit(1);

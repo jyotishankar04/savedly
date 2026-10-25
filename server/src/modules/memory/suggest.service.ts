@@ -33,9 +33,8 @@ const cache = new Map<string, { at: number; value: PageSuggestion }>();
 const CACHE_MS = 10 * 60 * 1000;
 
 /**
- * Before a save from the extension: which collection and tags fit this page.
- * Shown as chips to tap, never applied by itself. Empty when the user has no
- * AI available (no key, or included AI used up); it never blocks a save.
+ * Before an extension save: which collection and tags fit this page, shown as chips and never
+ * applied by itself. Empty when the user has no AI available; it never blocks a save.
  */
 export async function suggestForPage(userId: string, input: { url: string; title?: string; description?: string }): Promise<PageSuggestion> {
   const key = `${userId}:${input.url}`;

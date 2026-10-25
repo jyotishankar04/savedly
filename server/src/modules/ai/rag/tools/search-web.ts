@@ -22,9 +22,7 @@ const inputSchema = z.object({
 });
 
 /**
- * Web search for Ask, for facts the user's saved memories don't hold: more
- * about something they saved (who made the film, what the app does now), or
- * a lookup they asked for. Counts toward the plan's monthly web lookups. The
+ * Web search for facts the saved memories don't hold. Counts toward the plan's monthly lookups; the
  * answer must say it came from the web (AGENT_SYSTEM_PROMPT, "THE WEB").
  */
 export const searchWebTool = tool(

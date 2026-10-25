@@ -9,10 +9,9 @@ import { weeklyDigestEmailTemplate } from "../../platform/mailer/templates";
 import { logger } from "../../shared/utils/logger";
 import { sendEmail } from "../email/api";
 
-// The weekly email (roadmap: "A weekly email of things to read"): on Sunday
-// morning, in each person's own time zone, a few saves from their Inbox they
-// haven't read yet. On unless turned off in Settings > Notifications
-// (notifyWeeklySummary). Nothing is sent to someone with nothing unread.
+// The weekly email: Sunday morning in each person's time zone, a few unread saves from their Inbox.
+// On unless turned off in Settings > Notifications (notifyWeeklySummary); nothing is sent when
+// nothing is unread.
 
 const QUEUE_NAME = "weekly-digest";
 const JOB_NAME = "sweep";
@@ -51,7 +50,10 @@ function hostOf(url: string | null): string | null {
   }
 }
 
-/** What goes in someone's email: the oldest unread Inbox saves, how many are unread, how many they saved this week. */
+/**
+ * What goes in someone's email: the oldest unread Inbox saves, how many are unread, how many they
+ * saved this week.
+ */
 export async function buildWeeklyDigest(userId: string, now = new Date()) {
   const inbox = and(
     eq(memories.userId, userId),
@@ -103,9 +105,8 @@ export async function sendWeeklyDigestTo(person: { id: string; email: string; na
 }
 
 /**
- * Sends the weekly email to everyone it's Sunday 9:00 for and who hasn't had
- * it this week. Each person is claimed first with one upsert on
- * weekly_digest_sent_at, so two servers sweeping at once never both send it.
+ * Sends the weekly email to everyone it's Sunday 9:00 for who hasn't had it this week. Each person
+ * is claimed first with one upsert on weekly_digest_sent_at, so two servers never both send.
  */
 export async function sendWeeklyDigests(now = new Date(), only?: string[]): Promise<number> {
   const people = await db

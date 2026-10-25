@@ -37,11 +37,8 @@ const resultSchema = z.object({
 export type CreateCalendarEventResult = z.infer<typeof resultSchema>;
 
 /**
- * The agent's write path into the calendar feature — mirrors the "New
- * event" dialog's POST /integrations/calendar/events by calling the exact
- * same service function, so a user asking "add a meeting tomorrow at 3pm"
- * and one filling in the app's own form get identical behavior (saved as a
- * real Savedly memory, pushed to any connected calendar).
+ * The agent's write path into the calendar: calls the same service as the "New event" dialog, so
+ * both behave identically.
  */
 export const createCalendarEventTool = tool(
   confirmFirst(

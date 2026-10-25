@@ -14,12 +14,8 @@ export interface UsageContext {
   threadId?: string | null;
 }
 
-// Google's Gemini API ships an OpenAI-compatibility layer covering chat,
-// vision, and embeddings — reusing ChatOpenAI/OpenAIEmbeddings against this
-// base URL avoids needing a dedicated @langchain/google-genai integration
-// just for one more preset. Anthropic gets a real dedicated client below
-// because its wire format (tool-calling, message shape) isn't OpenAI-
-// compatible at all.
+// Gemini's OpenAI-compatible layer covers chat, vision and embeddings, so
+// ChatOpenAI/OpenAIEmbeddings can be reused instead of a dedicated Google integration.
 const GOOGLE_OPENAI_COMPAT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
@@ -32,12 +28,8 @@ export interface ProviderCredentialInput {
 }
 
 /**
- * The user's own key for a role (Settings -> AI). Every resolver below
- * returns null/[] rather than throwing when nothing is available, because
- * "no key yet" is an expected, common state (a brand-new signup), not a
- * failure — every call site treats that the same way it already treats a
- * flaky provider: skip this enrichment step, never fail the whole
- * memory/request over it.
+ * The user's own key for a role (Settings -> AI). Resolvers return null/[] instead of throwing: "no
+ * key yet" is a normal state, and callers skip that step.
  */
 export async function ownCredential(userId: string, role: AiRole): Promise<ProviderCredentialInput | null> {
   // On a plan with managed AI (AI included), the user's saved keys are kept
@@ -66,21 +58,16 @@ export async function ownCredential(userId: string, role: AiRole): Promise<Provi
   }
 }
 
-/**
- * The one platform-funded exception to BYOK — see .env.example's note above
- * EMBEDDINGS_API_KEY. Returns null when unset, so a deployment that leaves
- * it blank gets exactly the old fully-BYOK embeddings behavior.
- */
+/** The one platform-funded exception to bring-your-own-key (EMBEDDINGS_API_KEY). Null when unset. */
 /** Whether the user has their own key for a role — their own key is never quota-limited. */
 export async function hasOwnCredential(userId: string, role: AiRole): Promise<boolean> {
   return !!(await ownCredential(userId, role));
 }
 
 /**
- * The platform's own key for a chat/vision role — "included AI" for plans
- * with an allowance. Set in Admin -> Infrastructure -> Included AI (or
- * PLATFORM_AI_* in env, which wins). A role left without its own key reuses
- * the Ask (reasoning) key when the provider is the same. Null when the role is off.
+ * The platform's key for a chat/vision role ("included AI"), set in Admin -> Infrastructure or
+ * PLATFORM_AI_* (which wins). A role without its own key reuses the reasoning key when the provider
+ * matches. Null when the role is off.
  */
 export async function platformCredential(role: AiRole.FAST | AiRole.REASONING | AiRole.VISION): Promise<ProviderCredentialInput | null> {
   return platformCredentialFrom(await getSection("includedAi"), role);
@@ -107,9 +94,8 @@ interface ResolvedCredential {
 }
 
 /**
- * The user's own key when they have one; otherwise included AI on the
- * platform's key, when the caller says what the call is for and the plan's
- * quota allows it (plans.service.ts canUseIncludedAi). No purpose = own key only.
+ * The user's own key, else included AI on the platform key when the caller says what the call is
+ * for and the plan's quota allows it. No purpose = own key only.
  */
 export async function resolveCredential(
   userId: string,

@@ -22,18 +22,19 @@ export interface UserWithRoles extends UserRecord {
   onboardingCompleted: boolean;
 }
 
-/** Keeps the stored avatar in sync with the OAuth provider's current one, without clobbering it with a null/missing value. */
+/**
+ * Keeps the stored avatar in sync with the OAuth provider's current one, without clobbering it with
+ * a null/missing value.
+ */
 async function syncAvatar(userId: string, currentAvatarUrl: string | null, providerAvatarUrl: string | null): Promise<void> {
   if (!providerAvatarUrl || providerAvatarUrl === currentAvatarUrl) return;
   await db.update(users).set({ avatarUrl: providerAvatarUrl }).where(eq(users.id, userId));
 }
 
 /**
- * Cancellation mechanism for a pending soft account deletion — logging back
- * in during the grace period IS the undo, no separate cancel button needed.
- * Returns null (do NOT reactivate) once the grace period has elapsed, even
- * if the sweep job hasn't purged the row yet — the caller must treat that
- * as "this account is on its way out", not silently let login succeed.
+ * Logging in during the grace period is the undo for a pending deletion. Returns null once the
+ * grace period has elapsed (even if the sweep hasn't purged the row), and the caller must not let
+ * the login succeed.
  */
 async function reactivateIfWithinGracePeriod(user: UserRecord & { deletedAt?: Date | null }): Promise<UserRecord | null> {
   if (user.status !== UserStatus.DELETED) return null;
@@ -178,7 +179,10 @@ export async function assignAdminRole(userId: string): Promise<void> {
     .onConflictDoNothing({ target: [userRoles.userId, userRoles.roleId] });
 }
 
-/** True until the very first account exists — the self-hosted "create your admin account" screen keys off this. */
+/**
+ * True until the very first account exists — the self-hosted "create your admin account" screen
+ * keys off this.
+ */
 export async function hasAnyUser(): Promise<boolean> {
   const [row] = await db.select({ id: users.id }).from(users).limit(1);
   return !!row;

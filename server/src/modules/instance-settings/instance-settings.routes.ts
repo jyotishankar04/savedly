@@ -3,10 +3,8 @@ import { authenticate } from "../../shared/middlewares/authenticate";
 import { requireAdmin } from "../../shared/middlewares/require-admin";
 import { InstanceSettingsController } from "./instance-settings.controller";
 
-// Mounted at /admin/instance-settings by ../../routes/index.ts. The list is
-// readable on any install (hosted production shows every field as "Set by
-// environment"); saving is refused unless SELF_HOSTED or the section is
-// hostedEditable — see saveSection.
+// Mounted at /admin/instance-settings. The list is readable everywhere (hosted production shows
+// "Set by environment"); saving needs SELF_HOSTED or a hostedEditable section (see saveSection).
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, InstanceSettingsController.list);

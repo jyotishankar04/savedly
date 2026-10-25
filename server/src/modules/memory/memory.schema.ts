@@ -8,10 +8,9 @@ export const attachmentInputSchema = z.object({
   mimeType: z.string().max(100).optional(),
 });
 
-// Mirrors server/src/modules/ai/url-processor/types.ts's BrowserCapturePayload
-// — kept as its own zod shape here (rather than importing) since this is the
-// request-body contract, not the internal pipeline type; size-capped fields
-// only, no raw HTML accepted (docs/URL_CAPTURE_AND_PREVIEW.md).
+// Mirrors BrowserCapturePayload in url-processor/types.ts, kept as its own shape because this is
+// the request contract, not the internal type. Size-capped fields only; no raw HTML
+// (docs/URL_CAPTURE_AND_PREVIEW.md).
 export const browserCaptureInputSchema = z.object({
   title: z.string().max(500).optional(),
   description: z.string().max(2000).optional(),
@@ -39,10 +38,9 @@ export const createMemorySchema = z.object({
   // How this memory was originally captured — defaults to "manual" (web
   // dashboard) in the service layer when omitted.
   captureMethod: z.enum(["server", "extension", "manual", "mobile", "import"]).optional(),
-  // What to do when this is already in the library. "ask": don't save, answer
-  // 409 with the existing memory so the app can ask. "allow": the user said
-  // to save it anyway. Left out (the extension, a share, the API): save it,
-  // and the pipeline's duplicate check leaves a notification.
+  // What to do when this is already in the library. "ask": don't save, answer 409 with the existing
+  // memory. "allow": save anyway. Omitted (extension, share, API): save, and the pipeline's
+  // duplicate check leaves a notification.
   onDuplicate: z.enum(["ask", "allow"]).optional(),
   // A note that's still being written (the full-page editor saves as you
   // type): processed once writing stops, not on this first save.

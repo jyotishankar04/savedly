@@ -1,16 +1,8 @@
-// Where uploaded files live. Two drivers behind one interface:
-//
-// - "s3": any S3-compatible store (Cloudflare R2 in hosted production, AWS S3,
-//   MinIO). The client PUTs straight to the store with a presigned URL; the
-//   bytes never touch this server.
-// - "local": a directory on disk (FILES_DIR, a Docker volume in the
-//   self-hosted docker-compose.yml). The client PUTs to this server's
-//   /api/v1/files/upload/:key with a short-lived signed token, and files are
-//   served from /api/v1/files/:key.
-//
-// Keys are random UUIDs plus the original extension, so a file URL is
-// unguessable in both drivers — the same "anyone with the link" model R2's
-// public bucket already had.
+// Where uploaded files live, behind one interface: "s3" (any S3-compatible store; the client PUTs
+// straight to it with a presigned URL) and "local" (a directory on disk; the client PUTs to
+// /api/v1/files/upload/:key with a signed token, files served from /api/v1/files/:key). Keys are
+// random UUIDs plus the extension, so URLs are unguessable in both: the "anyone with the link"
+// model.
 
 export interface PresignedUpload {
   uploadUrl: string;

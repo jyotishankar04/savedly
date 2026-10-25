@@ -5,10 +5,8 @@ import { UNTRUSTED_RULE, wrapUntrusted } from "../../../untrusted";
 import { logger } from "../../../../../shared/utils/logger";
 import type { SocialPost } from "../../../url-processor";
 
-// A video with captions only in another language (no English track, and
-// YouTube won't translate that kind) gets its transcript translated here, so
-// what's shown, searched and asked about is English. Lines keep their times:
-// they go to the model numbered, in batches, and come back the same way.
+// A video with captions only in another language gets its transcript translated, so what's shown,
+// searched and asked about is English. Lines keep their times (sent numbered, in batches).
 
 const BATCH_LINES = 120;
 const BATCH_TIMEOUT_MS = 60_000;
@@ -40,7 +38,10 @@ async function translateBatch(lines: string[], from: string, usage: UsageContext
   return lines.map((_, i) => byNumber.get(i + 1)!);
 }
 
-/** The transcript in English: as it is when it already is, translated (keeping its times) when it isn't and a model is available, else as it was. */
+/**
+ * The transcript in English: as it is when it already is, translated (keeping its times) when it
+ * isn't and a model is available, else as it was.
+ */
 export async function transcriptInEnglish(transcript: NonNullable<SocialPost["transcript"]>, usage: UsageContext): Promise<NonNullable<SocialPost["transcript"]>> {
   if (isEnglish(transcript.language) || transcript.translatedFrom || !usage.userId) return transcript;
   try {

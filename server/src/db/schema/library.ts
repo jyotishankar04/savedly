@@ -18,12 +18,9 @@ export const collections = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     icon: varchar("icon", { length: 50 }).notNull().default("📁"),
     description: text("description"),
-    // "system" collections (onboarding defaults, AI-suggested groupings) stay
-    // hidden in the UI behind a toggle and never count against the
-    // collection_count plan limit. Conversion is one-way (system -> user
-    // only, via collection.service.ts's convertToUser) — convertedFromSystemAt
-    // being non-null doubles as "already converted," so there's no separate
-    // boolean to drift out of sync.
+    // "system" collections (onboarding defaults, AI groupings) are hidden behind a toggle and never
+    // count against the collection limit. Conversion to "user" is one-way; convertedFromSystemAt
+    // marks it.
     source: collectionSourceEnum("source").notNull().default(CollectionSource.USER),
     convertedFromSystemAt: timestamp("converted_from_system_at", { withTimezone: true }),
     // Hides the whole collection (and cascades isVaulted onto every memory
@@ -79,11 +76,8 @@ export const memories = pgTable(
     // the plan ("Preview unavailable", not "Cloudflare blocked our crawler").
     fetchStatus: text("fetch_status"),
     captureMethod: text("capture_method"),
-    // Duplicate detection (modules/memory/duplicates.ts). Null until checked;
-    // then "none", "pending" (a duplicate was found and the user hasn't
-    // answered) or "kept" (they chose to have both). duplicateOfId is the
-    // older memory this one repeats, with no foreign key: it's a hint that
-    // may outlive the original.
+    // Duplicate detection: null until checked, then "none", "pending" (found, awaiting the user) or
+    // "kept". duplicateOfId has no foreign key: it's a hint that may outlive the original.
     duplicateStatus: varchar("duplicate_status", { length: 16 }),
     duplicateOfId: uuid("duplicate_of_id"),
     // Raw browser-observed metadata from the Chrome extension's
@@ -110,32 +104,20 @@ export const memories = pgTable(
     // notifies, records remindedAt and clears this.
     remindAt: timestamp("remind_at", { withTimezone: true }),
     remindedAt: timestamp("reminded_at", { withTimezone: true }),
-    // Hidden from every normal read path (list/search/graph/insights/share)
-    // until the vault PIN is unlocked — see modules/vault/. Also set true
-    // automatically when the memory belongs to a vaulted collection (see
-    // vault.service.ts's cascade), so hiding a whole collection doesn't
-    // require every read path to also join collection_memories.
+    // Hidden from every normal read until the vault PIN is unlocked. Also set when the memory is in
+    // a vaulted collection, so reads don't need to join collection_memories.
     isVaulted: boolean("is_vaulted").notNull().default(false),
-    // User-set, not AI-inferred — when this memory relates to something on a
-    // specific date/time (a saved event page, a deadline mentioned in a
-    // note). Null means "no event attached." Powers the "Add to calendar"
-    // action, which builds a Google Calendar link or .ics file client-side —
-    // no calendar OAuth involved.
+    // User-set date for something this memory is about; null means none. Powers "Add to calendar"
+    // (a Google link or .ics, no OAuth).
     eventAt: timestamp("event_at", { withTimezone: true }),
     // How long that event runs, in minutes. Null means the 1-hour default —
     // set by the calendar when an event is created, moved or resized there.
     eventDurationMinutes: integer("event_duration_minutes"),
-    // AI-inferred, never user-set — the ingestion pipeline's DetectEvent
-    // node's guess at a date/time this memory is "about," if any. Distinct
-    // from eventAt above (user-owned/confirmed, drives the real calendar
-    // actions) — a suggestion becomes eventAt only when the user explicitly
-    // confirms via the detection prompt, through the normal updateMemory
-    // path. Never written there automatically.
+    // AI-guessed date from DetectEvent, never user-set. It becomes eventAt only when the user
+    // confirms, through updateMemory.
     suggestedEventAt: timestamp("suggested_event_at", { withTimezone: true }),
-    // 0.0-1.0 confidence from DetectEvent. Null when no event was detected.
-    // Only clearing EVENT_DETECTION_CONFIDENCE_THRESHOLD (memory.notify.ts)
-    // triggers the notification/email/popup fan-out — a lower-confidence
-    // guess is still stored here, but stays silent.
+    // 0.0-1.0 confidence from DetectEvent. Only values over EVENT_DETECTION_CONFIDENCE_THRESHOLD
+    // trigger notifications; lower guesses are stored silently.
     eventDetectionConfidence: real("event_detection_confidence"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -152,17 +134,13 @@ export const memories = pgTable(
     resourceCategory: text("resource_category"),
     inferredIntent: text("inferred_intent"),
     intentConfidence: real("intent_confidence"),
-    // Open-vocabulary content type (e.g. "recipe", "task", "quote" — not
-    // constrained to a fixed enum, unlike resourceCategory) plus whatever
-    // structured fields the DetectContentType node pulled out of the raw
-    // text for that type (e.g. a recipe's ingredients, a task's due date).
+    // Open-vocabulary content type ("recipe", "task", ...) plus the structured fields
+    // DetectContentType pulled out for it.
     contentType: text("content_type"),
     extractedFields: jsonb("extracted_fields"),
-    // What the research step looked up on the web to understand this memory
-    // (a bare name like a film or a book): the query, what it found, and the
-    // pages, shown under "What Savedly understood". Null when it didn't search.
-    // Every highlight's passage and note, kept by the highlights service, so the
-    // keyword search (fts_tokens' trigger) finds a memory by what was highlighted.
+    // What the web research step found for this memory (shown under "What Savedly understood");
+    // null when it didn't search.
+    // Every highlight's passage and note, so keyword search finds a memory by what was highlighted.
     highlightsText: text("highlights_text"),
     webResearch: jsonb("web_research").$type<{ query: string; findings: string; kind: string | null; sources: { title: string; url: string }[]; at: string }>(),
   },

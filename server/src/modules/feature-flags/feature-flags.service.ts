@@ -6,9 +6,8 @@ import type { UpdateFlagInput } from "./feature-flags.schema";
 import { FlagCache } from "./flag-cache";
 
 /**
- * Reserved, dot-namespaced keys the app itself consumes (auth gating, the
- * maintenance guard). Anything else is a free-form flag an admin can add —
- * this table has no fixed column set, so new flags never need a migration.
+ * Reserved dot-namespaced keys the app consumes (auth gating, maintenance guard). Any other key is
+ * a free-form admin flag; new flags need no migration.
  */
 export const RESERVED_FLAG_KEYS = {
   AUTH_GOOGLE_ENABLED: "auth.google.enabled",
@@ -108,14 +107,10 @@ export async function seedDefaultFlags(): Promise<void> {
   await releaseGoogleCalendarHold();
 }
 
-// The hosted service once switched new Google Calendar connections off while
-// Google reviewed its access to calendars. Google's reviewers have to be able
-// to connect a calendar to finish that review, so the switch is turned back on
-// here, once. While the OAuth app is still unverified only the test users
-// listed in Google Cloud can connect; everyone else is stopped by Google.
-//
-// Applied a single time, so an admin can still turn "Google Calendar" off (or
-// on) in Admin > Features afterwards and it stays that way across restarts.
+// The hosted service switched new Google Calendar connections off during Google's review, whose
+// reviewers must be able to connect. This turns it back on once; afterwards an admin's choice in
+// Admin > Features persists across restarts. While the OAuth app is unverified only Google Cloud
+// test users can connect.
 const GOOGLE_CALENDAR_RELEASE_KEY = "holds.google_calendar_review.released";
 
 async function releaseGoogleCalendarHold(): Promise<void> {
@@ -139,10 +134,9 @@ export async function listFlags() {
   return db.select().from(featureFlags).orderBy(featureFlags.category, featureFlags.key);
 }
 
-// Flags are read on every request (the maintenance check alone runs for each
-// one), so values are kept in memory briefly. One process runs the API and
-// every worker, so updateFlag clearing the map is enough to apply a change
-// at once; the TTL only covers a flag edited directly in the database.
+// Flags are read on every request, so values are cached briefly. One process runs the API and
+// workers, so updateFlag clearing the map applies a change at once; the TTL only covers direct
+// database edits.
 const flagCache = new FlagCache(15_000);
 
 async function getFlagValue<T>(key: string, fallback: T): Promise<T> {
@@ -188,11 +182,7 @@ export async function isProviderEnabled(provider: "google" | "github"): Promise<
   return getFlagValue<boolean>(key, true);
 }
 
-/**
- * Always on for a self-hosted install — it's how the first admin gets in
- * without setting up OAuth — and in local development, for the same reason:
- * a contributor can sign up with an email and password straight after cloning.
- */
+/** Always on when self-hosted (it's how the first admin gets in without OAuth) and in local development. */
 export async function isPasswordAuthEnabled(): Promise<boolean> {
   if (env.SELF_HOSTED || env.NODE_ENV === "development") return true;
   return getFlagValue<boolean>(RESERVED_FLAG_KEYS.AUTH_PASSWORD_ENABLED, false);

@@ -3,21 +3,8 @@ import { ContactMessageStatus, EmailStatus, ReportStatus } from "../enums";
 import { users } from "./identity";
 import { contactMessageStatusEnum, emailCategoryEnum, emailStatusEnum, emailTemplateKeyEnum, reportStatusEnum, reportTypeEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 27. (Removed: Transactions, Coupons, Coupon Redemptions, Referral Codes,
-//     Referral Conversions, Credit Ledger, User Credit Balances — this
-//     product has no billing, so there's nothing for any of them to
-//     record. plans/planLimits/userPlanAssignments above stayed: they're
-//     what grants everyone the single unlimited free plan, not a
-//     paid-tier mechanism.)
-// -----------------------------------------------------------------------------
 
-// -----------------------------------------------------------------------------
-// 34. Email Campaigns Table (one row per admin bulk-compose action — the
-//     subject/body were composed once and fanned out to N recipients, each
-//     tracked as its own email_messages row below. Every automatic/system
-//     email (welcome, ban notice, share events) has no campaign at all.)
-// -----------------------------------------------------------------------------
+// One row per admin bulk email, fanned out to N email_messages rows. Automatic emails have no campaign.
 export const emailCampaigns = pgTable(
   "email_campaigns",
   {
@@ -35,12 +22,8 @@ export const emailCampaigns = pgTable(
   (table) => [index("idx_email_campaigns_created").on(table.createdAt)]
 );
 
-// -----------------------------------------------------------------------------
-// 35. Email Messages Table (one row per individual send attempt — system-
-//     triggered or part of a campaign — this is what the BullMQ email
-//     worker loads by id and updates as it sends. The single source of
-//     truth for delivery status; Mailhog/SMTP holds no state of its own.)
-// -----------------------------------------------------------------------------
+// One row per send attempt, the single source of truth for delivery status. The email worker loads
+// and updates it by id.
 export const emailMessages = pgTable(
   "email_messages",
   {
@@ -113,12 +96,8 @@ export const messageReplies = pgTable(
   (table) => [index("idx_message_replies_target").on(table.kind, table.targetId, table.createdAt)]
 );
 
-// -----------------------------------------------------------------------------
-// 38. Reports Table (bug reports and feature requests submitted from the
-//     public /report page — no auth required, but userId is captured when
-//     the submitter happens to be signed in. No admin UI reads this yet;
-//     it's reviewable directly via drizzle-kit studio until one exists.)
-// -----------------------------------------------------------------------------
+// Bug reports and feature requests from the public /report page (userId set when signed in). No
+// admin UI yet; use drizzle-kit studio.
 export const reports = pgTable(
   "reports",
   {

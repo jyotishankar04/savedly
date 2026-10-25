@@ -6,10 +6,8 @@ import { assertFeature } from "../plans/api";
 import type { BatchDeleteInput, BatchMoveToCollectionInput, BatchRestoreInput, BatchResult, BatchTagInput, BatchUncollectInput, BatchReadInput, BatchRemindInput, BatchUpdateStatusInput } from "./batch.schema";
 
 /**
- * Add or remove tags from multiple memories. Mode:
- * - "add": union with existing tags
- * - "remove": remove specified tags only
- * - "replace": set tags exactly (remove all others)
+ * Add or remove tags on several memories. Mode: "add" (union), "remove" (only those), "replace"
+ * (set exactly).
  */
 export async function batchTagMemories(userId: string, input: BatchTagInput): Promise<BatchResult> {
   const result: BatchResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
@@ -74,9 +72,8 @@ export async function batchTagMemories(userId: string, input: BatchTagInput): Pr
 }
 
 /**
- * Move or add memories to a collection. Mode:
- * - "add": keep existing collections, add this one
- * - "move": remove from all other collections first
+ * Move or add memories to a collection. Mode: "add" keeps existing collections; "move" removes the
+ * others first.
  */
 export async function batchMoveToCollection(userId: string, input: BatchMoveToCollectionInput): Promise<BatchResult> {
   const result: BatchResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
@@ -133,10 +130,7 @@ export async function batchMoveToCollection(userId: string, input: BatchMoveToCo
   return result;
 }
 
-/**
- * Move memories to trash or permanently delete. Permanent deletion is
- * irreversible and archives all associated data.
- */
+/** Moves memories to Trash or deletes them permanently (irreversible, with all associated data). */
 export async function batchDeleteMemories(userId: string, input: BatchDeleteInput): Promise<BatchResult> {
   const result: BatchResult = { processed: 0, succeeded: 0, failed: 0, errors: [] };
 

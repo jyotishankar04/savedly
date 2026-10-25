@@ -39,10 +39,7 @@ function planKeyForProduct(productId: string): string | null {
   return Object.entries(env.DODO_PRODUCT_IDS).find(([, id]) => id === productId)?.[0] ?? null;
 }
 
-/**
- * Verifies and applies one provider webhook. Idempotent on the delivery id:
- * a replayed or duplicated event is recorded once and applied once.
- */
+/** Verifies and applies one provider webhook, idempotent on the delivery id. */
 export async function handleWebhook(rawBody: string, headers: Record<string, string>): Promise<void> {
   const billing = requireProvider();
 
@@ -62,10 +59,8 @@ export async function handleWebhook(rawBody: string, headers: Record<string, str
     .returning({ id: billingEvents.id });
   if (!fresh) return; // already handled
 
-  // Deliveries arrive late and out of order (a retried "active" can land after
-  // a later "plan_changed"), so the event only says which subscription
-  // changed: what's applied is how the provider has it right now. If that
-  // read fails, the event itself is the best there is.
+  // Deliveries arrive late and out of order, so the event only says which subscription changed;
+  // what's applied is the provider's current state. If that read fails, the event itself is used.
   const delivered = event;
   const latest = await billing.getSubscription(delivered.subscriptionId).catch((err) => {
     logger.warn({ err, subscriptionId: delivered.subscriptionId }, "[billing] couldn't re-read subscription; using the event");
@@ -83,10 +78,8 @@ export async function handleWebhook(rawBody: string, headers: Record<string, str
 }
 
 /**
- * Reads the user's live subscriptions from the provider and applies them —
- * what the billing page calls on the way back from checkout, so the new plan
- * shows even if the webhook is slow or lost. Safe to call any time: applying
- * the same subscription again only refreshes its assignment.
+ * Reads the user's live subscriptions from the provider and applies them. The billing page calls it
+ * after checkout so the plan shows even if the webhook is slow. Safe to repeat.
  */
 export async function syncSubscriptions(userId: string): Promise<{ applied: number }> {
   const billing = requireProvider();
@@ -150,10 +143,8 @@ async function applySubscriptionEvent(userId: string, planId: string, event: Sub
   const now = new Date();
 
   await db.transaction(async (tx) => {
-    // Providers often send several events for one subscription at the same
-    // instant (Dodo sends subscription.active and .renewed together).
-    // Serializing per subscription stops two handlers from both seeing "no
-    // assignment yet" and inserting one each.
+    // Providers send several events for one subscription at once (Dodo sends .active and .renewed
+    // together); serializing per subscription stops two handlers each inserting an assignment.
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`billing:${event.subscriptionId}`}))`);
 
     const refMatch = and(

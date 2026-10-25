@@ -4,11 +4,9 @@ import { ApiResponse } from "../../shared/response/api-response";
 import { ACCESS_TOKEN_COOKIE } from "../../shared/utils/cookies";
 import { verifyAccessToken } from "../../shared/utils/jwt";
 
-// /announcements and /maintenance are public, read-only, and consumed by the
-// marketing site itself — which stays fully usable during maintenance.
-// /billing/webhook must stay reachable too — Stripe's retries don't know or
-// care that maintenance mode is on, and blocking them just delays a plan
-// assignment that already succeeded on Stripe's side.
+// /announcements and /maintenance are public read-only data for the marketing site, which stays
+// usable. /billing/webhook must stay reachable: provider retries don't know about maintenance mode,
+// and blocking them only delays a plan change that already succeeded.
 const BYPASS_PATH_PREFIXES = ["/health", "/config", "/admin", "/auth", "/announcements", "/whats-new", "/maintenance", "/billing/webhook", "/email"];
 
 function extractToken(req: Request): string | null {
@@ -32,10 +30,9 @@ function requestIsFromAdmin(req: Request): boolean {
 }
 
 /**
- * Mounted early in routes/index.ts, before the per-module route mounts.
- * When maintenance mode is on, blocks everything except health/admin/auth
- * routes and requests already carrying an admin token — so an admin can
- * still log in and turn it back off.
+ * Mounted early in routes/index.ts. In maintenance mode it blocks everything except
+ * health/admin/auth routes and requests with an admin token, so an admin can log in and turn it
+ * off.
  */
 export async function maintenanceMode(req: Request, res: Response, next: NextFunction) {
   if (BYPASS_PATH_PREFIXES.some((prefix) => req.path.startsWith(prefix))) {

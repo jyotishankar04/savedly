@@ -3,10 +3,8 @@ import { users } from "./identity";
 import { memories } from "./library";
 import { calendarProviderEnum } from "./pg-enums";
 
-// Calendar write-access tokens, distinct from authIdentities (login).
-// One live connection per (user, provider) — reconnecting overwrites rather
-// than accumulating rows. Tokens are AES-256-GCM ciphertext (see
-// shared/crypto/token-cipher.ts), never plaintext at rest.
+// Calendar write-access tokens, separate from login identities. One connection per (user,
+// provider); tokens are AES-256-GCM ciphertext.
 export const calendarConnections = pgTable(
   "calendar_connections",
   {
@@ -67,10 +65,8 @@ export const githubConnections = pgTable(
   (table) => [uniqueIndex("uq_github_connections_user").on(table.userId)],
 );
 
-// One row per memory×provider event actually created via the API — keeps a
-// memory from being double-pushed to the same calendar, and lets a future
-// "remove event" action find the remote id. Distinct from
-// calendarConnections (auth) and memories.eventAt (the date itself).
+// One row per memory and provider event created through the API, so a memory isn't pushed twice and
+// its remote event can be found later.
 export const calendarEventLinks = pgTable(
   "calendar_event_links",
   {

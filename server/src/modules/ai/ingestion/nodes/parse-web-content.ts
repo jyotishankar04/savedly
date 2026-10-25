@@ -17,7 +17,8 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-// A post with this little text is mostly its picture: the picture is described, so search and Ask find it by what's in it.
+// A post with this little text is mostly its picture: the picture is described, so search and Ask
+// find it by what's in it.
 const SHORT_POST_CHARS = 280;
 
 async function fromSocialPost(
@@ -31,7 +32,8 @@ async function fromSocialPost(
   // A cover the person picked in the extension stays theirs.
   const imageUrl = state.browserCapture?.imageUrl ?? postImage;
 
-  // Always English: a transcript with no English track is translated (and the post's text and search use that).
+  // Always English: a transcript with no English track is translated (and the post's text and
+  // search use that).
   if (post.transcript) post = { ...post, transcript: await transcriptInEnglish(post.transcript, { userId: state.userId, requestType: "ingestion:transcript_translate", memoryId: state.memoryId }) };
 
   let rawContent = postAsText(post);
@@ -138,17 +140,9 @@ function fromPage(
   { platform, resourceType, domain, hasAuth }: PageContext & { hasAuth: boolean },
   readerWasTried: boolean,
 ): IngestionUpdate {
-  // `html` is only ever non-empty for "success" or "javascript_required" (see
-  // server-fetcher.ts) — a JS-shell SPA page (e.g. a LeetCode profile) still
-  // ships a server-rendered <head> with a real <title>, og:* tags, and a
-  // favicon <link>, even though its <body> needs a browser to render. Gating
-  // this on status === "success" threw all of that away and left every
-  // preview field — including the favicon — null for any client-rendered page.
-  //
-  // Even when there's no HTML at all (blocked, timeout, robots-disallowed,
-  // ...) the origin's `/favicon.ico` is still a reasonable guess — every
-  // browser falls back to the same thing — so that field alone doesn't need
-  // real HTML to have a value.
+  // `html` is non-empty for "success" and "javascript_required": a JS-shell page still ships a real
+  // <head> (title, og:*, favicon), so don't gate this on success. With no HTML at all, the origin's
+  // /favicon.ico is still a fair guess.
   const serverMetadata = fetchResult.html
     ? extractServerMetadata(fetchResult.html, fetchResult.finalUrl ?? pageUrl)
     : { title: null, description: null, imageUrl: null, canonicalUrl: null, faviconUrl: defaultFaviconUrl(pageUrl) };
@@ -186,12 +180,9 @@ function fromPage(
 }
 
 /**
- * The core of the URL capture & preview system (docs/URL_CAPTURE_AND_PREVIEW.md):
- * SSRF-safe fetch -> platform detection -> metadata extraction -> merge with
- * whatever the Chrome extension already submitted -> a preview that's never
- * blank, whether or not the fetch itself succeeded. A failed fetch here
- * never fails the memory — it only ever changes what UpsertVectors records
- * as previewStatus/previewSource, never whether the memory exists.
+ * The core of URL capture and preview (docs/URL_CAPTURE_AND_PREVIEW.md): safe fetch, platform
+ * detection, metadata, merge with what the extension sent, and a preview that's never blank. A
+ * failed fetch never fails the memory.
  */
 export async function parseWebContent(state: IngestionStateType): Promise<IngestionUpdate> {
   if (!state.url) {
@@ -212,13 +203,8 @@ export async function parseWebContent(state: IngestionStateType): Promise<Ingest
 
   const fetchResult = await fetchUrl(pageUrl);
 
-  // A pasted URL is always mediaType "web" client-side (content-type isn't
-  // knowable before the fetch), so a public PDF or raw image link only ever
-  // reaches RouteMediaType as "web" — this is the one place that can catch
-  // it and extract something real instead of leaving it as a blank page.
-  // Both branches only fire on a genuine 200; any error/blocked/timeout
-  // status falls straight through to the existing HTML-oriented logic below,
-  // unchanged.
+  // A pasted URL is always "web" client-side, so a public PDF or image link is only caught here.
+  // Both branches fire on a genuine 200; anything else falls through to the HTML logic below.
   if (fetchResult.status === "success" && fetchResult.contentType?.includes("application/pdf") && fetchResult.binaryData) {
     return fromPdf(state, pageUrl, fetchResult, fetchResult.binaryData, { platform, resourceType, domain });
   }

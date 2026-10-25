@@ -1,6 +1,10 @@
-// How collection names are compared, so near-duplicates are recognised (used when the AI files a save, when Ask finds a collection by name, and in the extension's suggestions).
+// How collection names are compared, so near-duplicates are recognised (used when the AI files a
+// save, when Ask finds a collection by name, and in the extension's suggestions).
 
-/** A rough English singular, enough to line up "Taxes"/"Tax", "Glasses"/"Glass" and "Birthdays"/"Birthday". */
+/**
+ * A rough English singular, enough to line up "Taxes"/"Tax", "Glasses"/"Glass" and
+ * "Birthdays"/"Birthday".
+ */
 function singular(word: string): string {
   if (word.length <= 3) return word;
   if (/(ss|x|z|ch|sh)es$/.test(word)) return word.slice(0, -2);
@@ -9,9 +13,8 @@ function singular(word: string): string {
 }
 
 /**
- * A comparable form of a collection name, so "Birthdays", "birthday" and
- * "Meetings & Scheduling" / "meeting and scheduling" count as the same
- * collection instead of becoming near-duplicates.
+ * A comparable form of a collection name, so "Birthdays" and "birthday", or "Meetings & Scheduling"
+ * and "meeting and scheduling", count as one.
  */
 export function collectionNameKey(name: string): string {
   return name

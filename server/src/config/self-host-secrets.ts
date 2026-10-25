@@ -2,11 +2,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 
-// The signing/encryption secrets a self-hosted install needs but that nobody
-// should have to invent by hand. Each one is generated once, on first boot,
-// into SECRETS_DIR/secrets.json (a Docker volume in docker-compose.yml) and
-// reloaded on every later boot, so sessions, vault unlocks and encrypted API
-// keys survive restarts and upgrades. An explicit env var always wins.
+// Secrets a self-hosted install generates on first boot into SECRETS_DIR/secrets.json and reloads
+// on later boots, so sessions, vault unlocks and encrypted keys survive restarts. An explicit env
+// var wins.
 const GENERATED_SECRETS = [
   "JWT_ACCESS_SECRET",
   "JWT_REFRESH_SECRET",
@@ -23,9 +21,8 @@ function generate(key: (typeof GENERATED_SECRETS)[number]): string {
 }
 
 /**
- * Runs before env.ts parses process.env, and only when SELF_HOSTED=true —
- * hosted production must set every secret explicitly and fail fast if one is
- * missing, never silently mint its own.
+ * Runs before env.ts parses, and only when SELF_HOSTED=true. Hosted production must set every
+ * secret explicitly.
  */
 export function loadSelfHostSecrets(): void {
   if (process.env.SELF_HOSTED !== "true") return;

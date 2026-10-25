@@ -10,7 +10,11 @@ import { hasOwnCredential, platformCredential, testRoleCredential, type TestCred
 import { getCurrentUsage, getPlanLimits, isWithinLimit, planHasManagedAi, resolveEffectivePlan } from "../plans/api";
 import type { AssignRoleInput, CreateCredentialInput, TestConnectionInput, UpdateCredentialInput } from "./ai-settings.schema";
 
-/** Which roles the platform covers by default, without any user-configured key — right now just embeddings (see .env.example). Surfaced so the settings UI can show "provided by default" instead of "not set". */
+/**
+ * Which roles the platform covers by default, without any user-configured key — right now just
+ * embeddings (see .env.example). Surfaced so the settings UI can show "provided by default" instead
+ * of "not set".
+ */
 export function getPlatformDefaults(): Record<AiRole, boolean> {
   return {
     [AiRole.FAST]: false,
@@ -96,7 +100,10 @@ export async function updateCredential(userId: string, id: string, input: Update
   return toCredentialSummary(row);
 }
 
-/** Cascades to any role assignment using this credential (FK ON DELETE CASCADE) — that role simply becomes unconfigured again. */
+/**
+ * Cascades to any role assignment using this credential (FK ON DELETE CASCADE) — that role simply
+ * becomes unconfigured again.
+ */
 export async function deleteCredential(userId: string, id: string): Promise<void> {
   await requireOwnedCredential(userId, id);
   await db.delete(aiCredentials).where(eq(aiCredentials.id, id));
@@ -118,12 +125,9 @@ export async function listRoleAssignments(userId: string): Promise<RoleAssignmen
 }
 
 /**
- * Always runs a live test call against the provider before saving — a role
- * assignment that can't actually be reached (bad key, wrong model name, a
- * non-1536-dim embedding model) is worse than no assignment at all, since
- * every ingestion/RAG call site treats "configured" as "safe to call
- * without checking again." Upserts on (userId, role) — reassigning a role
- * just replaces the previous credential/model pair.
+ * Always runs a live test call before saving: an unreachable role (bad key, wrong model,
+ * non-1536-dim embeddings) is worse than none, since call sites treat "configured" as safe. Upserts
+ * on (userId, role).
  */
 export async function assignRole(userId: string, role: AiRole, input: AssignRoleInput): Promise<RoleAssignmentSummary> {
   await assertCanManageKeys(userId);
@@ -181,23 +185,29 @@ export async function listCredentialModels(userId: string, id: string): Promise<
   );
 }
 
-// ---------------------------------------------------------------------------
-// Where this account's AI comes from — drives Settings -> AI and every AI
-// surface's "is Ask available?" check.
-// ---------------------------------------------------------------------------
+// Where this account's AI comes from; drives Settings -> AI and every "is Ask available?" check.
 
 export type AiSource = "own" | "included" | "none";
 
 export interface AiStatus {
-  /** managed: the plan supplies all AI (AI included). ownKey: the user brings keys, maybe with a small included allowance. */
+  /**
+   * managed: the plan supplies all AI (AI included). ownKey: the user brings keys, maybe with a
+   * small included allowance.
+   */
   mode: "managed" | "own-key";
   roles: Record<"fast" | "reasoning" | "vision", AiSource>;
-  /** The plan's monthly included-AI allowance (null limit = unlimited), or null when the plan includes none. */
+  /**
+   * The plan's monthly included-AI allowance (null limit = unlimited), or null when the plan
+   * includes none.
+   */
   included: {
     saves: { limit: number | null; used: number };
     questions: { limit: number | null; used: number };
   } | null;
-  /** Whether this server has its own AI keys set up (Admin -> Infrastructure -> Included AI), so included AI can actually run. */
+  /**
+   * Whether this server has its own AI keys set up (Admin -> Infrastructure -> Included AI), so
+   * included AI can actually run.
+   */
   includedReady: boolean;
   askAvailable: boolean;
   /** Why Ask is unavailable: no key and no included AI, or this month's included questions are used up. */

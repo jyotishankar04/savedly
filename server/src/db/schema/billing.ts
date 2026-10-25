@@ -3,12 +3,8 @@ import { PlanAssignmentStatus, PlanBillingInterval } from "../enums";
 import { users } from "./identity";
 import { planAssignmentSourceEnum, planAssignmentStatusEnum, planBillingIntervalEnum, planLimitTypeEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 20c. Billing (hosted only — modules/billing)
-//     billing_customers: the payment provider's customer id per user, needed
-//     to open the provider's billing portal. billing_events: every webhook
-//     event id already handled, so a replayed delivery is a no-op.
-// -----------------------------------------------------------------------------
+// Billing, hosted only. billing_customers: the provider's customer id per user. billing_events:
+// handled webhook ids, so a replay is a no-op.
 export const billingCustomers = pgTable("billing_customers", {
   userId: uuid("user_id")
     .primaryKey()
@@ -28,12 +24,7 @@ export const billingEvents = pgTable("billing_events", {
   receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// -----------------------------------------------------------------------------
-// 24. Plans Table (admin-editable pricing tiers — Free/Plus/Pro today, but not
-//     a hardcoded enum: an admin can rename, reprice, or add a tier without a
-//     deploy. `key` is the stable machine identifier other code references;
-//     `name` is the only field an admin is expected to change often.)
-// -----------------------------------------------------------------------------
+// Admin-editable pricing tiers. `key` is the stable id other code uses; `name` is the display name.
 export const plans = pgTable(
   "plans",
   {
@@ -52,10 +43,7 @@ export const plans = pgTable(
     // transaction pattern as announcements.isActive.
     isDefault: boolean("is_default").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
-    // Admin-editable, boolean/on-off perks distinct from the numeric
-    // PlanLimitType quota system above (memory_count etc.). Record-keeping
-    // only: every plan gets every feature — plans differ only by volume and
-    // included AI (see admin/plans/plans.service.ts's DEFAULT_PLANS).
+    // On/off perks, separate from the numeric limits. Record-keeping only: every plan gets every feature.
     features: jsonb("features").$type<Record<string, boolean>>().notNull().default({}),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
@@ -66,10 +54,7 @@ export const plans = pgTable(
   (table) => [index("idx_plans_active_sort").on(table.isActive, table.sortOrder)]
 );
 
-// -----------------------------------------------------------------------------
-// 25. Plan Limits Table (one row per plan per limit type — admin-editable
-//     numbers, not code. `limitValue: null` means unlimited.)
-// -----------------------------------------------------------------------------
+// One row per plan per limit type. `limitValue: null` means unlimited.
 export const planLimits = pgTable(
   "plan_limits",
   {
@@ -88,14 +73,8 @@ export const planLimits = pgTable(
   (table) => [uniqueIndex("uq_plan_limits_plan_type").on(table.planId, table.limitType)]
 );
 
-// -----------------------------------------------------------------------------
-// 26. User Plan Assignments Table ("subscription" without live billing — a
-//     history, not a singleton, same as announcements. Only one ACTIVE
-//     assignment per user is enforced in the service layer: inserting a new
-//     active row first flips any existing active row to SUPERSEDED. Effective
-//     plan resolves lazily — WHERE userId=X AND status='active' AND
-//     (endsAt IS NULL OR endsAt > now()), falling back to plans.isDefault.)
-// -----------------------------------------------------------------------------
+// Plan history per user. Only one ACTIVE row per user (the service supersedes the old one). The
+// effective plan is the active, unexpired row, else the default plan.
 export const userPlanAssignments = pgTable(
   "user_plan_assignments",
   {

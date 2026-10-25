@@ -2,13 +2,14 @@ import { fetchUrl } from "../server-fetcher";
 import { decodeEntities, parseCount } from "./http";
 import type { SocialPost } from "./types";
 
-// Instagram, Threads, LinkedIn, Facebook: the post the user saved,
-// read the way a link preview is (WhatsApp, Slack, iMessage): one request for
-// that page, and only its public preview tags. Their robots.txt turns away
-// every bot, which is about crawling; this is one page, the one the person
-// chose to save, and nothing beyond it (see docs/URL_CAPTURE_AND_PREVIEW.md).
+// Instagram, Threads, LinkedIn, Facebook: read like a link preview (WhatsApp, Slack): one request
+// for the saved page and only its public preview tags. Their robots.txt is about crawling; this is
+// the one page the person chose (docs/URL_CAPTURE_AND_PREVIEW.md).
 
-/** A page's <meta> tags by property or name, decoded. Reads the quotes properly, so an apostrophe in a caption doesn't cut it short. */
+/**
+ * A page's <meta> tags by property or name, decoded. Reads the quotes properly, so an apostrophe in
+ * a caption doesn't cut it short.
+ */
 function metaTags(html: string): Map<string, string> {
   const tags = new Map<string, string>();
   for (const [tag] of html.matchAll(/<meta\b[^>]*>/gi)) {

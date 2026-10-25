@@ -2,11 +2,9 @@ import { stringify } from "yaml";
 import { zipSync, strToU8 } from "fflate";
 import type { MemoryDetail } from "./memory.types";
 
-// "Export as OKF": the user's library as an Open Knowledge Format v0.2 bundle
-// (github.com/GoogleCloudPlatform/open-knowledge-format/SPEC.md). A folder of
-// Markdown files, one per memory and per collection, each with YAML front
-// matter whose `type` is the only required field, plus index.md listings and a
-// log.md. Any OKF-aware agent, a Git repo, or a person can read it as-is.
+// "Export as OKF": the library as an Open Knowledge Format v0.2 bundle
+// (github.com/GoogleCloudPlatform/open-knowledge-format/SPEC.md): Markdown files per memory and
+// collection with YAML front matter (`type` required), plus index.md listings and a log.md.
 
 export interface OkfCollection {
   id: string;

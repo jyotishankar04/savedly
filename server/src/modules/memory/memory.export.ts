@@ -6,19 +6,13 @@ import type { SocialPost } from "../ai/api";
 import type { MemoryDetail } from "./memory.types";
 import { attachAttachments, attachCollections, attachHighlights, attachTags, toListItem } from "./memory.queries";
 
-/**
- * Every non-trashed memory, full detail (content/keywords/attachments
- * included) — unlike listMemories, no pagination, since this backs a
- * single JSON-dump download, not a browsing UI.
- */
+/** Every non-trashed memory in full detail, with no pagination: it backs a single JSON-dump download. */
 export async function exportAllMemories(userId: string): Promise<MemoryDetail[]> {
   const rows = await db
     .select()
     .from(memories)
-    // Vaulted memories are excluded unconditionally here — export is a
-    // Pro data-portability feature, not a vault-aware surface, so it never
-    // includes vault contents regardless of whether the vault happens to
-    // be unlocked in this request.
+    // Vaulted memories are always excluded: export is a data-portability feature, not vault-aware,
+    // whether or not the vault is unlocked.
     .where(and(eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false)))
     .orderBy(desc(memories.createdAt));
 
@@ -41,7 +35,10 @@ export async function exportAllMemories(userId: string): Promise<MemoryDetail[]>
   }));
 }
 
-/** The same library as exportAllMemories, as a zipped Open Knowledge Format bundle (see okf-export.ts). Vaulted collections are left out, like vaulted memories. */
+/**
+ * The same library as exportAllMemories, as a zipped Open Knowledge Format bundle (see
+ * okf-export.ts). Vaulted collections are left out, like vaulted memories.
+ */
 export async function exportOkfBundle(userId: string): Promise<Uint8Array> {
   const [items, collectionRows] = await Promise.all([
     exportAllMemories(userId),

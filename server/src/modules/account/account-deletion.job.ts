@@ -15,11 +15,7 @@ const SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 const deletionQueue = new Queue(QUEUE_NAME, { connection: redis });
 
-/**
- * Finds every soft-deleted account past its grace period and hard-deletes
- * it. Mirrors sweepExpiredTrash's shape exactly — one bad row never aborts
- * the sweep, everything else still gets purged.
- */
+/** Hard-deletes every soft-deleted account past its grace period. One bad row never aborts the sweep. */
 export async function sweepExpiredDeletions(): Promise<number> {
   const cutoff = new Date(Date.now() - ACCOUNT_DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000);
 

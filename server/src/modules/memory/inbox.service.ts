@@ -40,9 +40,8 @@ export interface SavedPage {
 }
 
 /**
- * Whether a page is already in the library, matched the way duplicates are
- * (normalized URL: no tracking parameters, fragment or trailing slash). For
- * the extension, to show "Saved 3 days ago" instead of saving it twice.
+ * Whether a page is already saved, matched like duplicates (normalized URL), so the extension can
+ * show "Saved 3 days ago".
  */
 export async function lookupByUrl(userId: string, url: string): Promise<SavedPage | null> {
   const normalized = normalizeUrl(url);
@@ -66,9 +65,8 @@ export async function lookupByUrl(userId: string, url: string): Promise<SavedPag
 export const urlKey = (normalizedUrl: string) => createHash("sha256").update(normalizedUrl).digest("hex").slice(0, 16);
 
 /**
- * Short hashes of every saved page's address, so the extension can tell a
- * page is saved without sending the server each page the person visits: it
- * hashes the page itself and compares. The addresses never leave in plain.
+ * Short hashes of every saved page's address, so the extension can tell a page is saved by hashing
+ * it locally; addresses never leave in plain text.
  */
 export async function savedUrlKeys(userId: string): Promise<string[]> {
   const rows = await db

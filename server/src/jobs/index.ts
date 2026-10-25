@@ -9,9 +9,8 @@ import { startGithubStarsWorker } from "../modules/integrations/github/github.jo
 import { logger } from "../shared/utils/logger";
 
 /**
- * One background job: a BullMQ worker that a feature owns. To add a job,
- * export its `start…Worker()` from its module and add a line to BACKGROUND_JOBS;
- * to remove one, delete its line. server.ts doesn't change.
+ * One background job: a BullMQ worker a feature owns. To add one, export its start…Worker() and add
+ * a line to BACKGROUND_JOBS; to remove one, delete its line.
  */
 interface BackgroundJob {
   /** How the job is named in the log: "<name> started". */
@@ -35,9 +34,8 @@ const BACKGROUND_JOBS: BackgroundJob[] = [
 ];
 
 /**
- * Starts every background job, none waiting for another, and one failing to
- * start never stops the rest or the server. The returned list fills as the
- * workers come up, so a shutdown closes whichever are running.
+ * Starts every job without waiting on the others; one failing never stops the rest or the server.
+ * The returned list fills as workers come up, so shutdown closes whichever are running.
  */
 export function startBackgroundJobs(): Worker[] {
   const workers: Worker[] = [];

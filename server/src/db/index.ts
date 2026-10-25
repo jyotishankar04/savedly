@@ -14,9 +14,5 @@ export const pool = new Pool({
 
 export const db = drizzle({ client: pool });
 
-// Lets a service function accept either the top-level `db` or an in-flight
-// transaction client, so callers composing multiple writes atomically (e.g.
-// admin/plans assigning a plan while also logging the audit entry) can pass
-// their own `tx` through instead of each service opening its own nested
-// transaction.
+// Lets a service take either `db` or a transaction, so callers can compose several writes atomically.
 export type DbOrTx = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

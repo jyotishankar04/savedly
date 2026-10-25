@@ -7,10 +7,8 @@ const rateLimitHandler = (_req: unknown, res: import("express").Response) => {
     .json(ApiResponse.error("RATE_LIMITED", "Too many requests, try again later."));
 };
 
-// A ceiling on everything, per IP: stops one client flooding the API. Far
-// above what a person browsing can reach (a dashboard page makes a dozen or
-// so requests). The narrower limiters below still apply on top of it.
-// Counted in memory, so it is per API process.
+// A per-IP ceiling on everything, far above what browsing reaches (a dashboard makes about a dozen
+// requests); narrower limiters apply on top. Counted in memory, so per API process.
 export const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 600,
@@ -78,11 +76,9 @@ export const shareRequestRateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
-// Bug/feature report spam. No auth required to submit one, so the account
-// (when signed in) or the IP is the only identity available — same
-// fallback shape as shareRequestRateLimiter, just generous enough that a
-// frustrated user filing a couple of real reports in a row never hits it.
-// The route reads sign-in (optionalAuthenticate) before this runs.
+// Report spam. No auth is required, so the account (when signed in) or the IP is the only identity
+// (as in shareRequestRateLimiter), generous enough that a few real reports in a row don't hit it.
+// The route reads sign-in first (optionalAuthenticate).
 export const reportRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
@@ -104,10 +100,9 @@ export const rewriteRateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
-// The public contact form (modules/contact): each message is saved and
-// emailed to the support inbox, so a script can't be allowed to fill it.
-// Per account when signed in (the route reads sign-in first), else per IP,
-// so people behind one office or campus address don't use up each other's.
+// The public contact form saves and emails each message, so a script mustn't fill the inbox. Per
+// account when signed in, else per IP, so people behind one office address don't use up each
+// other's.
 export const contactRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,

@@ -34,13 +34,8 @@ async function summarizeFirstPage(pageOneText: string, totalPages: number, usage
 }
 
 /**
- * Extracts text from a PDF's raw bytes. Small documents get their full text
- * (truncated to MAX_CONTENT_LENGTH, same as before); documents over
- * LARGE_PDF_PAGE_THRESHOLD pages get only page 1 extracted, then summarized
- * by an LLM — that summary becomes the returned content instead of a raw
- * (and likely mid-sentence) truncation of the whole thing. Never throws —
- * a corrupt/unreadable PDF degrades to "", same as every other ingestion
- * step in this pipeline.
+ * Text from a PDF's bytes. Small documents return full text (truncated to MAX_CONTENT_LENGTH); over
+ * LARGE_PDF_PAGE_THRESHOLD pages only page 1 is read and summarized. Never throws: degrades to "".
  */
 export async function extractPdfContent(data: ArrayBuffer | Buffer, usage: UsageContext, caption?: string): Promise<string> {
   const parser = new PDFParse({ data });

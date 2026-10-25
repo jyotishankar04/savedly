@@ -9,10 +9,8 @@ import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
 import { getSection } from "../../../platform/instance-settings/instance-settings.service";
 
-// A self-hosted install's backup as one download: the database, the uploaded
-// files when they live on this server's disk, and optionally the secrets
-// file. Built in a temporary folder and streamed out, so a large library is
-// never held in memory.
+// A self-hosted backup as one download: the database, local uploaded files and optionally the
+// secrets file. Built in a temp folder and streamed.
 
 // One at a time: a dump is heavy, and two would fight over the same disk.
 let running = false;

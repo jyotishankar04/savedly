@@ -11,12 +11,14 @@ import { normalizeUrl } from "../../memory/api";
 import { remainingWithinLimit } from "../../plans/api";
 import { GithubAuthError, STARS_PAGE_SIZE, getGithubViewer, listStarredRepos, revokeGithubToken, type StarredRepo } from "./github-client";
 
-// GitHub stars: a connected GitHub account whose starred repositories are
-// added to the library as ordinary saved links, so each one is read,
-// summarized and made searchable like anything else. The first sync brings
-// in the most recent stars; later ones only what was starred since.
+// GitHub stars: a connected account's starred repos are added as ordinary saved links, so each is
+// read, summarized and searchable. The first sync takes the most recent stars; later ones only new
+// stars.
 
-/** The first sync stops here. Someone with thousands of stars gets their most recent ones, not a flooded library. */
+/**
+ * The first sync stops here. Someone with thousands of stars gets their most recent ones, not a
+ * flooded library.
+ */
 export const FIRST_SYNC_MAX = 500;
 
 /** How long someone must wait before pressing "Sync now" again. */
@@ -65,7 +67,8 @@ export async function connectGithub(userId: string, token: { accessToken: string
     lastError: null,
   };
   const existing = await findConnection(userId);
-  // Connecting a different GitHub account starts over; reconnecting the same one carries on where it left off.
+  // Connecting a different GitHub account starts over; reconnecting the same one carries on where
+  // it left off.
   const sameAccount = existing?.githubUserId === viewer.id;
   await db
     .insert(githubConnections)
@@ -84,7 +87,10 @@ export async function disconnectGithub(userId: string): Promise<void> {
   void revokeGithubToken(decryptToken(row.encryptedAccessToken));
 }
 
-/** The stars made since `since`, oldest first. On a first sync (`since` null), the most recent FIRST_SYNC_MAX. */
+/**
+ * The stars made since `since`, oldest first. On a first sync (`since` null), the most recent
+ * FIRST_SYNC_MAX.
+ */
 async function fetchNewStars(token: string, since: Date | null): Promise<StarredRepo[]> {
   const found: StarredRepo[] = [];
   const maxPages = since ? 50 : FIRST_SYNC_MAX / STARS_PAGE_SIZE;
@@ -116,9 +122,8 @@ export interface GithubSyncResult {
 }
 
 /**
- * Adds the stars made since the last sync. Never throws for an expected
- * problem (revoked access, a full library): it records the reason on the
- * connection, where the Integrations page shows it.
+ * Adds stars made since the last sync. Never throws for an expected problem (revoked access, full
+ * library): the reason is recorded on the connection and shown on the Integrations page.
  */
 export async function syncGithubStars(userId: string): Promise<GithubSyncResult> {
   const connection = await findConnection(userId);

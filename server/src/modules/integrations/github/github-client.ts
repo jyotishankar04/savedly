@@ -76,9 +76,8 @@ export interface StarredRepo {
 export const STARS_PAGE_SIZE = 100;
 
 /**
- * One page of the account's stars, newest first. Private repositories are
- * left out of `repos`, so `isLastPage` is worked out from what GitHub sent,
- * not from how many were kept.
+ * One page of the account's stars, newest first. Private repos are dropped, so `isLastPage` comes
+ * from what GitHub sent, not what was kept.
  */
 export async function listStarredRepos(token: string, page: number): Promise<{ repos: StarredRepo[]; isLastPage: boolean }> {
   // The "star" media type is what adds starred_at, which is how a sync knows where it left off.

@@ -17,13 +17,9 @@ import {
 } from "./share.validator";
 
 /**
- * The public reader, mounted at /s so it mirrors the client URL and so the
- * unlock cookie can be path-scoped to just these routes.
- *
- * Kept separate from the owner router below rather than sharing one mount:
- * slugs and share uuids would otherwise collide on /:param, and the
- * distinction between "anyone may call this" and "owner only" would stop
- * being visible at a glance.
+ * The public reader, mounted at /s to mirror the client URL and so the unlock cookie can be
+ * path-scoped to these routes. Kept apart from the owner router because slugs and share uuids would
+ * collide on /:param, and the public/owner split should be visible at a glance.
  */
 export const sharePublicRouter = Router();
 

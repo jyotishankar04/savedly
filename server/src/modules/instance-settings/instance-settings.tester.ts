@@ -10,9 +10,8 @@ import type { SectionId } from "../../platform/instance-settings/instance-settin
 import type { ResolvedSection } from "../../platform/instance-settings/instance-settings.service";
 
 /**
- * Admin -> Infrastructure's "Test connection": exercises the candidate
- * settings (the form's values merged over what's saved) against the real
- * service, before anything is saved. Throws with a readable message on failure.
+ * The "Test connection" button: runs the candidate settings (form values over what's saved) against
+ * the real service before saving. Throws a readable message on failure.
  */
 export async function testSection(id: SectionId, settings: ResolvedSection): Promise<string> {
   switch (id) {

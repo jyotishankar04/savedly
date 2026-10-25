@@ -34,12 +34,8 @@ Context (title / domain / URL):
 Respond as strict JSON: {{"hasEvent": true or false, "eventAt": "ISO string or null", "confidence": 0.0}}`,
 );
 
-// Deliberately deviates from every sibling classification node
-// (classify-intent.ts, detect-content-type.ts, etc.), which have no
-// try/catch and let a thrown error fail the whole ingestion job. Event
-// detection is pure enrichment, not core to a memory existing — a flaky
-// LLM call or a malformed date here must degrade to "no event detected,"
-// never flip the memory to FAILED.
+// Unlike sibling nodes, this catches errors: event detection is pure enrichment, so a flaky call or
+// bad date degrades to "no event" instead of failing the memory.
 export async function detectEvent(state: IngestionStateType): Promise<IngestionUpdate> {
   const noContent = !state.rawContent && !state.correctedCaption && !state.caption;
   // Finding events is a plan feature; without it this step is skipped (and

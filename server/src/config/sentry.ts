@@ -1,14 +1,8 @@
 import * as Sentry from "@sentry/node";
 import { env } from "./env";
 
-// Error tracking. Off unless SENTRY_DSN is set, so a self-hosted install
-// reports nothing to anyone unless its operator points it at their own
-// Sentry project.
-//
-// What is sent is kept to what's needed to fix a bug: the error, its stack,
-// the route, and the user's id. Request bodies, cookies, headers and query
-// strings are removed, because they carry what people save and their
-// session.
+// Error tracking, off unless SENTRY_DSN is set. Request bodies, cookies, headers and query strings
+// are never sent.
 
 export const sentryEnabled = !!env.SENTRY_DSN;
 
@@ -66,11 +60,7 @@ function plainFields(fields: Record<string, unknown>): Record<string, string | n
 const MESSAGE_QUIET_MS = 5 * 60_000;
 const lastSent = new Map<string, number>();
 
-/**
- * Reports one error-level log line. Called by the logger for every
- * `logger.error(...)`, so workers, background jobs and request failures are
- * all covered without each call site knowing about Sentry.
- */
+/** Reports one error-level log line; the logger calls it for every logger.error. */
 export function reportLoggedError(fields: Record<string, unknown>, message: string): void {
   if (!sentryEnabled) return;
   const err = fields.err ?? fields.error;

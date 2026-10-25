@@ -11,17 +11,10 @@ import { turnIsConfirmation } from "../tools/confirm";
 const classifySchema = z.object({ inScope: z.boolean() });
 
 /**
- * Runs before the main agent on every turn — a cheap gate so an obviously
- * off-topic request ("write me a poem", "what's 12*7") gets a direct,
- * honest decline instead of reaching the reasoning-tier tool-calling agent,
- * which has no explicit rule against answering unrelated questions from its
- * own general knowledge (AGENT_SYSTEM_PROMPT only guards against fabricating
- * about *saved* content). Two calls, not one, so the decline message streams
- * to the client the same proven way agentNode's replies do (a plain
- * modelWithTools-shaped invoke producing a real AIMessage) rather than
- * hand-constructing an AIMessage from structured-output JSON, which
- * checkGrounding's leak bug (see nodes/check-grounding.ts) showed is easy to
- * get wrong around streamEvents().
+ * A cheap gate before the agent: an off-topic request ("write me a poem") gets a direct decline
+ * instead of reaching the tool-calling agent, whose prompt only guards against fabricating about
+ * saved content. Two calls so the decline streams like agentNode's replies, not as a hand-built
+ * AIMessage (see check-grounding.ts).
  */
 export const frontDeskNode: GraphNode<typeof RAGState> = async (state, config) => {
   const lastMessage = state.messages.at(-1);

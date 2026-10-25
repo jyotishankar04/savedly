@@ -29,10 +29,8 @@ export interface CreatedCalendarEvent {
   htmlLink: string;
 }
 
-// A single event as read back FROM a provider's list/calendarview API —
-// normalized the same way CreatedCalendarEvent is for creation, so
-// calendar.service.ts's merge logic never branches on provider shape here
-// either.
+// An event read back from a provider, normalized like CreatedCalendarEvent so the merge logic never
+// branches on provider.
 export interface RemoteCalendarEvent {
   externalEventId: string;
   title: string;

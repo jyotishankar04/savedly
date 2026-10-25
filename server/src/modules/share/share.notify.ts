@@ -11,13 +11,8 @@ import {
 import type { ShareRow } from "./share.access";
 
 /**
- * The single seam between sharing and the notification/email subsystems.
- *
- * Every function here returns void and swallows its own failures. Sharing
- * must not fail because a notification insert lost a race or a mailbox is
- * unreachable — the share itself already succeeded by the time these run,
- * and surfacing a 500 would tell the user their action failed when it
- * didn't.
+ * The single seam between sharing and notifications/email. Every function returns void and swallows
+ * its failures: the share already succeeded, so a failed notification must not surface as a 500.
  */
 
 function noun(share: ShareRow): string {
@@ -37,10 +32,8 @@ export interface ShareInviteNotice {
 }
 
 export function notifyShareInvite(notice: ShareInviteNotice): void {
-  // In-app notification only makes sense once there's an account to show it
-  // in. The invite is already stored as a pending grant and activates at
-  // signup — but the email below fires regardless, since it's addressed to
-  // notice.email, not a userId.
+  // An in-app notification needs an account. The invite is already stored as a pending grant and
+  // activates at signup; the email below fires regardless, since it goes to notice.email.
   if (notice.granteeUserId) {
     emit("share invite", () =>
       createNotification({

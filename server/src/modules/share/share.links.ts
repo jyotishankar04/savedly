@@ -50,10 +50,8 @@ function toResponse(share: ShareRow, grantCount = 0, pendingRequestCount = 0): S
 }
 
 /**
- * Confirms the caller owns the thing they're trying to share. Scoped by
- * userId in the WHERE rather than loaded-then-checked, so a resource
- * belonging to someone else is indistinguishable from one that doesn't
- * exist.
+ * Confirms the caller owns the resource. Scoped by userId in the WHERE (not loaded then checked),
+ * so someone else's resource looks like one that doesn't exist.
  */
 async function assertOwnsResource(
   userId: string,
@@ -132,10 +130,8 @@ async function countsFor(shareId: string): Promise<[number, number]> {
 }
 
 /**
- * Idempotent: the partial unique indexes on (collection_id) / (memory_id)
- * guarantee one share row per resource, so a double-click can't mint two
- * slugs for the same thing. New shares start DISABLED — creating a share
- * is not the same as publishing it.
+ * Idempotent: partial unique indexes on (collection_id) / (memory_id) allow one share per resource,
+ * so a double-click can't mint two slugs. New shares start DISABLED: creating isn't publishing.
  */
 export async function getOrCreateShare(userId: string, input: CreateShareInput): Promise<ShareResponse> {
   const { resourceType, resourceId } = input;
@@ -304,9 +300,8 @@ export async function listSharedWithMe(userId: string): Promise<SharedWithMeItem
 }
 
 /**
- * Only for the unlock endpoint, which by definition runs before the caller
- * has proven anything. Password verification is the gate here, so this must
- * never be used as a general "load a share by slug".
+ * Only for the unlock endpoint, which runs before the caller has proven anything. Password
+ * verification is the gate, so never use this as a general "load by slug".
  */
 export async function getShareBySlugForUnlock(slug: string): Promise<ShareRow | null> {
   const [row] = await db

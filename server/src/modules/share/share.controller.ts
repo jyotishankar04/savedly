@@ -12,13 +12,10 @@ import { getClientIp } from "../../shared/utils/device-fingerprint";
 import * as shareService from "./share.service";
 
 /**
- * Turns a gate decision into the HTTP error the client branches on.
- *
- * auth_required is 401, not 403, on purpose: optionalAuthenticate silently
- * drops an *expired* access token, so a legitimate grantee returning after
- * their 15-minute token lapsed would otherwise be told to request access
- * they already have. The client's refresh interceptor only fires on 401,
- * so this gives it the chance to refresh and retry.
+ * Turns a gate decision into the HTTP error the client branches on. auth_required is 401, not 403:
+ * optionalAuthenticate drops an expired access token silently, so a returning grantee would
+ * otherwise be told to request access they already have. The client's refresh interceptor fires
+ * only on 401.
  */
 function gateError(decision: Exclude<ReturnType<typeof describe>, null>): AppError {
   switch (decision.code) {

@@ -15,13 +15,7 @@ export interface OAuthProfile {
 
 const GITHUB_USER_AGENT = "savedly-server";
 
-// Google only allows "localhost" (bare, no other IP/hostname) as an
-// unverified-domain exception for OAuth redirect URIs — an emulator-only
-// alias like 10.0.2.2 is rejected outright by Google's own console, so
-// mobile can't get its own callback URL variant the way the deep-link
-// destination can. Mobile local dev instead relies on `adb reverse
-// tcp:4000 tcp:4000`, which makes the emulator's own "localhost" actually
-// reach this machine — so the same SERVER_URL-based callback works for both.
+// Google allows only bare "localhost" as an unverified redirect host, so the callback is SERVER_URL-based.
 const GOOGLE_CALLBACK_URL = `${env.SERVER_URL}/api/v1/auth/google/callback`;
 
 const GITHUB_CALLBACK_URL = `${env.SERVER_URL}/api/v1/auth/github/callback`;

@@ -144,10 +144,9 @@ const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;
 const paragraphs = (text: string) => escape(text).replace(/\r?\n/g, "<br>");
 
 /**
- * Emails a reply to the person who wrote in, with their message quoted below,
- * from the server's address with Reply-To set to the contact address, so
- * their answer lands in the team's inbox. Saved for the reading pane; a
- * contact message becomes Replied, an open report Reviewing.
+ * Emails a reply to the person who wrote in, quoting their message, from the server address with
+ * Reply-To set to the contact address. Saved for the reading pane; a contact message becomes
+ * Replied, an open report Reviewing.
  */
 export async function sendReply(kind: ReplyKind, targetId: string, body: string, adminUserId: string) {
   const target =

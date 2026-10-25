@@ -12,10 +12,9 @@ export interface CreateReportResult {
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /**
- * Emails a new report to the contact address (Admin > Infrastructure >
- * Email), the same inbox the contact form uses, so someone actually reads
- * it. Best effort: the report is already saved, so a failed or switched-off
- * email is logged and the person filing it still sees it go through.
+ * Emails a new report to the contact address (the contact form's inbox) so someone reads it. Best
+ * effort: the report is already saved, so a failure is logged and the person still sees it go
+ * through.
  */
 async function notifyTeam(id: string, input: CreateReportInput): Promise<void> {
   try {

@@ -2,12 +2,8 @@ const VIDEO_HOSTS = ["youtube.com", "youtu.be", "vimeo.com", "tiktok.com", "twit
 const URL_PATTERN = /https?:\/\/\S+/i;
 
 /**
- * Deterministic backstop for the client's own detectMemoryType/extractUrl
- * (client/lib/detect-memory-type.ts) — regex-based, not LLM-based, so it's
- * cheap and reliable for something that doesn't need judgment. Finds the
- * first URL anywhere in a block of text, mirroring the client's logic
- * exactly so a "note" that actually contains a link gets reclassified the
- * same way it would have been if the client had caught it.
+ * Regex backstop for the client's own link detection (client/lib/detect-memory-type.ts): finds the
+ * first URL in a text, mirroring the client's logic.
  */
 export function extractUrl(text: string): URL | null {
   const match = text.match(URL_PATTERN);
@@ -21,11 +17,8 @@ export function extractUrl(text: string): URL | null {
 }
 
 /**
- * The link a note really is, for the server's backstop: a URL with at most a
- * short comment around it ("check this out https://… thoughts?"). Null for a
- * note that merely has a link in it: a link written as Markdown
- * ([label](https://…)), or one inside longer writing. A note written in the
- * editor must stay a note.
+ * The link a note really is: a URL with at most a short comment around it. Null for a note that
+ * merely contains a link (Markdown or longer writing), which must stay a note.
  */
 export function linkOfNote(text: string): URL | null {
   const url = extractUrl(text);

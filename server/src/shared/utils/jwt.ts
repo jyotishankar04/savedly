@@ -28,10 +28,8 @@ export function generateRefreshToken(): string {
 }
 
 /**
- * Unsalted SHA-256, for looking a refresh token up by its hash.
- *
- * NOT a password hash — it's deliberately fast and has no salt. Anything
- * user-chosen goes through modules/share/share.password.ts instead.
+ * Unsalted SHA-256 for looking a refresh token up by hash. Not a password hash: anything
+ * user-chosen goes through modules/share/share.password.ts.
  */
 export function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -52,12 +50,8 @@ export function signShareToken(payload: ShareTokenPayload): string {
 }
 
 /**
- * Returns null on any failure rather than throwing — an absent or stale
- * unlock cookie means "show the password form", never a 500.
- *
- * Callers must still compare each entry's `pv` against the share's current
- * passwordUpdatedAt: that's what makes changing the password revoke every
- * cookie already handed out, without tracking them server-side.
+ * Returns null on any failure: a missing or stale unlock cookie means "show the password form", never a 500.
+ * Callers must compare each entry's `pv` to the share's current passwordUpdatedAt, which is what makes a password change revoke every cookie already issued, with no server-side tracking.
  */
 export function verifyShareToken(token: string): ShareTokenPayload | null {
   try {
@@ -77,11 +71,8 @@ export interface VaultTokenPayload {
   pv: number;
 }
 
-// A short, sliding window rather than a long-lived cookie: the vault holds
-// deliberately hidden content, so re-issuing on every authenticated vault
-// request (see requireVaultUnlocked) is what makes this "unlocked while
-// active" instead of "unlocked until this arbitrary long TTL expires
-// regardless of activity."
+// A short sliding window, not a long-lived cookie: the vault holds hidden content, so re-issuing on
+// each vault request (see requireVaultUnlocked) makes it "unlocked while active".
 const VAULT_TOKEN_TTL = "30m";
 
 export function signVaultToken(payload: VaultTokenPayload): string {
@@ -89,12 +80,8 @@ export function signVaultToken(payload: VaultTokenPayload): string {
 }
 
 /**
- * Returns null on any failure — an absent, expired, or stale unlock cookie
- * means "show the PIN form," never a 500.
- *
- * Callers must still compare `pv` against the user's current
- * vaultPinUpdatedAt: that's what makes changing the PIN revoke every
- * cookie already handed out, without tracking them server-side.
+ * Returns null on any failure: a missing, expired or stale unlock cookie means "show the PIN form", never a 500.
+ * Callers must compare `pv` to the user's current vaultPinUpdatedAt, which is what makes a PIN change revoke every cookie already issued.
  */
 export function verifyVaultToken(token: string): VaultTokenPayload | null {
   try {
@@ -107,11 +94,9 @@ export function verifyVaultToken(token: string): VaultTokenPayload | null {
 }
 
 /**
- * Carries the initiating user's id across a calendar-connect OAuth
- * redirect. The connect route (`GET /integrations/calendar/:provider/connect`) is
- * authenticated normally, but Google's callback redirect carries
- * no session cookie of its own — this token, passed as the OAuth `state`
- * param, is how the callback recovers who initiated the connection.
+ * Carries the initiating user's id across a calendar-connect OAuth redirect. The connect route is
+ * authenticated, but Google's callback has no session cookie, so this token (the OAuth `state`)
+ * tells the callback who started it.
  */
 export interface CalendarStateTokenPayload {
   typ: "calendar_connect";
@@ -119,17 +104,18 @@ export interface CalendarStateTokenPayload {
   provider: "google";
 }
 
-// Matches the existing OAuth login flow's state-cookie window
-// (OAUTH_STATE_COOKIE, 10 minutes) — plenty of time for the provider's own
-// consent screen, short enough that a leaked/logged state token is useless
-// soon after.
+// Matches the login flow's state-cookie window (OAUTH_STATE_COOKIE, 10 minutes): enough for the
+// consent screen, short enough that a leaked state token is soon useless.
 const CALENDAR_STATE_TTL = "10m";
 
 export function signCalendarStateToken(payload: CalendarStateTokenPayload): string {
   return jwt.sign(payload, env.CALENDAR_STATE_SECRET, { expiresIn: CALENDAR_STATE_TTL });
 }
 
-/** Returns null on any failure — an invalid/expired/tampered state means "reject the callback," never a 500. */
+/**
+ * Returns null on any failure — an invalid/expired/tampered state means "reject the callback,"
+ * never a 500.
+ */
 export function verifyCalendarStateToken(token: string): CalendarStateTokenPayload | null {
   try {
     const payload = jwt.verify(token, env.CALENDAR_STATE_SECRET) as CalendarStateTokenPayload & jwt.JwtPayload;
@@ -145,12 +131,18 @@ export function verifyCalendarStateToken(token: string): CalendarStateTokenPaylo
   }
 }
 
-/** Carried through GitHub's consent screen as `state`, so the callback knows which signed-in user asked to connect. */
+/**
+ * Carried through GitHub's consent screen as `state`, so the callback knows which signed-in user
+ * asked to connect.
+ */
 export function signGithubStateToken(userId: string): string {
   return jwt.sign({ typ: "github_connect", userId }, env.CALENDAR_STATE_SECRET, { expiresIn: CALENDAR_STATE_TTL });
 }
 
-/** The user id from a valid state token, or null for anything expired, tampered with or meant for another flow. */
+/**
+ * The user id from a valid state token, or null for anything expired, tampered with or meant for
+ * another flow.
+ */
 export function verifyGithubStateToken(token: string): string | null {
   try {
     const payload = jwt.verify(token, env.CALENDAR_STATE_SECRET) as jwt.JwtPayload;

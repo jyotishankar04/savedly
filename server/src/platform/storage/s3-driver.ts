@@ -25,11 +25,9 @@ export class S3StorageDriver implements StorageDriver {
       endpoint: settings.endpoint || undefined,
       forcePathStyle: !!settings.forcePathStyle,
       credentials: { accessKeyId: settings.accessKeyId, secretAccessKey: settings.secretAccessKey },
-      // The SDK defaults to signing a flexible-checksum header on every request.
-      // For a presigned URL that's computed against an empty body (the real
-      // bytes don't exist yet at sign time), so the client's actual PUT never
-      // matches it and R2 rejects the upload with 403. PutObject doesn't need
-      // this, so only compute a checksum when an API explicitly requires one.
+      // The SDK signs a checksum header on every request, which for a presigned URL is computed
+      // against an empty body, so the client's real PUT never matches and R2 rejects it with 403.
+      // Only compute one when an API requires it.
       requestChecksumCalculation: "WHEN_REQUIRED",
     });
     this.publicUrl = settings.publicUrl.replace(/\/$/, "");

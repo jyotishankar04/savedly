@@ -12,11 +12,9 @@ export const VAULT_TOKEN_COOKIE = "savedly_vault_token";
 const AUTH_PATH = "/api/v1/auth";
 const SHARE_PATH = "/api/v1/s";
 const SHARE_TOKEN_MAX_AGE = 12 * 60 * 60 * 1000;
-// Unlike the share-token cookie (scoped tightly to /api/v1/s, since every
-// gated read lives under that one prefix), the vault-gated content lives on
-// ordinary /memories and /collections routes via a query toggle — so this
-// cookie has to ride on the whole API, the same way the access token does,
-// or the guard middleware on those routes would never see it.
+// Unlike the share-token cookie (scoped to /api/v1/s), vault-gated content is on ordinary /memories
+// and /collections routes via a query toggle, so this cookie rides on the whole API or the guard
+// would never see it.
 const VAULT_PATH = "/api/v1";
 
 const baseCookieOptions = {
@@ -60,10 +58,9 @@ export function clearOAuthStateCookie(res: Response) {
   res.clearCookie(OAUTH_STATE_COOKIE, { ...baseCookieOptions, path: AUTH_PATH });
 }
 
-// Where to land after OAuth completes, when the sign-in started from a
-// shared link ("sign in to view this"). Only ever holds a validated
-// same-site path — see assertSafeNextPath in the auth module. Same 10-minute
-// life as the state cookie: it belongs to one OAuth round trip.
+// Where to land after OAuth when sign-in started from a shared link. Holds only a validated
+// same-site path (see assertSafeNextPath in the auth module), with the 10-minute life of the state
+// cookie.
 export function setOAuthNextCookie(res: Response, next: string) {
   res.cookie(OAUTH_NEXT_COOKIE, next, {
     ...baseCookieOptions,
@@ -90,14 +87,10 @@ export function clearShareTokenCookie(res: Response) {
   res.clearCookie(SHARE_TOKEN_COOKIE, { ...baseCookieOptions, path: SHARE_PATH });
 }
 
-// Scoped to the whole API (see VAULT_PATH above) — it has to reach
-// /memories and /collections, not just /vault itself. Deliberately no
-// `maxAge` — a plain session cookie dies the moment the whole browser (not
-// just this tab) closes. The 30-minute idle timeout is enforced by the
-// token's own `exp` claim instead (see signVaultToken), and re-issued on
-// every authenticated vault-gated request while active — the combination is
-// what gives "unlocked until you close the browser or go quiet for 30
-// minutes."
+// Scoped to the whole API (see VAULT_PATH). Deliberately no `maxAge`: a session cookie dies when
+// the browser closes, and the 30-minute idle timeout comes from the token's own `exp` (see
+// signVaultToken), re-issued on each vault-gated request, so it stays unlocked until you close the
+// browser or go quiet for 30 minutes.
 export function setVaultTokenCookie(res: Response, token: string) {
   res.cookie(VAULT_TOKEN_COOKIE, token, { ...baseCookieOptions, path: VAULT_PATH });
 }

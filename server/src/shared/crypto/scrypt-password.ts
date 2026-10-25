@@ -8,11 +8,9 @@ const scrypt = promisify(crypto.scrypt) as (
   options: crypto.ScryptOptions
 ) => Promise<Buffer>;
 
-// Node's only password-grade KDF, and it needs no native dependency —
-// bcrypt and argon2 both do, and this codebase has none. Shared by share
-// passwords, the vault PIN and email + password accounts (self-hosted
-// installs) — all hashed rarely enough that "no new native build step" is
-// the right trade.
+// Node's only password-grade KDF with no native dependency (bcrypt and argon2 need one). Shared by
+// share passwords, the vault PIN and email + password accounts, all hashed rarely enough that "no
+// native build" is the right trade.
 const N = 2 ** 15;
 const R = 8;
 const P = 1;
@@ -37,10 +35,9 @@ export async function hashPassword(plain: string): Promise<string> {
 }
 
 /**
- * Always does the full derivation, including when nothing is set yet —
- * otherwise "nothing configured" would return in microseconds while a
- * wrong guess took ~100ms, which is enough to probe whether a share/vault
- * is protected at all without ever guessing correctly.
+ * Always does the full derivation, even when nothing is set; otherwise "nothing configured" would
+ * return instantly while a wrong guess took ~100ms, which is enough to probe whether a share or
+ * vault is protected.
  */
 export async function verifyPassword(plain: string, stored: string | null): Promise<boolean> {
   const parsed = stored ? parse(stored) : null;

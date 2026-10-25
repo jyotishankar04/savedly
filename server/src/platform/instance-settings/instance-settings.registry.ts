@@ -1,14 +1,10 @@
 import { z } from "zod";
 
-// Everything a self-hosted admin can configure from Admin -> Configuration ->
-// Infrastructure, one section per external service. Each field says which
-// env var(s) can set it (env always wins over the settings table) and whether
-// it's a secret (encrypted at rest, never sent back to the client). Hosted
-// production is env-only, except sections marked `hostedEditable`.
-//
-// The client renders the settings page straight from this metadata (see
-// instance-settings.service.ts's describeSections), so adding a field here is
-// the whole change — no form to keep in sync.
+// Everything a self-hosted admin can configure in Admin -> Infrastructure, one section per service.
+// Each field names its env var(s) (env wins over the table) and whether it's a secret (encrypted,
+// never sent back). Hosted production is env-only, except `hostedEditable` sections.
+// The client renders the page from this metadata (describeSections), so adding a field here is the
+// whole change.
 
 export type FieldKind = "text" | "password" | "number" | "boolean" | "select";
 export type FieldValue = string | number | boolean;
@@ -35,9 +31,8 @@ export interface SectionDef {
   /** Used when neither env nor the settings table sets a field. */
   defaults: Record<string, FieldValue | undefined>;
   /**
-   * Hosted production / local dev only, layered over `defaults`: the values
-   * that kept this service working before self-hosting existed (e.g. email
-   * defaulting to the dev Mailhog on localhost:1025).
+   * Hosted production and local dev only, layered over `defaults`: the values that kept this
+   * service working before self-hosting (e.g. email defaulting to the dev Mailhog).
    */
   hostedDefaults?: Record<string, FieldValue | undefined>;
   /** Validates a merged section before it's saved. */
@@ -45,9 +40,8 @@ export interface SectionDef {
   /** Whether a Test connection button makes sense for this section. */
   testable: boolean;
   /**
-   * Also editable (and read from the table) on hosted production, for things
-   * the team changes over time without a redeploy — like which models
-   * included AI runs on.
+   * Also editable (and read from the table) on hosted production, for things changed without a
+   * redeploy, like which models included AI runs on.
    */
   hostedEditable?: boolean;
 }

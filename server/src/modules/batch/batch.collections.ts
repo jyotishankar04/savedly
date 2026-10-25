@@ -7,10 +7,8 @@ import type { BatchDeleteCollectionsInput, BatchMergeCollectionsInput, BatchResu
 import { failAll, ownsAllCollections } from "./batch.memories";
 
 /**
- * Deletes collections. With memories: "trash" their memories go to Trash
- * first (recoverable for 15 days, like any trashed memory); with "keep" they
- * stay in the library, just no longer in these collections. Share links for
- * the collections go with them (cascade).
+ * Deletes collections. memories "trash" sends their memories to Trash first (recoverable 15 days);
+ * "keep" leaves them in the library. Share links go with the collections (cascade).
  */
 export async function batchDeleteCollections(userId: string, input: BatchDeleteCollectionsInput): Promise<BatchResult> {
   const count = input.collectionIds.length;
@@ -39,11 +37,8 @@ export async function batchDeleteCollections(userId: string, input: BatchDeleteC
 }
 
 /**
- * Merges collections into targetId: every memory in the others becomes a
- * member of the target (no duplicates), then the others are deleted, in one
- * transaction. If the target is in the vault, the memories it gains are
- * vaulted too, so the vault rule (a vaulted collection's memories are
- * vaulted) still holds.
+ * Merges collections into targetId: members move over without duplicates, the others are deleted,
+ * in one transaction. If the target is vaulted, the memories it gains are vaulted too.
  */
 export async function batchMergeCollections(userId: string, input: BatchMergeCollectionsInput): Promise<BatchResult> {
   const ids = [...new Set(input.collectionIds)];
@@ -76,10 +71,8 @@ export async function batchMergeCollections(userId: string, input: BatchMergeCol
 }
 
 /**
- * Moves collections into or out of the vault, one at a time through
- * updateCollection, so each one's memories follow it exactly as when it's
- * done by hand. Taking them out needs an unlocked vault (enforced at the
- * route); putting them in needs the vault plan feature.
+ * Moves collections into or out of the vault one at a time through updateCollection, so their
+ * memories follow. Taking out needs an unlocked vault (route); putting in needs the vault feature.
  */
 export async function batchVaultCollections(userId: string, input: BatchVaultCollectionsInput): Promise<BatchResult> {
   const ids = [...new Set(input.collectionIds)];

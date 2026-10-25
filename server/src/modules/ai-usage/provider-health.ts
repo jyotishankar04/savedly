@@ -1,9 +1,7 @@
 import { cacheRedis } from "../../config/redis";
 
-// Whether the AI the instance pays for is answering. When the provider
-// account runs out of credits every AI step fails quietly: saves get no
-// summary and Ask has no answer. This keeps the last such refusal where an
-// admin can see it, and forgets it on the next call that works.
+// Whether the instance's AI is answering. When the provider runs out of credits every step fails
+// quietly, so the last refusal is kept for admins and cleared by the next success.
 
 const KEY = "ai:provider-health";
 /** A refusal older than this says nothing about now. */
@@ -18,9 +16,8 @@ export interface AiHealth {
 }
 
 /**
- * Why a provider refused a request, when it's one of the two reasons an
- * operator can act on. Both arrive as HTTP 429, so they are told apart by
- * the error's code and wording.
+ * Why a provider refused: one of the two operator-actionable reasons. Both are HTTP 429, told apart
+ * by the error's code and wording.
  */
 export function providerRefusal(err: unknown): "no-credits" | "rate-limit" | null {
   const e = err as { status?: number; code?: string; message?: string; lc_error_code?: string } | null;

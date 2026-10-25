@@ -10,10 +10,9 @@ import type { MemoryDetail } from "./memory.types";
 import { assertOwnedMemory } from "./memory.commands";
 import { getMemoryById } from "./memory.queries";
 
-// Extension submits whatever the live DOM already gave it (POST
-// /:id/browser-capture) — stored as-is, then re-run through ingestion so
-// parseWebContent's merge step (buildPreview) can upgrade the preview with
-// it, per docs/URL_CAPTURE_AND_PREVIEW.md.
+// The extension submits what the live DOM gave it (POST /:id/browser-capture); stored as-is, then
+// re-run through ingestion so buildPreview can upgrade the preview
+// (docs/URL_CAPTURE_AND_PREVIEW.md).
 export async function submitBrowserCapture(
   userId: string,
   id: string,
@@ -33,10 +32,8 @@ export async function submitBrowserCapture(
   return getMemoryById(userId, id);
 }
 
-// Re-runs ingestion on demand (e.g. user clicks "retry preview"). A failed
-// refresh leaves the prior preview fields untouched — upsertVectors only
-// ever writes a field when the corresponding state value is non-null (see
-// its `?? undefined` pattern), so nothing gets clobbered by a bad retry.
+// Re-runs ingestion on demand ("retry preview"). A failed refresh leaves the earlier preview alone:
+// upsertVectors writes a field only when its state value is non-null.
 export async function refreshPreview(userId: string, id: string, options: { retitle?: boolean } = {}): Promise<MemoryDetail> {
   await assertOwnedMemory(userId, id);
 

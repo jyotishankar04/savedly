@@ -6,16 +6,9 @@ import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
 /**
- * Is this save already in the library? Runs for everything that reaches the
- * pipeline unchecked, which is anything saved without someone looking at the
- * app (the extension's shortcut, a share from a phone, the API). When it
- * finds one, it leaves a notification asking whether to keep both.
- *
- * Saves made in the app are asked before they're saved (memory.service.ts)
- * and arrive here already decided, so they are skipped. So are re-runs: a
- * memory is only ever checked once.
- *
- * No model call, and exact matches only: see memory/duplicates.ts.
+ * Is this save already in the library? Runs for saves made without someone looking at the app
+ * (extension shortcut, phone share, API) and notifies to keep both. Saves from the app are asked
+ * first, and re-runs are skipped. No model call; exact matches only (memory/duplicates.ts).
  */
 export async function detectDuplicate(state: IngestionStateType): Promise<IngestionUpdate> {
   const [memory] = await db

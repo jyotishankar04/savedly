@@ -1,10 +1,8 @@
 import type { VectorStore, VectorUpsertInput } from "./types";
 import { chunkVectorId, documentVectorId } from "./vector-ids";
 
-// Pinecone, over its REST API (no SDK needed for four calls). Works with a
-// serverless index created with the embedding model's dimension (1536 for
-// text-embedding-3-small) and the cosine metric — scores are then cosine
-// similarity, like the other stores.
+// Pinecone over REST (no SDK for four calls), with a serverless index at the embedding dimension
+// (1536) and cosine metric.
 
 const API_VERSION = "2025-04";
 // A request is capped at 2 MB; 1536 floats as JSON is roughly 20 KB a vector.

@@ -44,7 +44,10 @@ export async function attachCollections(memoryIds: string[]): Promise<Map<string
   return map;
 }
 
-/** A note's own opening words, as plain text: what its card shows (the AI summary comes later, or never without AI). */
+/**
+ * A note's own opening words, as plain text: what its card shows (the AI summary comes later, or
+ * never without AI).
+ */
 export function noteExcerpt(markdown: string | null): string | null {
   if (!markdown) return null;
   const text = markdown
@@ -115,13 +118,10 @@ export function toListItem(
 }
 
 /**
- * userId/inTrash/isArchived/isVaulted/type/isFavorite/collectionId/tag scoping shared
- * by both the plain list path and the hybrid-search path below — does NOT
- * include the `q` predicate itself, that's handled entirely differently by
- * each path (ILIKE-free now; see searchMemories). Returns null when a
- * collectionId/tag filter resolves to zero matching memory IDs, so the
- * caller can short-circuit to an empty result instead of running a
- * pointless query.
+ * The scoping (userId, inTrash, isArchived, isVaulted, type, isFavorite, collectionId, tag) shared
+ * by the list and hybrid-search paths; not the `q` predicate, which each path handles itself.
+ * Returns null when a collectionId/tag filter matches no memories, so the caller returns empty
+ * without querying.
  */
 async function buildFilterConditions(
   userId: string,
@@ -131,10 +131,8 @@ async function buildFilterConditions(
     eq(memories.userId, userId),
     eq(memories.inTrash, query.inTrash ?? false),
     eq(memories.isArchived, query.isArchived ?? false),
-    // Same toggle shape as inTrash: hidden by default, shown only when
-    // explicitly asked for — the vault page is the only caller that does,
-    // and only once /vault/unlock has proven the PIN (enforced at the route,
-    // not here — this function doesn't have access to the request).
+    // Like inTrash: hidden by default, shown only when asked. Only the vault page asks, and
+    // /vault/unlock proving the PIN is enforced at the route.
     eq(memories.isVaulted, query.isVaulted ?? false),
   ];
 
@@ -219,17 +217,8 @@ export async function listMemories(
 }
 
 /**
- * Hybrid (semantic + lexical, RRF-fused) search path for a non-empty `q`.
- * candidateLimit scales with the requested page so RRF has real headroom to
- * re-rank above the page size — docs' flat 25 only really suits page 1 —
- * capped at 200 as a safety net (never hit today since the client always
- * requests page 1/limit 50).
- *
- * `total` here is ranked.length — the count of distinct memories matched
- * across both legs after the similarity floor and facet post-filter, bounded
- * by ~2x candidateLimit. It's an approximation of "how many things matched,"
- * not a true unbounded COUNT(*) — acceptable since the search page doesn't
- * currently use `total` for pagination UI.
+ * Hybrid (semantic + lexical, RRF) search for a non-empty `q`. candidateLimit scales with the page so RRF has headroom, capped at 200.
+ * `total` is ranked.length: distinct memories matched across both legs after the floor and facet filter (about 2x candidateLimit). It's an approximation, fine because the search page doesn't paginate on it.
  */
 async function searchMemories(
   userId: string,
@@ -259,10 +248,8 @@ async function searchMemories(
     .from(memories)
     .where(and(eq(memories.userId, userId), inArray(memories.id, pageIds)));
 
-  // RRF's ranked order doesn't survive a plain `IN (...)` fetch — reorder
-  // via the same Map-based idiom attachTags/attachCollections already use
-  // for batch-fetch-by-ID-array, rather than a SQL array_position/CASE
-  // (which appears nowhere else in this codebase).
+  // RRF's order doesn't survive a plain `IN (...)` fetch, so reorder with a Map, as
+  // attachTags/attachCollections do, rather than array_position/CASE.
   const rowsById = new Map(rows.map((row) => [row.id, row]));
   const orderedRows = pageIds
     .map((id) => rowsById.get(id))

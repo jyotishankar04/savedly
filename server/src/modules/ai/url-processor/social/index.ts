@@ -13,8 +13,8 @@ const clock = (seconds: number) => {
 };
 
 /**
- * A post as one readable document: what the pipeline summarizes, tags and
- * embeds (and Ask reads), in place of a page's stripped HTML.
+ * A post as one readable document for the pipeline to summarize, tag and embed, instead of a page's
+ * stripped HTML.
  */
 export function postAsText(post: SocialPost): string {
   const who = post.author?.name && post.author?.handle ? `${post.author.name} (@${post.author.handle})` : post.author?.handle ? `@${post.author.handle}` : post.author?.name;

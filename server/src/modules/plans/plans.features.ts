@@ -8,12 +8,9 @@ import { resolveEffectivePlan } from "./plans.catalog";
 import { isWithinLimit } from "./plans.limits";
 import { platformOnly, startOfCurrentMonth } from "./plans.usage";
 
-// ---------------------------------------------------------------------------
-// Plan features — what a plan unlocks beyond volume. Stored in plans.features;
-// every one is on for a self-hosted install. Gating only ever blocks adding
-// something new: whatever someone already has (vault items, shares, calendar
-// links) stays readable and removable after a downgrade.
-// ---------------------------------------------------------------------------
+// Plan features: what a plan unlocks beyond volume, stored in plans.features; all on when
+// self-hosted. Gating only blocks adding new things; existing vault items, shares and calendar
+// links stay readable and removable after a downgrade.
 
 export const PLAN_FEATURES = {
   // Read mid-sentence: "Your plan doesn't include <label>."
@@ -54,9 +51,8 @@ export async function assertFeature(userId: string, feature: PlanFeature): Promi
 }
 
 /**
- * Plans with the `managedAi` feature (AI included) supply all of a user's AI
- * on the platform's key: their own keys are kept but not used, and they can't
- * add new ones. Never true on a self-hosted install.
+ * Plans with `managedAi` (AI included) supply all of a user's AI on the platform key: their own
+ * keys are kept but unused, and new ones can't be added. Never true when self-hosted.
  */
 export async function planHasManagedAi(userId: string, dbClient: DbOrTx = db): Promise<boolean> {
   if (env.SELF_HOSTED) return false;
@@ -77,16 +73,9 @@ export type IncludedAiPurpose =
 const ASK_ADMISSION_WINDOW_MS = 15 * 60 * 1000;
 
 /**
- * Whether a model call for this purpose may use included AI, given the
- * user's plan quota. Only asked when the user has no key of their own for
- * the role — their own key is never limited.
- *
- * - save: one memory = one unit of AI processing, however many ingestion
- *   calls it takes — reading an image included. A memory that already ran
- *   on included AI this month keeps going; a new one needs room under
- *   AI_MONTHLY_SAVES.
- * - ask: admitted once per question by streamAsk (which logs the
- *   "ask:query" row tagged platform); calls in that thread ride on it.
+ * Whether a call for this purpose may use included AI, given the plan quota. Asked only when the user has no key for the role.
+ * - save: one memory is one unit however many ingestion calls it takes; one already on included AI this month keeps going, a new one needs room under AI_MONTHLY_SAVES.
+ * - ask: admitted once per question by streamAsk (the platform-tagged "ask:query" row); calls in that thread ride on it.
  */
 export async function canUseIncludedAi(userId: string, purpose: IncludedAiPurpose): Promise<boolean> {
   switch (purpose.kind) {

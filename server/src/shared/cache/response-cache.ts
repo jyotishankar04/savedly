@@ -7,19 +7,9 @@ import { verifyAccessToken } from "../utils/jwt";
 import { logger } from "../utils/logger";
 
 /**
- * Cache of GET responses, in Redis: per user for their own data, and one
- * shared copy for the few public reads every page load makes.
- *
- * Every entry is keyed by the user and that user's "cache version". Anything
- * that changes a user's data replaces the version (bumpUserCache), so all of
- * their cached reads miss from then on — no per-route invalidation lists to
- * keep in sync. A user's own write bumps before its response is sent, so the
- * refetch the client fires next always reads fresh data. Changes that come
- * from elsewhere (the ingestion worker, a billing webhook, an admin) bump
- * explicitly; whatever doesn't is bounded by the TTL. The shared copy works
- * the same way with a single version, replaced by any admin write.
- *
- * Redis being slow or down only ever costs the cache: every call fails open.
+ * Redis cache of GET responses: per user for their own data, one shared copy for the public reads every page load makes.
+ * Entries are keyed by user and that user's cache version; anything that changes their data replaces it (bumpUserCache), so all their cached reads miss, with no per-route invalidation lists. A user's own write bumps before responding; changes from elsewhere (worker, webhook, admin) bump explicitly; the rest is bounded by the TTL. The shared copy works the same with one version, replaced by any admin write.
+ * Redis slow or down only costs the cache: every call fails open.
  */
 
 const TTL_SECONDS = 60;

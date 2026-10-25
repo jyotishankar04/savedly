@@ -1,19 +1,11 @@
 import { env } from "../../../config/env";
 import { UNSUBSCRIBE_URL_PLACEHOLDER } from "../unsubscribe";
 
-// -----------------------------------------------------------------------------
-// The email design system.
-//
-// Every email is built from the pieces in this file, so they all share one
-// look, the app's and kept minimal: one column of text on white with plenty
-// of room, the brand blue for the one thing to click, hairlines rather than
-// boxes, while each kind of email has its own layout.
-//
-// Mail clients are not browsers. Outlook renders with Word's engine and many
-// clients strip <style> blocks, so everything here is tables and inline
-// styles, colours are plain hex, and nothing depends on web fonts, flexbox or
-// images loading (the header reads fine as text when images are blocked).
-// -----------------------------------------------------------------------------
+// The email design system. Every email is built from these pieces for one minimal look: a white
+// column of text, the brand blue for the one action, hairlines instead of boxes.
+// Mail clients aren't browsers (Outlook uses Word's engine, many strip <style>), so everything is
+// tables and inline styles with plain hex colours, no web fonts or flexbox, and it reads fine with
+// images blocked.
 
 export const COLOR = {
   page: "#ffffff",

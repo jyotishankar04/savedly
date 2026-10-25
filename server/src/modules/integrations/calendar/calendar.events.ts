@@ -72,7 +72,10 @@ export async function eventLinksForMemory(
 
 export interface MergedCalendarEvent {
   id: string;
-  /** "savedly" for an event that only exists as a memory's eventAt (no connected provider, or not yet pushed); otherwise which provider it was fetched from. */
+  /**
+   * "savedly" for an event that only exists as a memory's eventAt (no connected provider, or not
+   * yet pushed); otherwise which provider it was fetched from.
+   */
   source: "savedly" | CalendarProviderKey;
   title: string;
   description: string | null;
@@ -80,20 +83,25 @@ export interface MergedCalendarEvent {
   endAt: string;
   /** Provider's own UI link, or null for an event that only exists in Savedly. */
   htmlLink: string | null;
-  /** The Savedly memory backing this event, when there is one — lets the client link through to it either way. */
+  /**
+   * The Savedly memory backing this event, when there is one — lets the client link through to it
+   * either way.
+   */
   memoryId: string | null;
-  /** The provider's own event id, for a provider-sourced event with no memoryId — needed to edit/delete it directly since there's no memory to key off. Null for an event that only exists in Savedly. */
+  /**
+   * The provider's own event id, for a provider-sourced event with no memoryId — needed to
+   * edit/delete it directly since there's no memory to key off. Null for an event that only exists
+   * in Savedly.
+   */
   externalEventId: string | null;
   /** A whole-day event: startAt/endAt are midnight UTC of its dates (end exclusive). */
   allDay: boolean;
 }
 
 /**
- * Merges three sources into one calendar view: each connected provider's
- * real events, plus every Savedly memory with an eventAt in range that
- * ISN'T already represented by one of those provider events (tracked via
- * calendar_event_links) — so a memory with a date but no calendar
- * connection still shows up, without duplicating ones that do.
+ * Merges each connected provider's real events with every memory that has an eventAt in range and
+ * isn't already one of those events (calendar_event_links), so dated memories show without
+ * duplicates.
  */
 export async function listEvents(userId: string, range: { from: Date; to: Date }): Promise<MergedCalendarEvent[]> {
   const connections = await getConnections(userId);
@@ -200,13 +208,9 @@ export interface CreateStandaloneEventResult {
 }
 
 /**
- * The single path both the "New event" dialog (POST /integrations/calendar/events)
- * and the create_calendar_event agent tool go through — creates a real
- * Savedly memory (so the event is searchable/visible like everything else
- * saved) with its eventAt already confirmed, then best-effort pushes it to
- * every connected provider. A provider push failing for one doesn't fail
- * the others or the memory creation — the event still exists in Savedly
- * either way, just not yet synced to that provider's calendar.
+ * The one path for the "New event" dialog and the create_calendar_event agent tool: creates a
+ * memory with eventAt confirmed, then pushes to each connected provider best-effort. One provider
+ * failing doesn't fail the others or the memory.
  */
 export async function createStandaloneCalendarEvent(
   userId: string,
@@ -287,14 +291,9 @@ export interface UpdateStandaloneEventInput {
 }
 
 /**
- * Edits an event that has a Savedly memory behind it — the overwhelming
- * majority of events in this app, since almost everything reaches the
- * calendar by being created here first (New event dialog, the agent tool,
- * or AI detection). Updates the memory itself, then best-effort re-syncs
- * every provider it's already been pushed to (calendar_event_links) so the
- * external copy doesn't silently drift out of date. Mirrors
- * createStandaloneCalendarEvent's "memory is the source of truth, provider
- * sync is best-effort" shape.
+ * Edits an event with a memory behind it (nearly all of them). Updates the memory, then best-effort
+ * re-syncs each provider it was pushed to (calendar_event_links). The memory is the source of
+ * truth; sync is best-effort.
  */
 export async function updateEventForMemory(userId: string, memoryId: string, input: UpdateStandaloneEventInput): Promise<void> {
   const memory = await getMemoryById(userId, memoryId);
@@ -341,12 +340,8 @@ export async function updateEventForMemory(userId: string, memoryId: string, inp
 }
 
 /**
- * Removes an event that has a Savedly memory behind it — deletes any synced
- * copy on every connected provider first (best-effort; a provider being
- * unreachable shouldn't block removing it locally), then clears the
- * memory's eventAt. The memory itself is kept — this removes it from the
- * calendar, not the user's saved note, matching the existing "Remove
- * event" affordance elsewhere in the app.
+ * Removes an event with a memory: deletes synced copies on each provider first (best-effort, an
+ * unreachable provider doesn't block it), then clears eventAt. The memory itself is kept.
  */
 export async function deleteEventForMemory(userId: string, memoryId: string): Promise<void> {
   const links = await db.select().from(calendarEventLinks).where(and(eq(calendarEventLinks.memoryId, memoryId), eq(calendarEventLinks.userId, userId)));
@@ -367,12 +362,8 @@ export async function deleteEventForMemory(userId: string, memoryId: string): Pr
 }
 
 /**
- * Edits or removes a purely external event — one that lives only on a
- * connected Google calendar and was never created through Savedly
- * (no memory, no calendar_event_links row). Rare in practice, but a
- * connected calendar can already have events on it before/aside from
- * anything Savedly created, and this app should still let the user manage
- * those from the same calendar page rather than only the ones it created.
+ * Edits or removes an external event that lives only on a connected calendar (no memory, no link
+ * row), so users can manage those from the same page.
  */
 export async function updateExternalCalendarEvent(
   userId: string,

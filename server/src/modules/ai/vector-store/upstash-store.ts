@@ -2,10 +2,8 @@ import { Index } from "@upstash/vector";
 import type { VectorStore, VectorUpsertInput } from "./types";
 import { chunkVectorId, documentVectorId } from "./vector-ids";
 
-// IDs are prefixed with the memory ID so a whole memory's vectors (document +
-// every chunk) can be removed in one call via `delete({ prefix })` — Upstash
-// doesn't know about our Postgres FK cascades, so this is the only way to
-// avoid orphaned vectors when a memory is deleted.
+// IDs start with the memory ID so all of a memory's vectors can be deleted by prefix; Upstash
+// doesn't know about our FK cascades.
 export function createUpstashVectorStore(config: { url: string; token: string }): VectorStore {
   const index = new Index({ url: config.url, token: config.token });
 
@@ -39,10 +37,8 @@ export function createUpstashVectorStore(config: { url: string; token: string })
     },
 
     async searchByEmbedding(userId, embedding, limit) {
-      // kind='document' scopes this to the one summary-level vector per
-      // memory (not the per-chunk vectors also stored under this same
-      // index) — memoryId is read straight off metadata rather than parsed
-      // out of the `${memoryId}:document` id string.
+      // kind='document' selects the one summary vector per memory, not the chunk vectors in the
+      // same index. memoryId comes from metadata, not the id string.
       const results = await index.query<{ memoryId: string; userId: string; kind: string }>({
         vector: embedding,
         topK: limit,

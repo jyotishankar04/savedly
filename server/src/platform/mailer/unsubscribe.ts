@@ -1,10 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { env } from "../../config/env";
 
-// Unsubscribe links are opened from an inbox, signed out, possibly years
-// later. So the link carries the user's id and a signature of it, with no
-// expiry and no session. The signing key is derived from JWT_ACCESS_SECRET
-// under its own label, so a token is useless as anything else.
+// Unsubscribe links are opened signed out, possibly years later, so the link carries the user's id
+// and a signature, with no expiry or session. The key is derived from JWT_ACCESS_SECRET under its
+// own label, so a token is useless as anything else.
 
 /** Stands in for the recipient's link in a rendered email until it is known. */
 export const UNSUBSCRIBE_URL_PLACEHOLDER = "{{unsubscribe_url}}";
@@ -29,8 +28,8 @@ export function unsubscribePageUrl(userId: string): string {
 }
 
 /**
- * The List-Unsubscribe headers (RFC 8058). They put an "Unsubscribe" button
- * in Gmail and other inboxes, which POSTs to the API with no page shown.
+ * The List-Unsubscribe headers (RFC 8058): an "Unsubscribe" button in Gmail and others, which POSTs
+ * to the API with no page shown.
  */
 export function unsubscribeHeaders(userId: string): Record<string, string> {
   return {

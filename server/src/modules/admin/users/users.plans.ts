@@ -10,13 +10,8 @@ import { adminChangeSubscription, billingStatus } from "../../billing/api";
 import type { GrantPlanInput } from "./users.schema";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 
-// ---------------------------------------------------------------------------
-// Plans — what an admin sees and changes on a user's page. The effective plan
-// is the newest active assignment (plans.service.ts resolveEffectivePlan), so
-// a fresh admin grant takes over from a subscription, and removing it hands
-// back to whatever they pay for (or the default plan). Billing is never
-// touched: a grant doesn't start, change or stop any charge.
-// ---------------------------------------------------------------------------
+// Plans on a user's page. The effective plan is the newest active assignment, so a grant takes over
+// from a subscription and removing it hands back. Billing is never touched.
 
 export async function getUserPlan(userId: string) {
   const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId)).limit(1);

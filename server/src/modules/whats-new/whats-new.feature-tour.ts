@@ -2,18 +2,10 @@ import { db } from "../../db";
 import { whatsNewItems } from "../../db/schema";
 import { WhatsNewKind } from "../../db/enums";
 
-// The latest release, for the "What's new" popup: what's new since the launch
-// tour, newest first. Extension 1.2 (highlights, the side panel, the smarter
-// save form, search from any page) leads; then the app's Inbox and
-// reminders, organizing many at once, paste/drop/drag, the share sheet, and
-// Ask looking things up on the web.
-//
-// An admin loads them from Admin > What's new ("Load the latest release"),
-// which replaces every card there (the launch tour included). Afterwards
-// they are ordinary cards: edit, reorder or switch them off.
-// Pictures are files of the website (client/public), short looping WebP
-// recordings: the extension's from /chrome-extension (extension/loops), the
-// app's recorded from the local app's sample library (whats-new/loops).
+// The latest release for the "What's new" popup, newest first. An admin loads it from Admin >
+// What's new ("Load the latest release"), replacing every card; afterwards they're ordinary cards
+// to edit, reorder or switch off. Pictures are short looping WebP files of the website
+// (client/public).
 
 const EXTENSION_PAGE = "/chrome-extension";
 

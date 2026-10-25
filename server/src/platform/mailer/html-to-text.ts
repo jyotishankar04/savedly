@@ -1,11 +1,7 @@
-// Every email goes out with a plain-text version beside the designed one.
-// Mail that is HTML only reads as a marketing blast to spam and tab filters;
-// real person-to-person and transactional mail carries both. It's also what
-// a recipient sees if their mail app shows text only.
-//
-// The templates (./templates.ts) are our own, table-based HTML, so this
-// doesn't need to be a general converter: it turns their structure into
-// readable lines and links into "label: address".
+// Every email carries a plain-text version beside the designed one: HTML-only mail reads as a
+// marketing blast to spam filters, and it's what text-only mail apps show. Our templates are
+// table-based, so this only turns their structure into readable lines and links into "label:
+// address".
 
 const ENTITIES: Record<string, string> = {
   "&amp;": "&",

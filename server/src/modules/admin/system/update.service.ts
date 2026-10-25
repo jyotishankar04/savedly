@@ -3,10 +3,9 @@ import { resolve } from "node:path";
 import { env } from "../../../config/env";
 import { logger } from "../../../shared/utils/logger";
 
-// Tells a self-hosted admin when a newer release exists. This is the one
-// request an install makes to GitHub on its own, so it can be switched off
-// (UPDATE_CHECK=false), it sends nothing about the install, and a failure is
-// silent: the admin page just doesn't mention updates.
+// Tells a self-hosted admin when a newer release exists. The one request an install makes to GitHub
+// on its own: it sends nothing about the install, can be disabled (UPDATE_CHECK=false), and fails
+// silently.
 
 const RELEASES_URL = "https://api.github.com/repos/jyotishankar04/savedly/releases/latest";
 const CHECK_EVERY_MS = 12 * 60 * 60 * 1000;

@@ -5,16 +5,8 @@ import { getStorage, STORAGE_KEY_PATTERN } from "../../platform/storage";
 import { logger } from "../../shared/utils/logger";
 
 /**
- * The files in our own storage (R2/S3 or local disk) that memories own, so a
- * permanent delete removes the bytes too and not only the rows pointing at
- * them. A memory's files are its attachments (uploads, extension
- * screenshots), its preview image and images placed in a note's content, but
- * only those whose URL is one of ours: an og:image from someone else's site
- * is left alone.
- *
- * Usage: collect the keys before the rows go (collectMemoryFileKeys), delete
- * the rows, then deleteUnusedFiles. A key still used by a memory that isn't
- * being deleted (a duplicate, a copy) is kept.
+ * Files in our own storage that memories own (attachments, extension screenshots, preview image, images in a note), so a permanent delete removes the bytes too. Only our own URLs count; someone else's og:image is left alone.
+ * Collect keys before deleting rows (collectMemoryFileKeys), delete rows, then deleteUnusedFiles; a key still used by a surviving memory is kept.
  */
 
 // Any URL inside a note's text (markdown or HTML).
@@ -46,9 +38,8 @@ export async function collectMemoryFileKeys(memoryIds: string[]): Promise<string
 }
 
 /**
- * Deletes each key's file from storage unless a memory outside `deletedIds`
- * still points at it. Best effort: a file that fails to delete is logged and
- * never fails the delete that called this.
+ * Deletes each key's file unless a memory outside `deletedIds` still points at it. Best effort: a
+ * failure is logged and never fails the delete.
  */
 export async function deleteUnusedFiles(keys: string[], deletedIds: string[]): Promise<number> {
   if (keys.length === 0) return 0;

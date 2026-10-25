@@ -27,12 +27,9 @@ function rejectsCustomTemperature(model: string): boolean {
 }
 
 /**
- * Per-tier call settings, used by live calls AND the Settings test, so a role
- * that passes its test is known to work in ingestion with these exact options.
- * Fast/vision jobs are short classification and description tasks: they get a
- * low temperature where the model allows one, and OpenAI reasoning models get
- * low reasoning effort (at the default, gpt-5-nano spent ~3,000 hidden tokens
- * per screenshot, making saves slow and costly).
+ * Per-tier call settings, shared by live calls and the Settings test, so a role that passes its
+ * test works in ingestion. Fast/vision get a low temperature where allowed, and OpenAI reasoning
+ * models low effort (gpt-5-nano spent ~3,000 hidden tokens per screenshot at the default).
  */
 function tierOptions(credential: ProviderCredentialInput, tier: ModelTier): { temperature?: number; reasoningEffort?: "low" } {
   const quickJob = tier === "fast" || tier === "vision";
@@ -69,7 +66,11 @@ export function buildChatModel(credential: ProviderCredentialInput, tier: ModelT
   }
 }
 
-/** Groq and Anthropic have no embeddings API — throws, since this is only ever reached via a code path that already excludes them (the settings UI's provider choices for the embeddings role, and testCredential below). */
+/**
+ * Groq and Anthropic have no embeddings API — throws, since this is only ever reached via a code
+ * path that already excludes them (the settings UI's provider choices for the embeddings role, and
+ * testCredential below).
+ */
 export function buildEmbeddings(credential: ProviderCredentialInput): EmbeddingsInterface {
   if (credential.provider === AiCredentialProvider.GROQ || credential.provider === AiCredentialProvider.ANTHROPIC) {
     throw new Error(`${credential.provider} has no embeddings API`);
@@ -82,14 +83,9 @@ export function buildEmbeddings(credential: ProviderCredentialInput): Embeddings
   });
 }
 
-// Fast tier: extraction/tagging/classification — every ingestion node's
-// small, normal-question-shaped calls (fill in this field, classify this
-// into one of N buckets, write a 2-3 sentence summary).
-// Reasoning tier: the Ask Savedly agent and anything needing real
-// judgment. Both are just the user's own chosen model for that role now —
-// see docs/AI_REQUIREMENTS.md for the original two-tier design this mirrors.
-// `purpose` says what the call is for, which is what lets it fall back to
-// included AI when the user has no key of their own (see resolveCredential).
+// Fast tier: small extraction/classification calls in ingestion. Reasoning tier: Ask Savedly and
+// anything needing judgment. Both are the user's chosen model for that role. `purpose` lets the
+// call fall back to included AI when there's no own key (see resolveCredential).
 export async function getChatModel(
   userId: string,
   tier: "fast" | "reasoning",
@@ -101,9 +97,8 @@ export async function getChatModel(
 }
 
 /**
- * A model on the instance's own key, for work done on nobody's behalf (the
- * public help box). No account means no plan allowance to check: the caller
- * must bound the cost itself.
+ * A model on the instance's own key, for work done on nobody's behalf (the public help box).
+ * There's no plan to check, so the caller must bound the cost.
  */
 export async function getPlatformChatModel(tier: "fast" | "reasoning"): Promise<BaseChatModel | null> {
   const credential = await platformCredential(tier === "fast" ? AiRole.FAST : AiRole.REASONING);
@@ -117,12 +112,8 @@ export interface ResolvedEmbeddings {
 }
 
 /**
- * Bundled with provider/model (not just the client) so every call site's
- * usage log reflects the actual choice instead of a hardcoded
- * "openai"/"text-embedding-3-small". A user's own configured embeddings
- * credential always wins when they have one; otherwise this falls back to
- * the platform's own (EMBEDDINGS_API_KEY) — the one role that isn't purely
- * BYOK, see the comment on platformEmbeddingsCredential above.
+ * Returned with provider and model so usage logs show the real choice. The user's own embeddings
+ * credential wins; otherwise the platform's (EMBEDDINGS_API_KEY).
  */
 export async function getEmbeddings(userId: string): Promise<ResolvedEmbeddings | null> {
   const credential = (await ownCredential(userId, AiRole.EMBEDDINGS)) ?? (await platformEmbeddingsCredential());
@@ -142,10 +133,8 @@ export async function getVisionModels(userId: string, memoryId: string | null): 
   return [buildChatModel(resolved.credential, "vision", resolved.platform)];
 }
 
-// Previously two different *providers* (Groq + OpenAI) so one outage
-// couldn't take down both the primary and fallback attempt. Under BYOK
-// there's exactly one model per role — this now just wraps getChatModel so
-// every existing invokeWithFallback call site keeps working unchanged.
+// Under bring-your-own-key there's one model per role, so this wraps getChatModel and keeps
+// existing invokeWithFallback call sites working.
 export async function getTextFallbackModels(userId: string, purpose?: IncludedAiPurpose): Promise<BaseChatModel[]> {
   const model = await getChatModel(userId, "fast", purpose);
   return model ? [model] : [];

@@ -37,8 +37,8 @@ async function withinDailyBudget(): Promise<boolean> {
 }
 
 /**
- * POST /help/ask. With `Accept: text/event-stream` the answer arrives as it
- * is written ("delta" events, then one "done"); otherwise as one JSON reply.
+ * POST /help/ask. With `Accept: text/event-stream` the answer streams ("delta" events, then
+ * "done"); otherwise one JSON reply.
  */
 router.post("/ask", helpAskMinuteRateLimiter, helpAskDailyRateLimiter, validate(askSchema), async (req: Request, res: Response) => {
   if (!(await withinDailyBudget())) throw new AppError(BUSY, 429, "HELP_BUSY");

@@ -112,13 +112,7 @@ export const planLimitTypeEnum = pgEnum("plan_limit_type", [
   PlanLimitType.WEB_SEARCH_MONTHLY,
 ]);
 
-// SEMI_ANNUAL was missing here even though it's a real PlanBillingInterval
-// value (added in 464160f) and already exists on the live Postgres enum —
-// this TS-side definition just never caught up, which is what made
-// seedDefaultPlans's `billingInterval: seed.billingInterval` fail to
-// typecheck (Drizzle infers the column's TS type from this list, not from
-// the enum import). Also visible client-side (client/lib/plans.ts needed
-// the same value added to its own local union to match).
+// Keep in sync with PlanBillingInterval (Drizzle infers the column type from this list).
 export const planBillingIntervalEnum = pgEnum("plan_billing_interval", [
   PlanBillingInterval.MONTHLY,
   PlanBillingInterval.SEMI_ANNUAL,
@@ -230,11 +224,8 @@ export const calendarProviderEnum = pgEnum("calendar_provider", [
   CalendarProvider.MICROSOFT,
 ]);
 
-// -----------------------------------------------------------------------------
-// Highlights: passages marked on a saved page (the extension's highlighter).
-// prefix/suffix are a few dozen characters on either side, so the passage can
-// be found again on the page when it's revisited, even if it repeats.
-// -----------------------------------------------------------------------------
+// Highlights: passages marked on a saved page. prefix/suffix are a few dozen characters either
+// side, so a repeated passage can be found again.
 export const highlightColorEnum = pgEnum("highlight_color", [
   HighlightColor.YELLOW,
   HighlightColor.GREEN,

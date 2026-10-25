@@ -2,14 +2,8 @@ import { cacheRedis, redis } from "../config/redis";
 import { loadFeatureTour } from "../modules/whats-new/whats-new.feature-tour";
 import { bumpPublicCache } from "../shared/cache/response-cache";
 
-// Loads the latest release's cards into the landing page's popup, replacing
-// every existing "What's new" card. For a development machine:
-//
-//   pnpm db:feature-tour
-//
-// It needs the source tree and tsx, which the production image doesn't
-// have. On a deployed server, use the button in Admin > What's new instead;
-// it does the same thing.
+// Loads the latest release's cards into the landing page's popup, replacing existing ones. Dev
+// machines only (pnpm db:feature-tour); on a deployed server use Admin > What's new.
 
 loadFeatureTour()
   .then(async ({ removed, added }) => {

@@ -2,21 +2,15 @@ import { tool, type ToolRuntime } from "@langchain/core/tools";
 import { z } from "zod";
 import { chunkHybridSearch } from "../chunk-search";
 
-// A zod object (not a plain TS interface) so ToolRuntime's context generic
-// resolves it via its InteropZodObject branch — a bare interface didn't
-// type-check (runtime.context.userId came back as a property of `{}`).
-// turnId: one per question (streamAsk), so a tool can tell calls in the
-// same answer apart from later ones.
-// threadId: the conversation, so a tool can leave a question for the user
-// to answer in it (confirm.ts).
+// A zod object so ToolRuntime's context generic resolves it (a bare interface typed
+// `runtime.context.userId` as `{}`).
+// turnId: one per question. threadId: the conversation, so a tool can leave a question for the user
+// (confirm.ts).
 export const ragToolContextSchema = z.object({ userId: z.string(), turnId: z.string().optional(), threadId: z.string().optional() });
 export type RAGToolContext = z.infer<typeof ragToolContextSchema>;
 
-// Doubles as the documented shape a future client-side generative-UI
-// renderer can rely on (mirrors codersgpt-genai's {query, products} pattern —
-// a tool's structured return is what a message renderer pattern-matches on
-// to show something richer than plain text, e.g. memory result cards built
-// from the already-installed Attachment component).
+// The documented result shape the client's memory-result cards rely on (the tool's structured
+// return is what the renderer matches).
 export const searchMemoriesResultSchema = z.object({
   query: z.string(),
   memories: z.array(

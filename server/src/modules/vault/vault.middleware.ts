@@ -7,12 +7,9 @@ import { VAULT_TOKEN_COOKIE, setVaultTokenCookie } from "../../shared/utils/cook
 import { signVaultToken, verifyVaultToken } from "../../shared/utils/jwt";
 
 /**
- * Guards every route that actually reads vaulted content. Must run after
- * `authenticate` — it trusts `req.user` already being set.
- *
- * On success it re-issues the cookie with a fresh 30-minute window, which is
- * what turns the token's fixed TTL into a sliding "unlocked while active"
- * session rather than a hard cutoff regardless of activity.
+ * Guards routes that read vaulted content; must run after `authenticate` (it trusts req.user). On
+ * success it re-issues the cookie with a fresh 30-minute window, making the fixed TTL a sliding
+ * "unlocked while active" session.
  */
 export async function requireVaultUnlocked(req: Request, _res: Response, next: NextFunction) {
   const token = req.cookies?.[VAULT_TOKEN_COOKIE];
@@ -40,14 +37,9 @@ export async function requireVaultUnlocked(req: Request, _res: Response, next: N
 }
 
 /**
- * Guards `GET /memories` and `GET /collections`: those routes already
- * expose an isVaulted query toggle (mirroring the existing isArchived/
- * inTrash pattern) so the vault page can reuse the normal list endpoints
- * rather than needing its own. This is what stops that toggle from working
- * for anyone who hasn't actually unlocked the vault.
- *
- * A no-op when isVaulted isn't requested — every other caller of these
- * routes is unaffected.
+ * Guards `GET /memories` and `GET /collections`, which expose an isVaulted toggle so the vault page
+ * can reuse them; this stops the toggle working for anyone who hasn't unlocked the vault. A no-op
+ * when isVaulted isn't requested.
  */
 export function requireVaultUnlockedForQuery(req: Request, res: Response, next: NextFunction) {
   const query = req.query as unknown as { isVaulted?: boolean };
@@ -56,11 +48,8 @@ export function requireVaultUnlockedForQuery(req: Request, res: Response, next: 
 }
 
 /**
- * Guards `PATCH /memories/:id` and `PATCH /collections/:id`: vaulting
- * something (isVaulted: true) is always allowed — hiding your own content
- * is never dangerous. Removing it from the vault (isVaulted: false) is the
- * one direction that needs proof of the PIN, since it's the direction that
- * makes something visible again.
+ * Guards `PATCH /memories/:id` and `/collections/:id`. Vaulting (isVaulted: true) is always
+ * allowed; removing from the vault needs proof of the PIN, since that makes content visible again.
  */
 export function requireUnlockToUnvault(req: Request, res: Response, next: NextFunction) {
   if (req.body?.isVaulted !== false) return next();

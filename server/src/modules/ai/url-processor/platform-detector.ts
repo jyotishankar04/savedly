@@ -2,11 +2,8 @@ import type { PlatformInfo } from "./types";
 import { extractReddit, extractTikTok, extractX, extractYouTube, unfurl, type SocialExtractor } from "./social";
 
 /**
- * Credential lookup for a platform that requires authenticated fetching
- * (e.g. Instagram blocks unauthenticated scraping). `envVar` names the env
- * var holding the secret — resolved lazily via `getPlatformCredential()`,
- * never read at module load, so a platform with no `auth` (or one whose
- * env var isn't set) just has no credential, nothing fails.
+ * Credential lookup for a platform that needs authenticated fetching. `envVar` names the secret,
+ * resolved lazily so a platform without it just has no credential.
  */
 interface PlatformAuthConfig {
   type: "cookie" | "bearer_token" | "api_key";
@@ -22,17 +19,10 @@ interface PlatformRule {
   extract?: { resourceTypes: string[]; read: SocialExtractor };
 }
 
-// Data, not branching logic — a new platform (with or without auth) is a
-// new row here, never a new `if (host.includes(...))` or `if (platform ===
-// "x")` somewhere else in the codebase. To support a platform that needs
-// authenticated fetching, add `auth: { type: ..., envVar: "..." }` to its
-// row and set that env var — nothing else in this file, or any caller of
-// detectPlatform/getPlatformCredential, needs to change.
-//
-// Not every URL from a platform is the same resource type (a GitHub URL can
-// be a repo, an issue, a PR, or a profile), so resourceType is a small
-// per-platform classifier over the path, kept honest about what it can't
-// determine (returns null rather than guessing).
+// Data, not branching: a new platform is a new row, never an `if (host...)` elsewhere. For
+// authenticated fetching add `auth: { type, envVar }` to its row.
+// resourceType is a per-platform classifier over the path (a GitHub URL can be a repo, issue, PR or
+// profile) and returns null rather than guessing.
 const PLATFORM_RULES: PlatformRule[] = [
   {
     platform: "instagram",
@@ -179,7 +169,10 @@ export function detectPlatform(url: string): PlatformInfo {
   };
 }
 
-/** The reader for a URL's post or video, when its platform has one for that kind of page (see `extract` above). */
+/**
+ * The reader for a URL's post or video, when its platform has one for that kind of page (see
+ * `extract` above).
+ */
 export function socialExtractorFor(url: string): SocialExtractor | null {
   const { platform, resourceType } = detectPlatform(url);
   const rule = PLATFORM_RULES.find((r) => r.platform === platform);
@@ -187,12 +180,8 @@ export function socialExtractorFor(url: string): SocialExtractor | null {
 }
 
 /**
- * Resolves the configured credential for a platform, if any — the one
- * place a future authenticated fetcher (e.g. for Instagram) should read
- * secrets from, instead of hardcoding `process.env.INSTAGRAM_...` inline.
- * Reads `process.env` directly (not the Zod-validated `env` object) since
- * these are per-platform, optional, and pluggable — a platform's row can
- * declare `auth` without every deployment needing to set it.
+ * The configured credential for a platform, if any; where an authenticated fetcher should read
+ * secrets. Reads process.env directly because these are per-platform, optional and pluggable.
  */
 export function getPlatformCredential(platform: string): { type: PlatformAuthConfig["type"]; value: string } | null {
   const rule = PLATFORM_RULES.find((r) => r.platform === platform);

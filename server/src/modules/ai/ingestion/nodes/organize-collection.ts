@@ -55,9 +55,13 @@ Respond as strict JSON: {{"action": "existing"|"new"|"none", "collectionName": "
 
 const NONE: IngestionUpdate = { collectionAction: "none", collectionName: null, collectionIcon: null, collectionDescription: null };
 
-/** Files the memory into the collection about the same subject, creating one when none fits. "none" is reserved for true one-offs. */
+/**
+ * Files the memory into the collection about the same subject, creating one when none fits. "none"
+ * is reserved for true one-offs.
+ */
 export async function organizeCollection(state: IngestionStateType): Promise<IngestionUpdate> {
-  // Someone already put it in a collection (by hand, or through Ask): that choice stands, and a re-ingest must not add a second one.
+  // Someone already put it in a collection (by hand, or through Ask): that choice stands, and a
+  // re-ingest must not add a second one.
   const [alreadyFiled] = await db
     .select({ collectionId: collectionMemories.collectionId })
     .from(collectionMemories)
@@ -102,10 +106,8 @@ export async function organizeCollection(state: IngestionStateType): Promise<Ing
     return NONE;
   }
 
-  // The model's answer is only a name: match it to a real collection either
-  // way, so "new: Birthday" reuses an existing "Birthdays", and an "existing"
-  // name it misspelled still lands somewhere instead of nowhere.
-  // A model that copied the whole listed line ("Movies (about: films I liked)", or "Movies: films…") still means "Movies".
+  // The model's answer is only a name, so match it to a real collection either way ("new: Birthday"
+  // reuses "Birthdays"). A copied whole line ("Movies (about: ...)") still means "Movies".
   const bare = [name, name.replace(/\s*\(about:.*$/i, ""), name.split(/\s*[:—–]\s+/)[0]!].map((n) => n.replace(/^["']|["']$/g, "").trim());
   const match = existing.find((c) => bare.some((n) => collectionNameKey(c.name) === collectionNameKey(n)));
   const resolved: IngestionUpdate = match

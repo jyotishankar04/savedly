@@ -12,7 +12,10 @@ import { ingestionGraph } from "./graph";
 import { INGESTION_QUEUE, REINDEX_JOB, ingestionQueue, ingestionWorkerOptions, type IngestionJobData } from "./queue";
 import { reembedMemory } from "./reembed";
 
-/** Runs in the same process as the API for now (fine for dev — see the AI ingestion plan for the production split). */
+/**
+ * Runs in the same process as the API for now (fine for dev — see the AI ingestion plan for the
+ * production split).
+ */
 export function startIngestionWorker(): Worker<IngestionJobData> {
   // Jobs finished before the queue removed them by itself are still in Redis:
   // clear those that are more than an hour old. Harmless when there are none.
@@ -77,11 +80,8 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
   worker.on("failed", (job, err) => {
     logger.error({ memoryId: job?.data.memoryId, err }, "[ingestion] job failed");
 
-    // Every prior node degrades gracefully instead of throwing — reaching
-    // here means something genuinely broke (a bug, an outage). The memory
-    // itself was already created and must never be left stuck at
-    // "processing" forever, per the save guarantee. A failed re-index leaves
-    // the memory as it was: only its search by meaning is behind.
+    // Earlier nodes degrade instead of throwing, so reaching here means something broke. The memory
+    // must not stay at "processing"; a failed re-index leaves it as it was.
     if (job?.data.memoryId && job.name !== REINDEX_JOB) {
       db.update(memories)
         .set({ status: MemoryStatus.FAILED })

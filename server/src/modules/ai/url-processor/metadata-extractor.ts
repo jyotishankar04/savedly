@@ -37,9 +37,8 @@ function extractCanonical(html: string, pageUrl: string): string | null {
 }
 
 /**
- * The `/favicon.ico`-at-the-origin guess every browser falls back to — needs
- * only a valid URL, no HTML at all. Websites only: a chrome:// or
- * chrome-extension:// page has no icon a web page could load.
+ * The origin's `/favicon.ico` guess every browser falls back to; needs only a valid URL. Websites
+ * only (chrome:// pages have no loadable icon).
  */
 export function defaultFaviconUrl(pageUrl: string): string | null {
   try {
@@ -59,10 +58,8 @@ function extractFavicon(html: string, pageUrl: string): string | null {
 }
 
 /**
- * Everything the fetched HTML can offer, already reduced through the
- * server-side priority chain (og:* > twitter:* > plain HTML tags) — the
- * caller (browser-capture-merger) applies the *next* tier of priority
- * (browser capture over all of this) on top.
+ * What the fetched HTML offers, reduced by og:* > twitter:* > plain tags; the caller applies
+ * browser capture on top.
  */
 export function extractServerMetadata(html: string, pageUrl: string): PreviewFields {
   const rawImage = extractMetaContent(html, ["og:image", "og:image:url", "twitter:image"]);

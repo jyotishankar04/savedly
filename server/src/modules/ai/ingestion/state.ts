@@ -37,12 +37,9 @@ export const IngestionState = new StateSchema({
   // AI-generated title should fill in for the schema's "Untitled" default
   // rather than clobber a title the user actually typed.
   existingTitle: z.string().default("Untitled"),
-  // The memory's own `content` at creation time. For a "note" this IS the
-  // primary body (never touched by CorrectCaption). For every other type
-  // it's a short caption typed alongside a link/attachment ("ui inspo for
-  // my saas" next to an Instagram link) — CorrectCaption fixes spelling on
-  // this without changing rawContent, which stays whatever ParseWebContent/
-  // ExtractDocText/etc. actually fetched.
+  // The memory's own `content` at creation. For a note it's the body (never touched by
+  // CorrectCaption); otherwise a short caption, whose spelling CorrectCaption fixes without
+  // changing rawContent.
   caption: z.string().default(""),
 
   // Populated by the per-media-type node (ParseWebContent/NormalizeNote/etc).
@@ -79,10 +76,8 @@ export const IngestionState = new StateSchema({
   // that specific type (a recipe's ingredients, a task's due date, ...).
   contentType: z.string().nullable().default(null),
   extractedFields: z.record(z.string(), z.string()).default({}),
-  // Deterministic (regex, not LLM) re-check for an embedded URL — a
-  // backstop for the client's own detection, so a "note" that actually
-  // contains a link still ends up correctly typed and gets its url column
-  // populated, whether or not the client caught it first.
+  // Regex re-check for an embedded URL, a backstop for the client's detection, so a note containing
+  // a link still gets typed and its url set.
   detectedUrl: z.string().nullable().default(null),
 
   // ClassifyIntent output.
@@ -90,10 +85,8 @@ export const IngestionState = new StateSchema({
   inferredIntent: z.string().nullable().default(null),
   intentConfidence: z.number().nullable().default(null),
 
-  // DetectEvent output — a best-guess absolute date/time this memory is
-  // "about," if any (ISO 8601), and its confidence. Null/null when no
-  // event was detected, or when the node degraded after an LLM/parse
-  // failure — see nodes/detect-event.ts, which deliberately never throws.
+  // DetectEvent output: a best-guess ISO date/time and confidence. Null/null when none was detected
+  // or the node degraded (it never throws).
   detectedEventAt: z.string().nullable().default(null),
   eventDetectionConfidence: z.number().nullable().default(null),
 

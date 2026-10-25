@@ -36,10 +36,8 @@ function isPrivateIPv6(ip: string): boolean {
 }
 
 /**
- * Blocks SSRF targets before any request leaves the process: protocol
- * allowlist, localhost, and — via DNS resolution, so a hostname can't just
- * *point at* a private/cloud-metadata address — every resolved IP. Every
- * redirect hop re-runs this, not just the original URL.
+ * Blocks SSRF before any request leaves: protocol allowlist, localhost, and every resolved IP (so a
+ * hostname can't point at a private or metadata address). Every redirect hop is re-checked.
  */
 export async function assertSafeUrl(rawUrl: string): Promise<URL> {
   let url: URL;
@@ -94,7 +92,10 @@ function parseRobotsTxt(text: string, pathname: string): boolean {
   return !disallows.some((rule) => pathname.startsWith(rule));
 }
 
-/** We don't try to get around robots.txt — if it disallows us, we don't fetch the page at all. Fails open (allowed) on any error reaching robots.txt itself. */
+/**
+ * We don't try to get around robots.txt — if it disallows us, we don't fetch the page at all. Fails
+ * open (allowed) on any error reaching robots.txt itself.
+ */
 async function isAllowedByRobots(url: URL): Promise<boolean> {
   try {
     const robotsUrl = new URL("/robots.txt", url.origin);
@@ -135,8 +136,8 @@ function looksLikeJsShell(html: string): boolean {
 }
 
 /**
- * SSRF-safe, robots-respecting fetch with a normalized outcome — never throws; every failure mode maps to a FetchStatus instead.
- * `robots: "skip"` is for social/unfurl.ts only: one fetch of the one page a person saved, read like a link preview.
+ * SSRF-safe, robots-respecting fetch with a normalized outcome; never throws (every failure maps to a FetchStatus).
+ * `robots: "skip"` is for social/unfurl.ts only: one fetch of the one page a person saved, like a link preview.
  */
 export async function fetchUrl(rawUrl: string, options: { robots?: "respect" | "skip" } = {}): Promise<UrlFetchResult> {
   const fetchedAt = new Date().toISOString();
@@ -190,10 +191,8 @@ export async function fetchUrl(rawUrl: string, options: { robots?: "respect" | "
       const tooLarge = !!contentLength && Number(contentLength) > MAX_RESPONSE_BYTES;
 
       if (contentType && !contentType.includes("text/html") && !contentType.includes("application/xhtml")) {
-        // A PDF is the one non-HTML content-type we can actually do
-        // something with (extractPdfContent) — everything else (images
-        // included; a vision model can just be pointed at the URL directly,
-        // no download needed) stays a no-body early return, as before.
+        // A PDF is the one non-HTML type we can use (extractPdfContent). Everything else, images
+        // included, returns without a body.
         if (contentType.includes("application/pdf") && !tooLarge) {
           const binaryData = await readBounded(response, MAX_RESPONSE_BYTES);
           return { status: "success", httpStatus: response.status, finalUrl: currentUrl, html: "", fetchedAt, contentType, binaryData };

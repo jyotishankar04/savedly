@@ -3,11 +3,8 @@ import { users } from "./identity";
 import { memories } from "./library";
 import { aiCredentialProviderEnum, aiRoleEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 19. Threads Table (Ask Savedly chat threads — listing/naming only;
-//     message content lives in LangGraph's own Postgres checkpointer tables,
-//     keyed by this table's id as thread_id)
-// -----------------------------------------------------------------------------
+// Ask Savedly chat threads: listing and naming only; messages live in LangGraph's checkpointer
+// tables, keyed by this id.
 export const threads = pgTable(
   "threads",
   {
@@ -25,11 +22,8 @@ export const threads = pgTable(
   (table) => [index("idx_threads_user_id").on(table.userId)]
 );
 
-// -----------------------------------------------------------------------------
-// 22. AI Usage Logs Table (per-call token/cost record for the admin AI-usage
-//     dashboard. FKs use "set null" rather than this schema's usual cascade —
-//     aggregate cost history should survive a user/thread/memory deletion.)
-// -----------------------------------------------------------------------------
+// Per-call token and cost record for the admin AI-usage dashboard. FKs are "set null" so cost
+// history survives deletions.
 export const aiUsageLogs = pgTable(
   "ai_usage_logs",
   {
@@ -54,16 +48,7 @@ export const aiUsageLogs = pgTable(
   ]
 );
 
-// -----------------------------------------------------------------------------
-// 39. AI Credentials Table (bring-your-own-key — every user supplies and pays
-//     for their own AI provider account; the platform never holds/spends an
-//     AI API key of its own. `label` is user-facing ("My OpenAI key"); the
-//     key itself is AES-256-GCM-encrypted at rest via shared/crypto/token-
-//     cipher.ts, same as calendar_connections' OAuth tokens. `baseUrl` is
-//     only meaningful (and required, enforced in ai-settings.service.ts) for
-//     provider "custom" — any other provider's endpoint is hardcoded in
-//     ai.providers.ts.
-// -----------------------------------------------------------------------------
+// Bring-your-own AI keys, AES-256-GCM encrypted at rest. `baseUrl` is required only for provider "custom".
 export const aiCredentials = pgTable(
   "ai_credentials",
   {
@@ -84,17 +69,8 @@ export const aiCredentials = pgTable(
   (table) => [index("idx_ai_credentials_user_id").on(table.userId)]
 );
 
-// -----------------------------------------------------------------------------
-// 40. User AI Role Assignments Table (one row per user per role — which
-//     saved credential + which model string handles that role's calls.
-//     `verifiedAt` is set only after a real test call against the provider
-//     succeeds — see ai-settings.service.ts's testCredential/assignRole —
-//     so the settings UI can distinguish "saved" from "confirmed working."
-//     A role with no row here is simply unconfigured: every ai.providers.ts
-//     resolver treats that as "skip this AI step," never as an error to
-//     surface mid-pipeline (see ingestion nodes' `if (!model) return {...}`
-//     guards).
-// -----------------------------------------------------------------------------
+// One row per user per role: the saved credential and model for that role. `verifiedAt` is set
+// after a successful test call. No row means unconfigured, and that AI step is skipped.
 export const userAiRoleAssignments = pgTable(
   "user_ai_role_assignments",
   {

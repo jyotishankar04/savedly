@@ -10,11 +10,9 @@ import {
   validateUpdateExternalEvent,
 } from "./calendar.validator";
 
-// Mounted at /calendar by ../index.ts (itself mounted at /api/v1/integrations
-// by ../../../routes/index.ts) — full path /api/v1/integrations/calendar/...
-// Also see memory.routes.ts, which mounts
-// POST /memories/:id/calendar-events -> CalendarController.pushEvent as an
-// action on a memory rather than nesting it here.
+// Mounted at /calendar by ../index.ts, so the full path is /api/v1/integrations/calendar/...
+// memory.routes.ts mounts POST /memories/:id/calendar-events (CalendarController.pushEvent) as a
+// memory action instead.
 const router = Router();
 
 router.get("/connections", authenticate, CalendarController.listConnections);

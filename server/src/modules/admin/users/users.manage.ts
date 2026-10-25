@@ -111,18 +111,12 @@ export async function updateUserStatus(
 }
 
 /**
- * Immediate, irreversible account wipe — a dev convenience for clearing out
- * test accounts, not something to expose against real users. Refused
- * outright in production (rather than merely hidden in the UI) so it can't
- * be reached by calling the endpoint directly. Reuses hardDeleteAccount, so
- * sessions and vector-store entries are cleaned up the same way as a real
- * account deletion.
+ * Immediate, irreversible wipe for clearing test accounts. Refused in production, not just hidden
+ * in the UI. Reuses hardDeleteAccount.
  */
 /**
- * An admin adds an account directly: name, email, a temporary password to
- * pass on, and a role. Works even with public signups off — that's the
- * point on a private self-hosted install. Needs email + password sign-in
- * (always on when self-hosted).
+ * An admin adds an account directly: name, email, temporary password and role. Works with public
+ * signups off; needs password sign-in (always on when self-hosted).
  */
 export async function createUserByAdmin(input: CreateUserInput, adminUserId: string, ipAddress?: string) {
   if (!(await isPasswordAuthEnabled())) {
@@ -157,10 +151,7 @@ export async function createUserByAdmin(input: CreateUserInput, adminUserId: str
   return { id: user.id, email: user.email, name: user.name };
 }
 
-/**
- * Sets a new password for someone (e.g. they forgot it and email is off), and
- * signs them out everywhere so the old password's sessions end.
- */
+/** Sets a new password (e.g. when email is off) and signs the user out everywhere. */
 export async function setUserPassword(userId: string, input: SetUserPasswordInput, adminUserId: string, ipAddress?: string) {
   if (!(await isPasswordAuthEnabled())) {
     throw new AppError("Email and password sign-in is turned off", 409, "PASSWORD_AUTH_DISABLED");

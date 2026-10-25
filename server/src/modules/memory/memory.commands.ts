@@ -14,7 +14,10 @@ import type { MemoryDetail, Tx } from "./memory.types";
 import { getMemoryById } from "./memory.queries";
 import { resolveTagIds } from "./memory.tags";
 
-/** Saves meant to be read or watched later: they start unread, in the Inbox. Notes and voice memos are the user's own words. */
+/**
+ * Saves meant to be read or watched later: they start unread, in the Inbox. Notes and voice memos
+ * are the user's own words.
+ */
 export const READ_LATER_TYPES = new Set<string>(["web", "video", "document", "image"]);
 
 async function insertAttachments(tx: Tx, memoryId: string, input: AttachmentInput[]): Promise<void> {
@@ -127,16 +130,11 @@ function columnsFromInput(input: UpdateMemoryInput): Record<string, unknown> {
   if (input.isArchived !== undefined) columns.isArchived = input.isArchived;
   if (input.inTrash !== undefined) {
     columns.inTrash = input.inTrash;
-    // Starts (or clears) the 15-day purge clock — see trash-purge.job.ts.
-    // Restoring clears it rather than leaving a stale timestamp behind,
-    // so re-trashing later starts a fresh window instead of inheriting
-    // however much of the old one was left.
+    // Starts or clears the 15-day purge clock (trash-purge.job.ts). Restoring clears it so a later
+    // trash starts a fresh window.
     columns.trashedAt = input.inTrash ? new Date() : null;
   }
-  // Un-vaulting (isVaulted: false) requires the vault to already be
-  // unlocked — enforced by requireUnlockToUnvault at the route, before
-  // this ever runs. Vaulting (true) needs no such check: hiding something
-  // is always safe to do.
+  // Un-vaulting needs an unlocked vault (requireUnlockToUnvault at the route); vaulting needs no check.
   if (input.isVaulted !== undefined) columns.isVaulted = input.isVaulted;
   if (input.eventAt !== undefined) columns.eventAt = input.eventAt ? new Date(input.eventAt) : null;
   if (input.isRead !== undefined) columns.readAt = input.isRead ? new Date() : null;
@@ -173,9 +171,8 @@ async function replaceTags(tx: Tx, userId: string, id: string, tags: string[]): 
 }
 
 /**
- * A note's text changed: re-index it for search once the editing stops. The
- * AI isn't run again; a note not yet processed at all (one being written in
- * the full-page editor) has its first processing pushed back instead.
+ * A note's text changed: re-index it for search once editing stops, without re-running the AI. A
+ * note not yet processed (written in the full-page editor) has its first processing pushed back.
  */
 function requeueEditedNote(id: string, type: string, status: string, input: UpdateMemoryInput): void {
   if (type !== MemoryType.NOTE || (input.content === undefined && input.title === undefined)) return;

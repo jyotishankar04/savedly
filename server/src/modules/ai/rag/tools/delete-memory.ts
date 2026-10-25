@@ -12,11 +12,8 @@ const resultSchema = z.object({ id: z.string(), title: z.string() });
 export type DeleteMemoryResult = z.infer<typeof resultSchema>;
 
 /**
- * Moves to Trash (recoverable for 15 days) — the same action as the app's
- * own delete button on the memories list — never a permanent hard delete.
- * Permanently deleting is a manual, confirmation-gated action only
- * available from the Trash page itself, deliberately not exposed here: an
- * agent acting on a misread request should never cause unrecoverable loss.
+ * Moves to Trash (recoverable for 15 days), like the app's delete button. Permanent delete is
+ * deliberately not exposed: a misread request must never cause unrecoverable loss.
  */
 export const deleteMemoryTool = tool(
   confirmFirst(

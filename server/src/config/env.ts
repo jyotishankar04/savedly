@@ -14,12 +14,8 @@ const envFlag = z
 const envSchema = z
   .object({
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-    // Self-hosted install (docker-compose.yml at the repo root). Every
-    // external service becomes optional with a working default (local disk,
-    // pgvector, no email), the admin can configure the rest from Admin ->
-    // Configuration -> Infrastructure, billing is off and every plan limit
-    // is lifted. Hosted production leaves this false and is configured only
-    // through env.
+    // Self-hosted install: every external service gets a working default, billing is off and plan
+    // limits are lifted. Hosted production leaves this false.
     SELF_HOSTED: envFlag,
     // A self-hosted install asks GitHub, about twice a day, whether a newer
     // release exists, and tells the admin. Set to false to never make that
@@ -39,10 +35,8 @@ const envSchema = z
     // docker-compose.yml.
     SECRETS_DIR: z.string().default("./.secrets"),
     FILES_DIR: z.string().default("./data/files"),
-    // Express "trust proxy" hops, so req.ip (rate limits, session records) is
-    // the visitor's address rather than the proxy's. The self-hosted client
-    // proxies /api/v1 to this server, so docker-compose.yml sets 1; add one
-    // more for each reverse proxy (Caddy, nginx) in front of it.
+    // Proxy hops to trust for req.ip (rate limits, sessions). Add one per reverse proxy in front of
+    // the server.
     TRUST_PROXY: z.coerce.number().int().min(0).default(0),
     PORT: z.coerce.number().default(4000),
     LOG_LEVEL: z
@@ -50,11 +44,7 @@ const envSchema = z
       .default("info"),
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
     REDIS_URL: z.string().min(1, "REDIS_URL is required"),
-    // SMTP transport for outgoing email — Mailhog in dev (docker-compose's
-    // `mailhog` service: SMTP on 1025, web UI at http://localhost:8025).
-    // Defaults target that local Mailhog with no auth, so a plain `.env`
-    // with none of these set still works; swap in a real provider in
-    // production by setting env, no code change needed.
+    // SMTP defaults target the local Mailhog (port 1025, no auth); set env for a real provider.
     SMTP_HOST: z.string().min(1).default("localhost"),
     SMTP_PORT: z.coerce.number().default(1025),
     SMTP_SECURE: z.coerce.boolean().default(false),
@@ -64,10 +54,7 @@ const envSchema = z
     SMTP_FROM_NAME: z.string().default("Savedly"),
     FRONTEND_URL: z.string().url().min(1, "FRONTEND_URL is required"),
     SERVER_URL: z.string().url().min(1, "SERVER_URL is required"),
-    // Custom URL scheme the mobile app registers (app.json's "scheme") — the
-    // OAuth callback redirects here instead of FRONTEND_URL when the request
-    // came from mobile, since a native app has no cookie jar to receive
-    // Set-Cookie the way a same-origin web app does.
+    // Custom URL scheme for the native-app OAuth callback.
     MOBILE_SCHEME: z.string().default("memora"),
 
     JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 characters"),
@@ -75,12 +62,8 @@ const envSchema = z
     JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
     JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
 
-    // Signs the "I entered the password for this shared link" proof cookie.
-    // Deliberately NOT JWT_ACCESS_SECRET: a share token is minted for
-    // anonymous visitors, so if the two shared a secret, a forged share
-    // token carrying a `sub` claim would sail straight through
-    // authenticate(). Separate secrets make that class of confusion
-    // impossible rather than merely unlikely.
+    // Signs the share-link password proof cookie. Kept separate from JWT_ACCESS_SECRET so a share
+    // token can never pass authenticate().
     SHARE_TOKEN_SECRET: z.string().min(32, "SHARE_TOKEN_SECRET must be at least 32 characters"),
 
     // Signs the vault-unlock proof cookie — same token-confusion reasoning
@@ -114,27 +97,16 @@ const envSchema = z
     PINECONE_API_KEY: z.string().optional(),
     PINECONE_INDEX_HOST: z.string().optional(),
 
-    // Every AI role is bring-your-own-key EXCEPT this one: embeddings are
-    // cheap enough (fractions of a cent per memory) that the platform pays
-    // for them directly, so semantic search works the moment someone signs
-    // up rather than staying dark until they've configured a key. Optional
-    // — same degrade-gracefully pattern as every other secret here: if
-    // unset, getEmbeddings() just has nothing to fall back to, and a user's
-    // own configured embeddings credential (Settings -> AI) always takes
-    // priority over this when they have one. See ai.providers.ts.
+    // Embeddings are the one role the platform pays for, so semantic search works from sign-up. A
+    // user's own embeddings key takes priority. Optional.
     EMBEDDINGS_PROVIDER: z.enum(["openai", "google", "custom"]).default("openai"),
     EMBEDDINGS_API_KEY: z.string().optional(),
     EMBEDDINGS_MODEL: z.string().default("text-embedding-3-small"),
     EMBEDDINGS_BASE_URL: z.string().url().optional(),
 
-    // Included AI: the platform's own chat/vision keys, used for anyone on a
-    // plan with an included-AI allowance (Free's small monthly taste, AI
-    // included) who hasn't added a key of their own. Quota-checked per plan —
-    // see plans.service.ts canUseIncludedAi. Normally set in Admin ->
-    // Infrastructure -> Included AI (editable on hosted production too, so
-    // models can change without a redeploy); a value here overrides and
-    // locks that field. All optional: with none set, every role stays
-    // bring-your-own-key. On a self-hosted install, everyone gets AI with no limits.
+    // Platform keys for included AI, used by plans with an AI allowance when the user has no key of
+    // their own (see canUseIncludedAi). Admin -> Infrastructure can edit them; a value here
+    // overrides and locks that field. Unset means bring-your-own-key.
     PLATFORM_AI_FAST_PROVIDER: z.enum(["openai", "anthropic", "groq", "google", "openrouter", "custom"]).optional(),
     PLATFORM_AI_FAST_API_KEY: z.string().optional(),
     PLATFORM_AI_FAST_MODEL: z.string().optional(),
@@ -147,20 +119,15 @@ const envSchema = z
     // Only for a "custom" (OpenAI-compatible) provider above.
     PLATFORM_AI_BASE_URL: z.string().url().optional(),
 
-    // Billing (hosted only; ignored when SELF_HOSTED). Optional: with no
-    // provider configured, /billing returns 503 BILLING_NOT_CONFIGURED and
-    // the rest of the app is unaffected. Dodo Payments is a merchant of
-    // record (it handles sales tax/VAT/GST) and supports cards worldwide plus
-    // UPI (including UPI Autopay for subscriptions) in India.
+    // Billing, hosted only. Without a provider, /billing returns 503 BILLING_NOT_CONFIGURED and
+    // nothing else is affected.
     BILLING_PROVIDER: z.enum(["dodo"]).optional(),
     DODO_PAYMENTS_API_KEY: z.string().optional(),
     // The webhook signing secret from the Dodo dashboard (starts "whsec_").
     DODO_PAYMENTS_WEBHOOK_KEY: z.string().optional(),
     DODO_PAYMENTS_ENVIRONMENT: z.enum(["test_mode", "live_mode"]).default("test_mode"),
-    // Which Dodo product each paid plan sells, as JSON keyed by plan key:
-    // {"lite-monthly":"pdt_...","lite-yearly":"pdt_...","ai-monthly":"pdt_...","ai-yearly":"pdt_..."}
-    // The price charged is the product's price in Dodo — keep the plan's
-    // display price in Admin -> Plans & Limits the same.
+    // Dodo product id per paid plan, as JSON keyed by plan key. The charged price is the product's
+    // price in Dodo.
     DODO_PRODUCT_IDS: z
       .string()
       .optional()
@@ -174,9 +141,6 @@ const envSchema = z
         }
       }),
 
-    // Langfuse (self-hosted, see docker-compose.yml's langfuse-* services) —
-    // traces every node/LLM call in the ingestion pipeline. Optional: if
-    // unset, tracing is just skipped rather than failing the pipeline.
     // Error tracking (config/sentry.ts). Unset = nothing is reported.
     SENTRY_DSN: z.string().url().optional(),
     SENTRY_ENVIRONMENT: z.string().optional(),
@@ -184,35 +148,22 @@ const envSchema = z
     APP_VERSION: z.string().optional(),
     // Where the migration files are, for the self-hosted container's bootstrap.
     MIGRATIONS_DIR: z.string().default("./drizzle"),
+    // Langfuse traces the ingestion pipeline's LLM calls; skipped when unset.
     LANGFUSE_PUBLIC_KEY: z.string().optional(),
     LANGFUSE_SECRET_KEY: z.string().optional(),
     LANGFUSE_BASE_URL: z.string().url().default("http://localhost:3001"),
 
-    // Calendar OAuth connect (separate from the login-only Google scope
-    // above). Google reuses GOOGLE_CLIENT_ID/SECRET via incremental
-    // authorization — the human operator must enable the Calendar API and
-    // approve the calendar.events scope on the existing GCP OAuth client;
-    // no new Google credentials needed.
-    // AES-256-GCM key for encrypting stored OAuth tokens — 32 raw bytes,
-    // base64-encoded. Generate with:
-    // node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-    // Optional so the app still boots without it; every calendar route
-    // degrades to 503 CALENDAR_NOT_CONFIGURED when unset.
+    // Calendar OAuth reuses the Google client (enable the Calendar API and the calendar.events scope on it).
+    // AES-256-GCM key for stored OAuth tokens: 32 bytes, base64 (node -e
+    // "console.log(require('crypto').randomBytes(32).toString('base64'))"). Without it, calendar
+    // routes return 503 CALENDAR_NOT_CONFIGURED.
     TOKEN_ENCRYPTION_KEY: z.string().optional(),
-    // Signs the calendar-connect OAuth "state" param, carrying the
-    // initiating user's id across the redirect (the callback route has no
-    // session/cookie of its own — see modules/integrations/calendar/calendar.controller.ts).
-    // Same reasoning as SHARE_TOKEN_SECRET/VAULT_TOKEN_SECRET: a dedicated
-    // secret, not reused, so a forged calendar-state token can never be
-    // read as any other kind.
+    // Signs the calendar-connect OAuth state. Its own secret so the token can't be read as any other kind.
     CALENDAR_STATE_SECRET: z.string().min(32, "CALENDAR_STATE_SECRET must be at least 32 characters"),
   })
   .superRefine((data, ctx) => {
-    // The hosted service needs OAuth and object storage. Local development
-    // doesn't: without them sign-in falls back to email and password and
-    // uploads go to local disk, so the app runs from a fresh clone with no
-    // Google, GitHub or Cloudflare account. A self-hosted install configures
-    // them, if at all, from its admin pages.
+    // Hosted production needs OAuth and object storage; local development falls back to email
+    // sign-in and local disk.
     if (data.SELF_HOSTED || data.NODE_ENV !== "production") return;
     const requiredInProduction = [
       "GOOGLE_CLIENT_ID",

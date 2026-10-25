@@ -48,13 +48,9 @@ async function assignCollection(tx: Tx, state: IngestionStateType): Promise<stri
 }
 
 /**
- * The client's own link detection may have missed it (or the memory was
- * never routed through a client that tries) — DetectContentType's regex
- * backstop found a URL in the raw text, so correct the stored type/url to
- * match rather than leave it filed as a plain note. Known limitation: this
- * doesn't loop back through ParseWebContent, so the embedded/chunked
- * content is still the original note text, not the fetched page — good
- * enough to be findable and correctly typed, not a full re-ingest.
+ * The client's detection may have missed a link; DetectContentType's regex found one, so correct
+ * the stored type and url. Known limitation: this doesn't re-run ParseWebContent, so the chunked
+ * content is still the note text.
  */
 function correctedMemoryType(state: IngestionStateType): { reclassifiedAsLink: boolean; correctedType: CorrectedType | undefined } {
   const reclassifiedAsLink = !state.url && !!state.detectedUrl;
@@ -83,12 +79,8 @@ function isTitledByItsUrl(state: IngestionStateType): boolean {
 }
 
 /**
- * Reaching this node at all means every earlier node completed without
- * throwing — "failed" is reserved for a genuine thrown error (see
- * worker.ts's catch). A link-type memory is "ready" only once it actually
- * has a real preview image; every other case (blocked/no-og/non-link
- * types once classified) is "partial" — the memory always exists either
- * way, this only ever describes enrichment quality.
+ * Reaching here means no earlier node threw ("failed" is only for a thrown error, see worker.ts). A
+ * link-type memory is "ready" only with a real preview image; everything else is "partial".
  */
 function finalStatusFor(state: IngestionStateType, effectiveType: CorrectedType | MediaType): MemoryStatus {
   const isLinkType = effectiveType === MemoryType.WEB || effectiveType === MemoryType.VIDEO;
@@ -102,10 +94,8 @@ function memoryRowUpdate(
 ) {
   const { correctedType, reclassifiedAsLink, urlTitle, finalStatus } = fixes;
   return {
-    // Never overwrite a title the user actually typed — only fill in
-    // over a placeholder (see isPlaceholderTitle). Prefers the AI title,
-    // falling back to the page's own og:title/<title> when AI insight
-    // generation itself came up empty (still better than "Untitled").
+    // Never overwrite a title the user typed; fill only over a placeholder. Prefers the AI title,
+    // then the page's own title.
     title: isPlaceholderTitle(state.existingTitle) || urlTitle ? (state.aiTitle ?? state.previewTitle ?? undefined) : undefined,
     // Spelling/grammar-corrected version of what the user typed as a
     // caption — never runs for "note" (see correctCaption.ts), so a
@@ -151,15 +141,9 @@ async function linkSuggestedTags(tx: Tx, state: IngestionStateType): Promise<voi
 }
 
 /**
- * Skipped (not written as an empty/zero vector) when embeddings weren't
- * configured for this run — memories.document_embedding is a nullable
- * vector(1536) column and memory_chunks.embedding is NOT NULL, so there's
- * no valid "empty" vector to write for either. On a re-ingestion this also
- * means a previously-computed embedding is left untouched rather than
- * wiped out just because the key isn't configured right now; the fresh
- * AI_NOT_CONFIGURED case for a brand-new memory just leaves both at their
- * natural empty state (column default null / zero chunk rows) until
- * embeddings get configured and it's reprocessed.
+ * Skipped when embeddings weren't configured for this run: document_embedding is nullable but
+ * memory_chunks.embedding is NOT NULL, so there's no valid empty vector. A re-ingestion keeps the
+ * earlier embedding.
  */
 async function storeEmbeddings(state: IngestionStateType): Promise<void> {
   if (state.documentEmbedding.length === 0) return;
@@ -184,11 +168,8 @@ async function notifyIfEventDetected(state: IngestionStateType): Promise<void> {
     .innerJoin(users, eq(users.id, memories.userId))
     .where(eq(memories.id, state.memoryId))
     .limit(1);
-  // A real eventAt already on the row means someone already confirmed a
-  // date for this memory — e.g. it was created directly with a date via
-  // the "create_calendar_event" agent tool or the calendar page's "New
-  // event" form. Asking "want to add this to your calendar?" again would
-  // be a redundant, confusing double-prompt for something already added.
+  // A real eventAt already on the row means a date was confirmed (agent tool or the "New event"
+  // form), so don't ask again.
   if (!row?.email || row.eventAt) return;
   notifyEventDetected({
     userId: state.userId,
@@ -199,10 +180,8 @@ async function notifyIfEventDetected(state: IngestionStateType): Promise<void> {
   });
 }
 
-// Verbatim intent of docs/AI_REQUIREMENTS.md's UpsertPgVector node, split in
-// two: scalar AI outputs (title/description/classification) always live on
-// the `memories` row regardless of vector backend; only the embeddings go
-// through the swappable VectorStore (pgvector locally, Upstash in prod).
+// Follows docs/AI_REQUIREMENTS.md's UpsertPgVector, split in two: scalar AI outputs always live on
+// the `memories` row; only embeddings go through the swappable VectorStore.
 export async function upsertVectors(state: IngestionStateType): Promise<IngestionUpdate> {
   const { reclassifiedAsLink, correctedType } = correctedMemoryType(state);
   const urlTitle = isTitledByItsUrl(state);

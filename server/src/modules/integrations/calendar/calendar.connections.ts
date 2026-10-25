@@ -106,10 +106,8 @@ export async function connectCalendar(
       },
     });
 
-  // The connection list is cached per user. This runs from the provider's
-  // redirect, which carries no session, so the cache layer doesn't see it as
-  // that user's write: without this, the page they land on would still say
-  // "not connected" for up to a minute.
+  // The connection list is cached per user. This runs from the provider's redirect with no session,
+  // so without the bump the page would say "not connected" for up to a minute.
   await bumpUserCache(userId);
 }
 

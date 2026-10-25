@@ -7,11 +7,9 @@ import { getEmbeddings } from "../models";
 import { getVectorStore } from "../vector-store";
 import { getSection } from "../../../platform/instance-settings/instance-settings.service";
 
-// Re-index memories for search by meaning, embeddings only: no summarizing,
-// tagging or other AI steps, so it doesn't spend anyone's AI allowance. It
-// embeds what ingestion already stored (title, summary, intent, tags, the
-// user's text and extracted details) — the original page text isn't kept,
-// so a link is found by what Savedly understood about it.
+// Re-indexes memories for search by meaning, embeddings only (no AI allowance spent). It embeds
+// what ingestion stored, not the original page text, so a link is found by what Savedly understood
+// about it.
 
 // Same splitter settings as nodes/semantic-chunker.ts.
 const splitter = new RecursiveCharacterTextSplitter({
@@ -61,9 +59,8 @@ export async function reembedMemory(memoryId: string): Promise<boolean> {
 }
 
 /**
- * Which memories need indexing. With the built-in pgvector store that's
- * every memory without a document embedding; Upstash and Pinecone keep vectors outside
- * Postgres, so there it's every memory (re-indexing replaces what's there).
+ * Which memories need indexing: with pgvector, those without a document embedding; with Upstash or
+ * Pinecone (vectors outside Postgres), every memory.
  */
 async function candidateCondition(userId?: string) {
   const vector = await getSection("vector");

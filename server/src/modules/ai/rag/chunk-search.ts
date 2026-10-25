@@ -28,13 +28,8 @@ interface ChunkLegResult {
 }
 
 /**
- * Lexical leg for chunks, Postgres-only (mirrors search/lexical-search.ts's
- * "always Postgres" note) — computed on the fly rather than a precomputed
- * tsvector column like memories.ftsTokens (DB-trigger-generated). memory_chunks
- * has no equivalent column, and adding one is a real migration; chunk volume
- * per user is small enough for this first pass to skip it. Revisit if this
- * proves slow once real chunk volume/traffic exists (same tradeoff style as
- * SEMANTIC_SIMILARITY_FLOOR's comment in rrf.ts).
+ * Lexical leg for chunks, always Postgres, computed on the fly: memory_chunks has no tsvector
+ * column, and adding one is a migration. Chunk volume per user is small; revisit if slow.
  */
 async function chunkLexicalSearch(userId: string, queryText: string, limit: number): Promise<ChunkLegResult[]> {
   const tsQuery = sql`plainto_tsquery('english', ${queryText})`;
@@ -59,11 +54,7 @@ async function chunkLexicalSearch(userId: string, queryText: string, limit: numb
   }));
 }
 
-/**
- * Never throws — degrades to an empty leg on failure, matching this
- * codebase's ingestion-wide "degrade, don't fail" convention (see
- * search/semantic-search.ts).
- */
+/** Never throws: degrades to an empty leg (the ingestion-wide "degrade, don't fail" convention). */
 async function chunkSemanticSearch(userId: string, queryText: string, limit: number): Promise<ChunkLegResult[]> {
   if (queryText.length < MIN_SEMANTIC_QUERY_LENGTH) return [];
 
@@ -82,11 +73,8 @@ async function chunkSemanticSearch(userId: string, queryText: string, limit: num
 }
 
 /**
- * Chunk-level hybrid retrieval for the "Ask Savedly" RAG agent's
- * searchMemories tool. Unlike search/hybrid-search.ts (memory-level, built
- * for the Search page), this retrieves passages, then rolls the winners up
- * to their parent memories — each memory appears once, represented by its
- * single best-scoring chunk as the snippet.
+ * Chunk-level hybrid retrieval for the Ask agent's searchMemories tool: retrieves passages, then
+ * rolls winners up to their memories, each shown once with its best chunk as the snippet.
  */
 export async function chunkHybridSearch(userId: string, query: string, limit: number): Promise<RetrievedMemory[]> {
   const candidateLimit = limit * 4;
@@ -161,10 +149,8 @@ export async function chunkHybridSearch(userId: string, query: string, limit: nu
 }
 
 /**
- * When no chunk matches — typically because nothing has embeddings yet, so
- * memory_chunks is empty — search whole memories by keyword (the
- * trigger-maintained memories.fts_tokens) and hand back their summary and
- * text as the passage. Ask can still answer from exact words that way.
+ * With no matching chunks (nothing embedded yet), search whole memories by keyword
+ * (memories.fts_tokens) and return their summary and text as the passage.
  */
 async function memoryLevelResults(userId: string, query: string, limit: number, exclude: Set<string>): Promise<RetrievedMemory[]> {
   const filters = [eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isVaulted, false)];

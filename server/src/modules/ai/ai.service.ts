@@ -68,18 +68,8 @@ export interface ThreadMessage {
 }
 
 /**
- * Reconstructs the same shape the live streaming path produces (text parts
- * + dynamic-tool parts wrapping a ToolMessage's content, matching what
- * @ai-sdk/langchain's toUIMessageStream emits) — the client renders both
- * through the identical component (SearchToolPart/MemoryAttachmentCards),
- * so a resumed thread looks the same as a live one instead of degrading to
- * text-only. Previously this only kept {role, content}, silently dropping
- * every tool call/search result on reload — confirmed live before this fix.
- *
- * One assistant entry per human turn, not one per AIMessage — a
- * checkGrounding retry produces a second AIMessage for the same turn, and
- * live streaming already renders that as one grouped assistant message, so
- * reload folds it the same way.
+ * Rebuilds the same shape live streaming produces (text and tool parts), so a resumed thread renders like a live one.
+ * One assistant entry per human turn: a checkGrounding retry's second AIMessage is folded into it.
  */
 export async function getThreadMessages(userId: string, threadId: string): Promise<ThreadMessage[]> {
   await requireOwnedThread(userId, threadId);
@@ -122,7 +112,8 @@ export async function getThreadMessages(userId: string, threadId: string): Promi
           output: {
             kwargs: {
               content: typeof toolMessage.content === "string" ? toolMessage.content : JSON.stringify(toolMessage.content),
-              // Same shape the live stream carries: tools like get_platform_help put UI data (button links) here.
+              // Same shape the live stream carries: tools like get_platform_help put UI data
+              // (button links) here.
               ...(toolMessage.artifact !== undefined ? { artifact: toolMessage.artifact } : {}),
             },
           },
@@ -149,19 +140,17 @@ async function* filterInternalEvents<T extends { tags?: string[] }>(stream: Asyn
   }
 }
 
-/** Streams a turn as a standard web Response (Vercel AI SDK UI Message
- *  Stream Protocol) — the controller pumps this into Express's res. Keeping
- *  the Response boundary here (not Node-stream-specific) preserves exact
- *  wire compatibility for a future client using @ai-sdk/react's useChat. */
+/**
+ * Streams a turn as a standard web Response (Vercel AI SDK UI Message Stream Protocol), so a client
+ * using @ai-sdk/react's useChat stays compatible.
+ */
 export async function streamAsk(userId: string, threadId: string, query: string): Promise<Response> {
   await requireOwnedThread(userId, threadId);
 
-  // Admission for included AI happens once per question, here: someone
-  // without their own reasoning key rides on the platform's key only if the
-  // plan's monthly question allowance has room. The "ask:query" row tagged
-  // platform is both the quota count and the admission ticket every model
-  // call in this turn checks (plans.service.ts canUseIncludedAi). Awaited,
-  // not fire-and-forget, so the ticket exists before the graph runs.
+  // Included-AI admission happens once per question: without their own reasoning key, a user rides
+  // the platform key only if the plan's question allowance has room. The platform-tagged
+  // "ask:query" row is both the count and the ticket each model call checks. Awaited so it exists
+  // before the graph runs.
   const ownKey = await hasOwnCredential(userId, AiRole.REASONING);
   const usesIncludedAi =
     !ownKey && !!(await platformCredential(AiRole.REASONING)) && (await isWithinLimit(userId, PlanLimitType.AI_MONTHLY_QUERIES, 1));
@@ -197,10 +186,8 @@ export async function streamAsk(userId: string, threadId: string, query: string)
   await settlePending(threadId, turnId, query);
 
   const eventStream = compiledRagGraph.streamEvents(
-    // retryCount reset explicitly every turn — it's a LastValue channel, so
-    // without this it stays capped at 1 forever after the first ungrounded
-    // answer in a thread, silently disabling the retry loop on every later
-    // turn (confirmed live before this fix).
+    // retryCount is a LastValue channel, so reset it every turn; otherwise it stays capped after
+    // the first ungrounded answer and disables the retry loop.
     { messages: [new HumanMessage(query)], retryCount: 0 },
     {
       version: "v2",
@@ -209,11 +196,8 @@ export async function streamAsk(userId: string, threadId: string, query: string)
     },
   );
 
-  // toUIMessageStream's declared type (AsyncIterable<AIMessageChunk> |
-  // ReadableStream) is stale relative to its own JSDoc, which documents
-  // `toUIMessageStream(streamEvents)` — a LangGraph streamEvents() stream —
-  // as supported usage. The filtered stream has the identical event shape,
-  // just fewer events, so this is a type-only gap, not a runtime one.
+  // toUIMessageStream's declared type is stale against its own JSDoc, which supports a
+  // streamEvents() stream; the filtered stream has the same shape, so this is a type-only gap.
   return createUIMessageStreamResponse({
     stream: toUIMessageStream(filterInternalEvents(eventStream) as unknown as AsyncIterable<AIMessageChunk>),
   });

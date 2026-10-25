@@ -39,9 +39,8 @@ export type ShareDecision =
   | { outcome: "not_found" };
 
 /**
- * Reads the unlock cookie. Returns the share ids this browser has proven a
- * password for, each with the `pv` (passwordUpdatedAt) it was minted
- * against — see resolveShareAccess for why that matters.
+ * Reads the unlock cookie: the share ids this browser proved a password for, each with the `pv`
+ * (passwordUpdatedAt) it was minted against (see resolveShareAccess).
  */
 export function readUnlockedShares(req: Request): { id: string; pv: number }[] {
   const raw = req.cookies?.[SHARE_TOKEN_COOKIE];
@@ -59,16 +58,9 @@ function toStub(share: ShareRow, ownerName: string | null): ShareStub {
 }
 
 /**
- * The single authorization decision for every public read of a shared link.
- *
- * Order matters and is deliberate: owner and grant checks run BEFORE the
- * link mode, so someone the resource was shared with directly still gets in
- * when the link itself is switched off. That is what makes "share with a
- * person" independent of "what the link does" rather than a fifth mode.
- *
- * Every rejection that isn't a live gate returns `not_found`, never a 403 —
- * a disabled, expired or trashed share must be indistinguishable from a
- * slug that never existed, or the response itself confirms the resource.
+ * The one authorization decision for every public read of a share.
+ * Order matters: owner and grant checks run before the link mode, so someone shared with directly still gets in when the link is off.
+ * Any rejection that isn't a live gate returns `not_found`, never 403, so a disabled, expired or trashed share is indistinguishable from a slug that never existed.
  */
 export async function resolveShareAccess(
   slug: string,
@@ -165,18 +157,11 @@ export async function resolveShareAccess(
   }
 }
 
-// -----------------------------------------------------------------------------
-// Public payloads
-//
-// Built field-by-field on purpose. These responses are reachable without any
-// authentication, so a `select()` that spreads a whole row would silently
-// start leaking every column added to `memories` in future. Never widen
-// these without deciding, per column, that it is public-safe.
-//
-// Excluded deliberately: userId, documentEmbedding, ftsTokens, browserCapture,
-// extractedFields, inferredIntent, keywords, fetchStatus, captureMethod,
-// canonicalUrl, normalizedUrl, platform, isFavorite, isArchived, inTrash.
-// -----------------------------------------------------------------------------
+// Public payloads, built field by field on purpose: they're reachable without authentication, so a
+// `select()` spreading a whole row would leak every column added to `memories` later. Never widen
+// without deciding per column that it is public-safe. Deliberately excluded: userId, embeddings,
+// fts tokens, browser capture, extracted fields, intent, keywords, fetch status, URLs used
+// internally, platform, and the favorite/archive/trash flags.
 
 export interface SharedMemoryItem {
   id: string;

@@ -31,10 +31,8 @@ export const pgVectorStore: VectorStore = {
   },
 
   async searchByEmbedding(userId, embedding, limit) {
-    // pgvector's <=> operator has no first-class drizzle API — same reason
-    // pgvector-type.ts's toDriver already hand-writes this bracket-join
-    // vector literal for writes. <=> is cosine *distance*; 1 - distance
-    // converts to similarity, matching the HNSW index's vector_cosine_ops.
+    // <=> has no drizzle API, so the vector literal is hand-built (as in pgvector-type.ts). It's
+    // cosine distance; 1 - distance is similarity, matching the HNSW vector_cosine_ops index.
     const vectorLiteral = `[${embedding.join(",")}]`;
     const rows = await db
       .select({

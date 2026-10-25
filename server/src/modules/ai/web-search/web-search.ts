@@ -5,12 +5,9 @@ import { getSection, type ResolvedSection } from "../../../platform/instance-set
 import { isWithinLimit } from "../../plans/api";
 
 /**
- * Web search for the AI: the research step on saves (ingestion's
- * researchContext) and Ask's search_web tool. The service is set in
- * instance settings (Admin -> Infrastructure -> Web search): Tavily, or a
- * SearXNG server of your own. Every lookup is logged as one "web:search"
- * usage row, which is what the plan's monthly WEB_SEARCH_MONTHLY allowance
- * counts (never limited on a self-hosted install).
+ * Web search for the research step on saves and Ask's search_web. The service (Tavily or your own
+ * SearXNG) is set in Admin -> Infrastructure. Each lookup logs one "web:search" row, which
+ * WEB_SEARCH_MONTHLY counts (never limited when self-hosted).
  */
 
 export interface WebResult {
@@ -56,7 +53,10 @@ async function searxng(baseUrl: string, query: string): Promise<WebResult[]> {
     .map((r) => ({ title: r.title ?? r.url!, url: r.url!, snippet: clip(r.content ?? "") }));
 }
 
-/** Runs one search with these settings. Used directly by Admin's Test connection; everything else goes through webSearch. */
+/**
+ * Runs one search with these settings. Used directly by Admin's Test connection; everything else
+ * goes through webSearch.
+ */
 export async function searchWith(settings: ResolvedSection, query: string): Promise<WebResult[]> {
   switch (settings.provider) {
     case "tavily":
@@ -77,9 +77,8 @@ export async function webSearchAvailable(): Promise<boolean> {
 }
 
 /**
- * Searches the web for a user, within their plan's monthly lookups. Never
- * throws: off, over the limit and a failed request each come back as a
- * reason, because a lookup only ever adds to an answer.
+ * Searches the web within the plan's monthly lookups. Never throws: off, over the limit and a
+ * failed request each return a reason, since a lookup only adds to an answer.
  */
 export async function webSearch(
   userId: string,

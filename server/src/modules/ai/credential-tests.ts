@@ -7,17 +7,16 @@ import { buildChatModel, buildEmbeddings } from "./models";
 export interface TestCredentialResult {
   ok: boolean;
   error?: string;
-  /** Only set for role "embeddings" — the settings UI surfaces this so a dimension mismatch is a clear, specific error rather than a generic failure. */
+  /**
+   * Only set for role "embeddings" — the settings UI surfaces this so a dimension mismatch is a
+   * clear, specific error rather than a generic failure.
+   */
   dimensions?: number;
 }
 
 /**
- * A real, live call against the provider using credentials straight from
- * the request body (never persisted plaintext) — used both by the "test
- * connection" endpoint and by assignRole (ai-settings.service.ts), which
- * requires a passing test before it will save a role assignment. This is
- * the only place a non-1536-dim embedding model gets caught, since nothing
- * in this codebase can know a model's output width without actually calling it.
+ * A live call using credentials from the request body (never stored). Used by the test endpoint and
+ * by assignRole; it's the only place a non-1536-dim embedding model is caught.
  */
 export async function testRoleCredential(input: ProviderCredentialInput, role: AiRole): Promise<TestCredentialResult> {
   try {

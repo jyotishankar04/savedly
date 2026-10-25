@@ -27,26 +27,21 @@ export interface VectorChunkSearchResult {
 }
 
 /**
- * Where a memory's embeddings actually live — pgvector columns on the
- * primary DB for local/dev, Upstash Vector for production (see
- * VECTOR_STORE_PROVIDER in src/config/env.ts).
+ * Where a memory's embeddings live: pgvector locally, Upstash or Pinecone in production
+ * (VECTOR_STORE_PROVIDER).
  */
 export interface VectorStore {
   upsertMemoryVectors(input: VectorUpsertInput): Promise<void>;
   deleteMemoryVectors(memoryId: string): Promise<void>;
   /**
-   * Nearest-neighbor search against each memory's document-level embedding,
-   * scoped to userId and in_trash=false. Returns up to `limit` results
-   * ordered best-first by cosine similarity (higher = more similar). Does
-   * NOT know about isFavorite/isArchived/collectionId/tag/type facets —
-   * callers needing those must post-filter (see ../search/).
+   * Nearest-neighbor over document-level embeddings, scoped to userId and not trashed, best-first
+   * by cosine similarity. Doesn't know facets (favorite, archive, collection, tag, type); callers
+   * post-filter (see ../search/).
    */
   searchByEmbedding(userId: string, embedding: number[], limit: number): Promise<VectorSearchResult[]>;
   /**
-   * Nearest-neighbor search against per-chunk embeddings — passage-level
-   * retrieval for the "Ask Savedly" RAG agent (see ../rag/), unlike
-   * searchByEmbedding above which is document-level for the Search feature.
-   * Same userId/in_trash=false scoping, same best-first cosine ordering.
+   * Nearest-neighbor over per-chunk embeddings for the Ask agent (../rag/), versus
+   * searchByEmbedding's document level. Same scoping and ordering.
    */
   searchChunksByEmbedding(userId: string, embedding: number[], limit: number): Promise<VectorChunkSearchResult[]>;
 }

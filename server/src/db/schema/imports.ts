@@ -3,10 +3,7 @@ import { users } from "./identity";
 import { memories } from "./library";
 import { importItemStatusEnum, importSourceTypeEnum } from "./pg-enums";
 
-// -----------------------------------------------------------------------------
-// 36. Import Batches Table (one row per bookmarks-file or URL-list import —
-//     mirrors email_campaigns' shape: one parent summary row, N child rows.)
-// -----------------------------------------------------------------------------
+// One row per bookmarks-file or URL-list import: a parent summary with N child rows.
 export const importBatches = pgTable(
   "import_batches",
   {
@@ -21,11 +18,7 @@ export const importBatches = pgTable(
   (table) => [index("idx_import_batches_user_created").on(table.userId, table.createdAt)]
 );
 
-// -----------------------------------------------------------------------------
-// 37. Import Items Table (one row per URL in a batch — memoryId is set null,
-//     not cascade, so this history survives even if the memory it created
-//     is later deleted.)
-// -----------------------------------------------------------------------------
+// One row per URL in a batch. memoryId is set null on delete so the history survives.
 export const importItems = pgTable(
   "import_items",
   {

@@ -1,10 +1,8 @@
 import type { db } from "../../db";
 import type { SocialPost } from "../ai/api";
 
-// What the memory module hands out: a memory as a list item and in full, and
-// the transaction type its helpers share. Kept apart from the service so the
-// code that only needs the shapes (exports, other modules) doesn't depend on
-// all the service's logic.
+// What the memory module hands out (list item, full detail, the shared transaction type), apart
+// from the service so code that needs only the shapes doesn't depend on its logic.
 
 export interface MemoryListItem {
   id: string;

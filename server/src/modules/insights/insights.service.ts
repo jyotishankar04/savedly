@@ -48,10 +48,7 @@ function daysAgo(days: number): Date {
   return date;
 }
 
-/**
- * Every stat is scoped to the user's live memories — trashed ones are
- * excluded everywhere, same as every other read path in this codebase.
- */
+/** Every stat covers the user's live memories; trashed ones are excluded, as on every read path. */
 // Vaulted memories are excluded unconditionally — insights never reflects
 // vault contents, whether or not the vault happens to be unlocked.
 const liveMemories = (userId: string) =>
@@ -120,9 +117,8 @@ async function getByType(userId: string): Promise<CountedLabel[]> {
 }
 
 /**
- * The AI's own "other" bucket and an un-analysed null mean the same thing to
- * a reader, and folding them here avoids the page ending up with two
- * different "Other" slices once it lumps the long tail.
+ * The AI's "other" bucket and an un-analysed null mean the same to a reader; folding them avoids
+ * two "Other" slices.
  */
 async function getByCategory(userId: string): Promise<CountedLabel[]> {
   const label = sql<string>`coalesce(nullif(${memories.resourceCategory}, 'other'), 'uncategorized')`;

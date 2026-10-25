@@ -14,11 +14,9 @@ const SWEEP_INTERVAL_MS = 60 * 1000;
 const reminderQueue = new Queue(QUEUE_NAME, { connection: redis });
 
 /**
- * Brings back every memory whose reminder is due: unread again (so it's at
- * the top of the Inbox), remindedAt now, remindAt cleared, then a
- * notification and, unless turned off, an email. Claimed with one UPDATE …
- * RETURNING, so two servers sweeping at once never send a reminder twice.
- * A trashed memory's reminder waits until it's restored.
+ * Brings back every memory whose reminder is due: unread again, remindedAt set, remindAt cleared,
+ * then a notification and (unless off) an email. Claimed with one UPDATE … RETURNING so two servers
+ * never send twice. A trashed memory's reminder waits until restored.
  */
 export async function sendDueReminders(): Promise<number> {
   const now = new Date();

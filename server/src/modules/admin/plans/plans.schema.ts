@@ -22,16 +22,9 @@ export const createPlanSchema = z.object({
   features: z.record(z.string(), z.boolean()).default({}),
 });
 
-// `key` is intentionally excluded — it's the stable machine identifier
-// other code references and is set once at creation, never renamed.
-//
-// NOT `createPlanSchema.omit({key:true}).partial()` — Zod's `.default()`
-// still fires for an omitted field even after `.partial()` wraps it in
-// `.optional()`, so every PATCH that left a field out would silently reset
-// it to its create-time default (this corrupted `isDefault`/`sortOrder` on
-// real rows before the bug was caught). Each field here is redeclared
-// without `.default()` so an omitted field actually parses to `undefined`,
-// which the service layer correctly treats as "leave unchanged".
+// `key` is excluded: it's the stable id, set once.
+// Each field is redeclared without `.default()`: Zod's .default() fires for omitted fields even
+// under .partial(), which would reset them on every PATCH.
 export const updatePlanSchema = z.object({
   name: z.string().trim().min(1).max(100).optional(),
   description: z.string().max(2000).optional(),

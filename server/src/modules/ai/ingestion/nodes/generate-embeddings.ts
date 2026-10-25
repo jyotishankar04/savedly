@@ -4,11 +4,8 @@ import { logNode } from "../log";
 import { logger } from "../../../../shared/utils/logger";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
-// Verbatim from docs/AI_REQUIREMENTS.md's GenerateEmbeddings node: one
-// document-level embedding from title+summary+intent+tags, plus one
-// embedding per chunk.
-// Warned once per process: without embeddings, nothing saved is findable by
-// meaning, and Ask has only keyword matches to go on.
+// One document embedding from title+summary+intent+tags, plus one per chunk (docs/AI_REQUIREMENTS.md).
+// Warned once per process: without embeddings nothing is findable by meaning.
 let warnedNoEmbeddings = false;
 
 export async function generateEmbeddings(state: IngestionStateType): Promise<IngestionUpdate> {

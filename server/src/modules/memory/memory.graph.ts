@@ -42,17 +42,13 @@ const GRAPH_NODE_LIMIT = 500;
 // reads as a hairball rather than structure.
 const GRAPH_SEMANTIC_NEIGHBORS = 5;
 
-// Any group of n memories sharing a tag/collection is a clique of n*(n-1)/2
-// edges, so broad groupings ("article", "read later") dominate the graph
-// while saying nothing about two specific memories being related. At <= 8 a
-// shared tag is specific enough that membership really does imply
-// relatedness; past that it's a category, not a relationship.
+// A group of n memories sharing a tag or collection is a clique of n(n-1)/2 edges, so broad groups
+// ("article") would dominate while saying nothing specific. At <= 8 sharing implies relatedness;
+// beyond that it's a category.
 const MAX_SHARED_GROUP_SIZE = 8;
 
-// Sharing this many tags/collections counts as a maximally strong structural
-// link. Used only to rescale those counts into the same 0..1 range semantic
-// similarity already uses, so a merged edge's weight stays comparable no
-// matter which signal produced it (see mergeEdges).
+// Sharing this many tags or collections is a maximally strong link; it rescales counts to the 0..1
+// range of semantic similarity so merged edge weights stay comparable (see mergeEdges).
 const MAX_SHARED_GROUP_OVERLAP = 3;
 
 /** The node set, defined once, reused by every edge query below. */
@@ -65,16 +61,8 @@ const graphNodeCte = (userId: string) => sql`
 `;
 
 /**
- * Each node's top-K most semantically similar siblings, via the same
- * `1 - (a <=> b)` cosine-distance-to-similarity conversion the vector store
- * already uses (ai/vector-store/pgvector-store.ts) — just self-referential
- * here rather than query-text-to-memory.
- *
- * Scanning inside the CTE rather than against the HNSW-indexed table is
- * deliberate: it keeps "which memories are nodes" defined in exactly one
- * place, and at GRAPH_NODE_LIMIT the worst case is 500x500 distance
- * computations, which Postgres handles comfortably. Revisit if the node cap
- * ever rises substantially.
+ * Each node's top-K most similar siblings, with the same `1 - (a <=> b)` conversion as the vector store but self-referential.
+ * Scanning inside the CTE, not the HNSW table, keeps "which memories are nodes" in one place; at GRAPH_NODE_LIMIT the worst case is 500x500 distances, fine for Postgres. Revisit if the cap rises a lot.
  */
 async function semanticEdges(userId: string): Promise<GraphEdge[]> {
   const rows = await db.execute<{ source: string; target: string; score: number }>(sql`
@@ -100,9 +88,8 @@ async function semanticEdges(userId: string): Promise<GraphEdge[]> {
 }
 
 /**
- * Memories sharing a tag (or a collection) — one edge per pair, weighted by
- * how many they share. `b.memory_id > a.memory_id` emits each pair once
- * rather than in both directions.
+ * Memories sharing a tag or collection: one edge per pair, weighted by how many they share.
+ * `b.memory_id > a.memory_id` emits each pair once.
  */
 async function sharedGroupEdges(
   userId: string,
@@ -137,11 +124,9 @@ async function sharedGroupEdges(
 }
 
 /**
- * One line per pair, even when two memories are related several ways at once.
- * Semantic wins the styling since it's the signal the user didn't create by
- * hand; weight keeps the strongest contribution so a thick line still means
- * "strongly connected" regardless of which signal produced it — which only
- * holds because every kind's weight is already normalised to 0..1.
+ * One line per pair even when related several ways. Semantic wins the styling (the signal the user
+ * didn't create); weight keeps the strongest contribution, which works because every kind is
+ * normalised to 0..1.
  */
 const EDGE_KIND_PRECEDENCE: Record<GraphEdgeKind, number> = { semantic: 3, tag: 2, collection: 1 };
 

@@ -4,11 +4,8 @@ import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
 /**
- * `document`-type memories are PDF-only today (see upload.constants.ts's
- * ALLOWED_MIME_TYPES). Parsing itself — including the large-PDF
- * first-page-and-summarize path — lives in lib/parse-pdf.ts, shared with
- * parseWebContent's handling of a pasted URL that resolves directly to a
- * PDF.
+ * `document` memories are PDF-only today (upload.constants.ts). Parsing, including the large-PDF
+ * path, is in lib/parse-pdf.ts, shared with parseWebContent.
  */
 export async function extractDocText(state: IngestionStateType): Promise<IngestionUpdate> {
   if (!state.attachmentUrl) {

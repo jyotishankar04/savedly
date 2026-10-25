@@ -45,10 +45,8 @@ function coerce(value: unknown): unknown {
 }
 
 /**
- * Model output is untrusted: LangGraph validates every update against the
- * state schema *after* a step returns, so one malformed field (a list where
- * the schema wants a string, "0.8" for a number) used to fail the whole save.
- * Each field is checked here instead, repaired if possible, else dropped.
+ * Model output is untrusted: LangGraph validates updates after a step, so one malformed field used
+ * to fail the save. Each field is checked here, repaired if possible, else dropped.
  */
 export function sanitize(name: string, memoryId: string, update: IngestionUpdate): IngestionUpdate {
   const clean: Record<string, unknown> = {};
@@ -64,11 +62,8 @@ export function sanitize(name: string, memoryId: string, update: IngestionUpdate
 }
 
 /**
- * AI enrichment is optional: a provider error in one step (a rejected
- * parameter, a timeout, malformed JSON) must not throw away everything else.
- * The step's fields keep their defaults, the rest of the pipeline still runs,
- * and the memory is saved with whatever succeeded (e.g. a screenshot's OCR
- * text) instead of being marked failed.
+ * AI enrichment is optional: a provider error in one step must not discard the rest. The step keeps
+ * its defaults and the memory is saved with whatever succeeded.
  */
 function optional(name: string, node: (state: IngestionStateType) => Promise<IngestionUpdate>) {
   return async (state: IngestionStateType): Promise<IngestionUpdate> => {
@@ -89,13 +84,8 @@ function optional(name: string, node: (state: IngestionStateType) => Promise<Ing
   };
 }
 
-// Mirrors docs/AI_REQUIREMENTS.md's ingestion state machine, plus four
-// steps beyond the spec: CorrectCaption (spelling fixes for a caption typed
-// alongside a link or attachment, never a note's own body), DetectContentType
-// (open-vocabulary type + structured fields), DetectEvent (is this memory
-// date-bound, so the app can offer a calendar event) and OrganizeCollection
-// (file into an existing collection, propose a new one, or neither). The
-// order they run in is drawn below the node list.
+// Follows docs/AI_REQUIREMENTS.md's ingestion state machine, plus CorrectCaption,
+// DetectContentType, DetectEvent and OrganizeCollection. Run order is drawn below.
 const PARSER_NODES = ["parseWebContent", "transcribeAudio", "processImageVision", "extractDocText", "normalizeNote"] as const;
 
 const builder = new StateGraph(IngestionState)
@@ -127,10 +117,9 @@ const builder = new StateGraph(IngestionState)
     normalizeNote: "normalizeNote",
   });
 
-// Steps run as soon as their inputs are ready, in parallel where they don't
-// depend on each other. The longest chain is now caption -> intent ->
-// insights -> collection (four model calls) instead of all six in a row.
-//
+// Steps run as soon as their inputs are ready, in parallel where independent. Longest chain:
+// caption -> intent -> insights -> collection.
+// 
 //   parser ─┬─ researchContext ─┬─ correctCaption ── classifyIntent ─┬─ generateAiInsights ─┬─ organizeCollection ─┐
 //           │                   └─ detectContentType ────────────────┤                      │                      ├─ upsertVectors
 //           │                                                        └─ detectEvent ────────┼──────────────────────┤

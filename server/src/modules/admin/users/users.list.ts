@@ -39,11 +39,8 @@ async function attachRoles<T extends { id: string }>(items: T[]): Promise<(T & {
 }
 
 /**
- * A user's effective plan is their active, not-yet-expired assignment if
- * one exists, else the plan marked isDefault — same resolution rule as
- * plans/plans.service.ts's resolveEffectivePlan, duplicated here (rather
- * than imported) because this needs it batched across many users at once
- * for a list/filter, not one user at a time.
+ * The effective plan is the active, unexpired assignment, else the default plan: the same rule as
+ * resolveEffectivePlan, duplicated because this runs batched across many users.
  */
 async function activeAssignmentCondition() {
   const now = new Date();
