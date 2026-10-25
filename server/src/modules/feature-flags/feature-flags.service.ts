@@ -3,6 +3,7 @@ import { db } from "../../db";
 import { env } from "../../config/env";
 import { featureFlags } from "../../db/schema";
 import type { UpdateFlagInput } from "./feature-flags.schema";
+import { FlagCache } from "./flag-cache";
 
 /**
  * Reserved, dot-namespaced keys the app itself consumes (auth gating, the
@@ -142,14 +143,13 @@ export async function listFlags() {
 // one), so values are kept in memory briefly. One process runs the API and
 // every worker, so updateFlag clearing the map is enough to apply a change
 // at once; the TTL only covers a flag edited directly in the database.
-const FLAG_CACHE_MS = 15_000;
-const flagCache = new Map<string, { value: unknown; found: boolean; expiresAt: number }>();
+const flagCache = new FlagCache(15_000);
 
 async function getFlagValue<T>(key: string, fallback: T): Promise<T> {
   const cached = flagCache.get(key);
-  if (cached && cached.expiresAt > Date.now()) return cached.found ? (cached.value as T) : fallback;
+  if (cached) return cached.found ? (cached.value as T) : fallback;
   const [row] = await db.select({ value: featureFlags.value }).from(featureFlags).where(eq(featureFlags.key, key)).limit(1);
-  flagCache.set(key, { value: row?.value, found: !!row, expiresAt: Date.now() + FLAG_CACHE_MS });
+  flagCache.set(key, row?.value, !!row);
   return row ? (row.value as T) : fallback;
 }
 
