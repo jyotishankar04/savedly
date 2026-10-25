@@ -16,7 +16,7 @@ if (sentryEnabled) {
   Sentry.init({
     dsn: env.SENTRY_DSN,
     environment: env.SENTRY_ENVIRONMENT ?? env.NODE_ENV,
-    release: process.env.APP_VERSION || undefined,
+    release: env.APP_VERSION || undefined,
     // Nothing that carries what people save or who they are. beforeSend
     // below removes the same things again, in case a default changes.
     dataCollection: {

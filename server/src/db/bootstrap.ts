@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { resolve } from "node:path";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { env } from "../config/env";
 import { db } from "./index";
 import { seedCore } from "./seed-core";
 
@@ -9,7 +10,7 @@ import { seedCore } from "./seed-core";
 // roles, feature flags and plans exist. Both steps are idempotent, so an
 // upgrade is just "pull the new image and start it".
 async function bootstrap() {
-  const migrationsFolder = resolve(process.env.MIGRATIONS_DIR ?? "./drizzle");
+  const migrationsFolder = resolve(env.MIGRATIONS_DIR);
   console.log(`[bootstrap] applying migrations from ${migrationsFolder}`);
   await migrate(db, { migrationsFolder });
   await seedCore();

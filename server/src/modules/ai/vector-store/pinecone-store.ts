@@ -1,4 +1,5 @@
 import type { VectorStore, VectorUpsertInput } from "./types";
+import { chunkVectorId, documentVectorId } from "./vector-ids";
 
 // Pinecone, over its REST API (no SDK needed for four calls). Works with a
 // serverless index created with the embedding model's dimension (1536 for
@@ -10,18 +11,9 @@ const API_VERSION = "2025-04";
 const UPSERT_BATCH = 50;
 const DELETE_BATCH = 1000;
 
-// IDs are prefixed with the memory ID so a whole memory's vectors (document +
-// every chunk) can be found again with a prefix listing — Pinecone doesn't
-// know about our Postgres FK cascades, so that's how a deleted or re-ingested
-// memory's vectors get cleaned up.
-function documentVectorId(memoryId: string): string {
-  return `${memoryId}:document`;
-}
-
-function chunkVectorId(memoryId: string, chunkIndex: number): string {
-  return `${memoryId}:chunk:${chunkIndex}`;
-}
-
+// Vector IDs (vector-ids.ts) start with the memory ID so a whole memory's vectors can be found
+// again with a prefix listing — Pinecone doesn't know about our Postgres FK cascades, so that's
+// how a deleted or re-ingested memory's vectors get cleaned up.
 interface PineconeMatch {
   id: string;
   score: number;

@@ -1,12 +1,13 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { env } from "../config/env";
 
 // pg's default drops a connection after 10 idle seconds, and a new one costs a
 // full TCP + TLS + auth handshake (over a second to a remote database), which
 // the next request then pays. Keep them for five minutes instead.
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL!,
+  connectionString: env.DATABASE_URL,
   idleTimeoutMillis: 5 * 60 * 1000,
   keepAlive: true,
 });

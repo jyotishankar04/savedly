@@ -180,6 +180,10 @@ const envSchema = z
     // Error tracking (config/sentry.ts). Unset = nothing is reported.
     SENTRY_DSN: z.string().url().optional(),
     SENTRY_ENVIRONMENT: z.string().optional(),
+    // The build's version, sent to Sentry as the release. Empty means none.
+    APP_VERSION: z.string().optional(),
+    // Where the migration files are, for the self-hosted container's bootstrap.
+    MIGRATIONS_DIR: z.string().default("./drizzle"),
     LANGFUSE_PUBLIC_KEY: z.string().optional(),
     LANGFUSE_SECRET_KEY: z.string().optional(),
     LANGFUSE_BASE_URL: z.string().url().default("http://localhost:3001"),
