@@ -1,18 +1,9 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../../shared/response/api-response";
 import type { ListUsersQuery } from "./users.schema";
-import {
-  createUserByAdmin,
-  deleteUserForDev,
-  getUserDetail,
-  getUserPlan,
-  grantPlan,
-  listUsers,
-  removePlanGrant,
-  setUserPassword,
-  updateUserRoles,
-  updateUserStatus,
-} from "./users.service";
+import { createUserByAdmin, deleteUserForDev, setUserPassword, updateUserRoles, updateUserStatus } from "./users.manage";
+import { getUserDetail, listUsers } from "./users.list";
+import { getUserPlan, grantPlan, removePlanGrant } from "./users.plans";
 
 export class UsersController {
   static async listUsers(req: Request, res: Response) {

@@ -5,7 +5,7 @@ import { PlanLimitType, PlanBillingInterval } from "../../../db/enums";
 import { AppError } from "../../../shared/errors/app-error";
 import { env } from "../../../config/env";
 import { logAdminAction } from "../../../shared/utils/audit-log";
-import { getPlanLimits } from "../../plans/plans.service";
+import { getPlanLimits } from "../../plans/api";
 import type { CreatePlanInput, UpdatePlanInput } from "./plans.schema";
 
 interface DefaultPlanSeed {
@@ -40,8 +40,8 @@ const ALL_FEATURES: Record<string, boolean> = {
   insightsFullHistory: true,
 };
 
-// What each hosted plan unlocks (plans.service.ts PLAN_FEATURES). Every
-// hosted plan runs on AI we supply (managedAi): hosted users never add keys.
+// What each hosted plan unlocks. All hosted plans run on supplied AI (managedAi); hosted users
+// never add keys.
 const FREE_FEATURES: Record<string, boolean> = {
   ...ALL_FEATURES,
   vault: false,
@@ -86,14 +86,9 @@ function limits(values: Partial<Record<PlanLimitType, number | null>>): DefaultP
   return Object.entries(all).map(([limitType, limitValue]) => ({ limitType: limitType as PlanLimitType, limitValue }));
 }
 
-// Hosted plans: Free, Lite and Pro. They differ by volume, by how much AI the
-// platform supplies each month (the AI_MONTHLY_* quotas), and by features
-// (FREE/LITE/PRO_FEATURES). The values are starting points an admin edits in
-// Admin -> Plans & Limits without a deploy.
-//
-// Prices are deliberately NOT seeded: paid plans start at 0, which the
-// pricing page shows as "Price coming soon" and checkout refuses, until an
-// admin sets the real price (matching the payment provider's product).
+// Free, Lite and Pro differ by volume, monthly AI and features; admins edit values without a
+// deploy. Prices aren't seeded (paid plans start at 0: "Price coming soon", checkout refuses) until
+// an admin sets one.
 const LITE_LIMITS = limits({
   [PlanLimitType.STORAGE_MB]: 5 * MB_PER_GB,
   [PlanLimitType.MAX_FILE_MB]: 50,
@@ -134,9 +129,8 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
     }),
     features: FREE_FEATURES,
   },
-  // Two paid plans, each billed monthly or yearly. sortOrder ranks upgrades:
-  // Lite monthly < Lite yearly < Pro monthly < Pro yearly. Pro keeps its
-  // original "ai-*" keys (payment product IDs and assignments point at them).
+  // Two paid plans, monthly or yearly; sortOrder ranks upgrades (Lite monthly < Lite yearly < Pro
+  // monthly < Pro yearly). Pro keeps its "ai-*" keys (product IDs and assignments point at them).
   ...(["monthly", "yearly"] as const).flatMap((interval, i) => {
     const billingInterval = interval === "monthly" ? PlanBillingInterval.MONTHLY : PlanBillingInterval.YEARLY;
     return [
@@ -170,9 +164,8 @@ const HOSTED_PLANS: DefaultPlanSeed[] = [
   }),
 ];
 
-// Plans that used to be offered. db:plans:reset switches them off (never
-// deletes them), so anyone still assigned one keeps resolving to it until
-// their subscription ends, but nobody new can buy it.
+// Plans no longer offered: db:plans:reset switches them off (never deletes), so current holders
+// keep them until their subscription ends.
 const RETIRED_HOSTED_PLAN_KEYS = ["own-key-monthly", "own-key-yearly"];
 const RETIRED_LIMIT_TYPES = [PlanLimitType.AI_MONTHLY_VISION_QUERIES];
 
@@ -194,18 +187,13 @@ const SELF_HOSTED_PLANS: DefaultPlanSeed[] = [
 ];
 
 /**
- * Idempotent (onConflictDoNothing on both the plan and each limit), same
- * pattern as seedDefaultFlags — run via `pnpm db:seed` (src/db/seed.ts), and
- * on every start of a self-hosted container (db/bootstrap.ts). Never overwrites a value an admin has since
- * edited, unlike upsertLimits below (which is deliberately an overwrite,
- * for admin edits).
+ * Idempotent (onConflictDoNothing); run by `pnpm db:seed` and every self-hosted start. Never
+ * overwrites admin edits.
  */
 /**
- * Writes the default plans' names, descriptions, features and limits over
- * what's in the database (inserting any plan that's missing), for moving an
- * existing database onto new defaults — `pnpm db:plans:reset`. Never touches
- * a plan's price, currency, isActive or isDefault, which are admin decisions —
- * except that retired plans are switched off.
+ * `pnpm db:plans:reset`: writes the default plans' names, descriptions, features and limits
+ * (inserting missing ones). Never touches price, currency, isActive or isDefault, except that
+ * retired plans are switched off.
  */
 export async function resetPlanDefaults(): Promise<string[]> {
   const touched: string[] = [];
@@ -218,8 +206,7 @@ export async function resetPlanDefaults(): Promise<string[]> {
       .returning({ key: plans.key });
     touched.push(...retired.map((p) => `${p.key} (retired)`));
   }
-  // Image reads used to have their own allowance; they're part of AI
-  // processing for a save now, so the old limit rows go.
+  // Image reads are part of a save's AI processing now, so the old limit rows go.
   await db.delete(planLimits).where(inArray(planLimits.limitType, RETIRED_LIMIT_TYPES));
   for (const seed of env.SELF_HOSTED ? SELF_HOSTED_PLANS : HOSTED_PLANS) {
     await db
@@ -300,8 +287,7 @@ async function upsertLimits(tx: DbOrTx, planId: string, limits: NonNullable<Crea
 
 export async function createPlan(input: CreatePlanInput, adminUserId: string, ipAddress?: string) {
   return db.transaction(async (tx) => {
-    // Only one plan may be the signup default at a time — same
-    // flip-others-first pattern as announcements.isActive.
+    // Only one signup default: flip the others first.
     if (input.isDefault) {
       await tx.update(plans).set({ isDefault: false }).where(eq(plans.isDefault, true));
     }
@@ -353,10 +339,7 @@ export async function updatePlan(planId: string, input: UpdatePlanInput, adminUs
     const [after] = await tx
       .update(plans)
       .set({
-        // Always present so .set() never receives an empty object — a
-        // limits-only PATCH (the admin UI's per-limit edit, and any
-        // scripted plan-limit update) would otherwise pass nothing here at
-        // all, and Drizzle throws "No values to set" on an empty .set().
+        // Always set, so .set() is never empty (Drizzle throws on a limits-only PATCH).
         updatedAt: new Date(),
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),

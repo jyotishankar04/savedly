@@ -4,13 +4,12 @@ import { ApiResponse } from "../../../shared/response/api-response";
 import { AppError } from "../../../shared/errors/app-error";
 import { logger } from "../../../shared/utils/logger";
 import { signGithubStateToken, verifyGithubStateToken } from "../../../shared/utils/jwt";
-import { isGithubStarsEnabled } from "../../feature-flags/feature-flags.service";
+import { isGithubStarsEnabled } from "../../feature-flags/api";
 import { buildGithubStarsAuthUrl, exchangeGithubStarsCode, isGithubStarsConfigured } from "./github-client";
 import { connectGithub, disconnectGithub, getGithubConnection, syncGithubStars, syncGithubStarsNow } from "./github.service";
 
 const integrationsUrl = (result?: string) => `${env.FRONTEND_URL}/app/integrations${result ? `?github=${result}` : ""}`;
 
-/** Whether the GitHub stars integration can be offered on this server at all. */
 export async function isGithubStarsAvailable(): Promise<boolean> {
   return (await isGithubStarsEnabled()) && (await isGithubStarsConfigured());
 }
@@ -40,8 +39,8 @@ export class GithubController {
       return res.redirect(integrationsUrl("error"));
     }
 
-    // The first sync can be several hundred repositories, so it runs after
-    // the redirect; the Integrations page shows the count as it arrives.
+    // The first sync can be hundreds of repos, so it runs after the redirect; the Integrations page
+    // shows the count as it arrives.
     void syncGithubStars(userId).catch((err) => logger.warn({ err, userId }, "[github-stars] first sync failed"));
     res.redirect(integrationsUrl("connected"));
   }

@@ -17,13 +17,9 @@ import {
 } from "./share.validator";
 
 /**
- * The public reader, mounted at /s so it mirrors the client URL and so the
- * unlock cookie can be path-scoped to just these routes.
- *
- * Kept separate from the owner router below rather than sharing one mount:
- * slugs and share uuids would otherwise collide on /:param, and the
- * distinction between "anyone may call this" and "owner only" would stop
- * being visible at a glance.
+ * The public reader, mounted at /s to mirror the client URL and so the unlock cookie can be
+ * path-scoped. Kept apart from the owner router: slugs and share uuids would collide on /:param,
+ * and the public/owner split should be obvious.
  */
 export const sharePublicRouter = Router();
 
@@ -38,8 +34,7 @@ sharePublicRouter.post(
   validateUnlockShare,
   SharePublicController.unlock
 );
-// Requesting access needs an account: it gives the owner a real identity to
-// approve and makes anonymous spam impossible.
+// Requesting needs an account: it gives the owner an identity to approve and prevents anonymous spam.
 sharePublicRouter.post(
   "/:slug/request-access",
   authenticate,

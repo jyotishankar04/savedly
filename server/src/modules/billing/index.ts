@@ -1,2 +1,2 @@
 export { default } from "./billing.routes";
-export { isBillingEnabled } from "./billing.service";
+export { isBillingEnabled } from "./billing.gateway";

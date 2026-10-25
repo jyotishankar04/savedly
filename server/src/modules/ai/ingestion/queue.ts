@@ -8,14 +8,11 @@ export interface IngestionJobData {
 
 export const INGESTION_QUEUE = "ingestion";
 
-// BullMQ takes the lowest number first, and a job with no priority before
-// any that has one. So a single save (no priority) is always picked up ahead
-// of an import's jobs: someone saving one link in the middle of a 500-item
-// import waits for a free slot, not for the import.
+// BullMQ runs the lowest number first and unprioritized jobs before prioritized ones, so a single
+// save goes ahead of an import's jobs.
 export const BULK_PRIORITY = 10;
 
-// Finished jobs are only useful for a while. Left in place they would fill
-// Redis, which is small and refuses writes when full.
+// Finished jobs would fill Redis, which is small and refuses writes when full.
 export const INGESTION_JOB_OPTIONS: JobsOptions = {
   removeOnComplete: { age: 60 * 60, count: 1000 },
   // Kept longer: a failure is worth being able to look at.
@@ -23,10 +20,8 @@ export const INGESTION_JOB_OPTIONS: JobsOptions = {
 };
 
 /**
- * How many saved items are processed at the same time. A job is almost all
- * waiting (a page fetch, then model calls), so the real ceiling is the AI
- * provider's rate limit, not this server: lower INGESTION_CONCURRENCY if the
- * provider starts refusing requests.
+ * Items processed at once. Jobs mostly wait, so the ceiling is the provider's rate limit: lower
+ * INGESTION_CONCURRENCY if it refuses.
  */
 export function ingestionWorkerOptions(): Pick<WorkerOptions, "concurrency"> {
   return { concurrency: env.INGESTION_CONCURRENCY };
@@ -34,9 +29,40 @@ export function ingestionWorkerOptions(): Pick<WorkerOptions, "concurrency"> {
 
 export const ingestionQueue = new Queue<IngestionJobData>(INGESTION_QUEUE, { connection: redis, defaultJobOptions: INGESTION_JOB_OPTIONS });
 
-/** One save. Fire-and-forget from memory.service.ts — never let a queue failure fail the create/delete request. */
+/** One save. Fire-and-forget: a queue failure must never fail the create/delete request. */
 export async function enqueueIngestion(memoryId: string): Promise<void> {
   await ingestionQueue.add("ingest", { memoryId });
+}
+
+// A note gets the AI once; later edits only re-index (chunks and vectors, no AI or allowance; a
+// trigger keeps keyword search current). Both wait for writing to stop: each call replaces the
+// waiting one (BullMQ debounce), so autosave costs one run.
+
+/** The worker's job name for re-indexing only (reembed.ts), as opposed to "ingest". */
+export const REINDEX_JOB = "reindex";
+
+// A note from the full-page editor is processed this long after its writer stops, so the AI reads
+// the note, not its first words.
+const NOTE_SETTLE_MS = 5 * 60 * 1000;
+// Re-indexing is cheap, so search catches up soon after an edit.
+const NOTE_REINDEX_MS = 30 * 1000;
+
+/** A note's first processing (the AI), NOTE_SETTLE_MS after the last edit. */
+export async function enqueueNoteRefresh(memoryId: string): Promise<void> {
+  await ingestionQueue.add(
+    "ingest",
+    { memoryId },
+    { delay: NOTE_SETTLE_MS, deduplication: { id: `note-refresh:${memoryId}`, ttl: NOTE_SETTLE_MS, extend: true, replace: true } },
+  );
+}
+
+/** An edited note's search index, NOTE_REINDEX_MS after the last edit. */
+export async function enqueueNoteReindex(memoryId: string): Promise<void> {
+  await ingestionQueue.add(
+    REINDEX_JOB,
+    { memoryId },
+    { delay: NOTE_REINDEX_MS, deduplication: { id: `note-reindex:${memoryId}`, ttl: NOTE_REINDEX_MS, extend: true, replace: true } },
+  );
 }
 
 /** Many at once (an import, a GitHub stars sync): one round trip to Redis, queued behind single saves. */

@@ -4,7 +4,6 @@ import { requireAdmin } from "../../shared/middlewares/require-admin";
 import { MessagesController } from "./messages.controller";
 import { validateId, validateKindId, validateListContact, validateListReports, validateReply, validateUpdateContact, validateUpdateReport } from "./messages.validator";
 
-// Mounted at /admin/messages: Admin > Messages.
 const router = Router();
 router.use(authenticate, requireAdmin);
 

@@ -3,7 +3,6 @@ import { authenticate } from "../../shared/middlewares/authenticate";
 import { ImportController } from "./import.controller";
 import { validateImport, validateListImportItems } from "./import.validator";
 
-// Mounted at /import by ../../routes/index.ts.
 const router = Router();
 
 router.post("/", authenticate, validateImport, ImportController.run);

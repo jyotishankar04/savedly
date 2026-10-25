@@ -7,7 +7,6 @@ import { normalizeUrl } from "./normalize-url";
 /** Memories that can be in the Inbox at all: not trashed, archived or in the vault. */
 const live = (userId: string) => and(eq(memories.userId, userId), eq(memories.inTrash, false), eq(memories.isArchived, false), eq(memories.isVaulted, false));
 
-/** How many are unread in the Inbox, and how many are snoozed until a reminder. */
 export async function inboxCounts(userId: string): Promise<{ unread: number; snoozed: number }> {
   const now = new Date();
   const [[unread], [snoozed]] = await Promise.all([
@@ -39,11 +38,7 @@ export interface SavedPage {
   collections: { id: string; name: string }[];
 }
 
-/**
- * Whether a page is already in the library, matched the way duplicates are
- * (normalized URL: no tracking parameters, fragment or trailing slash). For
- * the extension, to show "Saved 3 days ago" instead of saving it twice.
- */
+/** Whether a page is already saved, matched like duplicates, so the extension can show "Saved 3 days ago". */
 export async function lookupByUrl(userId: string, url: string): Promise<SavedPage | null> {
   const normalized = normalizeUrl(url);
   if (!normalized) return null;
@@ -66,9 +61,8 @@ export async function lookupByUrl(userId: string, url: string): Promise<SavedPag
 export const urlKey = (normalizedUrl: string) => createHash("sha256").update(normalizedUrl).digest("hex").slice(0, 16);
 
 /**
- * Short hashes of every saved page's address, so the extension can tell a
- * page is saved without sending the server each page the person visits: it
- * hashes the page itself and compares. The addresses never leave in plain.
+ * Short hashes of saved page addresses, so the extension can check a page by hashing it locally;
+ * addresses never leave in plain text.
  */
 export async function savedUrlKeys(userId: string): Promise<string[]> {
   const rows = await db

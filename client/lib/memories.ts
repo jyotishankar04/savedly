@@ -43,6 +43,8 @@ export interface CreateMemoryInput {
   captureMethod?: "server" | "extension" | "manual";
   /** "ask": if it's already in the library, don't save; the server answers 409 so the app can ask. "allow": save it anyway. */
   onDuplicate?: "ask" | "allow";
+  /** A note still being written (the full-page editor): processed once writing stops, not on this first save. */
+  editing?: boolean;
 }
 
 /** The memory a save would duplicate, from the server's DUPLICATE_MEMORY error. */
@@ -106,6 +108,23 @@ export async function createMemory(input: CreateMemoryInput): Promise<CreateMemo
 
 export async function updateMemory(id: string, patch: UpdateMemoryInput): Promise<MemoryDetail> {
   return apiFetch<MemoryDetail>(`/memories/${id}`, { method: "PATCH", body: patch });
+}
+
+export type NoteRewriteMode = "fix" | "improve" | "shorten";
+
+/** A note rewritten by the AI, to show before anything changes; nothing is saved. `markdown` is the note as it is in the editor now. */
+export async function rewriteNote(id: string, mode: NoteRewriteMode, markdown: string, part = false, context?: { before: string; after: string }): Promise<{ markdown: string }> {
+  return apiFetch<{ markdown: string }>(`/memories/${id}/rewrite`, { method: "POST", body: { mode, markdown, part: part || undefined, context } });
+}
+
+/** Three AI titles for a note, from its title and text as they are in the editor; nothing is saved. */
+export async function suggestNoteTitles(id: string, title: string, markdown: string): Promise<{ titles: string[] }> {
+  return apiFetch<{ titles: string[] }>(`/memories/${id}/title-suggestions`, { method: "POST", body: { title, markdown } });
+}
+
+/** Runs Savedly's processing on a memory again: summary, tags, collection and dates. */
+export async function reprocessMemory(id: string, options: { retitle?: boolean } = {}): Promise<MemoryDetail> {
+  return apiFetch<MemoryDetail>(`/memories/${id}/refresh-preview`, { method: "POST", body: options.retitle ? { retitle: true } : undefined });
 }
 
 export interface InboxCount {

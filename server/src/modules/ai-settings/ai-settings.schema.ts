@@ -43,9 +43,7 @@ export const assignRoleSchema = z.object({
   model: z.string().min(1).max(150),
 });
 
-// Used by the settings UI's "test connection" step before a credential is
-// even saved — provider/apiKey/baseUrl/model come straight from the form,
-// never persisted plaintext (see ai-settings.service.ts's testConnection).
+// Used before a credential is saved: values come from the form and are never persisted.
 export const testConnectionSchema = z
   .object({
     provider: providerSchema,

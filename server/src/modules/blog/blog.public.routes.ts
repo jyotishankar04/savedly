@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { BlogController } from "./blog.controller";
 
-// Mounted at /blog. Public: the website reads it for every visitor, and only
-// ever gets published posts.
+// Mounted at /blog. Public; only published posts are returned.
 const router = Router();
 
 router.get("/", BlogController.published);

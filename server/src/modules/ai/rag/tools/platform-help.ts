@@ -3,10 +3,8 @@ import { z } from "zod";
 import { env } from "../../../../config/env";
 import { logger } from "../../../../shared/utils/logger";
 
-// Answers "how do I…" questions about Savedly itself from the Help
-// Center's own guides, served by the web app at /api/help
-// (client/app/api/help/route.ts). Reading them live keeps one source of
-// truth: a guide edited on the site is what the assistant says next.
+// Answers "how do I…" from the Help Center guides, read live from /api/help
+// (client/app/api/help/route.ts) so the site stays the single source of truth.
 
 interface HelpAction {
   label: string;
@@ -102,11 +100,8 @@ export async function loadSitePages(): Promise<SitePage[]> {
 }
 
 /**
- * The guides and tools that best answer a question: the best-matching guide,
- * a second one only when it's nearly as relevant, and any tool the question
- * names. Shared by the assistant's tool below and the public help box
- * (modules/help-assistant), which passes a higher `minScore` so one stray
- * shared word doesn't count as a match.
+ * The guides and tools that best answer a question: the best guide, a second only if nearly as
+ * relevant, and any tool named. Shared with the public help box, which passes a higher `minScore`.
  */
 export async function findHelp(question: string, minScore = 1): Promise<{ topics: HelpGuide[]; relatedTools: HelpTool[] }> {
   const { guides, tools } = await loadHelp();
@@ -124,10 +119,9 @@ const inputSchema = z.object({
   question: z.string().min(1).describe("The user's question about how to use Savedly, in their own words."),
 });
 
-// Two outputs: the model gets the guide text and the *names* of the buttons
-// the app will show, never the links themselves (given paths, it wrote made-up
-// "https://your-app-link/..." URLs into its answer). The UI gets the links as
-// the tool's artifact and renders them as buttons (client/components/ask/help-actions.tsx).
+// The model gets guide text and button names, never links (given paths it invented URLs); the UI
+// gets the links as the tool's artifact and renders buttons
+// (client/components/ask/help-actions.tsx).
 export const platformHelpTool = tool(
   async ({ question }: z.infer<typeof inputSchema>) => {
     const { topics: top, relatedTools } = await findHelp(question);

@@ -76,6 +76,18 @@ interface PlannedIntegration {
 
 const PLANNED: PlannedIntegration[] = [
   {
+    key: "browser-extension",
+    title: "Browser extension",
+    category: "Browser",
+    how: "Extension",
+    description: "Save the page you're on, a link, some text, an image or a screenshot without leaving it. Uses your Savedly sign-in.",
+    brings: ["The page you're on", "Selected text, links and images", "Screenshots of an area or the whole view"],
+    icon: ChromeIcon,
+    iconClassName: "bg-amber-500 text-white",
+    installUrl: CHROME_WEB_STORE_URL,
+    installLabel: "Add to Chrome",
+  },
+  {
     key: "notion",
     title: "Notion",
     category: "Notes",
@@ -184,19 +196,7 @@ const PLANNED: PlannedIntegration[] = [
     brings: ["Starred repositories", "Their description and topics", "New stars as you add them"],
     icon: GithubIcon,
     iconClassName: "bg-neutral-900 text-white",
-  },
-  {
-    key: "browser-extension",
-    title: "Browser extension",
-    category: "Browser",
-    how: "Extension",
-    description: "Save the page you're on, a link, some text, an image or a screenshot without leaving it. Uses your Savedly sign-in.",
-    brings: ["The page you're on", "Selected text, links and images", "Screenshots of an area or the whole view"],
-    icon: ChromeIcon,
-    iconClassName: "bg-amber-500 text-white",
-    installUrl: CHROME_WEB_STORE_URL,
-    installLabel: "Add to Chrome",
-  },
+  }
 ];
 
 interface CardMeta {

@@ -52,7 +52,6 @@ export const batchUncollectInputSchema = z.object({
 
 export type BatchUncollectInput = z.infer<typeof batchUncollectInputSchema>;
 
-// The Inbox: mark read (or unread again).
 export const batchReadInputSchema = z.object({
   memoryIds: z.array(z.string().uuid()).min(1),
   read: z.boolean(),

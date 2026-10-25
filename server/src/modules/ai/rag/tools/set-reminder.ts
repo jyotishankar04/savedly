@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { getMemoryById, updateMemory } from "../../../memory/memory.service";
+import { getMemoryById, updateMemory } from "../../../memory/api";
 import { requireUserId, type RagRuntime } from "./shared";
 
 const inputSchema = z.object({
@@ -13,10 +13,8 @@ const inputSchema = z.object({
 });
 
 /**
- * "Remind me about this on Friday": snoozes a memory until then. At that
- * time it's back at the top of the Inbox with a notification (and an email,
- * unless turned off). No confirmation: nothing is lost, and it can be changed
- * or cancelled any time.
+ * "Remind me about this on Friday": snoozes the memory, then it returns to the top of the Inbox
+ * with a notification (and email unless off). No confirmation: nothing is lost.
  */
 export const setReminderTool = tool(
   async ({ memoryId, remindAt }: z.infer<typeof inputSchema>, runtime: RagRuntime) => {

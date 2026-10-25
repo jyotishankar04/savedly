@@ -3,10 +3,7 @@ import { db } from "../../db";
 import { aiUsageLogs, users } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
 import type { UsageByUserQuery, UsageRangeQuery } from "./ai-usage.schema";
-
-function daysAgo(days: number): Date {
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-}
+import { daysAgo } from "../../shared/utils/days-ago";
 
 const totalsSelect = {
   calls: count(),

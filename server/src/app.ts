@@ -16,16 +16,13 @@ export function createApp() {
 
   app.use(requestLogger);
 
-  // Security headers. This is a JSON API on its own origin, read by the web
-  // app from another one, so responses must stay loadable cross-origin; the
-  // default (same-origin) would block that.
+  // JSON API read cross-origin by the web app, so responses must stay loadable cross-origin.
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 
   // The payment provider webhook which needs the raw body for signature verification.
   app.use("/api/v1/billing/webhook", express.raw({ type: "application/json" }));
 
-  // 5mb, not the 100kb default — a Netscape bookmark export with hundreds/
-  // thousands of entries can be several hundred KB to a few MB (see modules/import).
+  // 5mb, not the 100kb default: a bookmark export can run to a few MB (modules/import).
   app.use(express.json({ limit: "5mb" }));
   app.use(cookieParser());
   app.use(cors(corsOptions));

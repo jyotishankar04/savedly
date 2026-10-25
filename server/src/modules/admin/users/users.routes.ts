@@ -11,7 +11,6 @@ import {
   validateUpdateUserStatus,
 } from "./users.validator";
 
-// Mounted at /admin/users by ../index.ts.
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, validateListUsers, UsersController.listUsers);

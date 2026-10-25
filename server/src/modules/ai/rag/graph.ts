@@ -16,16 +16,9 @@ function shouldContinue(state: typeof RAGState.State): "tools" | "checkGrounding
   return "checkGrounding";
 }
 
-// frontDesk gates every turn before the main loop — an irrelevant request
-// (general knowledge, coding help, small talk) gets a direct decline and
-// the graph ends there, without spending a reasoning-tier call or a
-// search_memories invocation on it (see nodes/front-desk.ts).
-//
-// Agent <-> ToolNode is the extensible loop past that gate: a future tool
-// is a new file in tools/ + one registry entry, no graph changes.
-// checkGrounding is this graph's other addition beyond that loop —
-// worthwhile specifically for "answer questions about my own saved data"
-// honesty (see nodes/check-grounding.ts).
+// frontDesk gates every turn: an irrelevant request is declined and the graph ends (nodes/front-desk.ts).
+// Agent <-> ToolNode is the extensible loop (a tool is a file in tools/ plus one registry entry);
+// checkGrounding keeps answers about saved data honest.
 const builder = new StateGraph(RAGState)
   .addNode("frontDesk", frontDeskNode)
   .addNode("agent", agentNode)

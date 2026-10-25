@@ -30,8 +30,7 @@ export const setUserPasswordSchema = z.object({
   password: z.string().min(8, "Use at least 8 characters").max(200),
 });
 
-// An admin grant: the user is on `planKey` from now until `endsAt` (null =
-// no end), whatever they pay for. Never touches billing.
+// The user is on `planKey` from now until `endsAt` (null = no end), whatever they pay. Never touches billing.
 export const grantPlanSchema = z.object({
   planKey: z.string().trim().min(1).max(50),
   endsAt: z

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { isImportEnabled } from "../feature-flags/feature-flags.service";
+import { isImportEnabled } from "../feature-flags/api";
 import type { ImportInput, ListImportItemsQuery } from "./import.schema";
 import { getImportBatch, listImportItems, runImport } from "./import.service";
 

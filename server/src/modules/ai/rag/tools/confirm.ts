@@ -3,17 +3,10 @@ import { cacheRedis } from "../../../../config/redis";
 import { userTimeZone } from "../../../../shared/utils/time-zone";
 import { requireUserId, type RagRuntime } from "./shared";
 
-// Ask asks before it acts.
-//
-// A tool wrapped in confirmFirst() doesn't act when the model calls it. It
-// writes down what it was asked to do and answers "this needs the user's
-// yes". The action runs only on the next turn, and only when that turn's own
-// user message is a confirmation. That check is made here, in code, against
-// the message the user sent (settlePending, called by streamAsk); nothing the
-// model says and nothing inside a saved page can approve an action.
-//
-// What then runs is the input that was written down and shown to the user,
-// not whatever the model passes the second time.
+// Ask asks before it acts. A confirmFirst() tool only records what it was asked to do and answers
+// "needs the user's yes". It runs next turn, only if that turn's user message confirms (checked in
+// code by settlePending, so nothing the model says or a saved page contains can approve it), and
+// runs the input shown to the user, not what the model passes later.
 
 export interface PendingAction {
   id: string;
@@ -45,11 +38,7 @@ const MAX_PENDING_PER_TURN = 10;
 const pendingKey = (threadId: string) => `ask:pending:${threadId}`;
 const actionKey = (tool: string, input: unknown) => createHash("sha256").update(`${tool}:${JSON.stringify(input)}`).digest("hex");
 
-/**
- * Ends the description of every tool that asks first. Without it a model
- * tends to ask "shall I?" itself and only then call the tool, which asks
- * again: the user confirms twice.
- */
+/** Ends every ask-first tool's description; without it the model asks "shall I?" and the tool asks again. */
 export const ASKS_FIRST_NOTE =
   " SAFE TO CALL RIGHT AWAY: this tool never acts on the first call. It shows the user a confirmation card and waits for their yes. So do NOT ask the user for permission yourself before calling it; call it as soon as you know the target, and let the card do the asking.";
 
@@ -87,11 +76,10 @@ export function isConfirmation(message: string): boolean {
   return CONFIRMATIONS.has(normal);
 }
 
-// What the user's message settled, per question (turnId). In memory: the
-// approval is read by the same request that made it.
+// What the user's message settled, per question (turnId). In memory: the same request reads the
+// approval it made.
 interface Settled {
   approved: PendingAction[];
-  /** How many approved actions this turn started with. */
   approvedCount: number;
   cancelled: number;
   at: number;
@@ -99,9 +87,8 @@ interface Settled {
 const settledByTurn = new Map<string, Settled>();
 
 /**
- * Called once at the start of every question, with the user's own message.
- * Whatever was waiting is taken off the list either way: a yes approves it
- * for this turn only, anything else discards it.
+ * Called at the start of every question with the user's message. Whatever was waiting is cleared
+ * either way; a yes approves it for this turn only.
  */
 export async function settlePending(threadId: string, turnId: string, userMessage: string): Promise<void> {
   let stored: Stored | null = null;
@@ -133,7 +120,6 @@ export function turnConfirmation(turnId: string | undefined): { approvedTools: s
   return { approvedTools: settled?.approved.map((a) => a.tool) ?? [], cancelled: settled?.cancelled ?? 0 };
 }
 
-/** True when this turn's message was a yes to something. */
 export function turnIsConfirmation(turnId: string | undefined): boolean {
   return !!turnId && (settledByTurn.get(turnId)?.approvedCount ?? 0) > 0;
 }
@@ -180,9 +166,8 @@ export function isConfirmationRequest(value: unknown): value is ConfirmationRequ
 }
 
 /**
- * Wraps a tool that changes or removes something. `describe` says what will
- * happen, in the user's terms, and may throw when the request can't be done
- * at all (nothing is then left waiting). `run` does it.
+ * Wraps a tool that changes or removes something. `describe` says what will happen (may throw if
+ * impossible); `run` does it.
  */
 export function confirmFirst<I, R>(
   toolName: string,
@@ -204,13 +189,11 @@ export function confirmFirst<I, R>(
   };
 }
 
-/** A title short enough to sit in a one-line description. */
 export function shortTitle(title: string | null | undefined): string {
   const clean = (title ?? "").replace(/\s+/g, " ").trim() || "Untitled";
   return clean.length > 80 ? `${clean.slice(0, 80)}…` : clean;
 }
 
-/** A date and time as the user would read it, in their own time zone. */
 export async function whenText(userId: string, iso: string): Promise<string> {
   const timeZone = await userTimeZone(userId);
   return new Intl.DateTimeFormat("en-US", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone }).format(new Date(iso));

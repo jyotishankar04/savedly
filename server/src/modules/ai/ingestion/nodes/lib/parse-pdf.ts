@@ -1,12 +1,12 @@
 import { PDFParse } from "pdf-parse";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { getTextFallbackModels, invokeWithFallback, type UsageContext } from "../../../ai.providers";
+import { getTextFallbackModels, invokeWithFallback } from "../../../models";
+import { type UsageContext } from "../../../credentials";
 import { logger } from "../../../../../shared/utils/logger";
 
 const MAX_CONTENT_LENGTH = 20000;
-// Above this page count, extracting (and paying an LLM to digest) the whole
-// document stops being worth it — page 1 + a summary noting it's partial
-// beats either failing or silently truncating mid-document.
+// Above this, digesting the whole document isn't worth it: page 1 plus a summary beats failing or
+// silently truncating.
 const LARGE_PDF_PAGE_THRESHOLD = 8;
 
 const summaryPrompt = ChatPromptTemplate.fromTemplate(
@@ -33,13 +33,8 @@ async function summarizeFirstPage(pageOneText: string, totalPages: number, usage
 }
 
 /**
- * Extracts text from a PDF's raw bytes. Small documents get their full text
- * (truncated to MAX_CONTENT_LENGTH, same as before); documents over
- * LARGE_PDF_PAGE_THRESHOLD pages get only page 1 extracted, then summarized
- * by an LLM — that summary becomes the returned content instead of a raw
- * (and likely mid-sentence) truncation of the whole thing. Never throws —
- * a corrupt/unreadable PDF degrades to "", same as every other ingestion
- * step in this pipeline.
+ * Text from a PDF: small ones in full (up to MAX_CONTENT_LENGTH), over LARGE_PDF_PAGE_THRESHOLD
+ * pages only page 1, summarized. Never throws: degrades to "".
  */
 export async function extractPdfContent(data: ArrayBuffer | Buffer, usage: UsageContext, caption?: string): Promise<string> {
   const parser = new PDFParse({ data });

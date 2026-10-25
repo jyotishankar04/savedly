@@ -3,9 +3,10 @@ import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { collectionMemories, collections } from "../../../../db/schema";
-import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { getChatModel } from "../../models";
+import { createUsageCallback } from "../../../ai-usage/api";
 import { logNode } from "../log";
+import { collectionNameKey } from "../../../collection/api";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 import { researchForPrompt } from "./research-context";
@@ -15,30 +16,6 @@ interface CollectionDecision {
   collectionName?: string;
   icon?: string;
   description?: string;
-}
-
-/** A rough English singular, enough to line up "Taxes"/"Tax", "Glasses"/"Glass" and "Birthdays"/"Birthday". */
-function singular(word: string): string {
-  if (word.length <= 3) return word;
-  if (/(ss|x|z|ch|sh)es$/.test(word)) return word.slice(0, -2);
-  if (word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
-  return word;
-}
-
-/**
- * A comparable form of a collection name, so "Birthdays", "birthday" and
- * "Meetings & Scheduling" / "meeting and scheduling" count as the same
- * collection instead of becoming near-duplicates.
- */
-export function collectionNameKey(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim()
-    .split(/\s+/)
-    .map(singular)
-    .join(" ");
 }
 
 const prompt = ChatPromptTemplate.fromTemplate(
@@ -78,9 +55,12 @@ Respond as strict JSON: {{"action": "existing"|"new"|"none", "collectionName": "
 
 const NONE: IngestionUpdate = { collectionAction: "none", collectionName: null, collectionIcon: null, collectionDescription: null };
 
-/** Files the memory into the collection about the same subject, creating one when none fits. "none" is reserved for true one-offs. */
+/**
+ * Files the memory into the collection about the same subject, creating one if none fits; "none" is
+ * for true one-offs.
+ */
 export async function organizeCollection(state: IngestionStateType): Promise<IngestionUpdate> {
-  // Someone already put it in a collection (by hand, or through Ask): that choice stands, and a re-ingest must not add a second one.
+  // Someone already filed it (by hand or through Ask): that stands, and a re-ingest mustn't add another.
   const [alreadyFiled] = await db
     .select({ collectionId: collectionMemories.collectionId })
     .from(collectionMemories)
@@ -125,10 +105,8 @@ export async function organizeCollection(state: IngestionStateType): Promise<Ing
     return NONE;
   }
 
-  // The model's answer is only a name: match it to a real collection either
-  // way, so "new: Birthday" reuses an existing "Birthdays", and an "existing"
-  // name it misspelled still lands somewhere instead of nowhere.
-  // A model that copied the whole listed line ("Movies (about: films I liked)", or "Movies: films…") still means "Movies".
+  // The model's answer is only a name, so match it to a real collection ("new: Birthday" reuses
+  // "Birthdays"); a copied line ("Movies (about: ...)") means "Movies".
   const bare = [name, name.replace(/\s*\(about:.*$/i, ""), name.split(/\s*[:—–]\s+/)[0]!].map((n) => n.replace(/^["']|["']$/g, "").trim());
   const match = existing.find((c) => bare.some((n) => collectionNameKey(c.name) === collectionNameKey(n)));
   const resolved: IngestionUpdate = match

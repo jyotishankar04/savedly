@@ -4,13 +4,7 @@ import { createApp } from "./app";
 import { env } from "./config/env";
 import { logger } from "./shared/utils/logger";
 import { flushSentry } from "./config/sentry";
-import { startIngestionWorker } from "./modules/ai";
-import { startTrashPurgeWorker } from "./modules/memory/trash-purge.job";
-import { startReminderWorker } from "./modules/memory/reminder.job";
-import { startWeeklyDigestWorker } from "./modules/memory/weekly-digest.job";
-import { startEmailWorker } from "./modules/email";
-import { startAccountDeletionWorker } from "./modules/account";
-import { startGithubStarsWorker } from "./modules/integrations/github/github.job";
+import { startBackgroundJobs } from "./jobs";
 import { pool } from "./db";
 import { cacheRedis, redis } from "./config/redis";
 import type { Worker } from "bullmq";
@@ -19,82 +13,12 @@ const app = createApp();
 const port = env.PORT;
 
 let httpServer: Server | null = null;
-const workers: Worker[] = [];
 
 httpServer = app.listen(port, () => {
   logger.info(`Server running on http://localhost:${port}`);
 });
 
-// Same process as the API for now — fine for dev, see the AI ingestion plan
-// for splitting this into its own process/deployment in production.
-try {
-  const ingestionWorker = startIngestionWorker();
-  workers.push(ingestionWorker);
-  logger.info("Ingestion worker started");
-} catch (err) {
-  logger.error({ err }, "Failed to start ingestion worker — AI ingestion will not run");
-}
-
-try {
-  startTrashPurgeWorker()
-    .then((trashWorker) => {
-      workers.push(trashWorker);
-      logger.info("Trash purge worker started");
-    })
-    .catch((err) => {
-      logger.error({ err }, "Failed to start trash purge worker — trashed memories will not be auto-deleted");
-    });
-} catch (err) {
-  logger.error({ err }, "Failed to start trash purge worker — trashed memories will not be auto-deleted");
-}
-
-startWeeklyDigestWorker()
-  .then((digestWorker) => {
-    workers.push(digestWorker);
-    logger.info("Weekly email worker started");
-  })
-  .catch((err) => {
-    logger.error({ err }, "Failed to start the weekly email worker: the Sunday email of things to read won't go out");
-  });
-
-startReminderWorker()
-  .then((reminderWorker) => {
-    workers.push(reminderWorker);
-    logger.info("Reminder worker started");
-  })
-  .catch((err) => {
-    logger.error({ err }, "Failed to start the reminder worker: reminders set with \"Remind me\" won't arrive");
-  });
-
-try {
-  const emailWorker = startEmailWorker();
-  workers.push(emailWorker);
-  logger.info("Email worker started");
-} catch (err) {
-  logger.error({ err }, "Failed to start email worker — outgoing email will not be sent");
-}
-
-try {
-  startAccountDeletionWorker()
-    .then((accountWorker) => {
-      workers.push(accountWorker);
-      logger.info("Account deletion worker started");
-    })
-    .catch((err) => {
-      logger.error({ err }, "Failed to start account deletion worker — scheduled account wipes will not run");
-    });
-} catch (err) {
-  logger.error({ err }, "Failed to start account deletion worker — scheduled account wipes will not run");
-}
-
-startGithubStarsWorker()
-  .then((githubWorker) => {
-    workers.push(githubWorker);
-    logger.info("GitHub stars worker started");
-  })
-  .catch((err) => {
-    logger.error({ err }, "Failed to start GitHub stars worker — new stars will only sync when someone presses Sync now");
-  });
+const workers: Worker[] = startBackgroundJobs();
 
 async function gracefulShutdown(signal: string) {
   logger.info({ signal }, "Received termination signal, starting graceful shutdown");
@@ -161,8 +85,7 @@ process.on("SIGINT", () => {
   });
 });
 
-// A rejection nobody handled is a bug: log it (which also reports it) and
-// keep serving, as Node would otherwise only print it.
+// An unhandled rejection is a bug: log it (which also reports it) and keep serving.
 process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason instanceof Error ? reason : new Error(String(reason)) }, "Unhandled promise rejection");
 });

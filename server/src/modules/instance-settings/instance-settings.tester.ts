@@ -3,18 +3,15 @@ import { Index } from "@upstash/vector";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { AiCredentialProvider, AiRole } from "../../db/enums";
-import { createS3Driver, localDriver, type S3Settings } from "../../shared/storage";
-import { createTransport, type SmtpSettings } from "../../shared/mailer/mailer";
-import { pineconeClient } from "../ai/vector-store/pinecone-store";
-import { platformCredentialFrom, testEmbeddingsCredential, testRoleCredential } from "../ai/ai.providers";
-import { searchWith } from "../ai/web-search/web-search";
-import type { SectionId } from "./instance-settings.registry";
-import type { ResolvedSection } from "./instance-settings.service";
+import { createS3Driver, localDriver, type S3Settings } from "../../platform/storage";
+import { createTransport, type SmtpSettings } from "../../platform/mailer/mailer";
+import { pineconeClient, platformCredentialFrom, testEmbeddingsCredential, testRoleCredential, searchWith } from "../ai/api";
+import type { SectionId } from "../../platform/instance-settings/instance-settings.registry";
+import type { ResolvedSection } from "../../platform/instance-settings/instance-settings.service";
 
 /**
- * Admin -> Infrastructure's "Test connection": exercises the candidate
- * settings (the form's values merged over what's saved) against the real
- * service, before anything is saved. Throws with a readable message on failure.
+ * "Test connection": runs the candidate settings (form values over what's saved) against the real
+ * service before saving; throws a readable message on failure.
  */
 export async function testSection(id: SectionId, settings: ResolvedSection): Promise<string> {
   switch (id) {
@@ -63,8 +60,8 @@ export async function testSection(id: SectionId, settings: ResolvedSection): Pro
       return "Created a test embedding.";
     }
     case "includedAi": {
-      // One tiny real call per role that's on, so a wrong key or model name
-      // shows up here instead of in someone's first save.
+      // One tiny real call per active role, so a wrong key or model shows up here, not on someone's
+      // first save.
       const roles = [
         [AiRole.REASONING, "Ask"],
         [AiRole.FAST, "Saving"],

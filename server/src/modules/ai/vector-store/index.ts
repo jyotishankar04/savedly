@@ -1,4 +1,4 @@
-import { getSection, settingsVersion } from "../../instance-settings/instance-settings.service";
+import { getSection, settingsVersion } from "../../../platform/instance-settings/instance-settings.service";
 import { pgVectorStore } from "./pgvector-store";
 import { createPineconeVectorStore } from "./pinecone-store";
 import { createUpstashVectorStore } from "./upstash-store";
@@ -8,11 +8,7 @@ export type { VectorStore, VectorUpsertInput, VectorChunkInput } from "./types";
 
 let active: { version: number; store: VectorStore } | null = null;
 
-/**
- * pgvector columns on this Postgres by default; Upstash Vector or Pinecone when configured
- * (VECTOR_STORE_PROVIDER in hosted production, or Admin -> Infrastructure on
- * a self-hosted install). Rebuilt whenever an admin saves new settings.
- */
+/** pgvector by default; Upstash or Pinecone when configured. Rebuilt when settings change. */
 export async function getVectorStore(): Promise<VectorStore> {
   if (active && active.version === settingsVersion()) return active.store;
   const settings = await getSection("vector");

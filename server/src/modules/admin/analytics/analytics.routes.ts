@@ -4,7 +4,6 @@ import { requireAdmin } from "../../../shared/middlewares/require-admin";
 import { AnalyticsController } from "./analytics.controller";
 import { validateAnalyticsRange } from "./analytics.validator";
 
-// Mounted at /admin/analytics by ../index.ts.
 const router = Router();
 
 router.get("/signups", authenticate, requireAdmin, validateAnalyticsRange, AnalyticsController.signupsOverTime);

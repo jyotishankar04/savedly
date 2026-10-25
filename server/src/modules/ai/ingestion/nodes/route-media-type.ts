@@ -7,7 +7,8 @@ const ROUTES: Record<string, string> = {
   image: "processImageVision",
   document: "extractDocText",
   note: "normalizeNote",
-  video: "normalizeNote",
+  // A video link is a page like any other: ParseWebContent reads it (for YouTube, its transcript too).
+  video: "parseWebContent",
 };
 
 export function routeMediaType(state: IngestionStateType): string {

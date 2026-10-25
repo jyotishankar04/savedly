@@ -14,13 +14,11 @@ export const updateCollectionSchema = z.object({
 });
 
 export const listCollectionsQuerySchema = z.object({
-  // System collections (onboarding defaults, AI-suggested groupings) stay
-  // hidden unless explicitly requested — the app's "show system collections"
-  // toggle sends includeSystem=true.
+  // System collections stay hidden unless requested (the "show system collections" toggle sends
+  // includeSystem=true).
   includeSystem: z.coerce.boolean().default(false),
-  // Same shape as memories' isVaulted toggle — hidden by default, shown
-  // only when explicitly requested, and only once the vault route guard
-  // (requireVaultUnlockedForQuery) has confirmed the PIN was entered.
+  // Like memories' isVaulted: hidden by default, and shown only once requireVaultUnlockedForQuery
+  // has confirmed the PIN.
   isVaulted: z.coerce.boolean().default(false),
 });
 

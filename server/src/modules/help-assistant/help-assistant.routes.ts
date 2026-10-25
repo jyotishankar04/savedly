@@ -10,9 +10,8 @@ import { ApiResponse } from "../../shared/response/api-response";
 import { logger } from "../../shared/utils/logger";
 import { answerHelpQuestion, streamHelpAnswer } from "./help-assistant.graph";
 
-// Mounted at /help. Public: the website's help box, for visitors who aren't
-// signed in. Three things keep it from being an open tap on the AI account:
-// a short question, a per-visitor limit, and a daily total for everyone.
+// Mounted at /help, public. Three things stop it being an open tap on the AI account: a short
+// question, a per-visitor limit, a daily total.
 
 const router = Router();
 
@@ -30,15 +29,15 @@ async function withinDailyBudget(): Promise<boolean> {
     if (count === 1) await cacheRedis.expire(key, 2 * 24 * 60 * 60);
     return count <= env.HELP_ASSISTANT_DAILY_LIMIT;
   } catch {
-    // The counter is unreachable. The per-visitor limits still apply, so
-    // answer rather than switch the box off for everyone.
+    // The counter is unreachable: answer anyway (per-visitor limits still apply) rather than switch
+    // the box off for everyone.
     return true;
   }
 }
 
 /**
- * POST /help/ask. With `Accept: text/event-stream` the answer arrives as it
- * is written ("delta" events, then one "done"); otherwise as one JSON reply.
+ * POST /help/ask: with `Accept: text/event-stream` it streams ("delta" events, then "done"),
+ * otherwise one JSON reply.
  */
 router.post("/ask", helpAskMinuteRateLimiter, helpAskDailyRateLimiter, validate(askSchema), async (req: Request, res: Response) => {
   if (!(await withinDailyBudget())) throw new AppError(BUSY, 429, "HELP_BUSY");

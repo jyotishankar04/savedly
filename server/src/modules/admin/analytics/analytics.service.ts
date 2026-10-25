@@ -2,10 +2,7 @@ import { count, gte, sql } from "drizzle-orm";
 import { db } from "../../../db";
 import { collections, memories, sessions, users } from "../../../db/schema";
 import type { AnalyticsRangeQuery } from "./analytics.schema";
-
-function daysAgo(days: number): Date {
-  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-}
+import { daysAgo } from "../../../shared/utils/days-ago";
 
 export async function getSignupsOverTime(query: AnalyticsRangeQuery) {
   const since = daysAgo(query.days);

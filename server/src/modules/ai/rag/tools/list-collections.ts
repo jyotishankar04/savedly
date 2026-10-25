@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { listCollections } from "../../../collection/collection.service";
+import { listCollections } from "../../../collection/api";
 import { CollectionSource } from "../../../../db/enums";
 import { requireUserId, type RagRuntime } from "./shared";
 

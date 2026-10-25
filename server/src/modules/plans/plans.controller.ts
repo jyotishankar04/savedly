@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { getMyPlanSummary, listPublicPlans } from "./plans.service";
+import { getMyPlanSummary, listPublicPlans } from "./plans.catalog";
 
 export class PlansController {
   static async listPublic(_req: Request, res: Response) {

@@ -1,23 +1,18 @@
 import { logger } from "../../shared/utils/logger";
 import { env } from "../../config/env";
 import { EmailCategory, EmailTemplateKey, NotificationType, ShareResourceType } from "../../db/enums";
-import { createNotification } from "../notification/notification.service";
+import { createNotification } from "../notification/api";
 import { sendEmail } from "../email";
 import {
   shareAccessDecisionEmailTemplate,
   shareAccessRequestedEmailTemplate,
   shareInviteEmailTemplate,
-} from "../../shared/mailer/templates";
+} from "../../platform/mailer/templates";
 import type { ShareRow } from "./share.access";
 
 /**
- * The single seam between sharing and the notification/email subsystems.
- *
- * Every function here returns void and swallows its own failures. Sharing
- * must not fail because a notification insert lost a race or a mailbox is
- * unreachable — the share itself already succeeded by the time these run,
- * and surfacing a 500 would tell the user their action failed when it
- * didn't.
+ * The single seam between sharing and notifications/email. Every function returns void and swallows
+ * failures: the share already succeeded, so a failed notification mustn't become a 500.
  */
 
 function noun(share: ShareRow): string {
@@ -37,10 +32,8 @@ export interface ShareInviteNotice {
 }
 
 export function notifyShareInvite(notice: ShareInviteNotice): void {
-  // In-app notification only makes sense once there's an account to show it
-  // in. The invite is already stored as a pending grant and activates at
-  // signup — but the email below fires regardless, since it's addressed to
-  // notice.email, not a userId.
+  // An in-app notification needs an account. The invite is stored as a pending grant that activates
+  // at signup; the email still goes to notice.email.
   if (notice.granteeUserId) {
     emit("share invite", () =>
       createNotification({
@@ -86,8 +79,7 @@ export function notifyAccessRequested(notice: AccessRequestedNotice): void {
       title: `${notice.requesterName ?? "Someone"} wants access to your ${noun(notice.share)}`,
       body: "Approve or decline this request.",
       actionUrl: "/app/shared",
-      // shareId + requestId let the notifications page approve inline,
-      // rather than sending the owner off to find the right share dialog.
+      // shareId + requestId let the notifications page approve inline.
       metadata: {
         shareId: notice.share.id,
         requestId: notice.requestId,

@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { assertFeature, type PlanFeature } from "./plans.service";
+import { assertFeature, type PlanFeature } from "./plans.features";
 
 /** Route guard: 403 PLAN_FEATURE_REQUIRED unless the signed-in user's plan has `feature`. Put it after authenticate. */
 export function requireFeature(feature: PlanFeature) {

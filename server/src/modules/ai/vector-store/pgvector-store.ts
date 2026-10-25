@@ -26,15 +26,12 @@ export const pgVectorStore: VectorStore = {
   },
 
   async deleteMemoryVectors() {
-    // No-op — memory_chunks.memoryId FK cascades on delete, and
-    // memories.document_embedding is a column on the row being deleted.
+    // No-op: memory_chunks cascades on delete, and document_embedding is a column on the deleted row.
   },
 
   async searchByEmbedding(userId, embedding, limit) {
-    // pgvector's <=> operator has no first-class drizzle API — same reason
-    // pgvector-type.ts's toDriver already hand-writes this bracket-join
-    // vector literal for writes. <=> is cosine *distance*; 1 - distance
-    // converts to similarity, matching the HNSW index's vector_cosine_ops.
+    // <=> has no drizzle API, so the literal is hand-built (as in pgvector-type.ts). It's cosine
+    // distance; 1 - distance is similarity, matching the HNSW index.
     const vectorLiteral = `[${embedding.join(",")}]`;
     const rows = await db
       .select({

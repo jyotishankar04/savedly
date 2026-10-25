@@ -4,7 +4,6 @@ import { requireAdmin } from "../../shared/middlewares/require-admin";
 import { BlogController } from "./blog.controller";
 import { validateCreateBlogPost, validateUpdateBlogPost } from "./blog.validator";
 
-// Mounted at /admin/blog.
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, BlogController.list);

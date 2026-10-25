@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../../../db";
 import { users } from "../../../db/schema";
 import { AppError } from "../../../shared/errors/app-error";
-import { sendWeeklyDigestTo } from "../../memory/weekly-digest.job";
+import { sendWeeklyDigestTo } from "../../memory/api";
 
 export class AdminEmailController {
   static async send(req: Request, res: Response) {

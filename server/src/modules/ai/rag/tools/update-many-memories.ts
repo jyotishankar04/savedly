@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { batchMoveToCollection, batchTagMemories } from "../../../batch/batch.service";
-import { assertFeature } from "../../../plans/plans.service";
+import { batchMoveToCollection, batchTagMemories } from "../../../batch/api";
+import { assertFeature } from "../../../plans/api";
 import { requireUserId, resolveCollectionId, type RagRuntime } from "./shared";
 import { confirmFirst, ASKS_FIRST_NOTE } from "./confirm";
 

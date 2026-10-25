@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { listEvents } from "../../../integrations/calendar/calendar.service";
+import { listEvents } from "../../../integrations/api";
 import { localDate, startOfLocalDay, userTimeZone } from "../../../../shared/utils/time-zone";
 import { requireUserId, type RagRuntime } from "./shared";
 

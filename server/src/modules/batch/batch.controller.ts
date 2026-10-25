@@ -1,25 +1,13 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { isBatchOperationsEnabled, getBatchMaxSize } from "../feature-flags/feature-flags.service";
-import {
-  batchTagMemories,
-  batchMoveToCollection,
-  batchDeleteMemories,
-  batchRestoreMemories,
-  batchUpdateMemoryStatus,
-  batchUncollectMemories,
-  batchSetRead,
-  batchSetReminder,
-  batchDeleteCollections,
-  batchMergeCollections,
-  batchVaultCollections,
-} from "./batch.service";
+import { isBatchOperationsEnabled, getBatchMaxSize } from "../feature-flags/api";
+import { batchTagMemories, batchMoveToCollection, batchDeleteMemories, batchRestoreMemories, batchUpdateMemoryStatus, batchUncollectMemories, batchSetRead, batchSetReminder } from "./batch.memories";
+import { batchDeleteCollections, batchMergeCollections, batchVaultCollections } from "./batch.collections";
 import type { BatchResult } from "./batch.schema";
 
 /**
- * Every batch endpoint: refused while an admin has bulk actions switched off,
- * or when the batch is larger than the admin's limit; otherwise `run` on the
- * signed-in user's ids and send its BatchResult.
+ * Every batch endpoint: refused when bulk actions are off or the batch is over the admin's limit;
+ * else runs on the user's ids.
  */
 function batchHandler<T>(ids: (input: T) => string[], run: (userId: string, input: T) => Promise<BatchResult>) {
   return async (req: Request, res: Response) => {

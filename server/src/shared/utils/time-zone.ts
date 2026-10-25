@@ -2,9 +2,8 @@ import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { userSettings } from "../../db/schema";
 
-// The user's own time zone, so "3 pm", "tomorrow" and "yesterday" mean what
-// they mean where the user is. Set from the browser (user_settings.timezone);
-// UTC when it isn't known yet.
+// The user's own time zone, so "3 pm", "tomorrow" and "yesterday" mean what they do where the user
+// is (user_settings.timezone, from the browser); UTC when unknown.
 
 export async function userTimeZone(userId: string): Promise<string> {
   const [row] = await db.select({ timezone: userSettings.timezone }).from(userSettings).where(eq(userSettings.userId, userId)).limit(1);

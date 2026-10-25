@@ -1,18 +1,15 @@
-import { getEmbeddings } from "../ai.providers";
+import { getEmbeddings } from "../models";
 import { getVectorStore } from "../vector-store";
-import { logAiUsage } from "../../ai-usage/usage-logger";
+import { logAiUsage } from "../../ai-usage/api";
 import { logger } from "../../../shared/utils/logger";
 import type { SearchLegResult } from "./types";
 
-// Below this, embedding the query is wasted cost for a near-meaningless
-// vector — the lexical leg handles short queries fine on its own.
+// Below this, embedding the query wastes cost; the lexical leg handles short queries.
 export const MIN_SEMANTIC_QUERY_LENGTH = 3;
 
 /**
- * Never throws — an OpenAI outage or vector-store failure degrades to an
- * empty leg (hybridSearch proceeds lexical-only) rather than failing the
- * whole search, matching this codebase's ingestion-wide "degrade, don't fail"
- * convention.
+ * Never throws: an embeddings or vector-store failure degrades to an empty leg, so hybridSearch
+ * continues lexical-only.
  */
 export async function semanticSearch(userId: string, queryText: string, limit: number): Promise<SearchLegResult[]> {
   if (queryText.length < MIN_SEMANTIC_QUERY_LENGTH) return [];

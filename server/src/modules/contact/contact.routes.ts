@@ -6,8 +6,7 @@ import { optionalAuthenticate } from "../../shared/middlewares/optional-authenti
 
 const router = Router();
 
-// Public: the website's contact page, signed in or not (a signed-in sender's
-// message is linked to their account in Admin > Messages).
+// Public: signed in or not (a signed-in sender's message is linked to their account).
 router.post("/", optionalAuthenticate, contactRateLimiter, validateSendContact, ContactController.send);
 
 export default router;

@@ -7,10 +7,8 @@ const rateLimitHandler = (_req: unknown, res: import("express").Response) => {
     .json(ApiResponse.error("RATE_LIMITED", "Too many requests, try again later."));
 };
 
-// A ceiling on everything, per IP: stops one client flooding the API. Far
-// above what a person browsing can reach (a dashboard page makes a dozen or
-// so requests). The narrower limiters below still apply on top of it.
-// Counted in memory, so it is per API process.
+// A per-IP ceiling on everything, far above what browsing reaches (a dashboard makes about a dozen
+// requests); narrower limiters apply on top. In memory, so per API process.
 export const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 600,
@@ -46,8 +44,8 @@ export const refreshRateLimiter = rateLimit({
   handler: rateLimitHandler,
 });
 
-// Guessing a share password. Keyed per link as well as per IP so one
-// attacker hammering one link can't lock every other visitor out of it.
+// Share password guessing. Keyed per link as well as per IP, so one attacker on one link can't lock
+// every other visitor out.
 export const shareUnlockRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -57,8 +55,7 @@ export const shareUnlockRateLimiter = rateLimit({
   keyGenerator: (req) => `${ipKeyGenerator(req.ip ?? "")}:${req.params.slug ?? ""}`,
 });
 
-// Blunts slug enumeration. Generous, because one person browsing a shared
-// collection makes several of these.
+// Blunts slug enumeration; generous, since browsing a shared collection makes several of these.
 export const sharePublicRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 300,
@@ -67,8 +64,7 @@ export const sharePublicRateLimiter = rateLimit({
   handler: rateLimitHandler,
 });
 
-// Access-request spam. Per account, not per IP — requesting requires being
-// signed in, so the account is the meaningful identity.
+// Access-request spam: per account, not IP, since requesting needs sign-in.
 export const shareRequestRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 20,
@@ -78,11 +74,9 @@ export const shareRequestRateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
-// Bug/feature report spam. No auth required to submit one, so the account
-// (when signed in) or the IP is the only identity available — same
-// fallback shape as shareRequestRateLimiter, just generous enough that a
-// frustrated user filing a couple of real reports in a row never hits it.
-// The route reads sign-in (optionalAuthenticate) before this runs.
+// Report spam. No auth is required, so the account (when signed in) or IP is the only identity, and
+// generous enough that a few real reports in a row don't hit it. The route reads sign-in first
+// (optionalAuthenticate).
 export const reportRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
@@ -92,10 +86,21 @@ export const reportRateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
-// The public contact form (modules/contact): each message is saved and
-// emailed to the support inbox, so a script can't be allowed to fill it.
-// Per account when signed in (the route reads sign-in first), else per IP,
-// so people behind one office or campus address don't use up each other's.
+// A note's "Write with AI" (memory/rewrite.service.ts): after a note's first AI use in a month,
+// rewriting again doesn't count against the plan, so this stops it being run in a loop. Per
+// account.
+export const rewriteRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: rateLimitHandler,
+  keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
+});
+
+// The public contact form saves and emails each message, so a script mustn't fill the inbox. Per
+// account when signed in, else per IP, so people behind one office address don't use up each
+// other's.
 export const contactRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
@@ -105,9 +110,8 @@ export const contactRateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
 });
 
-// The public help box (modules/help-assistant): nobody is signed in, and
-// each question costs an AI call. A person asks a handful; a script asks
-// thousands.
+// The public help box (modules/help-assistant): nobody is signed in and each question costs an AI
+// call. A person asks a handful; a script thousands.
 export const helpAskMinuteRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,

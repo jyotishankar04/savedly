@@ -1,17 +1,16 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { aiCredentials, userAiRoleAssignments } from "../../db/schema";
-import { AiCredentialProvider, AiRole } from "../../db/enums";
+import { AiCredentialProvider, AiRole, PlanLimitType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { env } from "../../config/env";
 import { decryptToken, encryptToken } from "../../shared/crypto/token-cipher";
 import { listProviderModels, type ProviderModelList } from "./model-catalog";
-import { hasOwnCredential, platformCredential, testRoleCredential, type TestCredentialResult } from "../ai/ai.providers";
-import { getCurrentUsage, getPlanLimits, isWithinLimit, planHasManagedAi, resolveEffectivePlan } from "../plans/plans.service";
-import { PlanLimitType } from "../../db/enums";
+import { hasOwnCredential, platformCredential, testRoleCredential, type TestCredentialResult } from "../ai/api";
+import { getCurrentUsage, getPlanLimits, isWithinLimit, planHasManagedAi, resolveEffectivePlan } from "../plans/api";
 import type { AssignRoleInput, CreateCredentialInput, TestConnectionInput, UpdateCredentialInput } from "./ai-settings.schema";
 
-/** Which roles the platform covers by default, without any user-configured key — right now just embeddings (see .env.example). Surfaced so the settings UI can show "provided by default" instead of "not set". */
+/** Roles the platform covers without a user key (just embeddings), so the UI shows "provided by default". */
 export function getPlatformDefaults(): Record<AiRole, boolean> {
   return {
     [AiRole.FAST]: false,
@@ -39,9 +38,7 @@ export interface RoleAssignmentSummary {
   verifiedAt: Date | null;
 }
 
-// Groq and Anthropic never offer an embeddings API (see ai.providers.ts's
-// buildEmbeddings) — checked up front here so a bad embeddings assignment
-// fails with a clear, specific message instead of a generic test-call error.
+// Groq and Anthropic have no embeddings API; checked up front for a clear error.
 const EMBEDDINGS_INCOMPATIBLE_PROVIDERS = new Set<AiCredentialProvider>([AiCredentialProvider.GROQ, AiCredentialProvider.ANTHROPIC]);
 
 function toCredentialSummary(row: typeof aiCredentials.$inferSelect): CredentialSummary {
@@ -97,7 +94,7 @@ export async function updateCredential(userId: string, id: string, input: Update
   return toCredentialSummary(row);
 }
 
-/** Cascades to any role assignment using this credential (FK ON DELETE CASCADE) — that role simply becomes unconfigured again. */
+/** Cascades to role assignments using it; that role becomes unconfigured. */
 export async function deleteCredential(userId: string, id: string): Promise<void> {
   await requireOwnedCredential(userId, id);
   await db.delete(aiCredentials).where(eq(aiCredentials.id, id));
@@ -119,12 +116,9 @@ export async function listRoleAssignments(userId: string): Promise<RoleAssignmen
 }
 
 /**
- * Always runs a live test call against the provider before saving — a role
- * assignment that can't actually be reached (bad key, wrong model name, a
- * non-1536-dim embedding model) is worse than no assignment at all, since
- * every ingestion/RAG call site treats "configured" as "safe to call
- * without checking again." Upserts on (userId, role) — reassigning a role
- * just replaces the previous credential/model pair.
+ * Always live-tests before saving: an unreachable role (bad key, wrong model, non-1536-dim
+ * embeddings) is worse than none, since callers treat "configured" as safe. Upserts on (userId,
+ * role).
  */
 export async function assignRole(userId: string, role: AiRole, input: AssignRoleInput): Promise<RoleAssignmentSummary> {
   await assertCanManageKeys(userId);
@@ -171,7 +165,6 @@ export async function testConnection(input: TestConnectionInput): Promise<TestCr
   return testRoleCredential({ provider: input.provider, apiKey: input.apiKey, baseUrl: input.baseUrl, model: input.model }, input.role);
 }
 
-/** Every model this saved key can use, straight from its provider (see model-catalog.ts). */
 export async function listCredentialModels(userId: string, id: string): Promise<ProviderModelList> {
   const credential = await requireOwnedCredential(userId, id);
   return listProviderModels(
@@ -182,23 +175,23 @@ export async function listCredentialModels(userId: string, id: string): Promise<
   );
 }
 
-// ---------------------------------------------------------------------------
-// Where this account's AI comes from — drives Settings -> AI and every AI
-// surface's "is Ask available?" check.
-// ---------------------------------------------------------------------------
+// Where this account's AI comes from; drives Settings -> AI and every "is Ask available?" check.
 
 export type AiSource = "own" | "included" | "none";
 
 export interface AiStatus {
-  /** managed: the plan supplies all AI (AI included). ownKey: the user brings keys, maybe with a small included allowance. */
+  /**
+   * managed: the plan supplies all AI. ownKey: the user brings keys, maybe with a small included
+   * allowance.
+   */
   mode: "managed" | "own-key";
   roles: Record<"fast" | "reasoning" | "vision", AiSource>;
-  /** The plan's monthly included-AI allowance (null limit = unlimited), or null when the plan includes none. */
+  /** Monthly included-AI allowance (null = unlimited), or null when the plan has none. */
   included: {
     saves: { limit: number | null; used: number };
     questions: { limit: number | null; used: number };
   } | null;
-  /** Whether this server has its own AI keys set up (Admin -> Infrastructure -> Included AI), so included AI can actually run. */
+  /** Whether the server has its own AI keys (Admin -> Infrastructure), so included AI can run. */
   includedReady: boolean;
   askAvailable: boolean;
   /** Why Ask is unavailable: no key and no included AI, or this month's included questions are used up. */

@@ -1,15 +1,16 @@
 import { Router } from "express";
 import { authenticate } from "../../shared/middlewares/authenticate";
 import { MemoryController } from "./memory.controller";
-import { HighlightController } from "../highlight/highlight.controller";
+import { HighlightController } from "../highlight/api";
 import { requireUnlockToUnvault, requireVaultUnlockedForQuery } from "../vault";
-import { CalendarController, validatePushEvent, validateUpdateEvent } from "../integrations/calendar";
-import { requireFeature } from "../plans/require-feature";
+import { CalendarController, validatePushEvent, validateUpdateEvent } from "../integrations/api";
+import { requireFeature } from "../plans/api";
 import {
   validateBrowserCapture,
   validateCreateMemory,
   validateListMemories,
-  validateUpdateMemory, validateResolveDuplicate, validateSuggestForPage } from "./memory.validator";
+  validateUpdateMemory, validateResolveDuplicate, validateSuggestForPage, validateRewriteNote, validateSuggestNoteTitles } from "./memory.validator";
+import { rewriteRateLimiter } from "../../shared/middlewares/rate-limit";
 
 const router = Router();
 
@@ -32,6 +33,8 @@ router.delete("/:id", authenticate, MemoryController.remove);
 
 router.post("/:id/browser-capture", authenticate, validateBrowserCapture, MemoryController.browserCapture);
 router.post("/:id/refresh-preview", authenticate, MemoryController.refreshPreview);
+router.post("/:id/rewrite", authenticate, rewriteRateLimiter, validateRewriteNote, MemoryController.rewrite);
+router.post("/:id/title-suggestions", authenticate, rewriteRateLimiter, validateSuggestNoteTitles, MemoryController.suggestTitles);
 router.post("/:id/duplicate", authenticate, validateResolveDuplicate, MemoryController.resolveDuplicate);
 router.get("/:id/processing-status", authenticate, MemoryController.processingStatus);
 router.post("/:id/calendar-events", authenticate, requireFeature("calendarSync"), validatePushEvent, CalendarController.pushEvent);
