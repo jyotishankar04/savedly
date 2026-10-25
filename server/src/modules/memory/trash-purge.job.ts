@@ -4,7 +4,7 @@ import { redis } from "../../config/redis";
 import { db } from "../../db";
 import { memories } from "../../db/schema";
 import { logger } from "../../shared/utils/logger";
-import { deleteMemory } from "./memory.service";
+import { deleteMemory } from "./memory.commands";
 
 /**
  * How long a trashed memory is safe from permanent deletion. Restoring

@@ -1,18 +1,10 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import {
-  createMemory,
-  deleteMemory,
-  exportAllMemories,
-  exportOkfBundle,
-  getMemoryById,
-  getMemoryGraph,
-  getProcessingStatus,
-  listMemories,
-  refreshPreview,
-  submitBrowserCapture,
-  updateMemory,
-} from "./memory.service";
+import { createMemory, deleteMemory, updateMemory } from "./memory.commands";
+import { exportAllMemories, exportOkfBundle } from "./memory.export";
+import { getMemoryById, listMemories } from "./memory.queries";
+import { getMemoryGraph } from "./memory.graph";
+import { getProcessingStatus, refreshPreview, submitBrowserCapture } from "./memory.processing";
 import type { ListMemoriesQuery } from "./memory.schema";
 import { settleDuplicate } from "./duplicates";
 import { inboxCounts, lookupByUrl, markInboxRead, savedUrlKeys } from "./inbox.service";
