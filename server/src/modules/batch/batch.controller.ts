@@ -1,19 +1,8 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
 import { isBatchOperationsEnabled, getBatchMaxSize } from "../feature-flags/api";
-import {
-  batchTagMemories,
-  batchMoveToCollection,
-  batchDeleteMemories,
-  batchRestoreMemories,
-  batchUpdateMemoryStatus,
-  batchUncollectMemories,
-  batchSetRead,
-  batchSetReminder,
-  batchDeleteCollections,
-  batchMergeCollections,
-  batchVaultCollections,
-} from "./batch.service";
+import { batchTagMemories, batchMoveToCollection, batchDeleteMemories, batchRestoreMemories, batchUpdateMemoryStatus, batchUncollectMemories, batchSetRead, batchSetReminder } from "./batch.memories";
+import { batchDeleteCollections, batchMergeCollections, batchVaultCollections } from "./batch.collections";
 import type { BatchResult } from "./batch.schema";
 
 /**
