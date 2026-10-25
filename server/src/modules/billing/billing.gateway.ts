@@ -12,47 +12,58 @@ import { createDodoProvider } from "./dodo.provider";
 
 export const SUBSCRIPTION_REF = "dodo_subscription";
 
-let provider: BillingProvider | null | undefined;
+/** The payment provider this server is set up with (or none), and the calls that go through it. */
+export class BillingGateway {
+  private provider: BillingProvider | null | undefined;
 
-export function getProvider(): BillingProvider | null {
-  if (provider !== undefined) return provider;
-  provider =
-    !env.SELF_HOSTED && env.BILLING_PROVIDER === "dodo" && env.DODO_PAYMENTS_API_KEY ? createDodoProvider() : null;
-  return provider;
-}
+  get(): BillingProvider | null {
+    if (this.provider !== undefined) return this.provider;
+    this.provider =
+      !env.SELF_HOSTED && env.BILLING_PROVIDER === "dodo" && env.DODO_PAYMENTS_API_KEY ? createDodoProvider() : null;
+    return this.provider;
+  }
 
-export function isBillingEnabled(): boolean {
-  return !!getProvider();
-}
+  isEnabled(): boolean {
+    return !!this.get();
+  }
 
-/** Provider API failures (outage, bad key) surface as one readable 502, with the detail in the log. */
-export async function callProvider<T>(what: string, fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (err) {
-    logger.error({ err }, `[billing] ${what} failed`);
-    // A 4xx is the provider refusing the request (e.g. changing a cancelled
-    // subscription), not an outage — say why instead of "try again".
-    const status = (err as { status?: number }).status;
-    if (status && status >= 400 && status < 500) {
-      const reason = String((err as Error).message ?? "").replace(/^\d{3}\s*/, "").trim();
-      throw new AppError(
-        reason ? `The payment provider couldn't do that: ${reason}.` : "The payment provider couldn't do that.",
-        409,
-        "BILLING_REQUEST_REJECTED",
-      );
+  require(): BillingProvider {
+    const p = this.get();
+    if (!p) throw new AppError("Billing isn't set up on this server", 503, "BILLING_NOT_CONFIGURED");
+    return p;
+  }
+
+  /** Provider API failures (outage, bad key) surface as one readable 502, with the detail in the log. */
+  async call<T>(what: string, fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      logger.error({ err }, `[billing] ${what} failed`);
+      // A 4xx is the provider refusing the request (e.g. changing a cancelled
+      // subscription), not an outage — say why instead of "try again".
+      const status = (err as { status?: number }).status;
+      if (status && status >= 400 && status < 500) {
+        const reason = String((err as Error).message ?? "").replace(/^\d{3}\s*/, "").trim();
+        throw new AppError(
+          reason ? `The payment provider couldn't do that: ${reason}.` : "The payment provider couldn't do that.",
+          409,
+          "BILLING_REQUEST_REJECTED",
+        );
+      }
+      throw new AppError("The payment provider isn't responding. Please try again in a minute.", 502, "BILLING_PROVIDER_ERROR");
     }
-    throw new AppError("The payment provider isn't responding. Please try again in a minute.", 502, "BILLING_PROVIDER_ERROR");
+  }
+
+  async customerIdFor(userId: string): Promise<string | null> {
+    const [row] = await db.select().from(billingCustomers).where(eq(billingCustomers.userId, userId)).limit(1);
+    return row?.customerId ?? null;
   }
 }
 
-export function requireProvider(): BillingProvider {
-  const p = getProvider();
-  if (!p) throw new AppError("Billing isn't set up on this server", 503, "BILLING_NOT_CONFIGURED");
-  return p;
-}
+const gateway = new BillingGateway();
 
-export async function customerIdFor(userId: string): Promise<string | null> {
-  const [row] = await db.select().from(billingCustomers).where(eq(billingCustomers.userId, userId)).limit(1);
-  return row?.customerId ?? null;
-}
+export const getProvider = () => gateway.get();
+export const isBillingEnabled = () => gateway.isEnabled();
+export const requireProvider = () => gateway.require();
+export const callProvider = <T>(what: string, fn: () => Promise<T>) => gateway.call(what, fn);
+export const customerIdFor = (userId: string) => gateway.customerIdFor(userId);
