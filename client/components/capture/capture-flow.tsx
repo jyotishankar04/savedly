@@ -115,7 +115,7 @@ export function CaptureFlow({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, transition: { duration: 0.12 } }}
                 transition={{ duration: 0.2 }}
-                className="space-y-5"
+                className="space-y-5 max-md:[&_input]:text-base! max-md:[&_textarea]:text-base!"
               >
                 <ArcTextarea
                   label="What do you want to save?"
@@ -148,7 +148,7 @@ export function CaptureFlow({
 
                 <ArcInput
                   label="Title"
-                  placeholder="Optional. One is written for you if you leave this empty"
+                  placeholder="Optional. Written for you if left empty"
                   value={captureTitle}
                   onChange={(e) => setCaptureTitle(e.target.value)}
                 />

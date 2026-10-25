@@ -53,7 +53,7 @@ export function CaptureCollectionPicker({
                 onClick={() => toggle(col.id)}
                 title={col.name}
                 className={cn(
-                  "inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border px-3 text-sm transition-colors duration-150",
+                  "inline-flex h-10 md:h-9 max-w-full items-center gap-1.5 rounded-full border px-3 text-sm transition-colors duration-150",
                   on ? "border-primary/40 bg-primary/10 font-medium text-primary" : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground",
                 )}
               >
@@ -64,7 +64,7 @@ export function CaptureCollectionPicker({
             );
           })}
           {hidden > 0 && (
-            <button type="button" onClick={() => setShowAll(true)} className="inline-flex h-9 items-center rounded-full px-3 text-sm font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
+            <button type="button" onClick={() => setShowAll(true)} className="inline-flex h-10 md:h-9 items-center rounded-full px-3 text-sm font-medium text-foreground underline decoration-foreground/25 underline-offset-4 hover:decoration-foreground">
               Show {hidden} more
             </button>
           )}

@@ -79,7 +79,7 @@ function CapturePageContent() {
   }, [shared, dropzoneRef]);
 
   return (
-    <div className="mx-auto max-w-xl px-6 py-12">
+    <div className="mx-auto max-w-xl px-5 py-6 md:px-6 md:py-12">
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Quick Capture</h1>
         <p className="mt-1 text-xs text-muted-foreground">Paste a link, drop a file, or write a note.</p>
