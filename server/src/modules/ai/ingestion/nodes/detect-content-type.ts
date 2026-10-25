@@ -1,8 +1,8 @@
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
-import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
-import { extractUrl } from "../extract-url";
+import { getChatModel } from "../../models";
+import { createUsageCallback } from "../../../ai-usage/api";
+import { linkOfNote } from "../extract-url";
 import { logNode } from "../log";
 import { researchForPrompt } from "./research-context";
 import type { IngestionStateType, IngestionUpdate } from "../state";
@@ -13,11 +13,8 @@ interface ContentTypeExtraction {
   extractedFields: Record<string, string>;
 }
 
-// Deliberately open-vocabulary — unlike ClassifyIntent's fixed per-media
-// taxonomy, this node isn't handed a category list. It runs first so a raw
-// blob of user-entered text ("a recipe", "a task", "a quote", a link with a
-// comment attached, ...) gets identified and picked apart into structured
-// fields before anything downstream tries to summarize or classify it.
+// Open-vocabulary (no category list); runs first so raw text is identified and split into fields
+// before later steps.
 const prompt = ChatPromptTemplate.fromTemplate(
   `${UNTRUSTED_RULE}
 
@@ -45,14 +42,10 @@ Respond as strict JSON: {{"contentType": "...", "extractedFields": {{...}}}}`,
 );
 
 export async function detectContentType(state: IngestionStateType): Promise<IngestionUpdate> {
-  // Deterministic regex pass first — a backstop for the client's own
-  // detection, independent of whatever the LLM decides below. Only relevant
-  // when the memory wasn't already saved with a url (i.e. it came in as a
-  // note/video but might actually contain a link the client missed).
-  // Only for text the user typed (notes). For images, documents and voice,
-  // rawContent is OCR or a transcript: a URL that merely appears on screen
-  // (and is often misread) must never turn the memory into a link.
-  const detectedUrl = state.mediaType === "note" && !state.url ? extractUrl(state.rawContent) : null;
+  // Regex backstop for the client, only for typed text (notes) that is just a link (see
+  // linkOfNote). For images, documents and voice, rawContent is OCR or a transcript, and a URL seen
+  // there must never make the memory a link.
+  const detectedUrl = state.mediaType === "note" && !state.url ? linkOfNote(state.rawContent) : null;
 
   if (!state.rawContent) {
     logNode(state.memoryId, "detectContentType", { skipped: "no content" });

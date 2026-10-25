@@ -1,7 +1,6 @@
 import { tool, type ToolRuntime } from "@langchain/core/tools";
 import { z } from "zod";
-import { createCollection, DEFAULT_COLLECTION_ICON, listCollections } from "../../../collection/collection.service";
-import { collectionNameKey } from "../../ingestion/nodes/organize-collection";
+import { createCollection, DEFAULT_COLLECTION_ICON, listCollections, collectionNameKey } from "../../../collection/api";
 import { ragToolContextSchema } from "./search-memories";
 
 const inputSchema = z.object({

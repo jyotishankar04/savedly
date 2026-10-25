@@ -1,33 +1,33 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { PlusIcon as Plus, Search01Icon as Search, XIcon as X, StarIcon as Star, GridIcon as Grid, ListIcon as List, MoreHorizontalIcon as MoreHorizontal } from "@hugeicons/core-free-icons";
+import { PlusIcon as Plus, Search01Icon as Search, XIcon as X, GridIcon as Grid, ListIcon as List } from "@hugeicons/core-free-icons";
 import { LogoMark } from "@/components/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { MemoryActionsMenu } from "@/components/memory/memory-actions-menu";
+import { MemoryListRow } from "@/components/memory/memory-list-row";
 import { MemoryGridCard } from "@/components/memory/memory-grid-card";
 import { MemorySelectionBar } from "@/components/selection/memory-selection-bar";
 import { SelectButton } from "@/components/selection/selection-bar";
-import { SelectCheckbox, selectableProps } from "@/components/selection/select-checkbox";
 import { useSelection } from "@/hooks/use-selection";
+import { usePinch } from "@/hooks/use-pinch";
 import type { Memory, MemoryType } from "@/types/memory";
-import { useMemoriesQuery, useToggleFavoriteMutation } from "@/context/MemoryContext";
-import { timeAgo, timelineGroup } from "@/lib/time";
+import { useMemoriesQuery } from "@/context/MemoryContext";
+import { timelineGroup } from "@/lib/time";
 import { isMemoryProcessing } from "@/lib/memory-processing";
-import { MEMORY_TYPE_ICONS } from "@/lib/memory-icons";
 import { MemoryThumbnail } from "@/components/memory-thumbnail";
 import { getPlatformFallback } from "@/lib/platform-fallback";
 import { QueryErrorState } from "@/components/query-error-state";
 import { usePlanLimit } from "@/hooks/use-plan-limit";
 import { PlanLimitNotice, LimitDot } from "@/components/plan-limit-notice";
+import { MemorySwipe } from "@/components/memory/memory-swipe";
 import { PageHeader, EmptyState } from "@/components/app-page";
+import { readableFields } from "@/lib/extracted-fields";
 
 const FILTER_TYPE: Record<string, MemoryType | undefined> = {
   all: undefined,
@@ -42,6 +42,15 @@ export default function MemoriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentFilter, setCurrentFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // On a phone the small cards (list view there) are the default. Set after the
+  // first render, so the server's and the browser's first render match.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (window.matchMedia("(max-width: 639px)").matches) setViewMode("list");
+  }, []);
+  // Pinch to switch, on a touch screen: spread for the full cards, close for the smaller ones.
+  const pageRef = useRef<HTMLDivElement>(null);
+  usePinch(pageRef, { onPinchOut: () => setViewMode("grid"), onPinchIn: () => setViewMode("list") });
   const [selectedMemoryId, setSelectedMemoryId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useMemoriesQuery({
@@ -57,16 +66,8 @@ export default function MemoriesPage() {
   // snapshot, so the drawer picks up enrichment as soon as it lands instead
   // of staying stuck on "Still processing" until it's closed and reopened.
   const selectedMemory = memories.find((m) => m.id === selectedMemoryId) ?? null;
+  const selectedDetails = readableFields(selectedMemory?.extractedFields, [selectedMemory?.title, selectedMemory?.source]);
 
-  const toggleFavoriteMutation = useToggleFavoriteMutation();
-
-  const toggleStar = (item: Memory, e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleFavoriteMutation.mutate(
-      { id: item.id, isFavorite: !item.isFavorite },
-      { onError: (err) => toast.add({ title: "Couldn't update favorite", description: err instanceof Error ? err.message : undefined, type: "error" }) },
-    );
-  };
 
   // Group into timeline buckets in the order items already arrive (createdAt desc from the API).
   const groupedEntries: { group: string; items: Memory[] }[] = [];
@@ -81,7 +82,7 @@ export default function MemoriesPage() {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden relative">
+    <div ref={pageRef} className="flex h-full w-full overflow-hidden relative">
 
       {/* Memories content list */}
       <ScrollArea className="flex-1 min-h-0 min-w-0">
@@ -212,80 +213,50 @@ export default function MemoriesPage() {
                 {viewMode === "grid" ? (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {groupItems.map((item) => (
-                      <MemoryGridCard
-                        key={item.id}
-                        item={item}
-                        onClick={() => setSelectedMemoryId(item.id)}
-                        selected={selection.has(item.id)}
-                        selecting={selection.isSelecting}
-                        onSelect={(e) => selection.toggle(item.id, e)}
-                      />
+                      <MemorySwipe key={item.id} memory={item} disabled={selection.isSelecting} className="rounded-2xl">
+                        <MemoryGridCard
+                          item={item}
+                          onClick={() => setSelectedMemoryId(item.id)}
+                          selected={selection.has(item.id)}
+                          selecting={selection.isSelecting}
+                          onSelect={(e) => selection.toggle(item.id, e)}
+                        />
+                      </MemorySwipe>
                     ))}
                   </div>
                 ) : (
-                  <ul className="space-y-1.5">
-                    {groupItems.map((item) => {
-                      const TypeIcon = MEMORY_TYPE_ICONS[item.type];
-                      return (
-                        <li key={item.id}>
-                          <div
-                            onClick={() => setSelectedMemoryId(item.id)}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                setSelectedMemoryId(item.id);
-                              }
-                            }}
-                            {...selectableProps(selection.isSelecting, (e) => selection.toggle(item.id, e), { id: item.id, title: item.title, selected: selection.has(item.id) })}
-                            className={cn(
-                              "group flex cursor-pointer items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                              selection.has(item.id) && "bg-primary/10 hover:bg-primary/10",
-                            )}
-                          >
-                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                              <HugeiconsIcon icon={TypeIcon} strokeWidth={2} className={cn("h-4.5 w-4.5 transition-opacity", (selection.isSelecting || selection.has(item.id)) && "opacity-0")} />
-                              <SelectCheckbox
-                                checked={selection.has(item.id)}
-                                selecting={selection.isSelecting}
-                                onToggle={(e) => selection.toggle(item.id, e)}
-                                label={`Select ${item.title}`}
-                                className="top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-                              />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">{item.title}</p>
-                              <p className="truncate text-[13px] text-muted-foreground">{item.source}</p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                              <span className="mr-2 hidden tabular-nums sm:inline">{timeAgo(item.createdAt)}</span>
-                              <button
-                                onClick={(e) => toggleStar(item, e)}
-                                aria-label={item.isFavorite ? "Remove from favorites" : "Add to favorites"}
-                                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-amber-500"
-                              >
-                                <HugeiconsIcon icon={Star} strokeWidth={2} className={cn("h-4 w-4", item.isFavorite && "fill-amber-500 text-amber-500")} />
-                              </button>
-                              <MemoryActionsMenu
-                                memory={item}
-                                trigger={
-                                  <button
-                                    type="button"
-                                    onClick={(e) => e.stopPropagation()}
-                                    aria-label="More actions"
-                                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-                                  >
-                                    <HugeiconsIcon icon={MoreHorizontal} strokeWidth={2} className="h-4 w-4" />
-                                  </button>
-                                }
-                              />
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
+                  <>
+                  {/* On a phone the list is smaller cards, two to a row; rows from sm up. */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+                    {groupItems.map((item) => (
+                      <MemorySwipe key={item.id} memory={item} disabled={selection.isSelecting} className="rounded-xl">
+                        <MemoryGridCard
+                          item={item}
+                          compact
+                          onClick={() => setSelectedMemoryId(item.id)}
+                          selected={selection.has(item.id)}
+                          selecting={selection.isSelecting}
+                          onSelect={(e) => selection.toggle(item.id, e)}
+                        />
+                      </MemorySwipe>
+                    ))}
+                  </div>
+                  <ul className="hidden space-y-1.5 sm:block">
+                    {groupItems.map((item) => (
+                      <li key={item.id}>
+                        <MemorySwipe memory={item} disabled={selection.isSelecting} className="rounded-xl">
+                          <MemoryListRow
+                            item={item}
+                            onOpen={() => setSelectedMemoryId(item.id)}
+                            selected={selection.has(item.id)}
+                            selecting={selection.isSelecting}
+                            onSelect={(e) => selection.toggle(item.id, e)}
+                          />
+                        </MemorySwipe>
+                      </li>
+                    ))}
                   </ul>
+                  </>
                 )}
               </section>
             ))}
@@ -298,9 +269,10 @@ export default function MemoriesPage() {
       </div>
       </ScrollArea>
 
-      {/* DETAIL SLIDE DRAWER */}
+      {/* DETAIL SLIDE DRAWER: beside the list from sm up; on a phone, too narrow
+          for both, it covers the screen (above the bottom bar) until closed. */}
       {selectedMemory && (
-        <div className="w-96 border-l border-border bg-card flex flex-col shrink-0 z-40 relative animate-slide-left">
+        <div className="fixed inset-0 z-50 flex w-full flex-col bg-card animate-slide-left sm:relative sm:inset-auto sm:z-40 sm:w-96 sm:shrink-0 sm:border-l sm:border-border">
 
           <div className="p-5 border-b border-border flex items-center justify-between shrink-0">
             <div className="min-w-0">
@@ -308,8 +280,10 @@ export default function MemoriesPage() {
               <span className="text-xs text-muted-foreground truncate block">{selectedMemory.source}</span>
             </div>
             <button
+              type="button"
               onClick={() => setSelectedMemoryId(null)}
-              className="h-7 w-7 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
+              aria-label="Close preview"
+              className="h-10 w-10 sm:h-7 sm:w-7 shrink-0 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
             >
               <HugeiconsIcon icon={X} strokeWidth={2.25} className="h-4 w-4" />
             </button>
@@ -370,18 +344,15 @@ export default function MemoriesPage() {
               </p>
             </div>
 
-            {selectedMemory.extractedFields && Object.keys(selectedMemory.extractedFields).length > 0 && (
-              <div className="space-y-2 border-t border-border pt-4">
-                <span className="text-xs font-medium text-muted-foreground block">
-                  {selectedMemory.contentType ? selectedMemory.contentType.replace(/_/g, " ") : "Details"}
-                </span>
-                <dl className="space-y-1.5">
-                  {Object.entries(selectedMemory.extractedFields).map(([key, value]) => (
-                    <div key={key} className="flex items-start justify-between gap-3">
-                      <dt className="text-xs text-muted-foreground shrink-0 capitalize">
-                        {key.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()}
-                      </dt>
-                      <dd className="text-[13px] text-foreground/90 font-medium text-right">{value}</dd>
+            {/* The same short facts as the memory's own page: label over value, never a wall of text. */}
+            {selectedDetails.length > 0 && (
+              <div className="space-y-2.5 border-t border-border pt-4">
+                <span className="block text-xs font-medium text-muted-foreground">Details</span>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  {selectedDetails.map(({ label, value }) => (
+                    <div key={label} className="min-w-0">
+                      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+                      <dd className="mt-0.5 text-[13px] font-medium text-foreground/90 [overflow-wrap:anywhere]">{value}</dd>
                     </div>
                   ))}
                 </dl>

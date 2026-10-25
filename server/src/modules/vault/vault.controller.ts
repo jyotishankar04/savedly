@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { isVaultEnabled } from "../feature-flags/feature-flags.service";
+import { isVaultEnabled } from "../feature-flags/api";
 import { VAULT_TOKEN_COOKIE, clearVaultTokenCookie, setVaultTokenCookie } from "../../shared/utils/cookies";
 import { signVaultToken, verifyVaultToken } from "../../shared/utils/jwt";
 import { getVaultStatus, setVaultPin, verifyVaultPin } from "./vault.service";

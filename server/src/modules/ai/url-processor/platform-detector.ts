@@ -1,11 +1,9 @@
 import type { PlatformInfo } from "./types";
+import { extractReddit, extractTikTok, extractX, extractYouTube, unfurl, type SocialExtractor } from "./social";
 
 /**
- * Credential lookup for a platform that requires authenticated fetching
- * (e.g. Instagram blocks unauthenticated scraping). `envVar` names the env
- * var holding the secret — resolved lazily via `getPlatformCredential()`,
- * never read at module load, so a platform with no `auth` (or one whose
- * env var isn't set) just has no credential, nothing fails.
+ * Credential lookup for a platform needing authenticated fetching; `envVar` names the secret,
+ * resolved lazily.
  */
 interface PlatformAuthConfig {
   type: "cookie" | "bearer_token" | "api_key";
@@ -17,19 +15,14 @@ interface PlatformRule {
   hostnames: string[];
   resourceType?: (pathname: string) => string | null;
   auth?: PlatformAuthConfig;
+  /** Reads a post or video's content (social/), for these resource types only; null when it can't. */
+  extract?: { resourceTypes: string[]; read: SocialExtractor };
 }
 
-// Data, not branching logic — a new platform (with or without auth) is a
-// new row here, never a new `if (host.includes(...))` or `if (platform ===
-// "x")` somewhere else in the codebase. To support a platform that needs
-// authenticated fetching, add `auth: { type: ..., envVar: "..." }` to its
-// row and set that env var — nothing else in this file, or any caller of
-// detectPlatform/getPlatformCredential, needs to change.
-//
-// Not every URL from a platform is the same resource type (a GitHub URL can
-// be a repo, an issue, a PR, or a profile), so resourceType is a small
-// per-platform classifier over the path, kept honest about what it can't
-// determine (returns null rather than guessing).
+// Data, not branching: a new platform is a new row, never an `if (host...)` elsewhere; add `auth: {
+// type, envVar }` for authenticated fetching.
+// resourceType classifies by path (a GitHub URL can be a repo, issue, PR or profile) and returns
+// null rather than guessing.
 const PLATFORM_RULES: PlatformRule[] = [
   {
     platform: "instagram",
@@ -40,6 +33,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/[^/]+\/?$/.test(path)) return "profile";
       return null;
     },
+    extract: { resourceTypes: ["post"], read: unfurl("instagram") },
   },
   {
     platform: "x",
@@ -49,6 +43,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/[^/]+\/?$/.test(path)) return "profile";
       return null;
     },
+    extract: { resourceTypes: ["post"], read: extractX },
   },
   {
     platform: "youtube",
@@ -60,6 +55,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/playlist/.test(path)) return "playlist";
       return null;
     },
+    extract: { resourceTypes: ["video", "short"], read: extractYouTube },
   },
   {
     platform: "tiktok",
@@ -69,18 +65,35 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/@[^/]+\/?$/.test(path)) return "profile";
       return null;
     },
+    extract: { resourceTypes: ["video"], read: extractTikTok },
+  },
+  {
+    platform: "threads",
+    hostnames: ["threads.net", "threads.com"],
+    resourceType: (path) => {
+      if (/^\/@[^/]+\/post\//.test(path)) return "post";
+      if (/^\/@[^/]+\/?$/.test(path)) return "profile";
+      return null;
+    },
+    extract: { resourceTypes: ["post"], read: unfurl("threads") },
   },
   {
     platform: "linkedin",
     hostnames: ["linkedin.com"],
     resourceType: (path) => {
-      if (/^\/posts\//.test(path)) return "post";
+      if (/^\/(posts|pulse)\//.test(path) || /^\/feed\/update\//.test(path)) return "post";
       if (/^\/in\//.test(path)) return "profile";
       if (/^\/company\//.test(path)) return "company";
       return null;
     },
+    extract: { resourceTypes: ["post"], read: unfurl("linkedin") },
   },
-  { platform: "facebook", hostnames: ["facebook.com", "fb.com"] },
+  {
+    platform: "facebook",
+    hostnames: ["facebook.com", "fb.com", "fb.watch"],
+    resourceType: (path) => (/\/(posts|videos|reel|permalink|watch|share)\b/.test(path) ? "post" : null),
+    extract: { resourceTypes: ["post"], read: unfurl("facebook") },
+  },
   {
     platform: "reddit",
     hostnames: ["reddit.com"],
@@ -89,6 +102,7 @@ const PLATFORM_RULES: PlatformRule[] = [
       if (/^\/r\/[^/]+\/?$/.test(path)) return "subreddit";
       return null;
     },
+    extract: { resourceTypes: ["post"], read: extractReddit },
   },
   {
     platform: "github",
@@ -155,13 +169,16 @@ export function detectPlatform(url: string): PlatformInfo {
   };
 }
 
+/** The reader for a URL's post or video, when its platform has one for that kind of page (see `extract`). */
+export function socialExtractorFor(url: string): SocialExtractor | null {
+  const { platform, resourceType } = detectPlatform(url);
+  const rule = PLATFORM_RULES.find((r) => r.platform === platform);
+  return rule?.extract && resourceType && rule.extract.resourceTypes.includes(resourceType) ? rule.extract.read : null;
+}
+
 /**
- * Resolves the configured credential for a platform, if any — the one
- * place a future authenticated fetcher (e.g. for Instagram) should read
- * secrets from, instead of hardcoding `process.env.INSTAGRAM_...` inline.
- * Reads `process.env` directly (not the Zod-validated `env` object) since
- * these are per-platform, optional, and pluggable — a platform's row can
- * declare `auth` without every deployment needing to set it.
+ * The configured credential for a platform, if any. Reads process.env directly: these are
+ * per-platform, optional and pluggable.
  */
 export function getPlatformCredential(platform: string): { type: PlatformAuthConfig["type"]; value: string } | null {
   const rule = PLATFORM_RULES.find((r) => r.platform === platform);

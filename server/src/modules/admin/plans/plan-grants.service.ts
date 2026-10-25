@@ -3,9 +3,8 @@ import { db } from "../../../db";
 import { plans, userPlanAssignments, users } from "../../../db/schema";
 import { PlanAssignmentSource, PlanAssignmentStatus, PlanBillingInterval } from "../../../db/enums";
 
-// What paid access admins have given away, in money. A grant is valued at
-// the price of the plan it gives, spread evenly over days: a $10/month plan
-// is worth about 33 cents a day. Free (price 0) grants are worth nothing.
+// The money value of paid access given away: a grant is worth its plan's price spread over days
+// ($10/month is about 33 cents a day); Free grants are worth nothing.
 
 const DAY_MS = 86_400_000;
 const DAYS_PER_YEAR = 365;
@@ -26,7 +25,6 @@ export interface GrantValueInput {
 }
 
 export interface GrantValue {
-  /** What the plan costs per month. */
   monthlyMinor: number;
   /** From the start of the grant until today (or until it ended). */
   givenSoFarMinor: number;
@@ -76,8 +74,8 @@ export async function getPlanGrantsSummary() {
     .orderBy(desc(userPlanAssignments.startsAt));
 
   const now = new Date();
-  // A grant whose user was deleted before deletions ended assignments has no
-  // owner: count it as over, as of when its row last changed.
+  // A grant whose user was deleted before deletions ended assignments has no owner: count it as
+  // over from its last change.
   const valued = rows.map((row) => {
     const orphan = row.userId === null;
     const input = orphan

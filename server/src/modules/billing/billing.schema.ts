@@ -2,9 +2,8 @@ import { z } from "zod";
 
 export const checkoutSchema = z.object({
   planKey: z.string().trim().min(1).max(50),
-  // A subscriber's upgrade charges the saved card straight away, so the
-  // client must show the amount (POST /billing/upgrade-preview) and send
-  // this only after the person agrees.
+  // An upgrade charges the saved card at once, so the client shows the amount (POST
+  // /billing/upgrade-preview) and sends this only after agreement.
   confirmUpgrade: z.boolean().optional(),
 });
 

@@ -3,12 +3,9 @@ import type { SearchLegResult } from "./types";
 // Standard RRF constant, matches docs/AI_REQUIREMENTS.md's hybrid search spec.
 export const RRF_K = 60;
 
-// Cosine-similarity floor for the semantic leg, applied before RRF ranking
-// so a small corpus's "least-bad" noise never earns a rank position when
-// the lexical leg found nothing real. text-embedding-3-small cosine scores
-// for genuinely related short-query/summary pairs commonly land ~0.25-0.45;
-// unrelated pairs commonly sit ~0.05-0.15. 0.2 is a conservative cut — tune
-// empirically once real search traffic exists.
+// Cosine floor for the semantic leg, applied before RRF so a small corpus's noise earns no rank.
+// Related pairs score ~0.25-0.45 and unrelated ~0.05-0.15 (text-embedding-3-small); 0.2 is
+// conservative, tune with real traffic.
 export const SEMANTIC_SIMILARITY_FLOOR = 0.2;
 
 export interface RankedResult {
@@ -17,11 +14,8 @@ export interface RankedResult {
 }
 
 /**
- * Both inputs must already be sorted best-first (by leg-specific score) and
- * pre-filtered (the similarity floor already applied to `semantic`) — rank
- * is 1-based position within each already-sorted, already-filtered list. A
- * memory found on both legs naturally outranks one found on only one, with
- * no hand-tuned weighting between the two.
+ * Inputs must be sorted best-first and pre-filtered (floor applied); rank is the 1-based position
+ * in each, so a memory on both legs outranks one on one, with no hand-tuned weights.
  */
 export function rrfMerge(semantic: SearchLegResult[], lexical: SearchLegResult[]): RankedResult[] {
   const scores = new Map<string, number>();

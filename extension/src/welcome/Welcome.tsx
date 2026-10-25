@@ -9,6 +9,7 @@ import regionShot from "./shots/region.webp";
 import searchShot from "./shots/search.webp";
 import savedShot from "./shots/saved.webp";
 import floatingShot from "./shots/floating.webp";
+import { PANEL_NAME } from "../lib/side-panel";
 
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent);
 const ICON = chrome.runtime.getURL("icon-48.png");
@@ -34,7 +35,11 @@ function Keys({ shortcut }: { shortcut: string }) {
   );
 }
 
-const openShortcuts = () => void chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+// Firefox won't open its own about: pages from an extension, but has a call for this one.
+const openShortcuts = () =>
+  void (__FIREFOX__
+    ? (globalThis as { browser?: { commands?: { openShortcutSettings?(): Promise<void> } } }).browser?.commands?.openShortcutSettings?.()
+    : chrome.tabs.create({ url: "chrome://extensions/shortcuts" }));
 
 /** A command's shortcut as Chrome has it (people can change them, and Chrome leaves one unset when it's taken). */
 function CommandKeys({ shortcut }: { shortcut: string | undefined }) {
@@ -105,7 +110,8 @@ export default function Welcome() {
   }, [checkSignIn]);
 
   const quickSave = shortcuts["quick-save-page"];
-  const sidePanel = shortcuts["open-side-panel"];
+  // Firefox names the sidebar's shortcut itself.
+  const sidePanel = shortcuts[__FIREFOX__ ? "_execute_sidebar_action" : "open-side-panel"];
   const altH = IS_MAC ? "⌥+H" : "Alt+H";
   const openApp = (path: string) => void chrome.tabs.create({ url: `${WEB_APP_URL}${path}` });
 
@@ -129,7 +135,7 @@ export default function Welcome() {
         <>
           <p>Here's what the Savedly extension can do. It takes about a minute: use the arrow keys or the buttons below.</p>
           <p>
-            First, <strong>pin Savedly</strong> so it's always one click away: click the puzzle piece in Chrome's toolbar, then the pin next to Savedly. Its icon stays in the toolbar from then on.
+            First, <strong>pin Savedly</strong> so it's always one click away: click the puzzle piece in the toolbar, then {__FIREFOX__ ? <>the gear next to Savedly and <strong>Pin to Toolbar</strong></> : "the pin next to Savedly"}. Its icon stays in the toolbar from then on.
           </p>
         </>
       ),
@@ -230,11 +236,11 @@ export default function Welcome() {
     },
     {
       id: "sidepanel",
-      eyebrow: "Side panel",
+      eyebrow: __FIREFOX__ ? "Sidebar" : "Side panel",
       title: "Savedly beside the page",
       body: (
         <p>
-          The side panel shows what Savedly knows about the page you're on, its highlights, your Inbox, search, recent saves and collections. It follows you from tab to tab.
+          The {PANEL_NAME} shows what Savedly knows about the page you're on, its highlights, your Inbox, search, recent saves and collections. It follows you from tab to tab.
         </p>
       ),
       extra: (
@@ -270,7 +276,7 @@ export default function Welcome() {
             <div className="ctx-item dim">Inspect</div>
           </div>
           <div className="ctx" style={{ left: "31%", top: "calc(12% + 72px)", width: 210 }}>
-            <div className="ctx-item">Open Savedly side panel</div>
+            <div className="ctx-item">Open Savedly {PANEL_NAME}</div>
             <div className="ctx-item">Save this page</div>
             <div className="ctx-item">
               <span className="grow">Capture screenshot</span>
@@ -387,7 +393,7 @@ export default function Welcome() {
       title: "A button on every page",
       body: (
         <p>
-          The Savedly button sits at the edge of the page for quick saves, screenshots and the side panel. Drag it wherever suits you, or hide it from the popup.
+          The Savedly button sits at the edge of the page for quick saves{__FIREFOX__ ? " and screenshots" : ", screenshots and the side panel"}. Drag it wherever suits you, or hide it from the popup.
         </p>
       ),
       visual: <img className="shot" src={floatingShot} alt="The floating Savedly button with its menu open" style={{ maxWidth: "min(340px, 100%)" }} />,
@@ -429,7 +435,7 @@ export default function Welcome() {
             <CommandKeys shortcut={quickSave} />
           </div>
           <div className="shortcut-row">
-            Open the side panel
+            Open the {PANEL_NAME}
             <CommandKeys shortcut={sidePanel} />
           </div>
           <div className="shortcut-row">

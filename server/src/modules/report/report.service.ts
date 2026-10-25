@@ -1,7 +1,7 @@
 import { db } from "../../db";
 import { reports } from "../../db/schema";
-import { getSection } from "../instance-settings/instance-settings.service";
-import { isEmailEnabled, sendMail } from "../../shared/mailer/mailer";
+import { getSection } from "../../platform/instance-settings/instance-settings.service";
+import { isEmailEnabled, sendMail } from "../../platform/mailer/mailer";
 import { logger } from "../../shared/utils/logger";
 import type { CreateReportInput } from "./report.schema";
 
@@ -12,10 +12,8 @@ export interface CreateReportResult {
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /**
- * Emails a new report to the contact address (Admin > Infrastructure >
- * Email), the same inbox the contact form uses, so someone actually reads
- * it. Best effort: the report is already saved, so a failed or switched-off
- * email is logged and the person filing it still sees it go through.
+ * Emails a new report to the contact address (the contact form's inbox). Best effort: it's already
+ * saved, so a failure is logged and the person still sees it go through.
  */
 async function notifyTeam(id: string, input: CreateReportInput): Promise<void> {
   try {

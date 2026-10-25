@@ -204,6 +204,29 @@
     @apply bg-background text-foreground;
   }
 
+  /* Everything clickable shows the hand. Tailwind 4 no longer does this for
+     buttons; links already have it. Disabled ones keep the arrow. In the
+     base layer, so a cursor-* utility (cursor-grab on a drag handle) wins. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"],
+  [role="switch"],
+  [role="checkbox"],
+  [role="radio"],
+  summary,
+  select:not(:disabled),
+  label[for],
+  input:is([type="checkbox"], [type="radio"], [type="file"], [type="color"], [type="range"]):not(:disabled),
+  input:is([type="button"], [type="submit"], [type="reset"]):not(:disabled) {
+    cursor: pointer;
+  }
+  :is(button, input, select, textarea):disabled,
+  [aria-disabled="true"] {
+    cursor: default;
+  }
+
   /* One scrollbar everywhere: the thin, rounded, border-coloured thumb of
      shadcn's ScrollArea (components/ui/scroll-area.tsx), on every element
      that scrolls natively: pages, dialogs, sheets, lists, text boxes, and the

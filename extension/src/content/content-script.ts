@@ -452,7 +452,8 @@ function createFloatingButton(): void {
   button.type = "button";
   button.setAttribute("aria-label", "Savedly quick actions (drag to move)");
   button.title = "Savedly quick actions. Drag to move it";
-  button.innerHTML = LOGO_SVG;
+  // Parsed rather than set as innerHTML: the same fixed drawing, and nothing a reviewer has to check.
+  button.replaceChildren(document.importNode(new DOMParser().parseFromString(LOGO_SVG, "image/svg+xml").documentElement, true));
   button.style.cssText =
     `position:fixed;width:${BUTTON_SIZE}px;height:${BUTTON_SIZE}px;border-radius:50%;border:1px solid rgba(15,17,21,0.08);` +
     "background:#fff;cursor:grab;z-index:2147483646;box-shadow:0 4px 14px rgba(15,17,21,0.18);touch-action:none;user-select:none;" +
@@ -503,10 +504,16 @@ function openFloatingMenu(): void {
       label: "Screenshot visible page",
       onClick: () => captureFullViewport({}),
     },
-    {
-      label: "Open Savedly side panel",
-      onClick: () => chrome.runtime.sendMessage({ action: "OPEN_SIDE_PANEL" }, () => void chrome.runtime.lastError),
-    },
+    // Not in Firefox: it opens its sidebar only from the person's own click in
+    // the browser, and a message from the page doesn't count as one.
+    ...(__FIREFOX__
+      ? []
+      : [
+          {
+            label: "Open Savedly side panel",
+            onClick: () => chrome.runtime.sendMessage({ action: "OPEN_SIDE_PANEL" }, () => void chrome.runtime.lastError),
+          },
+        ]),
   ];
 
   for (const action of actions) {
@@ -846,7 +853,7 @@ function showSelectionToolbar(range: Range): void {
   noteButton.addEventListener("click", (e) => {
     e.stopPropagation();
     const saved = range.cloneRange();
-    bar.innerHTML = "";
+    bar.replaceChildren();
     bar.style.borderRadius = "12px";
     const input = document.createElement("input");
     input.placeholder = "Your note, then Enter";

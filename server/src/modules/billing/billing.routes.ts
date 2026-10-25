@@ -3,8 +3,7 @@ import { authenticate } from "../../shared/middlewares/authenticate";
 import { BillingController } from "./billing.controller";
 import { validateCheckout, validateUpgradePreview } from "./billing.validator";
 
-// Mounted at /billing by ../../routes/index.ts — hosted only, never on a
-// self-hosted install.
+// Mounted at /billing: hosted only.
 const router = Router();
 
 router.get("/status", authenticate, BillingController.status);

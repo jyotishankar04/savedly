@@ -1,6 +1,6 @@
 import { tool, type ToolRuntime } from "@langchain/core/tools";
 import { z } from "zod";
-import { createMemory } from "../../../memory/memory.service";
+import { createMemory } from "../../../memory/api";
 import { ragToolContextSchema } from "./search-memories";
 
 const inputSchema = z.object({
@@ -20,12 +20,8 @@ const resultSchema = z.object({
 export type CreateMemoryResult = z.infer<typeof resultSchema>;
 
 /**
- * The agent's write path into a plain note or link — mirrors what the
- * capture UI itself does by calling the exact same service function, so
- * AI enrichment (summary, tags, embeddings) runs the same background
- * ingestion pass afterward. Deliberately limited to "note"/"web": image,
- * document, and voice memories need an actual file attachment the agent
- * has no way to produce.
+ * The agent's write path for a note or link, through the same service as the capture UI. Limited to
+ * "note"/"web": it can't produce attachments.
  */
 export const createMemoryTool = tool(
   async (

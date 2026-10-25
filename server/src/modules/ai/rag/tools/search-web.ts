@@ -3,8 +3,8 @@ import { z } from "zod";
 import { webSearch } from "../../web-search/web-search";
 import { ragToolContextSchema } from "./search-memories";
 
-// Lookups per question: each one is a paid search and a monthly lookup, and
-// the model tends to keep refining. Counted by turn, forgotten after a while.
+// Lookups per question: each is a paid search and a monthly lookup, and the model keeps refining.
+// Counted by turn, forgotten after a while.
 const MAX_PER_TURN = 2;
 const perTurn = new Map<string, { count: number; at: number }>();
 function takeTurnSlot(turnId: string | undefined): boolean {
@@ -22,10 +22,8 @@ const inputSchema = z.object({
 });
 
 /**
- * Web search for Ask, for facts the user's saved memories don't hold: more
- * about something they saved (who made the film, what the app does now), or
- * a lookup they asked for. Counts toward the plan's monthly web lookups. The
- * answer must say it came from the web (AGENT_SYSTEM_PROMPT, "THE WEB").
+ * Web search for facts the saved memories don't hold. Counts toward the monthly lookups; the answer
+ * must say it came from the web (AGENT_SYSTEM_PROMPT, "THE WEB").
  */
 export const searchWebTool = tool(
   async ({ query }: z.infer<typeof inputSchema>, runtime: ToolRuntime<unknown, typeof ragToolContextSchema>) => {

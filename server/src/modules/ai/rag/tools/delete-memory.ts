@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { getMemoryById, updateMemory } from "../../../memory/memory.service";
+import { getMemoryById, updateMemory } from "../../../memory/api";
 import { confirmFirst, shortTitle, ASKS_FIRST_NOTE } from "./confirm";
 import type { RagRuntime } from "./shared";
 
@@ -12,11 +12,8 @@ const resultSchema = z.object({ id: z.string(), title: z.string() });
 export type DeleteMemoryResult = z.infer<typeof resultSchema>;
 
 /**
- * Moves to Trash (recoverable for 15 days) — the same action as the app's
- * own delete button on the memories list — never a permanent hard delete.
- * Permanently deleting is a manual, confirmation-gated action only
- * available from the Trash page itself, deliberately not exposed here: an
- * agent acting on a misread request should never cause unrecoverable loss.
+ * Moves to Trash (recoverable 15 days) like the app's button. Permanent delete is deliberately not
+ * exposed: a misread request must not cause unrecoverable loss.
  */
 export const deleteMemoryTool = tool(
   confirmFirst(

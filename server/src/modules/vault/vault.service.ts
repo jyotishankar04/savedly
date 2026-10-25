@@ -4,7 +4,7 @@ import { users } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
 import { hashPassword, verifyPassword } from "../../shared/crypto/scrypt-password";
 import type { SetPinInput } from "./vault.schema";
-import { assertFeature } from "../plans/plans.service";
+import { assertFeature } from "../plans/api";
 
 export interface VaultStatus {
   hasPin: boolean;
@@ -16,9 +16,8 @@ export async function getVaultStatus(userId: string): Promise<VaultStatus> {
 }
 
 /**
- * First-time setup needs no current PIN. Changing an existing one does —
- * otherwise anyone with an already-open session (not the vault itself,
- * just the app) could silently swap the PIN out from under the real owner.
+ * First setup needs no current PIN; changing one does, or anyone with an open app session could
+ * swap it from under the owner.
  */
 export async function setVaultPin(userId: string, input: SetPinInput): Promise<void> {
   const [row] = await db.select({ vaultPinHash: users.vaultPinHash }).from(users).where(eq(users.id, userId)).limit(1);
@@ -32,8 +31,7 @@ export async function setVaultPin(userId: string, input: SetPinInput): Promise<v
   }
 
   const vaultPinHash = await hashPassword(input.newPin);
-  // Bumping vaultPinUpdatedAt is what invalidates every unlock cookie
-  // already issued — see verifyVaultToken's `pv` comparison.
+  // Bumping vaultPinUpdatedAt invalidates every issued unlock cookie (verifyVaultToken's `pv` check).
   await db.update(users).set({ vaultPinHash, vaultPinUpdatedAt: new Date() }).where(eq(users.id, userId));
 }
 

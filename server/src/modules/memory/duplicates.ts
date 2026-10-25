@@ -5,18 +5,10 @@ import { MemoryType, NotificationType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { bumpUserCache } from "../../shared/cache/response-cache";
 
-// Duplicate detection: is this thing already in the library?
-//
-// Two things count, and both are exact, so a "duplicate" is never a guess:
-//   - a link with the same address (after normalizing tracking parameters,
-//     trailing slashes and so on: see normalize-url.ts)
-//   - a note with the same text, ignoring case and surrounding spaces
-//
-// Used in two places. When someone saves from the app, the check runs before
-// the save, so they can be asked first. For everything saved without a
-// person watching (the extension's shortcut, a share from a phone), the
-// ingestion pipeline's detectDuplicate step runs it afterwards and leaves a
-// notification.
+// Is this already in the library? Both checks are exact: a link with the same normalized address
+// (normalize-url.ts), or a note with the same text ignoring case and edge spaces.
+// App saves are checked first so the user is asked; unattended saves (extension shortcut, phone
+// share) are checked afterwards by ingestion's detectDuplicate, which leaves a notification.
 
 /** A note this short ("todo", "call mum") repeats by accident; it isn't a duplicate worth asking about. */
 const MIN_NOTE_LENGTH = 20;
@@ -40,7 +32,10 @@ export interface ExistingMemory {
 
 const noteKey = (text: string) => text.trim().toLowerCase();
 
-/** The memory this would duplicate, or null. `excludeId` is the memory being checked, when it already exists. */
+/**
+ * The memory this would duplicate, or null; `excludeId` is the memory being checked when it already
+ * exists.
+ */
 export async function findDuplicate(
   userId: string,
   candidate: { type: string; normalizedUrl: string | null; content: string | null | undefined },
@@ -82,10 +77,8 @@ async function settleNotifications(userId: string, memoryId: string): Promise<vo
 }
 
 /**
- * Records that the user has answered the "this is a duplicate" question for a
- * memory, so it is never asked again, and clears the notification that asked.
- * Removing the new copy, when that was the answer, is the caller's job: it
- * goes through the normal move-to-Trash path.
+ * Records that the user answered, so it isn't asked again, and clears the notification. Removing
+ * the new copy is the caller's job (normal Trash path).
  */
 export async function settleDuplicate(userId: string, memoryId: string): Promise<void> {
   const settled = await db

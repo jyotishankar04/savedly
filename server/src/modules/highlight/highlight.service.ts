@@ -2,16 +2,14 @@ import { and, asc, eq, isNotNull } from "drizzle-orm";
 import { db } from "../../db";
 import { memories, memoryHighlights } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
-import { lookupByUrl, urlKey } from "../memory/inbox.service";
-import { createMemory } from "../memory/memory.service";
+import { lookupByUrl, urlKey, createMemory } from "../memory/api";
 import type { CreateHighlightInput, UpdateHighlightInput } from "./highlight.schema";
 
 export type Highlight = typeof memoryHighlights.$inferSelect;
 
 /**
- * Copies the memory's highlights (passages and notes) onto memories.highlights_text,
- * which the keyword index (the fts_tokens trigger) reads, so search finds a
- * memory by what was highlighted. The AI vectors are left as ingestion wrote them.
+ * Copies highlights onto memories.highlights_text for the keyword index, so search finds a memory
+ * by what was highlighted. AI vectors are untouched.
  */
 async function syncHighlightsText(memoryId: string): Promise<void> {
   const rows = await db
@@ -32,9 +30,8 @@ export async function listForMemory(userId: string, memoryId: string): Promise<H
 }
 
 /**
- * Highlights a passage on a page. The page's memory is found by its address
- * (the way duplicates are matched); a page that isn't saved yet is saved
- * first, so a highlight always belongs to a memory.
+ * The memory is found by address (as duplicates are); an unsaved page is saved first, so a
+ * highlight always has a memory.
  */
 export async function createHighlight(userId: string, input: CreateHighlightInput): Promise<{ highlight: Highlight; memoryId: string; savedPage: boolean }> {
   let memoryId = (await lookupByUrl(userId, input.url))?.id ?? null;
@@ -91,9 +88,8 @@ export async function pageHighlights(userId: string, url: string): Promise<{ mem
 }
 
 /**
- * Hashes of the pages that have highlights (the same urlKey as saved pages),
- * so the extension asks for a page's highlights only when there are some,
- * without telling the server every page that's visited.
+ * Hashes of pages with highlights (same urlKey as saved pages), so the extension asks only when
+ * there are some and the server never sees every page visited.
  */
 export async function highlightedUrlKeys(userId: string): Promise<string[]> {
   const rows = await db

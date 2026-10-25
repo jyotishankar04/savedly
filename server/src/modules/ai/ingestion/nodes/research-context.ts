@@ -1,9 +1,9 @@
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { PlanLimitType } from "../../../../db/enums";
-import { isWithinLimit } from "../../../plans/plans.service";
-import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { isWithinLimit } from "../../../plans/api";
+import { getChatModel } from "../../models";
+import { createUsageCallback } from "../../../ai-usage/api";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 import { formatResults, webSearch, webSearchAvailable } from "../../web-search/web-search";
 import { logNode } from "../log";
@@ -51,18 +51,14 @@ interface Findings {
 
 const NONE: IngestionUpdate = { webResearch: null };
 
-/**
- * The research findings as a line for the prompts after this step (content
- * type, summary, collection), fenced like any other outside text, since it
- * came from web pages.
- */
+/** The research findings as a line for later prompts, fenced as outside text since it came from web pages. */
 export function researchForPrompt(state: IngestionStateType): string {
   const research = state.webResearch;
   if (!research) return "(not looked up)";
   return wrapUntrusted(`${research.findings}${research.kind ? ` Kind: ${research.kind}.` : ""}`, "web lookup");
 }
 
-/** What to judge from: a short note's text, or a link that couldn't be read (its address, title and caption). */
+/** What to judge from: a short note's text, or an unreadable link's address, title and caption. */
 function whatWasSaved(state: IngestionStateType): string | null {
   if (state.mediaType === "note") {
     const text = state.rawContent.trim();
@@ -77,11 +73,8 @@ function whatWasSaved(state: IngestionStateType): string | null {
 }
 
 /**
- * Looks something up on the web when the AI can't tell what a save is (a
- * bare "hanuman ansh" is a film, not a mythology topic), so the summary,
- * tags and collection that follow are about the real thing. Skipped without
- * a model call for anything that speaks for itself, when web search isn't
- * set up, or when the month's lookups are used up.
+ * Looks something up when the AI can't tell what a save is (a bare "hanuman ansh" is a film).
+ * Skipped for self-explanatory saves, without web search, or when the month's lookups are used.
  */
 export async function researchContext(state: IngestionStateType): Promise<IngestionUpdate> {
   const saved = whatWasSaved(state);

@@ -1,18 +1,15 @@
 import { env } from "../../../config/env";
-import { getOAuthCredentials, requireOAuthCredentials } from "../../auth/oauth-config";
+import { getOAuthCredentials, requireOAuthCredentials } from "../../auth/api";
 
-// Talks to GitHub for the "GitHub stars" integration. It reuses the OAuth app
-// that powers "Sign in with GitHub", so there is nothing extra to set up.
+// Talks to GitHub for "GitHub stars", reusing the "Sign in with GitHub" OAuth app.
 
-// GitHub only accepts a redirect that sits under the app's registered callback
-// URL. The sign-in callback is /api/v1/auth/github/callback, so this one
-// lives beneath it and the same OAuth app covers both.
+// GitHub only accepts a redirect under the registered callback URL (/api/v1/auth/github/callback),
+// so this lives beneath it and one OAuth app covers both.
 export const GITHUB_STARS_CALLBACK_PATH = "/auth/github/callback/stars";
 const callbackUrl = () => `${env.SERVER_URL}/api/v1${GITHUB_STARS_CALLBACK_PATH}`;
 
-// Enough to know who connected. Reading the stars someone has made public
-// needs no further permission, and private repositories would need "repo",
-// which is far more access than this feature should ever hold.
+// Enough to know who connected: public stars need no more, and private repos would need "repo", far
+// more access than this should hold.
 export const GITHUB_STARS_SCOPE = "read:user";
 
 const API = "https://api.github.com";
@@ -76,9 +73,8 @@ export interface StarredRepo {
 export const STARS_PAGE_SIZE = 100;
 
 /**
- * One page of the account's stars, newest first. Private repositories are
- * left out of `repos`, so `isLastPage` is worked out from what GitHub sent,
- * not from how many were kept.
+ * One page of the account's stars, newest first. Private repos are dropped, so `isLastPage` comes
+ * from what GitHub sent.
  */
 export async function listStarredRepos(token: string, page: number): Promise<{ repos: StarredRepo[]; isLastPage: boolean }> {
   // The "star" media type is what adds starred_at, which is how a sync knows where it left off.

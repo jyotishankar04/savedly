@@ -1,9 +1,8 @@
 import "dotenv/config";
 import { resetPlanDefaults } from "../modules/admin/plans/plans.service";
 
-// `pnpm db:plans:reset` — moves an existing database onto the current default
-// plans (names, descriptions, limits; inserts missing plans). Prices and the
-// active/default switches are left exactly as an admin set them.
+// `pnpm db:plans:reset`: moves a database onto the current default plans; prices and active/default
+// switches are left as set.
 resetPlanDefaults()
   .then((keys) => {
     console.log(`Plan defaults applied: ${keys.join(", ")}`);

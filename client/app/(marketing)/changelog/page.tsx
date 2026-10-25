@@ -25,6 +25,7 @@ export default function ChangelogPage() {
 
           <Reveal delay={0.35}>
           <ChangelogFeed
+            flow
             title="Everything shipped"
             subtitle={latest ? `Latest: ${latest.title}, ${latest.date}` : undefined}
             entries={changelogEntries}

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { isAdvancedSearchEnabled, getAdvancedSearchMaxQueryLength, getAdvancedSearchMaxResults } from "../feature-flags/feature-flags.service";
+import { isAdvancedSearchEnabled, getAdvancedSearchMaxQueryLength, getAdvancedSearchMaxResults } from "../feature-flags/api";
 import { advancedSearch } from "./search.service";
 import type { AdvancedSearchInput } from "./search.schema";
 

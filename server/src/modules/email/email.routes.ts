@@ -4,11 +4,10 @@ import { db } from "../../db";
 import { userSettings } from "../../db/schema";
 import { bumpUserCache } from "../../shared/cache/response-cache";
 import { AppError } from "../../shared/errors/app-error";
-import { verifyUnsubscribeToken } from "../../shared/mailer/unsubscribe";
+import { verifyUnsubscribeToken } from "../../platform/mailer/unsubscribe";
 import { ApiResponse } from "../../shared/response/api-response";
 
-// Public: these are reached from a link in an email, signed out. The signed
-// token in the link is the proof of who is asking.
+// Public: reached from an email link, signed out; the signed token is the proof.
 const router = Router();
 
 const linkSchema = z.object({ u: z.string().uuid(), t: z.string().min(1).max(200) });

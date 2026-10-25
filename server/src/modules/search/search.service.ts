@@ -22,7 +22,6 @@ function tokenizeQuery(query: string): Array<{ type: string; value: string }> {
   return tokens;
 }
 
-// Parse Boolean query into an SQL WHERE condition tree
 function parseQueryToCondition(query: string): any {
   const tokens = tokenizeQuery(query);
   if (tokens.length === 0) return null;
@@ -100,13 +99,11 @@ export interface SearchResponse {
 export async function advancedSearch(userId: string, input: AdvancedSearchInput): Promise<SearchResponse> {
   const conditions: any[] = [eq(memories.userId, userId)];
 
-  // Boolean query search
   if (input.query) {
     const queryCondition = parseQueryToCondition(input.query);
     if (queryCondition) conditions.push(queryCondition);
   }
 
-  // Date range filter
   if (input.dateFrom) {
     conditions.push(gte(memories.createdAt, new Date(input.dateFrom)));
   }
@@ -114,7 +111,6 @@ export async function advancedSearch(userId: string, input: AdvancedSearchInput)
     conditions.push(lte(memories.createdAt, new Date(input.dateTo)));
   }
 
-  // Property filters
   if (input.archived !== undefined) {
     conditions.push(eq(memories.isArchived, input.archived));
   }
@@ -128,7 +124,6 @@ export async function advancedSearch(userId: string, input: AdvancedSearchInput)
     conditions.push(eq(memories.inTrash, input.inTrash));
   }
 
-  // Apply sorting
   let orderByClause = desc(memories.createdAt);
   if (input.sortBy === "recent" || input.sortBy === "oldest") {
     orderByClause = input.sortOrder === "asc" ? asc(memories.createdAt) : desc(memories.createdAt);
@@ -138,7 +133,6 @@ export async function advancedSearch(userId: string, input: AdvancedSearchInput)
     orderByClause = input.sortOrder === "asc" ? asc(memories.title) : desc(memories.title);
   }
 
-  // Build and execute query
   const results = await db
     .select()
     .from(memories)
@@ -147,7 +141,6 @@ export async function advancedSearch(userId: string, input: AdvancedSearchInput)
     .limit((input.limit ?? 20) + 1)
     .offset(input.offset ?? 0);
 
-  // Get total count for this query
   const [{ count: total }] = await db
     .select({ count: sql<number>`count(*)` })
     .from(memories)

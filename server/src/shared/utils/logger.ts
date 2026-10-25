@@ -5,8 +5,8 @@ import { reportLoggedError } from "../../config/sentry";
 export const logger = pino({
   level: env.LOG_LEVEL,
   hooks: {
-    // Every error-level line also goes to error tracking (config/sentry.ts),
-    // which does nothing unless it is configured.
+    // Every error-level line also goes to error tracking (config/sentry.ts), which does nothing
+    // unless configured.
     logMethod(args, method, level) {
       if (level >= 50) {
         const [first, second] = args as unknown[];

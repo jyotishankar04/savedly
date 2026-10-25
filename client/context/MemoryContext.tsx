@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
+import { isMemoryStillUpdating } from "@/lib/memory-processing";
 import type { Collection, Memory } from "@/types/memory";
 import {
   convertCollectionToUser,
@@ -58,13 +59,11 @@ export function useMemoriesQuery(params: ListMemoriesParams = {}) {
       return next;
     },
     // Self-limiting: only keeps polling while something on the current page
-    // is still mid-ingestion (see MemoryThumbnail's "Processing" badge) —
-    // stops once everything's been enriched, so this never becomes constant
-    // background chatter.
-    refetchInterval: (query) => {
-      const items = query.state.data?.items ?? [];
-      return items.some((item) => item.resourceCategory === null) ? 4000 : false;
-    },
+    // is still being processed or was just saved and isn't filed yet — stops
+    // once everything's done, and doesn't wait forever on a memory that
+    // finished without a category (AI off or failed), so this never becomes
+    // constant background chatter.
+    refetchInterval: (query) => ((query.state.data?.items ?? []).some(isMemoryStillUpdating) ? 4000 : false),
   });
 }
 
@@ -167,7 +166,7 @@ export function useMemoryQuery(id: string, options?: Partial<UseQueryOptions<Awa
     // Same self-limiting poll as useMemoriesQuery — keeps the detail page's
     // "Savedly Understood" panel live while this specific memory is still
     // being ingested.
-    refetchInterval: (query) => (query.state.data?.resourceCategory === null ? 4000 : false),
+    refetchInterval: (query) => (query.state.data && isMemoryStillUpdating(query.state.data) ? 4000 : false),
     ...options,
   });
 }
@@ -178,10 +177,16 @@ function patchCachedMemory(
   id: string,
   patch: Partial<Memory>,
 ) {
-  queryClient.setQueriesData<{ items: Memory[]; page: number; limit: number; total: number }>(
-    { queryKey: ["memories"] },
-    (old) => (old ? { ...old, items: old.items.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : old),
-  );
+  // Not everything under ["memories"] is a page of them: the Inbox count is a
+  // number, and ["memories", id] (the graph) is one memory. Only lists and that
+  // one memory are patched; anything else is left as it is.
+  queryClient.setQueriesData<unknown>({ queryKey: ["memories"] }, (old: unknown) => {
+    if (!old || typeof old !== "object") return old;
+    const data = old as { items?: unknown; id?: unknown };
+    if (Array.isArray(data.items)) return { ...data, items: (data.items as Memory[]).map((m) => (m.id === id ? { ...m, ...patch } : m)) };
+    if (data.id === id) return { ...data, ...patch };
+    return old;
+  });
 }
 
 export function useToggleFavoriteMutation() {

@@ -8,8 +8,8 @@ export const createShareSchema = z.object({
   resourceId: z.string().uuid(),
 });
 
-// A share password guards a read-only link that's often passed along
-// verbally — a length floor is worth having, complexity rules are not.
+// A share password guards a read-only link often passed on verbally: a length floor is worth
+// having, complexity rules aren't.
 const sharePasswordSchema = z.string().min(6, "Password must be at least 6 characters").max(128);
 
 export const updateShareSchema = z
@@ -20,9 +20,8 @@ export const updateShareSchema = z
       ShareLinkAccess.REQUEST,
       ShareLinkAccess.PASSWORD,
     ]),
-    // null clears the password; undefined leaves it untouched. The service
-    // rejects switching to `password` with neither a new password nor an
-    // existing hash, matching the ck_shares_password_present constraint.
+    // null clears the password; undefined leaves it. The service rejects switching to `password`
+    // with neither a new password nor an existing hash (the ck_shares_password_present constraint).
     password: sharePasswordSchema.nullable(),
     allowSearchIndexing: z.boolean(),
     expiresAt: z.coerce.date().nullable(),
@@ -30,8 +29,8 @@ export const updateShareSchema = z
   .partial();
 
 export const inviteToShareSchema = z.object({
-  // Lowercased here so the unique index and the signup-time claim always
-  // compare the same shape — users.email is plain varchar, not citext.
+  // Lowercased so the unique index and the signup claim compare the same shape (users.email is
+  // varchar, not citext).
   email: z.string().email().max(255).toLowerCase(),
 });
 

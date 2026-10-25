@@ -6,9 +6,8 @@ import { reportRateLimiter } from "../../shared/middlewares/rate-limit";
 
 const router = Router();
 
-// Public — bug reports and feature requests come from an unauthenticated
-// marketing page as often as a signed-in one. optionalAuthenticate attaches
-// req.user when a valid session happens to be present, without requiring one.
+// Public: reports come from the unauthenticated marketing page as often as signed in.
+// optionalAuthenticate sets req.user when a session exists, without requiring one.
 router.post("/", optionalAuthenticate, reportRateLimiter, validateCreateReport, ReportController.create);
 
 export default router;

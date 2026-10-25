@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { listMemories } from "../../../memory/memory.service";
+import { listMemories } from "../../../memory/api";
 import { excerpt, requireUserId, resolveCollectionId, type RagRuntime } from "./shared";
 
 const inputSchema = z.object({

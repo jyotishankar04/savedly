@@ -7,28 +7,17 @@ import { verifyAccessToken } from "../utils/jwt";
 import { logger } from "../utils/logger";
 
 /**
- * Cache of GET responses, in Redis: per user for their own data, and one
- * shared copy for the few public reads every page load makes.
- *
- * Every entry is keyed by the user and that user's "cache version". Anything
- * that changes a user's data replaces the version (bumpUserCache), so all of
- * their cached reads miss from then on — no per-route invalidation lists to
- * keep in sync. A user's own write bumps before its response is sent, so the
- * refetch the client fires next always reads fresh data. Changes that come
- * from elsewhere (the ingestion worker, a billing webhook, an admin) bump
- * explicitly; whatever doesn't is bounded by the TTL. The shared copy works
- * the same way with a single version, replaced by any admin write.
- *
- * Redis being slow or down only ever costs the cache: every call fails open.
+ * Redis cache of GET responses: per user for their own data, one shared copy for the public reads every page load makes.
+ * Entries are keyed by user and that user's cache version; anything that changes their data replaces it (bumpUserCache), so all their cached reads miss, with no per-route invalidation lists. A user's own write bumps before responding; changes from elsewhere (worker, webhook, admin) bump explicitly; the rest is bounded by the TTL. The shared copy works the same with one version, replaced by any admin write.
+ * Redis slow or down only costs the cache: every call fails open.
  */
 
 const TTL_SECONDS = 60;
 const VERSION_TTL_SECONDS = 24 * 60 * 60;
 const MAX_BODY_BYTES = 512 * 1024;
 
-// Only reads of the signed-in user's own data. Left out on purpose: /admin
-// (must be live), /billing (follows webhooks), /vault and /files, and the
-// public or unauthenticated routes, which have no user to key on.
+// Only reads of the signed-in user's own data. Left out on purpose: /admin (must be live), /billing
+// (follows webhooks), /vault and /files, and public routes (no user to key on).
 const CACHEABLE_PREFIXES = [
   "/auth/me",
   "/settings",
@@ -47,21 +36,20 @@ const CACHEABLE_PREFIXES = [
   "/integrations/calendar/events",
 ];
 
-// The same for every visitor, signed in or not, and changed only by an admin:
-// the announcement banner, the maintenance notice, the plan list, the sign-in
-// options and the instance config.
+// Same for every visitor and changed only by an admin: the announcement banner, maintenance notice,
+// plan list, sign-in options and instance config.
 const PUBLIC_PATHS = new Set(["/announcements/active", "/whats-new/active", "/maintenance/status", "/plans", "/auth/providers", "/config"]);
 const PUBLIC_SCOPE = "public";
 
-// A fresh self-hosted install reports this until its first account exists,
-// and that sign-up isn't an admin write, so it's never stored.
+// A fresh self-hosted install reports this until its first account exists, and that sign-up isn't
+// an admin write, so it's never stored.
 const NEEDS_SETUP = '"needsSetup":true';
 
 // Downloads, and the status the client polls while a save is being processed.
 const NEVER_CACHED = [/^\/memories\/export/, /\/processing-status$/, /^\/ai-settings\/models/];
 
-// A memory still being processed changes without the user doing anything, so
-// a response that shows one is never stored.
+// A memory still processing changes without the user doing anything, so a response showing one is
+// never stored.
 const IN_FLUX = '"status":"processing"';
 
 const versionKey = (scope: string) => `rc:v:${scope}`;
@@ -129,8 +117,8 @@ export async function responseCache(req: Request, res: Response, next: NextFunct
   const userId = isPublic ? null : userIdOf(req);
   if (!isPublic && !userId) return next();
 
-  // A POST that only renders something back (the email composer's preview,
-  // fired on every edit) changes no data, so there's nothing to invalidate.
+  // A POST that only renders something back (the email composer's preview, fired on every edit)
+  // changes no data, so nothing to invalidate.
   const readOnlyPost = req.method === "POST" && req.path.endsWith("/preview");
   if (userId && !readOnlyPost && req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
     invalidateOnWrite(userId, req, res);

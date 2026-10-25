@@ -92,6 +92,7 @@ export default function CollectionsPage() {
               disabled={collectionLimit.isAtLimit}
               title={collectionLimit.isAtLimit ? collectionLimit.message ?? undefined : undefined}
               onClick={() => setShowAddModal(true)}
+              aria-label={collectionLimit.isAtLimit ? undefined : "New collection"}
               className={cn(
                 "h-10 rounded-full px-4 text-sm font-medium shadow-sm flex items-center gap-1.5",
                 collectionLimit.isAtLimit && "opacity-50 cursor-not-allowed",
@@ -103,7 +104,8 @@ export default function CollectionsPage() {
                 </>
               ) : (
                 <>
-                  <HugeiconsIcon icon={Plus} strokeWidth={2} className="h-4 w-4" /> New collection
+                  {/* Just "New" on a phone, where the three buttons share one row. */}
+                  <HugeiconsIcon icon={Plus} strokeWidth={2} className="h-4 w-4" /> New<span className="hidden sm:inline"> collection</span>
                 </>
               )}
             </Button>
@@ -140,7 +142,7 @@ export default function CollectionsPage() {
       ) : collections.length === 0 ? (
         <EmptyState title="No collections yet" description="Create one to start organizing your memories." />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-8">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] sm:gap-8">
           {collections.map((col) => (
             <div
               key={col.id}
@@ -153,7 +155,7 @@ export default function CollectionsPage() {
                 selecting={selection.isSelecting}
                 onToggle={(e) => selection.toggle(col.id, e)}
                 label={`Select ${col.name}`}
-                className={cn("top-[2.6rem] left-auto", selection.isSelecting ? "right-4" : "right-[3.4rem]")}
+                className={cn("top-[2.15rem] left-auto sm:top-[2.6rem]", selection.isSelecting ? "right-3 sm:right-4" : "right-[2.75rem] sm:right-[3.4rem]")}
               />
               <FolderCard
                 href={`/app/collections/${col.id}`}
@@ -165,14 +167,14 @@ export default function CollectionsPage() {
               />
               {/* Sibling of the FolderCard's own <Link>, not a child of it —
                   so opening the menu never triggers navigation. */}
-              <div className={cn("absolute right-3.5 top-[2.35rem] z-10", selection.isSelecting && "hidden")}>
+              <div className={cn("absolute right-2 top-[1.95rem] z-10 sm:right-3.5 sm:top-[2.35rem]", selection.isSelecting && "hidden")}>
                 <CollectionActionsMenu
                   collection={col}
                   trigger={
                     <button
                       type="button"
                       aria-label={`More actions for ${col.name}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground shadow-sm backdrop-blur-sm hover:text-foreground"
+                      className="flex size-7 items-center justify-center rounded-full border border-border/60 bg-card/90 text-muted-foreground shadow-sm backdrop-blur-sm hover:text-foreground sm:size-8"
                     >
                       <HugeiconsIcon icon={MoreHorizontal} strokeWidth={2} className="h-4 w-4"/>
                     </button>

@@ -11,7 +11,6 @@ import { createPost, deletePost, getPost, getPublishedPost, listAllPosts, listPu
 const brief = (post: { id: string; slug: string; title: string; status: string }) => ({ id: post.id, slug: post.slug, title: post.title, status: post.status });
 
 export class BlogController {
-  // ---- Public
 
   static async published(req: Request, res: Response) {
     const query = listBlogPostsSchema.parse(req.query);
@@ -22,8 +21,6 @@ export class BlogController {
   static async publishedOne(req: Request, res: Response) {
     res.status(200).json(ApiResponse.success(await getPublishedPost(req.params.slug as string)));
   }
-
-  // ---- Admin
 
   static async list(_req: Request, res: Response) {
     res.status(200).json(ApiResponse.success(await listAllPosts()));

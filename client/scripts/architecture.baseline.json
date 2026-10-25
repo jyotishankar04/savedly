@@ -1,0 +1,7 @@
+[
+  "lib/changelog.ts -> components/arc/blocks/changelog-feed/changelog-feed.tsx",
+  "lib/clipboard.ts -> components/ui/toast.tsx",
+  "lib/data/comparisons.ts -> components/arc/blocks/comparison-table/comparison-table-data.ts",
+  "lib/insights.ts -> components/ui/github-activity.tsx",
+  "lib/memory-drag.ts -> hooks/use-selection.ts"
+]

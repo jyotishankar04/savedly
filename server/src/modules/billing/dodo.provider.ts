@@ -49,8 +49,7 @@ export function createDodoProvider(): BillingProvider {
     async createCheckout({ productId, user, customerId, returnUrl, cancelUrl }) {
       const session = await client.checkoutSessions.create({
         product_cart: [{ product_id: productId, quantity: 1 }],
-        // Reuse the Dodo customer when we already have one, so a returning
-        // subscriber keeps one billing history and one portal.
+        // Reuse the Dodo customer so a returning subscriber keeps one billing history and portal.
         customer: customerId ? { customer_id: customerId } : { email: user.email, name: user.name ?? undefined },
         metadata: { userId: user.id },
         return_url: returnUrl,
@@ -64,9 +63,8 @@ export function createDodoProvider(): BillingProvider {
       const result = await client.subscriptions.changePlan(subscriptionId, {
         product_id: productId,
         quantity: 1,
-        // prorated: charge the difference for the rest of the current period
-        // now; the next renewal bills the new plan's full price.
-        // next_renewal: nothing now; the next renewal bills the new price.
+        // prorated: charge the difference for the rest of the period now; next_renewal: nothing
+        // now, new price at renewal.
         proration_billing_mode: billing === "prorated" ? "prorated_immediately" : "do_not_bill",
       });
       return { paymentUrl: result.payment_link ?? null };
@@ -117,8 +115,7 @@ export function createDodoProvider(): BillingProvider {
     },
 
     parseWebhook(rawBody, headers) {
-      // Verifies the Standard Webhooks signature (webhook-id / -timestamp /
-      // -signature) against DODO_PAYMENTS_WEBHOOK_KEY; throws if it's wrong.
+      // Verifies the Standard Webhooks signature against DODO_PAYMENTS_WEBHOOK_KEY; throws if wrong.
       const event = client.webhooks.unwrap(rawBody, { headers });
       const kind = KIND_BY_TYPE[event.type];
       if (!kind) return null;

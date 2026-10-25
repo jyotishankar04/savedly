@@ -1,11 +1,9 @@
 import express, { Router } from "express";
 import { FilesController } from "./files.controller";
-import { MAX_FILE_SIZE_BYTES } from "../upload/upload.constants";
+import { MAX_FILE_SIZE_BYTES } from "../upload/api";
 
-// Mounted at /files by ../../routes/index.ts. No authenticate on either route:
-// the upload is authorized by the signed token the presign endpoint (which
-// does require a session) put in its URL, and a file is readable by anyone
-// holding its unguessable URL — the same model as a public R2 bucket.
+// Mounted at /files. No authenticate: uploads use the signed token from the presign endpoint (which
+// needs a session); files are readable by anyone with the unguessable URL, like a public R2 bucket.
 const router = Router();
 
 router.put(

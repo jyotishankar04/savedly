@@ -6,9 +6,9 @@ import { logger } from "../utils/logger";
 
 const REQUEST_ID_HEADER = "x-request-id";
 
-// Express mutates `req.url` as it descends through mounted routers and only restores it
-// when a handler calls `next()` — our controllers respond directly, so by the time this
-// logs (on response finish) `req.url` is left truncated. `originalUrl` is never mutated.
+// Express mutates `req.url` while descending mounted routers and only restores it when a handler
+// calls `next()`; our controllers respond directly, so by the time this logs `req.url` is
+// truncated. `originalUrl` is never mutated.
 function originalUrl(req: IncomingMessage): string {
   return (req as Request).originalUrl ?? req.url ?? "";
 }

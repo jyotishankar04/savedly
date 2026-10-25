@@ -1,5 +1,8 @@
 "use client";
 
+import { MaintenanceFullPage } from "@/components/maintenance/maintenance-full-page";
+import { useActiveTabInView } from "@/hooks/use-active-tab-in-view";
+import { FORCED_MAINTENANCE, FORCED_MAINTENANCE_MESSAGE } from "@/lib/maintenance";
 import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
@@ -130,6 +133,12 @@ function isActive(pathname: string, href: string): boolean {
  * under the app shell) so admin pages can still call useUser().
  */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  // Switched on in the website because the backend is down: admin can't work either.
+  if (FORCED_MAINTENANCE) return <MaintenanceFullPage message={FORCED_MAINTENANCE_MESSAGE} />;
+  return <AdminGate>{children}</AdminGate>;
+}
+
+function AdminGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { data: currentUser, isLoading, isError } = useCurrentUserQuery();
   const setCurrentUser = useSetCurrentUser();
@@ -161,6 +170,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  // The phone's menu scrolls sideways: keep the current page's tab in view.
+  const mobileNav = React.useRef<HTMLElement>(null);
+  useActiveTabInView(mobileNav, pathname);
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { user } = useUser();
@@ -289,7 +301,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Mobile nav rail — the desktop aside (which carries "Back to app") is hidden below md */}
-        <nav className="md:hidden flex items-center gap-1 px-4 py-2 border-b border-border/60 overflow-x-auto scrollbar-none shrink-0">
+        <nav ref={mobileNav} className="md:hidden flex items-center gap-1 px-4 py-2 border-b border-border/60 overflow-x-auto scrollbar-none shrink-0">
           <Link
             href="/app"
             className="px-2.5 py-1.5 rounded-full text-muted-foreground hover:bg-muted transition-colors shrink-0"
@@ -304,6 +316,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "px-3 py-1.5 text-xs font-semibold rounded-full text-nowrap transition-colors",
                   active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
