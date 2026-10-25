@@ -1,10 +1,10 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { deleteMemory } from "../memory/memory.service";
+import { deleteMemory } from "../memory/api";
 import { db } from "../../db";
 import { collections, collectionMemories, memories, memoryTags, tags, users } from "../../db/schema";
 import { MemoryStatus } from "../../db/enums";
-import { assertFeature } from "../plans/plans.service";
-import { updateCollection } from "../collection/collection.service";
+import { assertFeature } from "../plans/api";
+import { updateCollection } from "../collection/api";
 import type {
   BatchDeleteCollectionsInput,
   BatchDeleteInput,

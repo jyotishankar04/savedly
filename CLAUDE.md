@@ -49,7 +49,7 @@ npx @startxkit/cli doctor
 Imports only go **down**: `config` < `db`, `shared` < `platform` < `modules` < the app (`routes/`, `app.ts`, `server.ts`).
 - `shared/` — generic building blocks (crypto, errors, logger, middleware, response helpers). Knows nothing about features.
 - `platform/` — services configured at runtime through `platform/instance-settings` (mailer, storage). Knows nothing about features.
-- `modules/<name>/` — features. Another module is used through its `index.ts`; the deep imports that exist today are listed in `server/scripts/architecture.baseline.json` and that list may only shrink. No import cycles between files.
+- `modules/<name>/` — features. A module has two entry points: `index.ts` (what the app mounts: routers, job starters) and `api.ts` (the services and types other modules may import; never routers). Another module is imported **only** through `api.ts`, never through its internal files; add a line to `api.ts` when something is needed. Exemptions would go in `server/scripts/architecture.baseline.json` (empty today). No import cycles between files.
 - Entry-point scripts (`server.ts`, `db/seed*.ts`, `db/reindex.ts`, `db/reset-plans.ts`, `db/bootstrap.ts`) may import anything.
 
 ### Module architecture

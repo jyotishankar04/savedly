@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../../../shared/middlewares/authenticate";
-import { requireFeature } from "../../plans/require-feature";
+import { requireFeature } from "../../plans/api";
 import { CalendarController } from "./calendar.controller";
 import {
   validateCreateEvent,

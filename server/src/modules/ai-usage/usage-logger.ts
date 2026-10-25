@@ -4,7 +4,7 @@ import type { ChatGeneration, LLMResult } from "@langchain/core/outputs";
 import { db } from "../../db";
 import { aiUsageLogs } from "../../db/schema";
 import { logger } from "../../shared/utils/logger";
-import { providerRefusal, recordAiWorking, recordNoCredits } from "../ai/provider-health";
+import { providerRefusal, recordAiWorking, recordNoCredits } from "./provider-health";
 
 // Kept here (not imported from ai.providers.ts) so this module stays free of
 // the providers' import graph; ai.providers.ts re-exports the same value.

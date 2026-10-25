@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { FilesController } from "./files.controller";
-import { MAX_FILE_SIZE_BYTES } from "../upload/upload.constants";
+import { MAX_FILE_SIZE_BYTES } from "../upload/api";
 
 // Mounted at /files by ../../routes/index.ts. No authenticate on either route:
 // the upload is authorized by the signed token the presign endpoint (which

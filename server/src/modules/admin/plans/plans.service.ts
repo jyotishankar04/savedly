@@ -5,7 +5,7 @@ import { PlanLimitType, PlanBillingInterval } from "../../../db/enums";
 import { AppError } from "../../../shared/errors/app-error";
 import { env } from "../../../config/env";
 import { logAdminAction } from "../../../shared/utils/audit-log";
-import { getPlanLimits } from "../../plans/plans.service";
+import { getPlanLimits } from "../../plans/api";
 import type { CreatePlanInput, UpdatePlanInput } from "./plans.schema";
 
 interface DefaultPlanSeed {

@@ -1,5 +1,5 @@
 import type { db } from "../../db";
-import type { SocialPost } from "../ai/url-processor";
+import type { SocialPost } from "../ai/api";
 
 // What the memory module hands out: a memory as a list item and in full, and
 // the transaction type its helpers share. Kept apart from the service so the

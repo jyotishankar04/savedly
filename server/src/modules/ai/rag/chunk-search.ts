@@ -4,10 +4,9 @@ import { memories } from "../../../db/schema";
 import { getEmbeddings } from "../ai.providers";
 import { getVectorStore } from "../vector-store";
 import { rrfMerge, SEMANTIC_SIMILARITY_FLOOR } from "../search/rrf";
-import { MIN_SEMANTIC_QUERY_LENGTH } from "../search/semantic-search";
+import { MIN_SEMANTIC_QUERY_LENGTH, semanticSearch } from "../search/semantic-search";
 import { lexicalSearch } from "../search/lexical-search";
-import { semanticSearch } from "../search/semantic-search";
-import { logAiUsage } from "../../ai-usage/usage-logger";
+import { logAiUsage } from "../../ai-usage/api";
 import { logger } from "../../../shared/utils/logger";
 
 export interface RetrievedMemory {

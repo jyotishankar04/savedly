@@ -4,7 +4,7 @@ import { ApiResponse } from "../../../shared/response/api-response";
 import { AppError } from "../../../shared/errors/app-error";
 import { logger } from "../../../shared/utils/logger";
 import { signGithubStateToken, verifyGithubStateToken } from "../../../shared/utils/jwt";
-import { isGithubStarsEnabled } from "../../feature-flags/feature-flags.service";
+import { isGithubStarsEnabled } from "../../feature-flags/api";
 import { buildGithubStarsAuthUrl, exchangeGithubStarsCode, isGithubStarsConfigured } from "./github-client";
 import { connectGithub, disconnectGithub, getGithubConnection, syncGithubStars, syncGithubStarsNow } from "./github.service";
 

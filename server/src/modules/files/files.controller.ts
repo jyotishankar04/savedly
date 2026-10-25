@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import { AppError } from "../../shared/errors/app-error";
 import { ApiResponse } from "../../shared/response/api-response";
 import { STORAGE_KEY_PATTERN, getStorage, localMetaPath, verifyLocalUploadToken } from "../../platform/storage";
-import { ALLOWED_MIME_TYPES } from "../upload/upload.constants";
+import { ALLOWED_MIME_TYPES } from "../upload/api";
 
 // Only reachable with the local-disk storage driver (self-hosted default) —
 // with R2/S3 the client uploads to and reads from the bucket directly.

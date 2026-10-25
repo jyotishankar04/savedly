@@ -1,5 +1,5 @@
 import { env } from "../../../config/env";
-import { getOAuthCredentials, requireOAuthCredentials } from "../../auth/oauth-config";
+import { getOAuthCredentials, requireOAuthCredentials } from "../../auth/api";
 
 // Talks to GitHub for the "GitHub stars" integration. It reuses the OAuth app
 // that powers "Sign in with GitHub", so there is nothing extra to set up.

@@ -3,9 +3,8 @@ import { db } from "../../db";
 import { collections, memories, refreshTokens, sessions, tags, userPlanAssignments, users } from "../../db/schema";
 import { PlanAssignmentStatus, UserStatus } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
-import { getVectorStore } from "../ai/vector-store";
-import { deleteMemory } from "../memory/memory.service";
-import { collectMemoryFileKeys, deleteUnusedFiles, ownFileKey } from "../memory/memory-files";
+import { getVectorStore } from "../ai/api";
+import { deleteMemory, collectMemoryFileKeys, deleteUnusedFiles, ownFileKey } from "../memory/api";
 
 /** How long a soft-deleted account is recoverable before the sweep hard-deletes it. Logging back in during this window (auth.service.ts's findOrCreateUser) is the cancellation mechanism — no separate "undo" button needed. */
 export const ACCOUNT_DELETION_GRACE_DAYS = 30;

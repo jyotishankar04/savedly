@@ -7,8 +7,8 @@ import { AppError } from "../../shared/errors/app-error";
 import { buildDeviceFingerprint, parseUserAgent } from "../../shared/utils/device-fingerprint";
 import { parseDurationMs } from "../../shared/utils/duration";
 import { generateRefreshToken, hashToken, signAccessToken } from "../../shared/utils/jwt";
-import { isSignupsEnabled } from "../feature-flags/feature-flags.service";
-import { ACCOUNT_DELETION_GRACE_DAYS } from "../account/account.service";
+import { isSignupsEnabled } from "../feature-flags/api";
+import { ACCOUNT_DELETION_GRACE_DAYS } from "../account/api";
 import { requireOAuthCredentials } from "./oauth-config";
 import { hashPassword, verifyPassword } from "../../shared/crypto/scrypt-password";
 

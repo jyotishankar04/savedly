@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { listTags } from "../../../tag/tag.service";
+import { listTags } from "../../../tag/api";
 import { requireUserId, type RagRuntime } from "./shared";
 
 export const listTagsTool = tool(

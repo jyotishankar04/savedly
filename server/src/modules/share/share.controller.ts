@@ -7,7 +7,7 @@ import { ShareResourceType } from "../../db/enums";
 import { getSharedPayload, readUnlockedShares, resolveShareAccess } from "./share.access";
 import { verifyPassword as verifySharePassword } from "../../shared/crypto/scrypt-password";
 import { getShareViewSummary, getShareViewsDaily, listShareViewers, recordShareView } from "./share.views";
-import { assertFeature } from "../plans/plans.service";
+import { assertFeature } from "../plans/api";
 import { getClientIp } from "../../shared/utils/device-fingerprint";
 import * as shareService from "./share.service";
 

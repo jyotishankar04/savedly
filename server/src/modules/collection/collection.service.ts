@@ -2,7 +2,7 @@ import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { collectionMemories, collections, memories } from "../../db/schema";
 import { CollectionSource, PlanLimitType } from "../../db/enums";
-import { assertFeature, assertWithinLimit } from "../plans/plans.service";
+import { assertFeature, assertWithinLimit } from "../plans/api";
 import { AppError } from "../../shared/errors/app-error";
 import type { CreateCollectionInput, ListCollectionsQuery, UpdateCollectionInput } from "./collection.schema";
 

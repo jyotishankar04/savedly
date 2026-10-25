@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { updateMemory } from "../../../memory/memory.service";
+import { updateMemory } from "../../../memory/api";
 import { requireUserId, type RagRuntime } from "./shared";
 import { confirmFirst, ASKS_FIRST_NOTE } from "./confirm";
 

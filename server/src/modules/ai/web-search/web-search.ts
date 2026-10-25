@@ -1,8 +1,8 @@
 import { PlanLimitType } from "../../../db/enums";
 import { logger } from "../../../shared/utils/logger";
-import { logAiUsage } from "../../ai-usage/usage-logger";
+import { logAiUsage } from "../../ai-usage/api";
 import { getSection, type ResolvedSection } from "../../../platform/instance-settings/instance-settings.service";
-import { isWithinLimit } from "../../plans/plans.service";
+import { isWithinLimit } from "../../plans/api";
 
 /**
  * Web search for the AI: the research step on saves (ingestion's

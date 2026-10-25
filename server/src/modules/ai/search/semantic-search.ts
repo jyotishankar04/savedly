@@ -1,6 +1,6 @@
 import { getEmbeddings } from "../ai.providers";
 import { getVectorStore } from "../vector-store";
-import { logAiUsage } from "../../ai-usage/usage-logger";
+import { logAiUsage } from "../../ai-usage/api";
 import { logger } from "../../../shared/utils/logger";
 import type { SearchLegResult } from "./types";
 

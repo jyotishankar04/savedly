@@ -1,7 +1,7 @@
 import { logger } from "../../shared/utils/logger";
 import { env } from "../../config/env";
 import { EmailCategory, EmailTemplateKey, NotificationType, ShareResourceType } from "../../db/enums";
-import { createNotification } from "../notification/notification.service";
+import { createNotification } from "../notification/api";
 import { sendEmail } from "../email";
 import {
   shareAccessDecisionEmailTemplate,

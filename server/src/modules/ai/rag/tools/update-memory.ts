@@ -1,8 +1,8 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { getMemoryById, updateMemory } from "../../../memory/memory.service";
+import { getMemoryById, updateMemory } from "../../../memory/api";
 import { takeOrganizeSlot } from "./shared";
-import { planHasFeature } from "../../../plans/plans.service";
+import { planHasFeature } from "../../../plans/api";
 import type { RagRuntime } from "./shared";
 import { confirmFirst, shortTitle, type ConfirmationRequest } from "./confirm";
 

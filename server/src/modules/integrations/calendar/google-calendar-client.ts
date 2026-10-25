@@ -1,7 +1,7 @@
 import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
 import { isTokenCipherConfigured } from "../../../shared/crypto/token-cipher";
-import { getOAuthCredentials, requireOAuthCredentials } from "../../auth/oauth-config";
+import { getOAuthCredentials, requireOAuthCredentials } from "../../auth/api";
 import type {
   CalendarEventPayload,
   CalendarTokenExchange,

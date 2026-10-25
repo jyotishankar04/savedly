@@ -5,8 +5,8 @@ import { AiRole } from "../../../db/enums";
 import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
 import { getSection } from "../../../platform/instance-settings/instance-settings.service";
-import { getOAuthCredentials } from "../../auth/oauth-config";
-import { platformCredential, platformEmbeddingsCredential } from "../../ai/ai.providers";
+import { getOAuthCredentials } from "../../auth/api";
+import { platformCredential, platformEmbeddingsCredential } from "../../ai/api";
 
 // What a new self-hosted install still has to decide, for the setup panel in
 // the dashboard. AI is the one thing an install can't do without; the others

@@ -2,15 +2,13 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../../../db";
 import { collectionMemories, collections, memories, memoryTags, users } from "../../../../db/schema";
 import { CollectionSource, MemoryStatus, MemoryType } from "../../../../db/enums";
-import { resolveTagIds, type Tx } from "../../../memory/memory.service";
-import { EVENT_DETECTION_CONFIDENCE_THRESHOLD, notifyEventDetected } from "../../../memory/memory.notify";
+import { resolveTagIds, type Tx, EVENT_DETECTION_CONFIDENCE_THRESHOLD, notifyEventDetected } from "../../../memory/api";
 import { getVectorStore } from "../../vector-store";
 import { isVideoUrl } from "../extract-url";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
-import { collectionNameKey } from "./organize-collection";
-import { collectionIcon } from "../../../collection/collection.service";
+import { collectionIcon, collectionNameKey } from "../../../collection/api";
 
 async function assignCollection(tx: Tx, state: IngestionStateType): Promise<string | null> {
   if ((state.collectionAction !== "existing" && state.collectionAction !== "new") || !state.collectionName) return null;

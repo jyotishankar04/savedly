@@ -1,6 +1,6 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { authenticate } from "../../shared/middlewares/authenticate";
-import { requireFeature } from "../plans/require-feature";
+import { requireFeature } from "../plans/api";
 import { requireVaultUnlocked } from "../vault";
 import { BatchController } from "./batch.controller";
 import {

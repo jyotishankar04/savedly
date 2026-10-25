@@ -6,8 +6,8 @@ import { memories, users } from "../../../db/schema";
 import { AiRole } from "../../../db/enums";
 import { env } from "../../../config/env";
 import { getSection } from "../../../platform/instance-settings/instance-settings.service";
-import { getOAuthCredentials } from "../../auth/oauth-config";
-import { platformCredential } from "../../ai/ai.providers";
+import { getOAuthCredentials } from "../../auth/api";
+import { platformCredential } from "../../ai/api";
 import { appVersion } from "./update.service";
 
 /** Total bytes under a directory (the local-disk file store). Missing dir = 0. */

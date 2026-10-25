@@ -3,7 +3,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../../../db";
 import { memories } from "../../../../db/schema";
-import { getMemoryById } from "../../../memory/memory.service";
+import { getMemoryById } from "../../../memory/api";
 import { semanticSearch } from "../../search/semantic-search";
 import { lexicalSearch } from "../../search/lexical-search";
 import { hybridSearch } from "../../search/hybrid-search";

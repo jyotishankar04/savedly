@@ -5,9 +5,7 @@ import { MemoryStatus, MemoryType, PlanLimitType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { logger } from "../../shared/utils/logger";
 import { withFileCleanup } from "./memory-files";
-import { enqueueIngestion, enqueueNoteRefresh, enqueueNoteReindex } from "../ai/ingestion/queue";
-import { getVectorStore } from "../ai/vector-store";
-import { hybridSearch, SEMANTIC_SIMILARITY_FLOOR } from "../ai/search";
+import { enqueueIngestion, enqueueNoteRefresh, enqueueNoteReindex, getVectorStore, hybridSearch, SEMANTIC_SIMILARITY_FLOOR } from "../ai/api";
 import { normalizeUrl } from "./normalize-url";
 import { buildOkfBundle, zipOkfBundle } from "./okf-export";
 import type {
@@ -17,9 +15,9 @@ import type {
   ListMemoriesQuery,
   UpdateMemoryInput,
 } from "./memory.schema";
-import { assertFeature, assertWithinLimit } from "../plans/plans.service";
+import { assertFeature, assertWithinLimit } from "../plans/api";
 import { DuplicateStatus, findDuplicate } from "./duplicates";
-import type { SocialPost } from "../ai/url-processor";
+import type { SocialPost } from "../ai/api";
 
 /** Saves meant to be read or watched later: they start unread, in the Inbox. Notes and voice memos are the user's own words. */
 export const READ_LATER_TYPES = new Set<string>(["web", "video", "document", "image"]);

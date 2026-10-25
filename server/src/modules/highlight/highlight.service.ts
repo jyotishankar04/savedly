@@ -2,8 +2,7 @@ import { and, asc, eq, isNotNull } from "drizzle-orm";
 import { db } from "../../db";
 import { memories, memoryHighlights } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
-import { lookupByUrl, urlKey } from "../memory/inbox.service";
-import { createMemory } from "../memory/memory.service";
+import { lookupByUrl, urlKey, createMemory } from "../memory/api";
 import type { CreateHighlightInput, UpdateHighlightInput } from "./highlight.schema";
 
 export type Highlight = typeof memoryHighlights.$inferSelect;

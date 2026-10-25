@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { extname } from "path";
 import { getStorage, type PresignedUpload } from "../../platform/storage";
 import { PlanLimitType } from "../../db/enums";
-import { assertFileSizeAllowed, assertWithinLimit } from "../plans/plans.service";
+import { assertFileSizeAllowed, assertWithinLimit } from "../plans/api";
 import type { PresignUploadInput } from "./upload.schema";
 
 export type { PresignedUpload };

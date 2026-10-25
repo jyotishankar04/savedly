@@ -20,7 +20,7 @@ import { generateEmbeddings } from "./nodes/generate-embeddings";
 import { upsertVectors } from "./nodes/upsert-vectors";
 import { logger } from "../../../shared/utils/logger";
 import type { IngestionStateType, IngestionUpdate } from "./state";
-import { providerRefusal } from "../provider-health";
+import { providerRefusal } from "../../ai-usage/api";
 
 const STATE_FIELDS = IngestionState.fields as unknown as Record<string, ZodType>;
 

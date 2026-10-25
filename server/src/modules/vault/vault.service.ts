@@ -4,7 +4,7 @@ import { users } from "../../db/schema";
 import { AppError } from "../../shared/errors/app-error";
 import { hashPassword, verifyPassword } from "../../shared/crypto/scrypt-password";
 import type { SetPinInput } from "./vault.schema";
-import { assertFeature } from "../plans/plans.service";
+import { assertFeature } from "../plans/api";
 
 export interface VaultStatus {
   hasPin: boolean;

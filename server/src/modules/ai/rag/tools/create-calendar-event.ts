@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { createStandaloneCalendarEvent } from "../../../integrations/calendar/calendar.service";
+import { createStandaloneCalendarEvent } from "../../../integrations/api";
 import { confirmFirst, shortTitle, whenText, ASKS_FIRST_NOTE } from "./confirm";
 import type { RagRuntime } from "./shared";
 

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { isBatchOperationsEnabled, getBatchMaxSize } from "../feature-flags/feature-flags.service";
+import { isBatchOperationsEnabled, getBatchMaxSize } from "../feature-flags/api";
 import {
   batchTagMemories,
   batchMoveToCollection,

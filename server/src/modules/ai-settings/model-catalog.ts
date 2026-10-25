@@ -1,6 +1,6 @@
 import { AiCredentialProvider } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
-import { OPENROUTER_BASE_URL } from "../ai/ai.providers";
+import { OPENROUTER_BASE_URL } from "../ai/api";
 
 // OpenRouter publishes a free, keyless catalog of every model it routes to
 // (hundreds of models across dozens of providers) with prices, context

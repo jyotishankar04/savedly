@@ -1,8 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { memories } from "../../../../db/schema";
-import { DuplicateStatus, findDuplicate } from "../../../memory/duplicates";
-import { notifyDuplicateDetected } from "../../../memory/memory.notify";
+import { DuplicateStatus, findDuplicate, notifyDuplicateDetected } from "../../../memory/api";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 

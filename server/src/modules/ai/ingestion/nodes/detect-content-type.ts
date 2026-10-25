@@ -1,7 +1,7 @@
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { createUsageCallback } from "../../../ai-usage/api";
 import { linkOfNote } from "../extract-url";
 import { logNode } from "../log";
 import { researchForPrompt } from "./research-context";

@@ -1,6 +1,6 @@
 import { tool, type ToolRuntime } from "@langchain/core/tools";
 import { z } from "zod";
-import { createMemory } from "../../../memory/memory.service";
+import { createMemory } from "../../../memory/api";
 import { ragToolContextSchema } from "./search-memories";
 
 const inputSchema = z.object({

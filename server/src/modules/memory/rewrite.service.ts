@@ -5,9 +5,8 @@ import { db } from "../../db";
 import { memories } from "../../db/schema";
 import { MemoryType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
-import { getChatModel } from "../ai/ai.providers";
-import { createUsageCallback } from "../ai-usage/usage-logger";
-import { UNTRUSTED_RULE, wrapUntrusted } from "../ai/untrusted";
+import { getChatModel, UNTRUSTED_RULE, wrapUntrusted } from "../ai/api";
+import { createUsageCallback } from "../ai-usage/api";
 
 export type RewriteMode = "fix" | "improve" | "shorten";
 

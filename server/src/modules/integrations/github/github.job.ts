@@ -1,7 +1,7 @@
 import { Queue, Worker } from "bullmq";
 import { redis } from "../../../config/redis";
 import { logger } from "../../../shared/utils/logger";
-import { isGithubStarsEnabled } from "../../feature-flags/feature-flags.service";
+import { isGithubStarsEnabled } from "../../feature-flags/api";
 import { isGithubStarsConfigured } from "./github-client";
 import { syncAllGithubConnections } from "./github.service";
 

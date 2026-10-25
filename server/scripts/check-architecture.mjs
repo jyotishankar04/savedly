@@ -4,7 +4,7 @@
 //   1. Layers only depend downward:  config < db, shared < platform < modules < app (routes, app, server).
 //      Base layers never import a feature module; platform services never import one either.
 //   2. No import cycles between files.
-//   3. A module uses another module through its public entry point (its index.ts), not its internal files.
+//   3. A module uses another module through its public entry points (api.ts for services and types, index.ts for what the app mounts), not its internal files.
 //      The deep imports that exist today are listed in architecture.baseline.json: the list may only shrink.
 //
 // Run: pnpm check:arch      (add --update-baseline after you've removed deep imports, to shrink the list)
@@ -17,6 +17,8 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../src");
 const baselineFile = path.resolve(here, "architecture.baseline.json");
+// What another module may import from a module: its api.ts (services and types for other modules) and its index.ts (what the app mounts).
+const PUBLIC_ENTRY_POINTS = new Set(["index.ts", "api.ts"]);
 const ENTRY_POINTS = new Set(["server.ts", "db/seed.ts", "db/seed-core.ts", "db/seed-feature-tour.ts", "db/reindex.ts", "db/reset-plans.ts", "db/bootstrap.ts", "db/migrate.ts"]);
 
 /** Lower number = lower layer. A file may import only from its own layer (inside its own area) or below. */
@@ -91,14 +93,14 @@ for (const c of cycles) problems.push(`cycle: ${c.sort().join(" <-> ")}`);
 const deep = new Set();
 for (const { from, to } of edges) {
   const a = moduleOf(from), b = moduleOf(to);
-  if (a && b && a !== b && path.posix.basename(to) !== "index.ts") deep.add(`${from} -> ${to}`);
+  if (a && b && a !== b && !PUBLIC_ENTRY_POINTS.has(path.posix.basename(to))) deep.add(`${from} -> ${to}`);
 }
 const baseline = fs.existsSync(baselineFile) ? new Set(JSON.parse(fs.readFileSync(baselineFile, "utf8"))) : new Set();
 if (process.argv.includes("--update-baseline")) {
   fs.writeFileSync(baselineFile, `${JSON.stringify([...deep].sort(), null, 1)}\n`);
   console.log(`baseline written: ${deep.size} deep imports`);
 }
-for (const d of deep) if (!baseline.has(d) && !process.argv.includes("--update-baseline")) problems.push(`deep import (new): ${d}  — import it from the module's index.ts instead`);
+for (const d of deep) if (!baseline.has(d) && !process.argv.includes("--update-baseline")) problems.push(`deep import (new): ${d}  — import it from the module's api.ts instead (add it there)`);
 const shrunk = [...baseline].filter((d) => !deep.has(d)).length;
 
 if (problems.length) {

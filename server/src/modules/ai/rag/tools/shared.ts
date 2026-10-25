@@ -1,6 +1,5 @@
 import type { ToolRuntime } from "@langchain/core/tools";
-import { listCollections } from "../../../collection/collection.service";
-import { collectionNameKey } from "../../ingestion/nodes/organize-collection";
+import { listCollections, collectionNameKey } from "../../../collection/api";
 import type { ragToolContextSchema } from "./search-memories";
 
 // Small helpers the Ask tools share.

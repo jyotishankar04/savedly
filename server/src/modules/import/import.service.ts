@@ -3,12 +3,12 @@ import { db } from "../../db";
 import { importBatches, importItems, memories } from "../../db/schema";
 import { ImportItemStatus, ImportSourceType, MemoryStatus, MemoryType, PlanLimitType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
-import { enqueueIngestionBulk } from "../ai/ingestion/queue";
-import { normalizeUrl } from "../memory/normalize-url";
+import { enqueueIngestionBulk } from "../ai/api";
+import { normalizeUrl } from "../memory/api";
 import { parseBookmarksHtml } from "./bookmark-parser";
 import { parseUrlList } from "./url-list-parser";
 import { IMPORT_MAX_URLS, type ImportInput, type ListImportItemsQuery } from "./import.schema";
-import { assertWithinLimit } from "../plans/plans.service";
+import { assertWithinLimit } from "../plans/api";
 
 interface ParsedItem {
   url: string;

@@ -2,7 +2,7 @@ import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages
 import type { GraphNode } from "@langchain/langgraph";
 import { z } from "zod";
 import { getChatModel } from "../../ai.providers";
-import { withUsage } from "../../../ai-usage/usage-logger";
+import { withUsage } from "../../../ai-usage/api";
 import { FRONT_DESK_CLASSIFY_PROMPT, FRONT_DESK_DECLINE_PROMPT } from "../prompts";
 import { RAGState, type RAGStateType } from "../state";
 import { INTERNAL_EVENT_TAG } from "../internal-tag";

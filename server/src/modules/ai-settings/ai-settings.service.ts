@@ -1,14 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { aiCredentials, userAiRoleAssignments } from "../../db/schema";
-import { AiCredentialProvider, AiRole } from "../../db/enums";
+import { AiCredentialProvider, AiRole, PlanLimitType } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import { env } from "../../config/env";
 import { decryptToken, encryptToken } from "../../shared/crypto/token-cipher";
 import { listProviderModels, type ProviderModelList } from "./model-catalog";
-import { hasOwnCredential, platformCredential, testRoleCredential, type TestCredentialResult } from "../ai/ai.providers";
-import { getCurrentUsage, getPlanLimits, isWithinLimit, planHasManagedAi, resolveEffectivePlan } from "../plans/plans.service";
-import { PlanLimitType } from "../../db/enums";
+import { hasOwnCredential, platformCredential, testRoleCredential, type TestCredentialResult } from "../ai/api";
+import { getCurrentUsage, getPlanLimits, isWithinLimit, planHasManagedAi, resolveEffectivePlan } from "../plans/api";
 import type { AssignRoleInput, CreateCredentialInput, TestConnectionInput, UpdateCredentialInput } from "./ai-settings.schema";
 
 /** Which roles the platform covers by default, without any user-configured key — right now just embeddings (see .env.example). Surfaced so the settings UI can show "provided by default" instead of "not set". */

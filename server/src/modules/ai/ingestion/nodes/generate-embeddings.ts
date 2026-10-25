@@ -1,5 +1,5 @@
 import { getEmbeddings } from "../../ai.providers";
-import { logAiUsage } from "../../../ai-usage/usage-logger";
+import { logAiUsage } from "../../../ai-usage/api";
 import { logNode } from "../log";
 import { logger } from "../../../../shared/utils/logger";
 import type { IngestionStateType, IngestionUpdate } from "../state";

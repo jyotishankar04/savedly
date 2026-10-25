@@ -1,11 +1,9 @@
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../../../db";
-import { emailCampaigns, emailMessages } from "../../../db/schema";
-import { EmailCategory, EmailStatus } from "../../../db/enums";
+import { emailCampaigns, emailMessages, users } from "../../../db/schema";
+import { EmailCategory, EmailStatus, EmailTemplateKey } from "../../../db/enums";
 import { AppError } from "../../../shared/errors/app-error";
 import { sendBulkEmail, sendEmail } from "../../email";
-import { users } from "../../../db/schema";
-import { EmailTemplateKey } from "../../../db/enums";
 import { composedEmailTemplate, withUnsubscribeUrl } from "../../../platform/mailer/templates";
 import { unsubscribePageUrl } from "../../../platform/mailer/unsubscribe";
 import { env } from "../../../config/env";

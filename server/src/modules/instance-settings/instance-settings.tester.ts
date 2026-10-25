@@ -5,9 +5,7 @@ import { db } from "../../db";
 import { AiCredentialProvider, AiRole } from "../../db/enums";
 import { createS3Driver, localDriver, type S3Settings } from "../../platform/storage";
 import { createTransport, type SmtpSettings } from "../../platform/mailer/mailer";
-import { pineconeClient } from "../ai/vector-store/pinecone-store";
-import { platformCredentialFrom, testEmbeddingsCredential, testRoleCredential } from "../ai/ai.providers";
-import { searchWith } from "../ai/web-search/web-search";
+import { pineconeClient, platformCredentialFrom, testEmbeddingsCredential, testRoleCredential, searchWith } from "../ai/api";
 import type { SectionId } from "../../platform/instance-settings/instance-settings.registry";
 import type { ResolvedSection } from "../../platform/instance-settings/instance-settings.service";
 

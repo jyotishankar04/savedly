@@ -4,8 +4,9 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { collectionMemories, collections } from "../../../../db/schema";
 import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { createUsageCallback } from "../../../ai-usage/api";
 import { logNode } from "../log";
+import { collectionNameKey } from "../../../collection/api";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 import { researchForPrompt } from "./research-context";
@@ -15,30 +16,6 @@ interface CollectionDecision {
   collectionName?: string;
   icon?: string;
   description?: string;
-}
-
-/** A rough English singular, enough to line up "Taxes"/"Tax", "Glasses"/"Glass" and "Birthdays"/"Birthday". */
-function singular(word: string): string {
-  if (word.length <= 3) return word;
-  if (/(ss|x|z|ch|sh)es$/.test(word)) return word.slice(0, -2);
-  if (word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
-  return word;
-}
-
-/**
- * A comparable form of a collection name, so "Birthdays", "birthday" and
- * "Meetings & Scheduling" / "meeting and scheduling" count as the same
- * collection instead of becoming near-duplicates.
- */
-export function collectionNameKey(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim()
-    .split(/\s+/)
-    .map(singular)
-    .join(" ");
 }
 
 const prompt = ChatPromptTemplate.fromTemplate(

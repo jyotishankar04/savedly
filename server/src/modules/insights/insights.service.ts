@@ -1,9 +1,9 @@
 import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "../../db";
 import { collections, memories, tags } from "../../db/schema";
-import { listTags } from "../tag/tag.service";
-import { listCollections } from "../collection/collection.service";
-import { planHasFeature } from "../plans/plans.service";
+import { listTags } from "../tag/api";
+import { listCollections } from "../collection/api";
+import { planHasFeature } from "../plans/api";
 
 export interface CountedLabel {
   label: string;

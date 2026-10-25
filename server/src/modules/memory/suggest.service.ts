@@ -3,10 +3,9 @@ import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { collections } from "../../db/schema";
-import { getChatModel } from "../ai/ai.providers";
-import { createUsageCallback } from "../ai-usage/usage-logger";
-import { collectionNameKey } from "../ai/ingestion/nodes/organize-collection";
-import { UNTRUSTED_RULE, wrapUntrusted } from "../ai/untrusted";
+import { getChatModel, UNTRUSTED_RULE, wrapUntrusted } from "../ai/api";
+import { collectionNameKey } from "../collection/api";
+import { createUsageCallback } from "../ai-usage/api";
 
 export interface PageSuggestion {
   collection: { id: string | null; name: string; isNew: boolean } | null;

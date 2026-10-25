@@ -6,7 +6,7 @@ import { logAdminAction } from "../../shared/utils/audit-log";
 import { getSectionDef, type SectionId } from "../../platform/instance-settings/instance-settings.registry";
 import { describeSections, mergeCandidate, saveSection } from "../../platform/instance-settings/instance-settings.service";
 import { testSection } from "./instance-settings.tester";
-import { countMemoriesToReindex, isReindexRunning, reindexMemories } from "../ai/ingestion/reembed";
+import { countMemoriesToReindex, isReindexRunning, reindexMemories } from "../ai/api";
 
 function sectionParam(req: Request): SectionId {
   const id = req.params.section as string;

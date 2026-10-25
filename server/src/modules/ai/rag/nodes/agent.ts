@@ -2,8 +2,8 @@ import { AIMessage, SystemMessage, ToolMessage, type BaseMessage } from "@langch
 import type { GraphNode } from "@langchain/langgraph";
 import { getChatModel, platformCredential } from "../../ai.providers";
 import { AiRole } from "../../../../db/enums";
-import { planHasManagedAi } from "../../../plans/plans.service";
-import { withUsage } from "../../../ai-usage/usage-logger";
+import { planHasManagedAi } from "../../../plans/api";
+import { withUsage } from "../../../ai-usage/api";
 import { tools } from "../tools";
 import { webSearchAvailable } from "../../web-search/web-search";
 import { isConfirmationRequest, turnConfirmation } from "../tools/confirm";

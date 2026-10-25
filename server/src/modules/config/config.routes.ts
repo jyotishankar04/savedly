@@ -3,9 +3,9 @@ import type { Request, Response } from "express";
 import { env } from "../../config/env";
 import { ApiResponse } from "../../shared/response/api-response";
 import { isBillingEnabled } from "../billing";
-import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../feature-flags/feature-flags.service";
-import { isAiReady } from "../admin/system/setup.service";
-import { isGithubStarsAvailable } from "../integrations/github/github.controller";
+import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../feature-flags/api";
+import { isAiReady } from "../admin/api";
+import { isGithubStarsAvailable } from "../integrations/api";
 
 const router = Router();
 

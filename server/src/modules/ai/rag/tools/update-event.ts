@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { eventLinksForMemory, updateEventForMemory, updateExternalCalendarEvent } from "../../../integrations/calendar/calendar.service";
-import { getMemoryById } from "../../../memory/memory.service";
+import { eventLinksForMemory, updateEventForMemory, updateExternalCalendarEvent } from "../../../integrations/api";
+import { getMemoryById } from "../../../memory/api";
 import { assertTarget, eventTargetSchema } from "./event-target";
 import { requireUserId, type RagRuntime } from "./shared";
 import { confirmFirst, shortTitle, whenText, ASKS_FIRST_NOTE } from "./confirm";

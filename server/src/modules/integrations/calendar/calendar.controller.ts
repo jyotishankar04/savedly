@@ -4,7 +4,7 @@ import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
 import { logger } from "../../../shared/utils/logger";
 import { signCalendarStateToken, verifyCalendarStateToken } from "../../../shared/utils/jwt";
-import { getMemoryById } from "../../memory/memory.service";
+import { getMemoryById } from "../../memory/api";
 import {
   buildGoogleCalendarAuthUrl,
   exchangeGoogleCalendarCode,
@@ -37,7 +37,7 @@ import { calendarConnections } from "../../../db/schema";
 import { and, eq } from "drizzle-orm";
 import { CalendarProvider } from "../../../db/enums";
 import { decryptToken } from "../../../shared/crypto/token-cipher";
-import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../../feature-flags/feature-flags.service";
+import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../../feature-flags/api";
 
 async function initiateConnect(req: Request, res: Response, provider: CalendarProviderKey) {
   // Switched off by an admin: back to Integrations, which explains why. This

@@ -23,7 +23,7 @@ import { hashPassword as hashSharePassword } from "../../shared/crypto/scrypt-pa
 import { notifyAccessDecision, notifyAccessRequested, notifyShareInvite } from "./share.notify";
 import type { ShareRow } from "./share.access";
 import type { CreateShareInput, ListSharesQuery, UpdateShareInput } from "./share.schema";
-import { assertFeature, assertWithinLimit } from "../plans/plans.service";
+import { assertFeature, assertWithinLimit } from "../plans/api";
 
 // A denied request shouldn't be re-openable immediately — the partial
 // unique index only stops duplicate *pending* rows.

@@ -13,9 +13,9 @@ import { EMBEDDING_DIMENSIONS } from "../../db/pgvector-type";
 import { decryptToken } from "../../shared/crypto/token-cipher";
 import { logger } from "../../shared/utils/logger";
 import { env } from "../../config/env";
-import { createUsageCallback, PLATFORM_AI_TAG } from "../ai-usage/usage-logger";
+import { createUsageCallback, PLATFORM_AI_TAG } from "../ai-usage/api";
 import { getSection } from "../../platform/instance-settings/instance-settings.service";
-import { canUseIncludedAi, planHasManagedAi, type IncludedAiPurpose } from "../plans/plans.service";
+import { canUseIncludedAi, planHasManagedAi, type IncludedAiPurpose } from "../plans/api";
 
 export interface UsageContext {
   userId: string | null;

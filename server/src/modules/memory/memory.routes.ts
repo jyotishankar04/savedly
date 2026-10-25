@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { authenticate } from "../../shared/middlewares/authenticate";
 import { MemoryController } from "./memory.controller";
-import { HighlightController } from "../highlight/highlight.controller";
+import { HighlightController } from "../highlight/api";
 import { requireUnlockToUnvault, requireVaultUnlockedForQuery } from "../vault";
-import { CalendarController, validatePushEvent, validateUpdateEvent } from "../integrations/calendar";
-import { requireFeature } from "../plans/require-feature";
+import { CalendarController, validatePushEvent, validateUpdateEvent } from "../integrations/api";
+import { requireFeature } from "../plans/api";
 import {
   validateBrowserCapture,
   validateCreateMemory,

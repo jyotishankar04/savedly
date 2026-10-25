@@ -5,7 +5,7 @@ import { CalendarProvider } from "../../../db/enums";
 import { AppError } from "../../../shared/errors/app-error";
 import { logger } from "../../../shared/utils/logger";
 import { decryptToken, encryptToken } from "../../../shared/crypto/token-cipher";
-import { createMemory, getMemoryById, updateMemory } from "../../memory/memory.service";
+import { createMemory, getMemoryById, updateMemory } from "../../memory/api";
 import {
   createGoogleCalendarEvent,
   deleteGoogleCalendarEvent,

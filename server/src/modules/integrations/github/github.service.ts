@@ -6,9 +6,9 @@ import { AppError } from "../../../shared/errors/app-error";
 import { decryptToken, encryptToken } from "../../../shared/crypto/token-cipher";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 import { logger } from "../../../shared/utils/logger";
-import { enqueueIngestionBulk } from "../../ai/ingestion/queue";
-import { normalizeUrl } from "../../memory/normalize-url";
-import { remainingWithinLimit } from "../../plans/plans.service";
+import { enqueueIngestionBulk } from "../../ai/api";
+import { normalizeUrl } from "../../memory/api";
+import { remainingWithinLimit } from "../../plans/api";
 import { GithubAuthError, STARS_PAGE_SIZE, getGithubViewer, listStarredRepos, revokeGithubToken, type StarredRepo } from "./github-client";
 
 // GitHub stars: a connected GitHub account whose starred repositories are

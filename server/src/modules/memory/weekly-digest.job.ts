@@ -7,7 +7,7 @@ import { memories, userSettings, users } from "../../db/schema";
 import { EmailCategory, EmailTemplateKey, UserStatus } from "../../db/enums";
 import { weeklyDigestEmailTemplate } from "../../platform/mailer/templates";
 import { logger } from "../../shared/utils/logger";
-import { sendEmail } from "../email/email.service";
+import { sendEmail } from "../email/api";
 
 // The weekly email (roadmap: "A weekly email of things to read"): on Sunday
 // morning, in each person's own time zone, a few saves from their Inbox they

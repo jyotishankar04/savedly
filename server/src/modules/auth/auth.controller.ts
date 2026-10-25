@@ -4,7 +4,7 @@ import { env } from "../../config/env";
 import { ApiResponse } from "../../shared/response/api-response";
 import { AppError } from "../../shared/errors/app-error";
 import { getClientIp } from "../../shared/utils/device-fingerprint";
-import { isPasswordAuthEnabled, isProviderEnabled, isSignupsEnabled } from "../feature-flags/feature-flags.service";
+import { isPasswordAuthEnabled, isProviderEnabled, isSignupsEnabled } from "../feature-flags/api";
 import { getOAuthCredentials } from "./oauth-config";
 import {
   OAUTH_NEXT_COOKIE,
@@ -17,7 +17,7 @@ import {
   setOAuthNextCookie,
   setOAuthStateCookie,
 } from "../../shared/utils/cookies";
-import { claimPendingGrantsForEmail } from "../share/share.service";
+import { claimPendingGrantsForEmail } from "../share/api";
 import { sendEmail } from "../email";
 import { EmailCategory, EmailTemplateKey } from "../../db/enums";
 import { welcomeEmailTemplate } from "../../platform/mailer/templates";
