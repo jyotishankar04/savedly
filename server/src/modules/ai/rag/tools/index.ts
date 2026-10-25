@@ -19,8 +19,7 @@ import { removeEventTool } from "./remove-event";
 import { searchWebTool } from "./search-web";
 import { setReminderTool } from "./set-reminder";
 
-// Adding a future tool is a new file + one entry here — no graph changes
-// needed (see nodes/agent.ts).
+// A new tool is a file plus one entry here, with no graph changes (see nodes/agent.ts).
 export const tools = [
   searchMemoriesTool,
   searchMemoriesByDateTool,
@@ -30,22 +29,17 @@ export const tools = [
   deleteMemoryTool,
   createCollectionTool,
   platformHelpTool,
-  // Find
   readMemoryTool,
   findMemoriesTool,
   findRelatedTool,
-  // Organize
   listCollectionsTool,
   listTagsTool,
   restoreMemoriesTool,
   updateManyMemoriesTool,
-  // Calendar
   listUpcomingEventsTool,
   updateEventTool,
   removeEventTool,
-  // Reminders ("Remind me")
   setReminderTool,
-  // The web, for what saved memories don't hold
   searchWebTool,
 ];
 

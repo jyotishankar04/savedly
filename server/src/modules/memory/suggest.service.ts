@@ -3,10 +3,9 @@ import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { collections } from "../../db/schema";
-import { getChatModel } from "../ai/ai.providers";
-import { createUsageCallback } from "../ai-usage/usage-logger";
-import { collectionNameKey } from "../ai/ingestion/nodes/organize-collection";
-import { UNTRUSTED_RULE, wrapUntrusted } from "../ai/untrusted";
+import { getChatModel, UNTRUSTED_RULE, wrapUntrusted } from "../ai/api";
+import { collectionNameKey } from "../collection/api";
+import { createUsageCallback } from "../ai-usage/api";
 
 export interface PageSuggestion {
   collection: { id: string | null; name: string; isNew: boolean } | null;
@@ -34,9 +33,8 @@ const cache = new Map<string, { at: number; value: PageSuggestion }>();
 const CACHE_MS = 10 * 60 * 1000;
 
 /**
- * Before a save from the extension: which collection and tags fit this page.
- * Shown as chips to tap, never applied by itself. Empty when the user has no
- * AI available (no key, or included AI used up); it never blocks a save.
+ * Before an extension save: which collection and tags fit, shown as chips and never applied by
+ * itself. Empty without AI; never blocks a save.
  */
 export async function suggestForPage(userId: string, input: { url: string; title?: string; description?: string }): Promise<PageSuggestion> {
   const key = `${userId}:${input.url}`;

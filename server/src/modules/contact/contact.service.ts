@@ -1,20 +1,16 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { contactMessages } from "../../db/schema";
-import { getSection } from "../instance-settings/instance-settings.service";
-import { isEmailEnabled, sendMail } from "../../shared/mailer/mailer";
+import { getSection } from "../../platform/instance-settings/instance-settings.service";
+import { isEmailEnabled, sendMail } from "../../platform/mailer/mailer";
 import { logger } from "../../shared/utils/logger";
 import type { SendContactInput } from "./contact.schema";
 
 const escape = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /**
- * A message from the website's contact page. Saved first, so it's never lost
- * and can be read and answered in Admin > Messages; then a copy goes to the
- * contact address (Admin > Infrastructure > Email) with Reply-To set to the
- * person who wrote, so answering is just pressing Reply. The email is best
- * effort: switched off or failing, the message is still saved and the person
- * still sees it arrive.
+ * Saved first (read and answered in Admin > Messages), then a best-effort copy is emailed with
+ * Reply-To set to the sender. If the email fails, the message is still saved.
  */
 export async function sendContactMessage(input: SendContactInput, userId: string | null): Promise<{ id: string }> {
   const [row] = await db

@@ -1,12 +1,12 @@
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
-import { getChatModel } from "../../ai.providers";
-import { createUsageCallback } from "../../../ai-usage/usage-logger";
+import { getChatModel } from "../../models";
+import { createUsageCallback } from "../../../ai-usage/api";
 import { logger } from "../../../../shared/utils/logger";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 import { isPlaceholderTitle } from "../title";
-import { planHasFeature } from "../../../plans/plans.service";
+import { planHasFeature } from "../../../plans/api";
 import { localNow, userTimeZone, utcOffset } from "../../../../shared/utils/time-zone";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 
@@ -34,16 +34,11 @@ Context (title / domain / URL):
 Respond as strict JSON: {{"hasEvent": true or false, "eventAt": "ISO string or null", "confidence": 0.0}}`,
 );
 
-// Deliberately deviates from every sibling classification node
-// (classify-intent.ts, detect-content-type.ts, etc.), which have no
-// try/catch and let a thrown error fail the whole ingestion job. Event
-// detection is pure enrichment, not core to a memory existing — a flaky
-// LLM call or a malformed date here must degrade to "no event detected,"
-// never flip the memory to FAILED.
+// Unlike sibling nodes this catches errors: detection is enrichment, so a flaky call or bad date
+// means "no event", not a failed memory.
 export async function detectEvent(state: IngestionStateType): Promise<IngestionUpdate> {
   const noContent = !state.rawContent && !state.correctedCaption && !state.caption;
-  // Finding events is a plan feature; without it this step is skipped (and
-  // costs no AI).
+  // A plan feature; without it the step is skipped and costs no AI.
   if (noContent || !(await planHasFeature(state.userId, "aiEventDetection"))) {
     return { detectedEventAt: null, eventDetectionConfidence: null };
   }

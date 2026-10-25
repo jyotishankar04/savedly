@@ -4,10 +4,9 @@ import { ACCESS_TOKEN_COOKIE } from "../utils/cookies";
 import { verifyAccessToken } from "../utils/jwt";
 
 /**
- * Bearer header first, cookie second. Exported so optional-authenticate.ts
- * shares this precedence rather than reimplementing it — the extension sends
- * a Bearer header while the web client relies on the cookie, and the two
- * middlewares drifting apart would authenticate different callers.
+ * Bearer header first, cookie second. Exported so optional-authenticate.ts shares the precedence:
+ * the extension sends a Bearer header, the web client a cookie, and drifting apart would
+ * authenticate different callers.
  */
 export function extractToken(req: Request): string | null {
   const header = req.headers.authorization;

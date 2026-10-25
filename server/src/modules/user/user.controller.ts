@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import { getUserWithRoles } from "../auth/auth.service";
+import { getUserWithRoles } from "../auth/api";
 import { completeOnboarding, updateProfile } from "./user.service";
 
 export class UserController {

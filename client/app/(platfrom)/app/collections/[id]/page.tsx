@@ -16,6 +16,7 @@ import { EditCollectionDialog } from "@/components/collection/edit-collection-di
 import { useCollectionQuery, useMemoriesQuery } from "@/context/MemoryContext";
 import { MemoryGridCard } from "@/components/memory/memory-grid-card";
 import { MemorySwipe } from "@/components/memory/memory-swipe";
+import { MemoryListRow } from "@/components/memory/memory-list-row";
 import { usePinch } from "@/hooks/use-pinch";
 import { QueryErrorState } from "@/components/query-error-state";
 
@@ -174,22 +175,42 @@ export default function CollectionDetailPage() {
           <p className="text-xs text-muted-foreground">Add memories to it from the memories list or quick capture.</p>
         </div>
       ) : (
-        // The same cards as Memories: full in grid view; smaller in list view, two to
-        // a row on a phone. Both swipe (read, archive) and open the memory.
-        <div className={cn(viewMode === "grid" ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" : "grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4")}>
-          {memories.map((item) => (
-            <MemorySwipe key={item.id} memory={item} disabled={selection.isSelecting} className={viewMode === "grid" ? "rounded-2xl" : "rounded-xl"}>
-              <MemoryGridCard
-                item={item}
-                href={`/app/memories/${item.id}`}
-                compact={viewMode === "list"}
-                selected={selection.has(item.id)}
-                selecting={selection.isSelecting}
-                onSelect={(e) => selection.toggle(item.id, e)}
-              />
-            </MemorySwipe>
-          ))}
-        </div>
+        // As on Memories: full cards in grid view. List view is the smaller cards,
+        // two to a row, on a phone, and rows from sm up. All swipe (read, archive)
+        // and open the memory.
+        <>
+          <div className={cn(viewMode === "grid" ? "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" : "grid grid-cols-2 gap-2.5 sm:hidden")}>
+            {memories.map((item) => (
+              <MemorySwipe key={item.id} memory={item} disabled={selection.isSelecting} className={viewMode === "grid" ? "rounded-2xl" : "rounded-xl"}>
+                <MemoryGridCard
+                  item={item}
+                  href={`/app/memories/${item.id}`}
+                  compact={viewMode === "list"}
+                  selected={selection.has(item.id)}
+                  selecting={selection.isSelecting}
+                  onSelect={(e) => selection.toggle(item.id, e)}
+                />
+              </MemorySwipe>
+            ))}
+          </div>
+          {viewMode === "list" && (
+            <ul className="hidden space-y-1.5 sm:block">
+              {memories.map((item) => (
+                <li key={item.id}>
+                  <MemorySwipe memory={item} disabled={selection.isSelecting} className="rounded-xl">
+                    <MemoryListRow
+                      item={item}
+                      onOpen={() => router.push(`/app/memories/${item.id}`)}
+                      selected={selection.has(item.id)}
+                      selecting={selection.isSelecting}
+                      onSelect={(e) => selection.toggle(item.id, e)}
+                    />
+                  </MemorySwipe>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       <EditCollectionDialog collection={collection} open={editOpen} onOpenChange={setEditOpen} />

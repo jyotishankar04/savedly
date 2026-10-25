@@ -1,14 +1,11 @@
-import { getEmbeddings } from "../../ai.providers";
-import { logAiUsage } from "../../../ai-usage/usage-logger";
+import { getEmbeddings } from "../../models";
+import { logAiUsage } from "../../../ai-usage/api";
 import { logNode } from "../log";
 import { logger } from "../../../../shared/utils/logger";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
-// Verbatim from docs/AI_REQUIREMENTS.md's GenerateEmbeddings node: one
-// document-level embedding from title+summary+intent+tags, plus one
-// embedding per chunk.
-// Warned once per process: without embeddings, nothing saved is findable by
-// meaning, and Ask has only keyword matches to go on.
+// One document embedding (title+summary+intent+tags) plus one per chunk. Warned once per process:
+// without embeddings nothing is findable by meaning.
 let warnedNoEmbeddings = false;
 
 export async function generateEmbeddings(state: IngestionStateType): Promise<IngestionUpdate> {
@@ -42,8 +39,7 @@ export async function generateEmbeddings(state: IngestionStateType): Promise<Ing
     chunkEmbeddingCount: chunkEmbeddings.length,
   });
 
-  // OpenAIEmbeddings doesn't surface token usage through LangChain.js —
-  // log a call-count row (no token fields) rather than a real count.
+  // OpenAIEmbeddings doesn't expose token usage in LangChain.js, so log a call-count row.
   void logAiUsage({
     userId: state.userId,
     requestType: "embedding:document",

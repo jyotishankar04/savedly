@@ -65,6 +65,41 @@
 .editor li::marker { color: var(--text-muted); }
 .editor ol > li::marker { font-variant-numeric: tabular-nums; }
 
+/* To-do lists (added here, see the editor's header): the box is drawn in the item's left padding, where a press ticks it. */
+.editor ul[data-todo] { padding-left: 0; list-style: none; }
+.editor ul[data-todo] > li { position: relative; padding-left: 1.7em; }
+.editor ul[data-todo] > li::before {
+  position: absolute;
+  top: .3em;
+  left: .1em;
+  box-sizing: border-box;
+  width: 1.05em;
+  height: 1.05em;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface-raised) center / 78% no-repeat;
+  content: "";
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.editor ul[data-todo] > li[data-checked]::before {
+  border-color: var(--arc-accent);
+  background-color: var(--arc-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-7'/%3E%3C/svg%3E");
+}
+.editor ul[data-todo] > li[data-checked] { color: var(--text-muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.editor[contenteditable="false"] ul[data-todo] > li::before { cursor: default; }
+
+/* Callouts (added here): a quiet box with a bulb, for the line that matters. */
+.editor aside {
+  position: relative;
+  padding: 10px 14px 10px 40px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+.editor aside::after { position: absolute; top: 10px; left: 14px; content: "💡"; font-size: .95em; line-height: 1.75; pointer-events: none; }
+
 .editor pre {
   padding: 12px 14px;
   overflow-x: auto;
@@ -95,7 +130,7 @@
 
 
 /* Placeholders: the whole document when empty, and a quiet hint on the empty line holding the caret. */
-.editor[data-empty] > :first-child::before,
+.editor[data-empty] > :first-child:not(ul[data-todo])::before,
 .editor:focus [data-hint]::before {
   float: left;
   height: 0;
@@ -143,6 +178,49 @@
   transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), transform var(--duration-instant) var(--ease-standard);
 }
 .tool:active { transform: scale(.92); }
+/* A selection action (added here): a word, not an icon. */
+.textTool {
+  display: inline-flex;
+  height: 32px;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--arc-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+/* The way into the selection actions: in the accent, so it reads as the AI and not as one more format. */
+.aiTool {
+  display: inline-flex;
+  height: 28px;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  margin: 0 2px;
+  padding: 0 10px 0 8px;
+  border: 1px solid color-mix(in oklab, var(--arc-accent) 35%, transparent);
+  border-radius: 999px;
+  background: var(--accent-subtle);
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: var(--arc-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-standard), transform var(--duration-instant) var(--ease-standard);
+}
+.aiTool:active { transform: scale(.95); }
+.aiTool:focus-visible { outline: 2px solid color-mix(in oklab, var(--arc-accent) 50%, transparent); outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) { .aiTool:hover { background: color-mix(in oklab, var(--arc-accent) 22%, transparent); } }
+.textTool:focus-visible { background: var(--surface-muted); color: var(--foreground); outline: none; }
+@media (hover: hover) and (pointer: fine) { .textTool:hover { background: var(--surface-muted); color: var(--foreground); } }
 .tool[aria-pressed="true"] { background: var(--accent-subtle); color: var(--accent-strong); }
 .tool:focus-visible { background: var(--surface-muted); color: var(--foreground); }
 @media (hover: hover) and (pointer: fine) { .tool:hover { background: var(--surface-muted); color: var(--foreground); } .tool[aria-pressed="true"]:hover { background: var(--accent-subtle); color: var(--accent-strong); } }

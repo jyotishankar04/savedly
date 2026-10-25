@@ -2,21 +2,17 @@ import { StateGraph, StateSchema, START, END } from "@langchain/langgraph";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { mergeConfigs, type RunnableConfig } from "@langchain/core/runnables";
 import { z } from "zod";
-import { getPlatformChatModel } from "../ai/ai.providers";
-import { findHelp, loadSitePages } from "../ai/rag/tools/platform-help";
-import { listPublicPlans } from "../plans/plans.service";
-import { createUsageCallback } from "../ai-usage/usage-logger";
-import { wrapUntrusted } from "../ai/untrusted";
+import { getPlatformChatModel, findHelp, loadSitePages, wrapUntrusted } from "../ai/api";
+import { listPublicPlans } from "../plans/api";
+import { createUsageCallback } from "../ai-usage/api";
 
-// The public help box on the website: a visitor types a question about
-// Savedly and gets a short answer drawn from the Help Center's own guides.
-//
+// The public help box: a visitor's question gets a short answer from the Help Center guides.
+// 
 //   findGuides  ->  writeAnswer      (one model call, with any matching guide and the FACTS)
 //               ->  declineQuestion  (an empty question: a fixed reply)
-//
-// It has no tools, no account and no access to anyone's data. All it can do
-// is put words on a public page, so the limits that matter are on cost
-// (help-assistant.routes.ts) and on what it is allowed to claim (FACTS below).
+// 
+// No tools, account or access to anyone's data; the limits that matter are cost
+// (help-assistant.routes.ts) and what it may claim (FACTS below).
 
 const linkSchema = z.object({ label: z.string(), href: z.string() });
 
@@ -40,8 +36,8 @@ export const HELP_SUPPORT_EMAIL = "support@savedly.app";
 
 const DECLINE = `I can only answer questions about Savedly, and I couldn't find that in our guides. Try the Help Center, or write to ${HELP_SUPPORT_EMAIL}.`;
 
-// Things people ask on a landing page that no how-to guide covers. Each line
-// is true of the product today; change them here when the product changes.
+// Things asked on the landing page that no guide covers; each is true today, so change them here
+// when the product changes.
 const FACTS = `- What Savedly is: a personal library for everything you save. You save links, notes, files and screenshots; it reads each one, writes a summary, tags it and files it in a collection; later you find it by searching in your own words or by asking the built-in assistant a question, which answers from what you saved and lists its sources.
 - How to sign in (also called logging in): click "Sign in" at the top of the site, then continue with Google, continue with GitHub, or enter your email and password. How to create an account (sign up, register): click "Get started" and do the same.
 - Passwords: an account made with Google or GitHub has no Savedly password; sign in with that same Google or GitHub account. There is no self-service password reset yet. Someone who signed up with an email and password and has forgotten it should write to ${HELP_SUPPORT_EMAIL}.
@@ -112,11 +108,7 @@ const SIGN_IN_LINKS = [
 const ASKS_ABOUT_SIGNING_IN = /\b(log ?in|log ?on|sign ?in|sign ?up|signup|register|create (an )?account|password|get started)\b/i;
 const ASKS_ABOUT_PRICE = /\b(price|pricing|cost|costs|plan|plans|paid|pay|free|cheap|subscription|upgrade)\b/i;
 
-/**
- * Splits the model's `YES|page-ids|reply` into whether it found an answer,
- * the pages it named, and the reply itself. Also accepts `YES|reply`, for a
- * model that leaves the middle part out.
- */
+/** Splits the model's `YES|page-ids|reply` into found, named pages and reply. Also accepts `YES|reply`. */
 export function splitVerdict(raw: string): { found: boolean; pageIds: string[]; text: string } {
   const full = /^\s*(YES|NO)\s*\|([a-z0-9,\s-]{0,80})\|\s*/i.exec(raw);
   if (full) {
@@ -144,9 +136,8 @@ async function answer(state: HelpStateType, config: RunnableConfig) {
   );
   const { found, pageIds, text } = splitVerdict(typeof reply.content === "string" ? reply.content : "");
   if (!text) return { answer: DECLINE, answered: false, links: [] };
-  // The pages the model named come first (only ones that really exist), then
-  // the page that settles a price or sign-in question, then the matching
-  // guides, which are only shown under an answer that came from them.
+  // Pages the model named (that exist) first, then the page that settles a price or sign-in
+  // question, then matching guides (shown only under an answer that came from them).
   const named = pageIds.flatMap((id) => state.pages.filter((p) => p.id === id).map(({ label, href }) => ({ label, href })));
   const all = [
     ...named,
@@ -162,11 +153,9 @@ function decline() {
   return { answer: DECLINE, answered: false, links: [] };
 }
 
-// Every question goes to the model, which is told to turn away anything that
-// isn't about Savedly. An earlier version skipped the model when no guide
-// matched, to save a call, and refused "how to login": a keyword test can't
-// tell an off-topic question from one phrased in words the guides don't use.
-// The cost of off-topic questions is bounded by the limits in the routes file.
+// Every question goes to the model, which turns away off-topic ones. Skipping it when no guide
+// matched refused "how to login": keywords can't tell off-topic from unusual wording. Cost is
+// bounded by the route limits.
 function route(state: HelpStateType): "answer" | "decline" {
   return state.question.trim() ? "answer" : "decline";
 }
@@ -196,9 +185,8 @@ export async function answerHelpQuestion(question: string): Promise<HelpAnswer> 
 export type HelpStreamEvent = { type: "delta"; text: string } | ({ type: "done" } & HelpAnswer);
 
 /**
- * The same pipeline, with the answer handed over as it is written. The
- * model's leading "YES|" / "NO|" is held back; everything after it is passed
- * on. Ends with one "done" carrying the whole answer and its links.
+ * The same pipeline streaming as written; the leading "YES|"/"NO|" is held back and one "done"
+ * carries the answer and links.
  */
 export async function* streamHelpAnswer(question: string, signal?: AbortSignal): AsyncGenerator<HelpStreamEvent> {
   const stream = await helpGraph.stream({ question }, { streamMode: ["messages", "values"], signal });

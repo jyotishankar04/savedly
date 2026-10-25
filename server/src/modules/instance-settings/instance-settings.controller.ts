@@ -3,10 +3,10 @@ import { env } from "../../config/env";
 import { ApiResponse } from "../../shared/response/api-response";
 import { AppError } from "../../shared/errors/app-error";
 import { logAdminAction } from "../../shared/utils/audit-log";
-import { getSectionDef, type SectionId } from "./instance-settings.registry";
-import { describeSections, mergeCandidate, saveSection } from "./instance-settings.service";
+import { getSectionDef, type SectionId } from "../../platform/instance-settings/instance-settings.registry";
+import { describeSections, mergeCandidate, saveSection } from "../../platform/instance-settings/instance-settings.service";
 import { testSection } from "./instance-settings.tester";
-import { countMemoriesToReindex, isReindexRunning, reindexMemories } from "../ai/ingestion/reembed";
+import { countMemoriesToReindex, isReindexRunning, reindexMemories } from "../ai/api";
 
 function sectionParam(req: Request): SectionId {
   const id = req.params.section as string;
@@ -20,8 +20,7 @@ export class InstanceSettingsController {
     res.status(200).json(
       ApiResponse.success({
         selfHosted: env.SELF_HOSTED,
-        // Shown next to the OAuth sections so the admin can paste them into
-        // Google Cloud Console / GitHub.
+        // Shown next to the OAuth sections so the admin can paste them into Google Cloud Console / GitHub.
         callbackUrls: {
           google: `${env.SERVER_URL}/api/v1/auth/google/callback`,
           github: `${env.SERVER_URL}/api/v1/auth/github/callback`,
@@ -35,8 +34,7 @@ export class InstanceSettingsController {
     const id = sectionParam(req);
     const { after } = await saveSection(id, req.body ?? {}, req.user!.id);
 
-    // Only the section and which fields changed — never the values, since
-    // some of them are secrets.
+    // Only the section and which fields changed, never values (some are secrets).
     await logAdminAction({
       adminUserId: req.user!.id,
       action: "instance_settings.updated",
@@ -50,7 +48,6 @@ export class InstanceSettingsController {
     res.status(200).json(ApiResponse.success((await describeSections()).find((s) => s.id === id)));
   }
 
-  /** How many memories aren't indexed for search by meaning yet. */
   static async reindexStatus(_req: Request, res: Response) {
     res.status(200).json(ApiResponse.success({ ...(await countMemoriesToReindex()), running: isReindexRunning() }));
   }

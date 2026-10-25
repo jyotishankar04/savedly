@@ -4,7 +4,7 @@ import { requireAdmin } from "../../shared/middlewares/require-admin";
 import { AiUsageController } from "./ai-usage.controller";
 import { validateUsageByUser, validateUsageRange } from "./ai-usage.validator";
 import { ApiResponse } from "../../shared/response/api-response";
-import { getAiHealth } from "../ai/provider-health";
+import { getAiHealth } from "./provider-health";
 
 const router = Router();
 

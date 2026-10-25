@@ -1,8 +1,7 @@
-// Regex-based, no HTML-parsing dependency — matches this codebase's existing
-// preference for hand-rolled parsing over a library for constrained formats
-// (see normalize-url.ts). The Netscape Bookmark File format is simple enough
-// that only the <A HREF="...">Title</A> anchors matter; folder structure
-// (<H3>/<DL>) is irrelevant once we're just flattening to a URL list.
+import { isHttpUrl } from "../../shared/utils/is-http-url";
+
+// Regex, no HTML parser, like the other constrained-format parsing (normalize-url.ts). Only <A
+// HREF> anchors matter; folders are flattened.
 const ANCHOR_RE = /<A[^>]*HREF="([^"]+)"[^>]*>([^<]*)<\/A>/gi;
 
 const ENTITY_MAP: Record<string, string> = {
@@ -16,15 +15,6 @@ const ENTITY_MAP: Record<string, string> = {
 
 function decodeHtmlEntities(text: string): string {
   return text.replace(/&(amp|lt|gt|quot|#39|apos);/g, (m) => ENTITY_MAP[m] ?? m);
-}
-
-function isHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 export interface ParsedBookmark {

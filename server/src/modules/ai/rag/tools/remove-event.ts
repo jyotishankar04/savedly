@@ -1,9 +1,9 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { deleteEventForMemory, deleteExternalCalendarEvent } from "../../../integrations/calendar/calendar.service";
+import { deleteEventForMemory, deleteExternalCalendarEvent } from "../../../integrations/api";
 import { assertTarget, eventTargetSchema } from "./event-target";
 import { requireUserId, type RagRuntime } from "./shared";
-import { getMemoryById } from "../../../memory/memory.service";
+import { getMemoryById } from "../../../memory/api";
 import { confirmFirst, shortTitle, ASKS_FIRST_NOTE } from "./confirm";
 
 const inputSchema = z.object(eventTargetSchema);

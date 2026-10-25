@@ -4,7 +4,6 @@ import { requireAdmin } from "../../shared/middlewares/require-admin";
 import { WhatsNewController } from "./whats-new.controller";
 import { validateCreateWhatsNew, validateReorderWhatsNew, validateUpdateWhatsNew } from "./whats-new.validator";
 
-// Mounted at /admin/whats-new.
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, WhatsNewController.list);

@@ -5,11 +5,10 @@ import { db } from "../../db";
 import { emailMessages } from "../../db/schema";
 import { EmailStatus } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
-import { isEmailEnabled, sendMail } from "../../shared/mailer/mailer";
-import { unsubscribeHeaders } from "../../shared/mailer/unsubscribe";
+import { isEmailEnabled, sendMail } from "../../platform/mailer/mailer";
+import { unsubscribeHeaders } from "../../platform/mailer/unsubscribe";
 import type { EmailJobData } from "./email.queue";
 
-/** Mirrors startIngestionWorker/startTrashPurgeWorker's shape — call once from server.ts. */
 export function startEmailWorker(): Worker<EmailJobData> {
   const worker = new Worker<EmailJobData>(
     "email",
@@ -17,13 +16,11 @@ export function startEmailWorker(): Worker<EmailJobData> {
       const [row] = await db.select().from(emailMessages).where(eq(emailMessages.id, job.data.emailMessageId));
       if (!row) return; // deleted/invalid — nothing to do
 
-      // Idempotency guard: a retry that lands after a prior attempt actually
-      // succeeded (e.g. the SMTP ack was lost but the send went through)
-      // must not send the same email twice.
+      // Idempotency guard: a retry after an attempt that actually succeeded (lost SMTP ack) mustn't
+      // send twice.
       if (row.status === EmailStatus.SENT) return;
 
-      // A self-hosted install without SMTP: record why and stop, rather than
-      // burning retries on a send that can never succeed.
+      // Self-hosted without SMTP: record why and stop instead of burning retries.
       if (!(await isEmailEnabled())) {
         await db
           .update(emailMessages)
@@ -50,9 +47,8 @@ export function startEmailWorker(): Worker<EmailJobData> {
   worker.on("failed", (job, err) => {
     logger.error({ emailMessageId: job?.data.emailMessageId, err }, "[email] send failed");
 
-    // Only mark FAILED once BullMQ has exhausted retries — an in-flight
-    // retry should still read as queued/sending in the admin UI, not a
-    // false permanent failure.
+    // Only mark FAILED once BullMQ's retries are exhausted; an in-flight retry shouldn't read as a
+    // permanent failure.
     const attemptsMade = job?.attemptsMade ?? 0;
     const maxAttempts = job?.opts.attempts ?? 1;
     if (job?.data.emailMessageId && attemptsMade >= maxAttempts) {

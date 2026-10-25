@@ -93,7 +93,6 @@ export async function deleteAnnouncement(id: string) {
   return row;
 }
 
-/** Public read — the active announcement within its optional scheduling window, if any. */
 export async function getActiveAnnouncement() {
   const now = new Date();
   const [row] = await db

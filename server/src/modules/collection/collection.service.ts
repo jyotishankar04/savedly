@@ -2,11 +2,14 @@ import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../../db";
 import { collectionMemories, collections, memories } from "../../db/schema";
 import { CollectionSource, PlanLimitType } from "../../db/enums";
-import { assertFeature, assertWithinLimit } from "../plans/plans.service";
+import { assertFeature, assertWithinLimit } from "../plans/api";
 import { AppError } from "../../shared/errors/app-error";
 import type { CreateCollectionInput, ListCollectionsQuery, UpdateCollectionInput } from "./collection.schema";
 
-/** Every client shows a collection's icon as text, so it must be an emoji; anything else (an icon name like "book") becomes the folder. */
+/**
+ * Clients render a collection's icon as text, so it must be an emoji; anything else (like "book")
+ * becomes the folder.
+ */
 export const DEFAULT_COLLECTION_ICON = "📁";
 export function collectionIcon(icon: string | undefined | null): string {
   const trimmed = icon?.trim() ?? "";
@@ -26,9 +29,8 @@ export interface CollectionResponse {
 }
 
 export async function listCollections(userId: string, query: ListCollectionsQuery): Promise<CollectionResponse[]> {
-  // Toggleable like memories' isVaulted — hidden by default; the vault page
-  // is the only caller that passes isVaulted=true, and only after the route
-  // guard (requireVaultUnlockedForQuery) has confirmed the PIN was entered.
+  // Like memories' isVaulted: hidden by default; only the vault page passes isVaulted=true, after
+  // the route guard confirmed the PIN.
   const conditions = [eq(collections.userId, userId), eq(collections.isVaulted, query.isVaulted)];
   if (!query.includeSystem) {
     conditions.push(eq(collections.source, CollectionSource.USER));
@@ -53,10 +55,8 @@ export async function listCollections(userId: string, query: ListCollectionsQuer
 }
 
 /**
- * One collection, for its page. Fetched by id rather than picked out of the
- * list, so a collection made a moment ago (by the AI filing a new save, or
- * in another tab) opens straight away. Vaulted collections open only from the
- * vault, so they read as not found here.
+ * One collection for its page, fetched by id so a just-made one opens at once. Vaulted collections
+ * open only from the vault, so they read as not found here.
  */
 export async function getCollection(userId: string, id: string): Promise<CollectionResponse> {
   const [row] = await db
@@ -80,8 +80,8 @@ export async function getCollection(userId: string, id: string): Promise<Collect
 }
 
 /**
- * The collections the user filed into most recently: those of their latest
- * saves, newest first, without repeats. For one-tap filing in the extension.
+ * Collections the user filed into most recently (latest saves, newest first, no repeats), for
+ * one-tap filing in the extension.
  */
 export async function recentCollections(userId: string, limit = 6): Promise<{ id: string; name: string; icon: string }[]> {
   const rows = await db
@@ -100,10 +100,7 @@ export async function createCollection(
   userId: string,
   input: CreateCollectionInput,
 ): Promise<CollectionResponse> {
-  // Every collection created through this endpoint is user-owned — system
-  // collections come from internal processes (onboarding defaults,
-  // AI-suggested groupings), never this API — and only these count against
-  // the plan's collection limit.
+  // Made through this endpoint, so user-owned: the only ones that count toward the limit.
   await assertWithinLimit(userId, PlanLimitType.COLLECTION_COUNT, 1);
   const [row] = await db
     .insert(collections)
@@ -136,16 +133,9 @@ export async function updateCollection(
       throw new AppError("Collection not found", 404, "NOT_FOUND");
     }
 
-    // Vaulting/un-vaulting a collection cascades to its member memories —
-    // that's the whole point of hiding a *collection*, and it means every
-    // normal read path only ever needs to check memories.isVaulted, never
-    // join through collection_memories to ask "is this in a vaulted folder".
-    //
-    // Known imprecision, accepted deliberately: un-vaulting the collection
-    // un-vaults every member memory too, even one a user vaulted
-    // individually before adding it here. Tracking "vaulted via which
-    // collection" would need its own column; not worth it for a personal
-    // privacy feature where the fix is one click.
+    // Vaulting cascades to the collection's memories, so reads only check memories.isVaulted.
+    // Known imprecision, accepted: un-vaulting also un-vaults members vaulted individually
+    // (tracking it would need its own column).
     if (input.isVaulted !== undefined) {
       await tx
         .update(memories)
@@ -169,11 +159,7 @@ export async function updateCollection(
   return { ...row, memoryCount };
 }
 
-/**
- * One-way system -> user conversion. There is deliberately no path back —
- * nothing in this module ever sets source to "system", so a collection that
- * has been converted (or was user-created to begin with) can never revert.
- */
+/** One-way system -> user: nothing sets source back to "system". */
 export async function convertToUser(userId: string, id: string): Promise<CollectionResponse> {
   const [existing] = await db
     .select()

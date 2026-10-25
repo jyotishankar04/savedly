@@ -6,6 +6,6 @@ export const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
 ]);
 
-// The hard ceiling for any upload. The effective cap is the plan's
-// max_file_mb limit (plans.service.ts assertFileSizeAllowed), up to this.
+// The hard ceiling for any upload; the effective cap is the plan's max_file_mb
+// (assertFileSizeAllowed), up to this.
 export const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100MB

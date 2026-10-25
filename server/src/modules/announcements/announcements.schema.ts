@@ -12,9 +12,7 @@ export const createAnnouncementSchema = z.object({
   isActive: z.boolean().optional(),
   startsAt: z.string().datetime().nullable().optional(),
   endsAt: z.string().datetime().nullable().optional(),
-  // Opt-in only — re-editing an already-announced item uses the update
-  // schema below, which deliberately omits this, so a later edit never
-  // silently re-blasts everyone.
+  // Opt-in only: edits use the update schema, which omits this, so a later edit never re-sends to everyone.
   notifyByEmail: z.boolean().optional(),
 });
 

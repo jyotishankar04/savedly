@@ -4,22 +4,18 @@ import { instanceSettings } from "../../../db/schema";
 import { AiRole } from "../../../db/enums";
 import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
-import { getSection } from "../../instance-settings/instance-settings.service";
-import { getOAuthCredentials } from "../../auth/oauth-config";
-import { platformCredential, platformEmbeddingsCredential } from "../../ai/ai.providers";
+import { getSection } from "../../../platform/instance-settings/instance-settings.service";
+import { getOAuthCredentials } from "../../auth/api";
+import { platformCredential, platformEmbeddingsCredential } from "../../ai/api";
 
-// What a new self-hosted install still has to decide, for the setup panel in
-// the dashboard. AI is the one thing an install can't do without; the others
-// already work with a default (files on this disk, no email, password
-// sign-in), so the admin either sets them up or says the default is fine.
+// What a new self-hosted install still has to decide: AI is required, the rest have acceptable defaults.
 
 export const SETUP_ITEMS = ["ai", "storage", "email", "signIn"] as const;
 export type SetupItemId = (typeof SETUP_ITEMS)[number];
 
 const REQUIRED: ReadonlySet<SetupItemId> = new Set(["ai"]);
 
-// Which defaults the admin has accepted. Kept in the settings table under its
-// own key; it isn't a section in the registry, so no form is drawn for it.
+// Which defaults the admin accepted; stored under its own key, not a registry section, so no form is drawn.
 const SKIPS_ROW = "setup";
 
 async function readSkips(): Promise<Partial<Record<SetupItemId, boolean>>> {
@@ -30,8 +26,7 @@ async function readSkips(): Promise<Partial<Record<SetupItemId, boolean>>> {
 async function isDone(item: SetupItemId): Promise<boolean> {
   switch (item) {
     case "ai":
-      // Summaries and Ask need a model; search by meaning needs embeddings.
-      // An OpenAI key covers both by itself (see platformEmbeddingsCredential).
+      // Summaries and Ask need a model, search by meaning needs embeddings; an OpenAI key covers both.
       return !!(await platformCredential(AiRole.REASONING)) && !!(await platformEmbeddingsCredential());
     case "storage":
       return (await getSection("storage")).driver === "s3";

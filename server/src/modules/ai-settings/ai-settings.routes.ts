@@ -12,8 +12,7 @@ import {
 
 const router = Router();
 
-// Public: the live model catalog (prices, capabilities) — also used by the
-// marketing site's model-selection help page, so no sign-in required.
+// Public: the model catalog is also used by the marketing site's help page.
 router.get("/models", AiSettingsController.modelCatalog);
 
 router.get("/credentials", authenticate, AiSettingsController.listCredentials);

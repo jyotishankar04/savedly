@@ -28,9 +28,7 @@ export class AccountController {
       await hardDeleteAccount(userId);
     }
 
-    // Either mode leaves the caller's own session dead — soft revokes every
-    // session server-side, hard removes the user row entirely — so the
-    // client's existing cookie is stale either way.
+    // Either mode kills the caller's session, so their cookie is stale.
     clearAuthCookies(res);
     res.status(200).json(ApiResponse.success({ mode }));
   }

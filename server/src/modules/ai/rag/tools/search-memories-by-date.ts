@@ -20,10 +20,7 @@ const inputSchema = z.object({
   limit: z.number().int().positive().max(30).optional().describe("Max results to return. Defaults to 8 — a busy day can easily have 15+ saves, and a long, detailed list is slow to read and slow to generate. Only raise this if the user explicitly asks to see more."),
 });
 
-/**
- * Calendar-day boundaries in the user's own time zone (memories.createdAt
- * is UTC), so "yesterday" is their yesterday, not the UTC one.
- */
+/** Day boundaries in the user's time zone (createdAt is UTC), so "yesterday" is theirs. */
 function dayRange(date: string, endDate: string | undefined, timeZone: string): { start: Date; end: Date } {
   const start = startOfLocalDay(date, timeZone);
   const lastDay = new Date(`${endDate ?? date}T00:00:00.000Z`);
@@ -59,11 +56,8 @@ export const searchMemoriesByDateTool = tool(
 
     const label = endDate && endDate !== date ? `${date} to ${endDate}` : date;
 
-    // Validated (not just TS-cast) — matches search_memories' own tool,
-    // catches a malformed internal result before it reaches the model or
-    // the client (both tools share this result shape/schema so the same
-    // client-side rendering — SearchToolPart, Sources sidebar, Referenced
-    // cards — handles either one identically).
+    // Validated, not just cast, so a malformed result never reaches the model or client; shares
+    // search_memories' schema so the client renders both alike.
     return searchMemoriesResultSchema.parse({
       query: label,
       memories: rows.map((row) => ({
@@ -73,10 +67,8 @@ export const searchMemoriesByDateTool = tool(
         source: row.source,
         url: row.url,
         faviconUrl: row.faviconUrl,
-        // Shorter than search_memories' chunk-derived snippets — a date
-        // listing already asks the model to summarize many items at once
-        // (see the DATE-BASED REQUESTS prompt section), so keeping each
-        // item's raw context small matters more here for response latency.
+        // Shorter than search_memories' snippets: a date listing summarizes many items, so keep
+        // each small for latency.
         snippet: (row.description ?? row.content ?? "").slice(0, 160),
       })),
     });

@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import { updateMemory } from "../../../memory/memory.service";
+import { updateMemory } from "../../../memory/api";
 import { requireUserId, type RagRuntime } from "./shared";
 import { confirmFirst, ASKS_FIRST_NOTE } from "./confirm";
 
@@ -16,8 +16,7 @@ export const restoreMemoriesTool = tool(
     const userId = requireUserId(runtime, "restore_memories");
     const restored: { id: string; title: string }[] = [];
     const failed: { id: string; reason: string }[] = [];
-    // One at a time, like the app's own Restore button, so it isn't a bulk
-    // action (those are a plan feature).
+    // One at a time, like the Restore button, so it isn't a bulk action (a plan feature).
     for (const id of memoryIds) {
       try {
         const memory = await updateMemory(userId, id, { inTrash: false });

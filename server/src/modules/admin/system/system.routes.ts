@@ -11,8 +11,7 @@ import { getUpdateStatus } from "./update.service";
 import { logAdminAction } from "../../../shared/utils/audit-log";
 import { SETUP_ITEMS, getSetupStatus, setSetupSkipped, type SetupItemId } from "./setup.service";
 
-// Mounted at /admin/system by ../index.ts. Self-hosted installs only — the
-// hosted service has its own monitoring.
+// Mounted at /admin/system. Self-hosted only; the hosted service has its own monitoring.
 const router = Router();
 
 router.get("/", authenticate, requireAdmin, async (_req: Request, res: Response) => {
@@ -20,16 +19,13 @@ router.get("/", authenticate, requireAdmin, async (_req: Request, res: Response)
   res.status(200).json(ApiResponse.success(await getSystemStatus()));
 });
 
-// Whether a newer release exists. Never fails the page: an unreachable
-// GitHub just means no update is mentioned.
+// Never fails the page: if GitHub is unreachable, no update is mentioned.
 router.get("/update", authenticate, requireAdmin, async (_req: Request, res: Response) => {
   if (!env.SELF_HOSTED) throw new AppError("Not found", 404, "NOT_FOUND");
   res.status(200).json(ApiResponse.success(await getUpdateStatus()));
 });
 
-// Downloads a backup of the whole install. A GET, so the browser saves it
-// straight to disk instead of holding it in memory. `?key=1` adds the
-// secrets file, which makes the archive something to keep private.
+// A GET so the browser streams it to disk. `?key=1` adds the secrets file, so keep that archive private.
 router.get("/backup", authenticate, requireAdmin, async (req: Request, res: Response) => {
   if (!env.SELF_HOSTED) throw new AppError("Not found", 404, "NOT_FOUND");
   const includeKey = req.query.key === "1";
@@ -39,8 +35,7 @@ router.get("/backup", authenticate, requireAdmin, async (req: Request, res: Resp
   res.setHeader("Content-Type", "application/gzip");
   res.setHeader("Content-Disposition", `attachment; filename="${backup.filename}"`);
   res.setHeader("Cache-Control", "no-store");
-  // However the download ends (finished, cancelled, or the archive failed
-  // part-way), the temporary folder goes.
+  // However the download ends, the temp folder is removed.
   let cleaned = false;
   const finish = () => {
     if (cleaned) return;

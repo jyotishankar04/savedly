@@ -16,6 +16,7 @@ const PLATFORM_FALLBACKS: Record<string, PlatformFallback> = {
   youtube: { label: "YouTube", gradientClassName: "bg-gradient-to-br from-red-600 to-red-800" },
   tiktok: { label: "TikTok", gradientClassName: "bg-gradient-to-br from-black via-neutral-800 to-teal-500" },
   linkedin: { label: "LinkedIn", gradientClassName: "bg-gradient-to-br from-sky-600 to-blue-800" },
+  threads: { label: "Threads", gradientClassName: "bg-gradient-to-br from-neutral-900 to-neutral-700" },
   facebook: { label: "Facebook", gradientClassName: "bg-gradient-to-br from-blue-500 to-blue-700" },
   reddit: { label: "Reddit", gradientClassName: "bg-gradient-to-br from-orange-500 to-orange-700" },
   github: { label: "GitHub", gradientClassName: "bg-gradient-to-br from-neutral-700 to-neutral-900" },

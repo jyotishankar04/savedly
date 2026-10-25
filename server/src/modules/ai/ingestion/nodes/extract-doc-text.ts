@@ -1,14 +1,11 @@
-import { readFileUrl } from "../../../../shared/storage";
+import { readFileUrl } from "../../../../platform/storage";
 import { extractPdfContent } from "./lib/parse-pdf";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";
 
 /**
- * `document`-type memories are PDF-only today (see upload.constants.ts's
- * ALLOWED_MIME_TYPES). Parsing itself — including the large-PDF
- * first-page-and-summarize path — lives in lib/parse-pdf.ts, shared with
- * parseWebContent's handling of a pasted URL that resolves directly to a
- * PDF.
+ * `document` memories are PDF-only today (upload.constants.ts); parsing is in lib/parse-pdf.ts,
+ * shared with parseWebContent.
  */
 export async function extractDocText(state: IngestionStateType): Promise<IngestionUpdate> {
   if (!state.attachmentUrl) {
@@ -27,8 +24,7 @@ export async function extractDocText(state: IngestionStateType): Promise<Ingesti
     logNode(state.memoryId, "extractDocText", { attachmentUrl: state.attachmentUrl, contentLength: rawContent.length });
     return { rawContent };
   } catch (err) {
-    // A corrupt/unreadable PDF shouldn't fail ingestion — downstream nodes
-    // just work with an empty content string (title-only classification).
+    // A corrupt PDF shouldn't fail ingestion: later nodes get empty content.
     logNode(state.memoryId, "extractDocText", { attachmentUrl: state.attachmentUrl, error: err instanceof Error ? err.message : String(err) });
     return { rawContent: "" };
   }

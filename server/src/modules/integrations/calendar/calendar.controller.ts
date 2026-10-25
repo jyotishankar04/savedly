@@ -4,26 +4,14 @@ import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
 import { logger } from "../../../shared/utils/logger";
 import { signCalendarStateToken, verifyCalendarStateToken } from "../../../shared/utils/jwt";
-import { getMemoryById } from "../../memory/memory.service";
+import { getMemoryById } from "../../memory/api";
 import {
   buildGoogleCalendarAuthUrl,
   exchangeGoogleCalendarCode,
   isGoogleCalendarConfigured,
 } from "./google-calendar-client";
-import {
-  bestEffortRevoke,
-  connectCalendar,
-  createStandaloneCalendarEvent,
-  deleteEventForMemory,
-  deleteExternalCalendarEvent,
-  disconnectCalendar,
-  getConnections,
-  listEvents,
-  pushMemoryToCalendar,
-  updateEventForMemory,
-  updateExternalCalendarEvent,
-  type CalendarProviderKey,
-} from "./calendar.service";
+import { bestEffortRevoke, connectCalendar, disconnectCalendar, getConnections, type CalendarProviderKey } from "./calendar.connections";
+import { createStandaloneCalendarEvent, deleteEventForMemory, deleteExternalCalendarEvent, listEvents, pushMemoryToCalendar, updateEventForMemory, updateExternalCalendarEvent } from "./calendar.events";
 import type {
   CreateEventInput,
   ExternalEventParams,
@@ -37,11 +25,11 @@ import { calendarConnections } from "../../../db/schema";
 import { and, eq } from "drizzle-orm";
 import { CalendarProvider } from "../../../db/enums";
 import { decryptToken } from "../../../shared/crypto/token-cipher";
-import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../../feature-flags/feature-flags.service";
+import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../../feature-flags/api";
 
 async function initiateConnect(req: Request, res: Response, provider: CalendarProviderKey) {
-  // Switched off by an admin: back to Integrations, which explains why. This
-  // is a page navigation, so a JSON error would leave the user on a blank page.
+  // Switched off by an admin: back to Integrations, which explains why (a page navigation, so a
+  // JSON error would leave a blank page).
   if (!(await isCalendarSyncEnabled()) || !(await isCalendarProviderEnabled(provider))) {
     return res.redirect(`${env.FRONTEND_URL}/app/integrations`);
   }

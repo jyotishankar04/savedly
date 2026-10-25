@@ -3,7 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, MotionConfig, motion, useSpring } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, PlayIcon } from "@hugeicons/core-free-icons";
+import { VideoPlayer } from "@/components/ui/video-player";
 
 export interface Loop {
   /** File name under /extension/loops: {src}.webp loops on the page, {src}.mp4 plays in the player, {src}-still.webp for reduced motion. */
@@ -101,25 +102,14 @@ function LoopCard({ loop, hidden, onOpen }: { loop: Loop; hidden: boolean; onOpe
   );
 }
 
-const time = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-
 function Player({ loop, onClose }: { loop: Loop; onClose: () => void }) {
-  const video = useRef<HTMLVideoElement>(null);
   const close = useRef<HTMLButtonElement>(null);
-  const [playing, setPlaying] = useState(true);
-  const [now, setNow] = useState(0);
-  const [length, setLength] = useState(0);
   const titleId = useId();
 
   useEffect(() => {
     close.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      if (e.key === " " && document.activeElement?.tagName !== "BUTTON" && document.activeElement?.tagName !== "INPUT") {
-        e.preventDefault();
-        const v = video.current;
-        if (v) void (v.paused ? v.play() : v.pause());
-      }
     };
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -129,11 +119,6 @@ function Player({ loop, onClose }: { loop: Loop; onClose: () => void }) {
       document.body.style.overflow = overflow;
     };
   }, [onClose]);
-
-  const toggle = () => {
-    const v = video.current;
-    if (v) void (v.paused ? v.play() : v.pause());
-  };
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-8">
@@ -163,55 +148,17 @@ function Player({ loop, onClose }: { loop: Loop; onClose: () => void }) {
           transition={{ type: "spring", stiffness: 140, damping: 22 }}
           className="relative overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-foreground/10"
         >
-          <video
-            ref={video}
+          {/* Savedly's own player (components/ui/video-player), as on saved posts. */}
+          <VideoPlayer
             src={`/extension/loops/${loop.src}.mp4`}
             poster={`/extension/loops/${loop.src}-still.webp`}
+            aspect={16 / 9}
+            label={loop.title}
             autoPlay
             muted
             loop
-            playsInline
-            onClick={toggle}
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
-            onLoadedMetadata={(e) => setLength(e.currentTarget.duration)}
-            onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
-            className="block aspect-video max-h-[calc(100dvh-10rem)] w-full cursor-pointer bg-black object-contain"
+            className="max-h-[calc(100dvh-10rem)] rounded-none border-0"
           />
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0, transition: { delay: 0.25 } }}
-            exit={{ opacity: 0, transition: { duration: 0.1 } }}
-            className="absolute inset-x-0 bottom-0 flex items-center gap-3 bg-gradient-to-t from-black/70 to-transparent px-4 pt-10 pb-3 text-white sm:px-6 sm:pb-4"
-          >
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={playing ? "Pause video" : "Play video"}
-              className="grid size-8 shrink-0 place-items-center rounded-full transition-colors hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
-            >
-              <HugeiconsIcon icon={playing ? PauseIcon : PlayIcon} strokeWidth={2} className="size-4 fill-white" />
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={length || 1}
-              step={0.01}
-              value={now}
-              aria-label="Seek"
-              aria-valuetext={`${time(now)} of ${time(length)}`}
-              onChange={(e) => {
-                const v = video.current;
-                if (v) v.currentTime = Number(e.target.value);
-                setNow(Number(e.target.value));
-              }}
-              className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-white/25 accent-white [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-              style={{ background: `linear-gradient(to right, white ${(now / (length || 1)) * 100}%, rgba(255,255,255,.25) 0)` }}
-            />
-            <span className="shrink-0 font-mono text-xs tabular-nums text-white/85">
-              {time(now)} / {time(length)}
-            </span>
-          </motion.div>
         </motion.div>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { delay: 0.2 } }} exit={{ opacity: 0, transition: { duration: 0.1 } }} className="mt-4 text-center">
           <p id={titleId} className="text-base font-medium text-foreground">

@@ -11,8 +11,8 @@ export function validate(schema: ZodType, source: "body" | "query" | "params" = 
     }
 
     if (source === "query") {
-      // Express 5 exposes `req.query` as a getter-only property backed by the
-      // parsed URL — a plain assignment throws. Redefine it instead.
+      // Express 5's `req.query` is a getter-only property backed by the parsed URL, so assignment
+      // throws: redefine it.
       Object.defineProperty(req, "query", { value: result.data, writable: true, configurable: true });
     } else {
       req[source] = result.data;

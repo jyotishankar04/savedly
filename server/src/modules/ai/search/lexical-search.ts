@@ -4,11 +4,8 @@ import { memories } from "../../../db/schema";
 import type { SearchLegResult } from "./types";
 
 /**
- * Always Postgres, regardless of VECTOR_STORE_PROVIDER — tsvector/GIN has no
- * Upstash equivalent and doesn't need one, it's already local. `filterConditions`
- * must already include userId/inTrash/isArchived/type/isFavorite/collectionId/tag
- * scoping (the same conditions the non-search list path builds) — this
- * function only adds the full-text-search predicate on top.
+ * Always Postgres (tsvector/GIN has no Upstash equivalent). `filterConditions` must already carry
+ * the list path's scoping; this adds the full-text predicate.
  */
 export async function lexicalSearch(
   queryText: string,

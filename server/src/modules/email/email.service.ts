@@ -3,8 +3,8 @@ import { db } from "../../db";
 import { emailCampaigns, emailMessages, userSettings, users } from "../../db/schema";
 import { EmailCategory, EmailTemplateKey, UserStatus } from "../../db/enums";
 import { logAdminAction } from "../../shared/utils/audit-log";
-import { adminComposedEmailTemplate, composedEmailTemplate, composedEmailToText, withUnsubscribeUrl, type ComposedEmail } from "../../shared/mailer/templates";
-import { unsubscribePageUrl } from "../../shared/mailer/unsubscribe";
+import { adminComposedEmailTemplate, composedEmailTemplate, composedEmailToText, withUnsubscribeUrl, type ComposedEmail } from "../../platform/mailer/templates";
+import { unsubscribePageUrl } from "../../platform/mailer/unsubscribe";
 import { enqueueEmail } from "./email.queue";
 
 export interface SendEmailInput {
@@ -16,12 +16,7 @@ export interface SendEmailInput {
   html: string;
 }
 
-/**
- * The single write path — every email in the system, system-triggered or
- * admin-composed, funnels through here. Inserts one email_messages row
- * (the durable source of truth) then enqueues one job; mirrors
- * createNotification's "one function everything funnels through" shape.
- */
+/** The single write path for every email: inserts one email_messages row and enqueues one job. */
 export async function sendEmail(input: SendEmailInput): Promise<string> {
   const [row] = await db
     .insert(emailMessages)
@@ -50,16 +45,16 @@ export interface SendBulkEmailInput {
   category: EmailCategory;
   recipients: BulkEmailRecipients;
   createdBy: string;
-  /** Set when this originates outside the admin composer (e.g. an announcement's opt-in checkbox) so the audit log still records who triggered it and why. */
+  /**
+   * Set when this isn't from the admin composer (e.g. an announcement's opt-in), so the audit log
+   * records who and why.
+   */
   auditAction?: string;
 }
 
 /**
- * Creates one campaign row + N message rows + N queue jobs — one job per
- * recipient so a single bad address never blocks the rest. Also writes the
- * admin audit log entry here (not in the admin controller layer) so every
- * caller — the manual composer and the announcement opt-in — gets it for
- * free without double-logging.
+ * One campaign row, N message rows, N jobs (a bad address blocks nothing). The audit entry is
+ * written here so every caller gets it once.
  */
 export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campaignId: string; recipientCount: number; unsubscribedCount: number }> {
   // People who unsubscribed are left out, whoever was picked.
@@ -108,9 +103,7 @@ export async function sendBulkEmail(input: SendBulkEmailInput): Promise<{ campai
     return { campaignId: campaign.id, messageIds: [] as string[] };
   });
 
-  // Enqueued after the transaction commits — a worker picking up a job
-  // whose row doesn't exist yet (impossible here, but a defensive habit)
-  // just no-ops per its own guard.
+  // Enqueued after commit, so a worker never sees a missing row (it no-ops per its own guard anyway).
   await Promise.all(result.messageIds.map((id) => enqueueEmail(id)));
 
   await logAdminAction({

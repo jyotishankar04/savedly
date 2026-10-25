@@ -1,22 +1,15 @@
 import type { Request, Response } from "express";
 import { ApiResponse } from "../../shared/response/api-response";
-import {
-  createMemory,
-  deleteMemory,
-  exportAllMemories,
-  exportOkfBundle,
-  getMemoryById,
-  getMemoryGraph,
-  getProcessingStatus,
-  listMemories,
-  refreshPreview,
-  submitBrowserCapture,
-  updateMemory,
-} from "./memory.service";
+import { createMemory, deleteMemory, updateMemory } from "./memory.commands";
+import { exportAllMemories, exportOkfBundle } from "./memory.export";
+import { getMemoryById, listMemories } from "./memory.queries";
+import { getMemoryGraph } from "./memory.graph";
+import { getProcessingStatus, refreshPreview, submitBrowserCapture } from "./memory.processing";
 import type { ListMemoriesQuery } from "./memory.schema";
 import { settleDuplicate } from "./duplicates";
 import { inboxCounts, lookupByUrl, markInboxRead, savedUrlKeys } from "./inbox.service";
 import { suggestForPage } from "./suggest.service";
+import { rewriteNote, suggestNoteTitles } from "./rewrite.service";
 
 export class MemoryController {
   static async list(req: Request, res: Response) {
@@ -65,7 +58,8 @@ export class MemoryController {
   }
 
   static async refreshPreview(req: Request, res: Response) {
-    const memory = await refreshPreview(req.user!.id, req.params.id as string);
+    // "Read the post": a link that was never read had its title made up from nothing, so it's written again.
+    const memory = await refreshPreview(req.user!.id, req.params.id as string, { retitle: req.body?.retitle === true });
     res.status(200).json(ApiResponse.success(memory));
   }
 
@@ -95,6 +89,14 @@ export class MemoryController {
 
   static async urlKeys(req: Request, res: Response) {
     res.status(200).json(ApiResponse.success({ keys: await savedUrlKeys(req.user!.id) }));
+  }
+
+  static async rewrite(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await rewriteNote(req.user!.id, req.params.id as string, req.body)));
+  }
+
+  static async suggestTitles(req: Request, res: Response) {
+    res.status(200).json(ApiResponse.success(await suggestNoteTitles(req.user!.id, req.params.id as string, req.body)));
   }
 
   static async suggest(req: Request, res: Response) {

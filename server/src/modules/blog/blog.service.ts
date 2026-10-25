@@ -5,9 +5,8 @@ import { BlogPostStatus } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import type { CreateBlogPostInput, ListBlogPostsInput, UpdateBlogPostInput } from "./blog.schema";
 
-// The public blog. Admins write posts in Markdown; the website shows only
-// the published ones. Every public read filters on status here, so a draft
-// can't be reached by guessing its address.
+// Admins write Markdown posts; every public read filters on status, so a draft can't be reached by
+// guessing its address.
 
 /** A post without its body: what a list needs. */
 const summary = {
@@ -60,8 +59,6 @@ async function freeSlug(wanted: string): Promise<string> {
   throw new AppError("Couldn't find a free address for this post. Set one by hand.", 409, "SLUG_TAKEN");
 }
 
-// ---- Public
-
 export async function listPublishedPosts({ limit, offset, tag }: ListBlogPostsInput) {
   const where = tag ? and(isPublished, sql`${blogPosts.tags} @> ${JSON.stringify([tag])}::jsonb`) : isPublished;
   const [items, [{ total }]] = await Promise.all([
@@ -81,8 +78,6 @@ export async function getPublishedPost(slug: string) {
   if (!post) throw new AppError("Post not found", 404, "NOT_FOUND");
   return post;
 }
-
-// ---- Admin
 
 export async function listAllPosts() {
   return db.select({ ...summary, createdAt: blogPosts.createdAt }).from(blogPosts).orderBy(desc(blogPosts.updatedAt));

@@ -1,27 +1,16 @@
 import type { VectorStore, VectorUpsertInput } from "./types";
+import { chunkVectorId, documentVectorId } from "./vector-ids";
 
-// Pinecone, over its REST API (no SDK needed for four calls). Works with a
-// serverless index created with the embedding model's dimension (1536 for
-// text-embedding-3-small) and the cosine metric — scores are then cosine
-// similarity, like the other stores.
+// Pinecone over REST, a serverless index at the embedding dimension (1536) with cosine metric.
 
 const API_VERSION = "2025-04";
 // A request is capped at 2 MB; 1536 floats as JSON is roughly 20 KB a vector.
 const UPSERT_BATCH = 50;
 const DELETE_BATCH = 1000;
 
-// IDs are prefixed with the memory ID so a whole memory's vectors (document +
-// every chunk) can be found again with a prefix listing — Pinecone doesn't
-// know about our Postgres FK cascades, so that's how a deleted or re-ingested
-// memory's vectors get cleaned up.
-function documentVectorId(memoryId: string): string {
-  return `${memoryId}:document`;
-}
-
-function chunkVectorId(memoryId: string, chunkIndex: number): string {
-  return `${memoryId}:chunk:${chunkIndex}`;
-}
-
+// Vector IDs (vector-ids.ts) start with the memory ID so its vectors can be listed by prefix;
+// Pinecone doesn't know our FK cascades, so that's how deleted or re-ingested memories are cleaned
+// up.
 interface PineconeMatch {
   id: string;
   score: number;
@@ -105,9 +94,8 @@ export function createPineconeVectorStore(config: PineconeConfig): VectorStore {
           metadata: { memoryId, userId, kind: "chunk", chunkIndex: chunk.index, content: chunk.content },
         })),
       ];
-      // Write first (an upsert replaces a vector with the same ID), then drop
-      // whatever is left over from an earlier, longer version of the memory —
-      // so a re-ingest never leaves the memory unsearchable in between.
+      // Write first (upsert replaces the same ID), then drop leftovers of an older, longer version,
+      // so a re-ingest never leaves the memory unsearchable.
       for (let i = 0; i < vectors.length; i += UPSERT_BATCH) {
         await client.upsert(vectors.slice(i, i + UPSERT_BATCH));
       }

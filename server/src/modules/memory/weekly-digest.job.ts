@@ -5,19 +5,17 @@ import { env } from "../../config/env";
 import { db } from "../../db";
 import { memories, userSettings, users } from "../../db/schema";
 import { EmailCategory, EmailTemplateKey, UserStatus } from "../../db/enums";
-import { weeklyDigestEmailTemplate } from "../../shared/mailer/templates";
+import { weeklyDigestEmailTemplate } from "../../platform/mailer/templates";
 import { logger } from "../../shared/utils/logger";
-import { sendEmail } from "../email/email.service";
+import { sendEmail } from "../email/api";
 
-// The weekly email (roadmap: "A weekly email of things to read"): on Sunday
-// morning, in each person's own time zone, a few saves from their Inbox they
-// haven't read yet. On unless turned off in Settings > Notifications
-// (notifyWeeklySummary). Nothing is sent to someone with nothing unread.
+// The weekly email: Sunday morning in each person's time zone, a few unread Inbox saves. On unless
+// turned off in Settings > Notifications (notifyWeeklySummary); nothing is sent when nothing is
+// unread.
 
 const QUEUE_NAME = "weekly-digest";
 const JOB_NAME = "sweep";
-// Every 15 minutes, so the 9 o'clock hour is caught in every time zone, the
-// half- and quarter-hour ones included.
+// Every 15 minutes, so the 9 o'clock hour is caught in every time zone, half- and quarter-hour ones included.
 const SWEEP_INTERVAL_MS = 15 * 60 * 1000;
 const SEND_WEEKDAY = "Sun";
 const SEND_HOUR = 9;
@@ -51,7 +49,7 @@ function hostOf(url: string | null): string | null {
   }
 }
 
-/** What goes in someone's email: the oldest unread Inbox saves, how many are unread, how many they saved this week. */
+/** The oldest unread Inbox saves, how many are unread, how many were saved this week. */
 export async function buildWeeklyDigest(userId: string, now = new Date()) {
   const inbox = and(
     eq(memories.userId, userId),
@@ -103,9 +101,8 @@ export async function sendWeeklyDigestTo(person: { id: string; email: string; na
 }
 
 /**
- * Sends the weekly email to everyone it's Sunday 9:00 for and who hasn't had
- * it this week. Each person is claimed first with one upsert on
- * weekly_digest_sent_at, so two servers sweeping at once never both send it.
+ * Sends to everyone it's Sunday 9:00 for who hasn't had it this week. Each is claimed first by one
+ * upsert on weekly_digest_sent_at, so two servers never both send.
  */
 export async function sendWeeklyDigests(now = new Date(), only?: string[]): Promise<number> {
   const people = await db
@@ -145,7 +142,6 @@ export async function sendWeeklyDigests(now = new Date(), only?: string[]): Prom
   return sent;
 }
 
-/** Mirrors startReminderWorker: one sweep now, then every 15 minutes. Call once from server.ts. */
 export async function startWeeklyDigestWorker(): Promise<Worker> {
   sendWeeklyDigests().catch((err) => logger.error({ err }, "[weekly-digest] initial sweep failed"));
   await digestQueue.upsertJobScheduler(JOB_NAME, { every: SWEEP_INTERVAL_MS }, { name: JOB_NAME });

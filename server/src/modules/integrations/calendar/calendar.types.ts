@@ -1,5 +1,4 @@
-// Shared shape both provider clients normalize to, so calendar.service.ts
-// never branches on which API it's talking to.
+// Shape both provider clients normalize to, so the service never branches on the API.
 export interface CalendarEventPayload {
   title: string;
   description: string | null;
@@ -29,10 +28,7 @@ export interface CreatedCalendarEvent {
   htmlLink: string;
 }
 
-// A single event as read back FROM a provider's list/calendarview API —
-// normalized the same way CreatedCalendarEvent is for creation, so
-// calendar.service.ts's merge logic never branches on provider shape here
-// either.
+// An event read back from a provider, normalized like CreatedCalendarEvent.
 export interface RemoteCalendarEvent {
   externalEventId: string;
   title: string;

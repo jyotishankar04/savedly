@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:arch": "node scripts/check-architecture.mjs",
     "arc:adapt": "node components/arc/adapt.mjs"
   },
   "dependencies": {

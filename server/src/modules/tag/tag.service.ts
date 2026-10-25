@@ -8,9 +8,8 @@ export interface TagResponse {
   memoryCount: number;
 }
 
-// Read-only — tags are created implicitly via resolveTagIds() (memory.service.ts)
-// whenever a memory is saved/edited with a tag that doesn't exist yet, same as
-// how most tag systems work; there's no standalone "create a tag" action.
+// Read-only: tags are created implicitly by resolveTagIds() when a memory is saved or edited with a
+// new tag; there's no standalone create.
 export async function listTags(userId: string): Promise<TagResponse[]> {
   return db
     .select({

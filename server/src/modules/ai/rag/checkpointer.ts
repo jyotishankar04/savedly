@@ -5,8 +5,7 @@ export const checkpointer = PostgresSaver.fromConnString(env.DATABASE_URL);
 
 let setupDone = false;
 
-/** Creates LangGraph's own checkpoint tables on first call — not a drizzle
- *  migration, this is separate infra the checkpointer owns entirely. */
+/** Creates LangGraph's own checkpoint tables on first call; separate infra, not a drizzle migration. */
 export async function ensureCheckpointerSetup(): Promise<void> {
   if (setupDone) return;
   await checkpointer.setup();

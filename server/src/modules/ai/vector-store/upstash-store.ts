@@ -1,18 +1,9 @@
 import { Index } from "@upstash/vector";
 import type { VectorStore, VectorUpsertInput } from "./types";
+import { chunkVectorId, documentVectorId } from "./vector-ids";
 
-// IDs are prefixed with the memory ID so a whole memory's vectors (document +
-// every chunk) can be removed in one call via `delete({ prefix })` — Upstash
-// doesn't know about our Postgres FK cascades, so this is the only way to
-// avoid orphaned vectors when a memory is deleted.
-function documentVectorId(memoryId: string): string {
-  return `${memoryId}:document`;
-}
-
-function chunkVectorId(memoryId: string, chunkIndex: number): string {
-  return `${memoryId}:chunk:${chunkIndex}`;
-}
-
+// IDs start with the memory ID so all its vectors can be deleted by prefix (Upstash doesn't know
+// our FK cascades).
 export function createUpstashVectorStore(config: { url: string; token: string }): VectorStore {
   const index = new Index({ url: config.url, token: config.token });
 
@@ -46,10 +37,7 @@ export function createUpstashVectorStore(config: { url: string; token: string })
     },
 
     async searchByEmbedding(userId, embedding, limit) {
-      // kind='document' scopes this to the one summary-level vector per
-      // memory (not the per-chunk vectors also stored under this same
-      // index) — memoryId is read straight off metadata rather than parsed
-      // out of the `${memoryId}:document` id string.
+      // kind='document' selects the one summary vector per memory, not chunks; memoryId comes from metadata.
       const results = await index.query<{ memoryId: string; userId: string; kind: string }>({
         vector: embedding,
         topK: limit,
@@ -63,8 +51,7 @@ export function createUpstashVectorStore(config: { url: string; token: string })
     },
 
     async searchChunksByEmbedding(userId, embedding, limit) {
-      // content lives in metadata already (see upsertMemoryVectors above) —
-      // no Postgres round-trip needed to get the chunk text itself.
+      // Content is in metadata already, so no Postgres round-trip for chunk text.
       const results = await index.query<{
         memoryId: string;
         userId: string;

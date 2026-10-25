@@ -9,12 +9,12 @@ import { getLangfuseHandler } from "../langfuse";
 import type { BrowserCapturePayload } from "../url-processor";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 import { ingestionGraph } from "./graph";
-import { INGESTION_QUEUE, ingestionQueue, ingestionWorkerOptions, type IngestionJobData } from "./queue";
+import { INGESTION_QUEUE, REINDEX_JOB, ingestionQueue, ingestionWorkerOptions, type IngestionJobData } from "./queue";
+import { reembedMemory } from "./reembed";
 
-/** Runs in the same process as the API for now (fine for dev — see the AI ingestion plan for the production split). */
+/** Runs in the API's process for now; see the AI ingestion plan for the production split. */
 export function startIngestionWorker(): Worker<IngestionJobData> {
-  // Jobs finished before the queue removed them by itself are still in Redis:
-  // clear those that are more than an hour old. Harmless when there are none.
+  // Clear jobs older than an hour that finished before the queue removed them on its own.
   void ingestionQueue
     .clean(60 * 60 * 1000, 5000, "completed")
     .catch((err) => logger.warn({ err }, "[ingestion] couldn't clear old finished jobs"));
@@ -22,6 +22,11 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
   const worker = new Worker<IngestionJobData>(
     INGESTION_QUEUE,
     async (job) => {
+      // An edited note: its chunks and vectors again, without the AI (see queue.ts).
+      if (job.name === REINDEX_JOB) {
+        await reembedMemory(job.data.memoryId);
+        return;
+      }
       logger.info({ memoryId: job.data.memoryId }, "[ingestion] job started");
 
       const [memory] = await db.select().from(memories).where(eq(memories.id, job.data.memoryId));
@@ -54,13 +59,11 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
         langfuseHandler ? { callbacks: [langfuseHandler] } : undefined,
       );
 
-      // The memory now has its summary, tags and collection: drop the owner's
-      // cached reads so the client's next fetch shows them.
+      // The memory now has its summary, tags and collection: drop the owner's cached reads.
       await bumpUserCache(memory.userId);
 
-      // Langfuse batches events client-side — flush before the job (and
-      // potentially the process, since this runs in-process with the API
-      // for now) moves on, or the trace may never actually get sent.
+      // Langfuse batches events client-side; flush before the job (or process) moves on or the
+      // trace may never be sent.
       await langfuseHandler?.flushAsync();
 
       logger.info({ memoryId: job.data.memoryId }, "[ingestion] job completed");
@@ -71,11 +74,9 @@ export function startIngestionWorker(): Worker<IngestionJobData> {
   worker.on("failed", (job, err) => {
     logger.error({ memoryId: job?.data.memoryId, err }, "[ingestion] job failed");
 
-    // Every prior node degrades gracefully instead of throwing — reaching
-    // here means something genuinely broke (a bug, an outage). The memory
-    // itself was already created and must never be left stuck at
-    // "processing" forever, per the save guarantee.
-    if (job?.data.memoryId) {
+    // Earlier nodes degrade rather than throw, so this means something broke: the memory mustn't
+    // stay "processing". A failed re-index leaves it as it was.
+    if (job?.data.memoryId && job.name !== REINDEX_JOB) {
       db.update(memories)
         .set({ status: MemoryStatus.FAILED })
         .where(eq(memories.id, job.data.memoryId))

@@ -2,11 +2,10 @@ import { readFile } from "node:fs/promises";
 import type { Request, Response } from "express";
 import { AppError } from "../../shared/errors/app-error";
 import { ApiResponse } from "../../shared/response/api-response";
-import { STORAGE_KEY_PATTERN, getStorage, localMetaPath, verifyLocalUploadToken } from "../../shared/storage";
-import { ALLOWED_MIME_TYPES } from "../upload/upload.constants";
+import { STORAGE_KEY_PATTERN, getStorage, localMetaPath, verifyLocalUploadToken } from "../../platform/storage";
+import { ALLOWED_MIME_TYPES } from "../upload/api";
 
-// Only reachable with the local-disk storage driver (self-hosted default) —
-// with R2/S3 the client uploads to and reads from the bucket directly.
+// Only with the local-disk driver (self-hosted default); R2/S3 clients talk to the bucket directly.
 async function requireLocalStorage() {
   const storage = await getStorage();
   if (storage.kind !== "local") throw new AppError("Not found", 404, "NOT_FOUND");

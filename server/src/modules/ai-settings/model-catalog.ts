@@ -1,16 +1,11 @@
 import { AiCredentialProvider } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
-import { OPENROUTER_BASE_URL } from "../ai/ai.providers";
+import { OPENROUTER_BASE_URL } from "../ai/api";
 
-// OpenRouter publishes a free, keyless catalog of every model it routes to
-// (hundreds of models across dozens of providers) with prices, context
-// length, input modalities and supported parameters. It's the one source that
-// covers every provider, so prices and capabilities come from it instead of a
-// hardcoded list that goes stale. A user's own key is still asked for the
-// exact model IDs it can use (see listProviderModels).
+// OpenRouter's free keyless catalog covers every provider's models, prices and capabilities, so we
+// use it rather than a stale list; a user's own key is still asked for its exact IDs.
 
 export interface CatalogModel {
-  /** The model ID to enter for this provider. */
   id: string;
   name: string;
   /** Who makes the model, e.g. "openai", "anthropic" (OpenRouter's ID prefix). */
@@ -35,8 +30,7 @@ interface OpenRouterModel {
   supported_parameters?: string[];
 }
 
-// Nothing is stored — the catalog is re-read from OpenRouter at most every
-// 10 minutes, so new models and price changes show up almost immediately.
+// Nothing is stored: re-read at most every 10 minutes, so new models and prices show up quickly.
 const CATALOG_TTL_MS = 10 * 60 * 1000;
 const PROVIDER_LIST_TTL_MS = 10 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -82,10 +76,7 @@ async function loadCatalog(): Promise<{ models: CatalogModel[]; fetchedAt: Date 
   return { models: [...chatList, ...embeddingList], fetchedAt: new Date() };
 }
 
-/**
- * Held in memory for 10 minutes; concurrent callers share one fetch. On a
- * failed refresh the last good copy is served rather than an error.
- */
+/** Cached 10 minutes, concurrent callers share one fetch; a failed refresh serves the last good copy. */
 export async function getModelCatalog(): Promise<{ models: CatalogModel[]; fetchedAt: Date }> {
   if (catalogCache && Date.now() - catalogCache.fetchedAt.getTime() < CATALOG_TTL_MS) return catalogCache;
   if (!catalogInFlight) {
@@ -104,8 +95,6 @@ export async function getModelCatalog(): Promise<{ models: CatalogModel[]; fetch
   }
   return catalogInFlight;
 }
-
-// --- A user's own key: the exact model IDs their provider offers -----------
 
 /** OpenRouter IDs look like "anthropic/claude-haiku-4.5"; providers use "claude-haiku-4-5-20251001". */
 function matchKey(id: string): string {
@@ -153,10 +142,8 @@ export interface ProviderModelList {
 }
 
 /**
- * Every model the user's own key can use, from that provider's own list
- * endpoint, enriched with price/capabilities from the catalog where the IDs
- * match. For OpenRouter the catalog itself is the list. `cacheKey` should
- * change when the key changes (e.g. include the credential's updatedAt).
+ * Models the user's key can use, enriched with catalog prices; `cacheKey` should change when the
+ * key does.
  */
 export async function listProviderModels(
   provider: AiCredentialProvider,
@@ -192,8 +179,7 @@ export async function listProviderModels(
     return { models: [], error: "Couldn't load models from this provider. Check the key, or type a model name." };
   }
 
-  // Exact OpenRouter ID first (Groq and many custom endpoints reuse them),
-  // then a normalized match on the model name.
+  // Exact OpenRouter ID first (Groq and custom endpoints reuse them), then a normalized name match.
   const byId = new Map(catalog.map((m) => [m.id.toLowerCase(), m]));
   const byKey = new Map<string, CatalogModel>();
   for (const m of catalog) if (!byKey.has(matchKey(m.id))) byKey.set(matchKey(m.id), m);

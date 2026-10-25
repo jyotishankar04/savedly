@@ -191,7 +191,7 @@ export default function HomePage() {
         <h2 id="home-save" className="text-sm font-medium text-muted-foreground">Save something</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <SaveAction icon={LinkIcon} label="Save a link" sub="Paste any URL" onClick={openQuickCapture} />
-          <SaveAction icon={StickyNote} label="Write a note" sub="Capture a thought" onClick={openQuickCapture} />
+          <SaveAction icon={StickyNote} label="Write a note" sub="Capture a thought" onClick={() => window.dispatchEvent(new CustomEvent("capture:open", { detail: { mode: "note" } }))} />
           <SaveAction icon={Upload} label="Upload a file" sub="Image, PDF or screenshot" onClick={openQuickCapture} />
           <SaveAction icon={Puzzle} label="Browser extension" sub="Save from any page" href="/app/integrations" />
         </div>
