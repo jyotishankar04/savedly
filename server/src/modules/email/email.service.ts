@@ -3,8 +3,8 @@ import { db } from "../../db";
 import { emailCampaigns, emailMessages, userSettings, users } from "../../db/schema";
 import { EmailCategory, EmailTemplateKey, UserStatus } from "../../db/enums";
 import { logAdminAction } from "../../shared/utils/audit-log";
-import { adminComposedEmailTemplate, composedEmailTemplate, composedEmailToText, withUnsubscribeUrl, type ComposedEmail } from "../../shared/mailer/templates";
-import { unsubscribePageUrl } from "../../shared/mailer/unsubscribe";
+import { adminComposedEmailTemplate, composedEmailTemplate, composedEmailToText, withUnsubscribeUrl, type ComposedEmail } from "../../platform/mailer/templates";
+import { unsubscribePageUrl } from "../../platform/mailer/unsubscribe";
 import { enqueueEmail } from "./email.queue";
 
 export interface SendEmailInput {

@@ -20,7 +20,7 @@ import {
 import { claimPendingGrantsForEmail } from "../share/share.service";
 import { sendEmail } from "../email";
 import { EmailCategory, EmailTemplateKey } from "../../db/enums";
-import { welcomeEmailTemplate } from "../../shared/mailer/templates";
+import { welcomeEmailTemplate } from "../../platform/mailer/templates";
 import {
   assignAdminRole,
   assignDefaultRole,

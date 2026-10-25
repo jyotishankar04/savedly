@@ -5,7 +5,7 @@ import { db } from "../../../db";
 import { memories, users } from "../../../db/schema";
 import { AiRole } from "../../../db/enums";
 import { env } from "../../../config/env";
-import { getSection } from "../../instance-settings/instance-settings.service";
+import { getSection } from "../../../platform/instance-settings/instance-settings.service";
 import { getOAuthCredentials } from "../../auth/oauth-config";
 import { platformCredential } from "../../ai/ai.providers";
 import { appVersion } from "./update.service";

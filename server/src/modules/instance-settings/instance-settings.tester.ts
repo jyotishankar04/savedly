@@ -3,13 +3,13 @@ import { Index } from "@upstash/vector";
 import { sql } from "drizzle-orm";
 import { db } from "../../db";
 import { AiCredentialProvider, AiRole } from "../../db/enums";
-import { createS3Driver, localDriver, type S3Settings } from "../../shared/storage";
-import { createTransport, type SmtpSettings } from "../../shared/mailer/mailer";
+import { createS3Driver, localDriver, type S3Settings } from "../../platform/storage";
+import { createTransport, type SmtpSettings } from "../../platform/mailer/mailer";
 import { pineconeClient } from "../ai/vector-store/pinecone-store";
 import { platformCredentialFrom, testEmbeddingsCredential, testRoleCredential } from "../ai/ai.providers";
 import { searchWith } from "../ai/web-search/web-search";
-import type { SectionId } from "./instance-settings.registry";
-import type { ResolvedSection } from "./instance-settings.service";
+import type { SectionId } from "../../platform/instance-settings/instance-settings.registry";
+import type { ResolvedSection } from "../../platform/instance-settings/instance-settings.service";
 
 /**
  * Admin -> Infrastructure's "Test connection": exercises the candidate

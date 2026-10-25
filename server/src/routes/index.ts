@@ -40,7 +40,7 @@ import searchRoutes from "../modules/search";
 import reportRoutes from "../modules/report";
 import contactRoutes from "../modules/contact";
 import { responseCache } from "../shared/cache/response-cache";
-import { maintenanceMode } from "../shared/middlewares/maintenance-mode";
+import { maintenanceMode } from "../modules/feature-flags/maintenance-mode.middleware";
 
 const router = Router();
 

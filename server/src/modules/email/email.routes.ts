@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { userSettings } from "../../db/schema";
 import { bumpUserCache } from "../../shared/cache/response-cache";
 import { AppError } from "../../shared/errors/app-error";
-import { verifyUnsubscribeToken } from "../../shared/mailer/unsubscribe";
+import { verifyUnsubscribeToken } from "../../platform/mailer/unsubscribe";
 import { ApiResponse } from "../../shared/response/api-response";
 
 // Public: these are reached from a link in an email, signed out. The signed

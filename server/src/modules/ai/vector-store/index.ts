@@ -1,4 +1,4 @@
-import { getSection, settingsVersion } from "../../instance-settings/instance-settings.service";
+import { getSection, settingsVersion } from "../../../platform/instance-settings/instance-settings.service";
 import { pgVectorStore } from "./pgvector-store";
 import { createPineconeVectorStore } from "./pinecone-store";
 import { createUpstashVectorStore } from "./upstash-store";

@@ -7,7 +7,7 @@ import type { Readable } from "node:stream";
 import { create as createTar } from "tar";
 import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
-import { getSection } from "../../instance-settings/instance-settings.service";
+import { getSection } from "../../../platform/instance-settings/instance-settings.service";
 
 // A self-hosted install's backup as one download: the database, the uploaded
 // files when they live on this server's disk, and optionally the secrets

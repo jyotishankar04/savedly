@@ -14,7 +14,7 @@ import { decryptToken } from "../../shared/crypto/token-cipher";
 import { logger } from "../../shared/utils/logger";
 import { env } from "../../config/env";
 import { createUsageCallback, PLATFORM_AI_TAG } from "../ai-usage/usage-logger";
-import { getSection } from "../instance-settings/instance-settings.service";
+import { getSection } from "../../platform/instance-settings/instance-settings.service";
 import { canUseIncludedAi, planHasManagedAi, type IncludedAiPurpose } from "../plans/plans.service";
 
 export interface UsageContext {

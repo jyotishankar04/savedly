@@ -7,7 +7,7 @@ import {
   shareAccessDecisionEmailTemplate,
   shareAccessRequestedEmailTemplate,
   shareInviteEmailTemplate,
-} from "../../shared/mailer/templates";
+} from "../../platform/mailer/templates";
 import type { ShareRow } from "./share.access";
 
 /**

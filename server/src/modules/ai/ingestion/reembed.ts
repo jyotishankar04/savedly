@@ -5,7 +5,7 @@ import { memories, memoryTags, tags } from "../../../db/schema";
 import { logger } from "../../../shared/utils/logger";
 import { getEmbeddings } from "../ai.providers";
 import { getVectorStore } from "../vector-store";
-import { getSection } from "../../instance-settings/instance-settings.service";
+import { getSection } from "../../../platform/instance-settings/instance-settings.service";
 
 // Re-index memories for search by meaning, embeddings only: no summarizing,
 // tagging or other AI steps, so it doesn't spend anyone's AI allowance. It

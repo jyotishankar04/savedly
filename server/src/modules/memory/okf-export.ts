@@ -1,6 +1,6 @@
 import { stringify } from "yaml";
 import { zipSync, strToU8 } from "fflate";
-import type { MemoryDetail } from "./memory.service";
+import type { MemoryDetail } from "./memory.types";
 
 // "Export as OKF": the user's library as an Open Knowledge Format v0.2 bundle
 // (github.com/GoogleCloudPlatform/open-knowledge-format/SPEC.md). A folder of

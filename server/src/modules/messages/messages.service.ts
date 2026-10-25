@@ -1,8 +1,8 @@
 import { and, asc, count, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
 import { db } from "../../db";
 import { contactMessages, messageReplies, reports, users } from "../../db/schema";
-import { getSection } from "../instance-settings/instance-settings.service";
-import { isEmailEnabled, sendMail } from "../../shared/mailer/mailer";
+import { getSection } from "../../platform/instance-settings/instance-settings.service";
+import { isEmailEnabled, sendMail } from "../../platform/mailer/mailer";
 import { ContactMessageStatus, ReportStatus } from "../../db/enums";
 import { AppError } from "../../shared/errors/app-error";
 import type { ListContactQuery, ListReportsQuery } from "./messages.schema";

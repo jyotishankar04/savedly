@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
-import { isMaintenanceMode, getMaintenanceMessage } from "../../modules/feature-flags/feature-flags.service";
-import { ApiResponse } from "../response/api-response";
-import { ACCESS_TOKEN_COOKIE } from "../utils/cookies";
-import { verifyAccessToken } from "../utils/jwt";
+import { isMaintenanceMode, getMaintenanceMessage } from "./feature-flags.service";
+import { ApiResponse } from "../../shared/response/api-response";
+import { ACCESS_TOKEN_COOKIE } from "../../shared/utils/cookies";
+import { verifyAccessToken } from "../../shared/utils/jwt";
 
 // /announcements and /maintenance are public, read-only, and consumed by the
 // marketing site itself — which stays fully usable during maintenance.

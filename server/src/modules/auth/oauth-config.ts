@@ -1,4 +1,4 @@
-import { getSection } from "../instance-settings/instance-settings.service";
+import { getSection } from "../../platform/instance-settings/instance-settings.service";
 
 export interface OAuthClientCredentials {
   clientId: string;

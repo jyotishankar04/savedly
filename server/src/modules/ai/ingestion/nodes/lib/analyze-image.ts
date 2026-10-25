@@ -1,7 +1,7 @@
 import { HumanMessage } from "@langchain/core/messages";
 import { getVisionModels, invokeWithFallback, type UsageContext } from "../../../ai.providers";
 import { logger } from "../../../../../shared/utils/logger";
-import { toModelImageUrl } from "../../../../../shared/storage";
+import { toModelImageUrl } from "../../../../../platform/storage";
 
 // "Screen type" exists so a generic query like "terminal images" or "code
 // editor screenshots" reliably finds this memory even though the user never

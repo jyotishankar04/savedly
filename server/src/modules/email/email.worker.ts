@@ -5,8 +5,8 @@ import { db } from "../../db";
 import { emailMessages } from "../../db/schema";
 import { EmailStatus } from "../../db/enums";
 import { logger } from "../../shared/utils/logger";
-import { isEmailEnabled, sendMail } from "../../shared/mailer/mailer";
-import { unsubscribeHeaders } from "../../shared/mailer/unsubscribe";
+import { isEmailEnabled, sendMail } from "../../platform/mailer/mailer";
+import { unsubscribeHeaders } from "../../platform/mailer/unsubscribe";
 import type { EmailJobData } from "./email.queue";
 
 /** Mirrors startIngestionWorker/startTrashPurgeWorker's shape — call once from server.ts. */

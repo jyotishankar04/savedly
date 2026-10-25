@@ -1,7 +1,7 @@
 import { PlanLimitType } from "../../../db/enums";
 import { logger } from "../../../shared/utils/logger";
 import { logAiUsage } from "../../ai-usage/usage-logger";
-import { getSection, type ResolvedSection } from "../../instance-settings/instance-settings.service";
+import { getSection, type ResolvedSection } from "../../../platform/instance-settings/instance-settings.service";
 import { isWithinLimit } from "../../plans/plans.service";
 
 /**

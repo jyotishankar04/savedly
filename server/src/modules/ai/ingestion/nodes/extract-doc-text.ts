@@ -1,4 +1,4 @@
-import { readFileUrl } from "../../../../shared/storage";
+import { readFileUrl } from "../../../../platform/storage";
 import { extractPdfContent } from "./lib/parse-pdf";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";

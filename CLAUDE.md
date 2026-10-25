@@ -45,6 +45,13 @@ npx @startxkit/cli add module <name>
 npx @startxkit/cli doctor
 ```
 
+### Layers (`pnpm check:arch` enforces them)
+Imports only go **down**: `config` < `db`, `shared` < `platform` < `modules` < the app (`routes/`, `app.ts`, `server.ts`).
+- `shared/` — generic building blocks (crypto, errors, logger, middleware, response helpers). Knows nothing about features.
+- `platform/` — services configured at runtime through `platform/instance-settings` (mailer, storage). Knows nothing about features.
+- `modules/<name>/` — features. Another module is used through its `index.ts`; the deep imports that exist today are listed in `server/scripts/architecture.baseline.json` and that list may only shrink. No import cycles between files.
+- Entry-point scripts (`server.ts`, `db/seed*.ts`, `db/reindex.ts`, `db/reset-plans.ts`, `db/bootstrap.ts`) may import anything.
+
 ### Module architecture
 Feature code lives under `src/modules/<name>/`, one file per concern, all wired through a barrel `index.ts`:
 - `<name>.routes.ts` — Express `Router`, mounted centrally in `src/routes/index.ts` under the `/api/v1` prefix (set in `src/app.ts`).
@@ -59,7 +66,7 @@ Errors: throw `AppError(message, statusCode)` (`src/shared/errors/app-error.ts`)
 
 ### Config
 - `src/config/env.ts` validates `process.env` with Zod at startup (fails fast on missing vars). Copy `server/.env.example` and extend it; adding a new required var means adding it to this schema too. `SELF_HOSTED=true` (the root `docker-compose.yml`) generates secrets on first boot and makes OAuth/R2/SMTP optional; hosted production leaves it false and is configured only through env.
-- Infrastructure that a self-hosted admin can change at runtime (storage, vector store, email, embeddings, OAuth) is read through `modules/instance-settings/` (`getSection`: env > DB setting > default; the DB is never read unless `SELF_HOSTED`). Don't read those env vars directly — add a field to `instance-settings.registry.ts`.
+- Infrastructure that a self-hosted admin can change at runtime (storage, vector store, email, embeddings, OAuth) is read through `platform/instance-settings/` (`getSection`: env > DB setting > default; the DB is never read unless `SELF_HOSTED`); its admin HTTP API is `modules/instance-settings/`. Don't read those env vars directly — add a field to `platform/instance-settings/instance-settings.registry.ts`.
 - `pnpm build` typechecks and bundles `src/server.ts` + `src/db/bootstrap.ts` with esbuild into `dist/` (tsc's output doesn't run under Node ESM: no `.js` import extensions).
 - `src/config/cors.ts` — CORS is currently wide open (`origin: true, credentials: true`).
 - `src/db/index.ts` — Drizzle client over a `pg.Pool`; `src/db/schema.ts` is the single schema file (tables + `pgEnum` + `defineRelations`); enum string values live in `src/db/enums.ts` and are reused by the pgEnum definitions — add new enum values there, not inline.

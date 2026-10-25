@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { contactMessages } from "../../db/schema";
-import { getSection } from "../instance-settings/instance-settings.service";
-import { isEmailEnabled, sendMail } from "../../shared/mailer/mailer";
+import { getSection } from "../../platform/instance-settings/instance-settings.service";
+import { isEmailEnabled, sendMail } from "../../platform/mailer/mailer";
 import { logger } from "../../shared/utils/logger";
 import type { SendContactInput } from "./contact.schema";
 

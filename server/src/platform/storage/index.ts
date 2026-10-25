@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../../config/env";
-import { getSection, settingsVersion } from "../../modules/instance-settings/instance-settings.service";
+import { getSection, settingsVersion } from "../instance-settings/instance-settings.service";
 
 // Where uploaded files live. Two drivers behind one interface:
 //

@@ -3,7 +3,7 @@ import { env } from "../../config/env";
 import { EmailCategory, EmailTemplateKey, NotificationType } from "../../db/enums";
 import { createNotification } from "../notification/notification.service";
 import { sendEmail } from "../email";
-import { eventDetectedEmailTemplate, memoryReminderEmailTemplate } from "../../shared/mailer/templates";
+import { eventDetectedEmailTemplate, memoryReminderEmailTemplate } from "../../platform/mailer/templates";
 import { userTimeZone } from "../../shared/utils/time-zone";
 
 /**

@@ -1,7 +1,7 @@
 import { and, ilike, inArray, notInArray, or } from "drizzle-orm";
 import { db } from "../../db";
 import { attachments, memories } from "../../db/schema";
-import { getStorage, STORAGE_KEY_PATTERN } from "../../shared/storage";
+import { getStorage, STORAGE_KEY_PATTERN } from "../../platform/storage";
 import { logger } from "../../shared/utils/logger";
 
 /**

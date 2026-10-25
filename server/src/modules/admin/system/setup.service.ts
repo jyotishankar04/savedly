@@ -4,7 +4,7 @@ import { instanceSettings } from "../../../db/schema";
 import { AiRole } from "../../../db/enums";
 import { env } from "../../../config/env";
 import { AppError } from "../../../shared/errors/app-error";
-import { getSection } from "../../instance-settings/instance-settings.service";
+import { getSection } from "../../../platform/instance-settings/instance-settings.service";
 import { getOAuthCredentials } from "../../auth/oauth-config";
 import { platformCredential, platformEmbeddingsCredential } from "../../ai/ai.providers";
 

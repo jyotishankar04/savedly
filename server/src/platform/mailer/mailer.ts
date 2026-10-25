@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { getSection, settingsVersion } from "../../modules/instance-settings/instance-settings.service";
+import { getSection, settingsVersion } from "../instance-settings/instance-settings.service";
 import { htmlToText } from "./html-to-text";
 
 export interface SmtpSettings {

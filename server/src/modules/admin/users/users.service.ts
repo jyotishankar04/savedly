@@ -14,7 +14,7 @@ import { sendEmail } from "../../email";
 import { resolveEffectivePlan } from "../../plans/plans.service";
 import { valueGrant } from "../plans/plan-grants.service";
 import { adminChangeSubscription, billingStatus } from "../../billing/billing.service";
-import { userStatusChangedEmailTemplate } from "../../../shared/mailer/templates";
+import { userStatusChangedEmailTemplate } from "../../../platform/mailer/templates";
 import type { CreateUserInput, GrantPlanInput, ListUsersQuery, SetUserPasswordInput, UpdateUserRolesInput, UpdateUserStatusInput } from "./users.schema";
 import { bumpUserCache } from "../../../shared/cache/response-cache";
 

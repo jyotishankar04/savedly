@@ -3,8 +3,8 @@ import { env } from "../../config/env";
 import { ApiResponse } from "../../shared/response/api-response";
 import { AppError } from "../../shared/errors/app-error";
 import { logAdminAction } from "../../shared/utils/audit-log";
-import { getSectionDef, type SectionId } from "./instance-settings.registry";
-import { describeSections, mergeCandidate, saveSection } from "./instance-settings.service";
+import { getSectionDef, type SectionId } from "../../platform/instance-settings/instance-settings.registry";
+import { describeSections, mergeCandidate, saveSection } from "../../platform/instance-settings/instance-settings.service";
 import { testSection } from "./instance-settings.tester";
 import { countMemoriesToReindex, isReindexRunning, reindexMemories } from "../ai/ingestion/reembed";
 

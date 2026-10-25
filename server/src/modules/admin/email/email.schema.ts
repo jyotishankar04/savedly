@@ -21,7 +21,7 @@ const emailBlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("divider") }),
 ]);
 
-/** What the admin composer builds. See ComposedEmail in shared/mailer/templates.ts. */
+/** What the admin composer builds. See ComposedEmail in platform/mailer/templates.ts. */
 export const emailContentSchema = z.object({
   label: z.string().trim().max(40).optional(),
   tone: toneSchema.optional(),
