@@ -1,5 +1,6 @@
 import { HumanMessage } from "@langchain/core/messages";
-import { getTextFallbackModels, invokeWithFallback, type UsageContext } from "../../../ai.providers";
+import { getTextFallbackModels, invokeWithFallback } from "../../../models";
+import { type UsageContext } from "../../../credentials";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../../untrusted";
 import { logger } from "../../../../../shared/utils/logger";
 import type { SocialPost } from "../../../url-processor";

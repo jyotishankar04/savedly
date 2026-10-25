@@ -1,5 +1,6 @@
 import { HumanMessage } from "@langchain/core/messages";
-import { getVisionModels, invokeWithFallback, type UsageContext } from "../../../ai.providers";
+import { getVisionModels, invokeWithFallback } from "../../../models";
+import { type UsageContext } from "../../../credentials";
 import { logger } from "../../../../../shared/utils/logger";
 import { toModelImageUrl } from "../../../../../platform/storage";
 

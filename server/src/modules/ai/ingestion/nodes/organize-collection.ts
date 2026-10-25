@@ -3,7 +3,7 @@ import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../../../db";
 import { collectionMemories, collections } from "../../../../db/schema";
-import { getChatModel } from "../../ai.providers";
+import { getChatModel } from "../../models";
 import { createUsageCallback } from "../../../ai-usage/api";
 import { logNode } from "../log";
 import { collectionNameKey } from "../../../collection/api";

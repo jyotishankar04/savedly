@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../../../db";
 import { memories } from "../../../db/schema";
-import { getEmbeddings } from "../ai.providers";
+import { getEmbeddings } from "../models";
 import { getVectorStore } from "../vector-store";
 import { rrfMerge, SEMANTIC_SIMILARITY_FLOOR } from "../search/rrf";
 import { MIN_SEMANTIC_QUERY_LENGTH, semanticSearch } from "../search/semantic-search";

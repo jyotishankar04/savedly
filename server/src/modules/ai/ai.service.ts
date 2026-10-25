@@ -9,7 +9,7 @@ import { AppError } from "../../shared/errors/app-error";
 import { logAiUsage } from "../ai-usage/api";
 import { AiRole, PlanLimitType } from "../../db/enums";
 import { isWithinLimit } from "../plans/api";
-import { hasOwnCredential, platformCredential } from "./ai.providers";
+import { hasOwnCredential, platformCredential } from "./credentials";
 import { compiledRagGraph } from "./rag/graph";
 import { askUnavailableMessage } from "./rag/nodes/agent";
 import { ensureCheckpointerSetup } from "./rag/checkpointer";

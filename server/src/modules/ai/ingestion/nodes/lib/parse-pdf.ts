@@ -1,6 +1,7 @@
 import { PDFParse } from "pdf-parse";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { getTextFallbackModels, invokeWithFallback, type UsageContext } from "../../../ai.providers";
+import { getTextFallbackModels, invokeWithFallback } from "../../../models";
+import { type UsageContext } from "../../../credentials";
 import { logger } from "../../../../../shared/utils/logger";
 
 const MAX_CONTENT_LENGTH = 20000;

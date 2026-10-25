@@ -1,7 +1,7 @@
 import { AIMessage, ToolMessage } from "@langchain/core/messages";
 import type { GraphNode } from "@langchain/langgraph";
 import { z } from "zod";
-import { getChatModel } from "../../ai.providers";
+import { getChatModel } from "../../models";
 import { withUsage } from "../../../ai-usage/api";
 import { GROUNDING_CHECK_PROMPT } from "../prompts";
 import { RAGState, type RAGStateType } from "../state";

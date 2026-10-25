@@ -3,7 +3,7 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { db } from "../../../db";
 import { memories, memoryTags, tags } from "../../../db/schema";
 import { logger } from "../../../shared/utils/logger";
-import { getEmbeddings } from "../ai.providers";
+import { getEmbeddings } from "../models";
 import { getVectorStore } from "../vector-store";
 import { getSection } from "../../../platform/instance-settings/instance-settings.service";
 

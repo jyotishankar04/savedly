@@ -1,6 +1,6 @@
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
-import { getChatModel } from "../../ai.providers";
+import { getChatModel } from "../../models";
 import { createUsageCallback } from "../../../ai-usage/api";
 import { logNode } from "../log";
 import type { IngestionStateType, IngestionUpdate } from "../state";

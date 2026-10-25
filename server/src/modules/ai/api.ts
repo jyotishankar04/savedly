@@ -2,7 +2,9 @@
 // Nothing here is a router (that's index.ts): importing it never loads this module's HTTP layer.
 // Add a line when another module needs something; keep it small.
 
-export { OPENROUTER_BASE_URL, getChatModel, getPlatformChatModel, hasOwnCredential, platformCredential, platformCredentialFrom, platformEmbeddingsCredential, testEmbeddingsCredential, testRoleCredential, type TestCredentialResult } from "./ai.providers";
+export { OPENROUTER_BASE_URL, hasOwnCredential, platformCredential, platformCredentialFrom, platformEmbeddingsCredential } from "./credentials";
+export { getChatModel, getPlatformChatModel } from "./models";
+export { testEmbeddingsCredential, testRoleCredential, type TestCredentialResult } from "./credential-tests";
 export { enqueueIngestion, enqueueIngestionBulk, enqueueNoteRefresh, enqueueNoteReindex } from "./ingestion/queue";
 export { countMemoriesToReindex, isReindexRunning, reindexMemories } from "./ingestion/reembed";
 export { findHelp, loadSitePages } from "./rag/tools/platform-help";

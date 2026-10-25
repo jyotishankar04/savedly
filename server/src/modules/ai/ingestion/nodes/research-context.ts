@@ -2,7 +2,7 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { JsonOutputParser } from "@langchain/core/output_parsers";
 import { PlanLimitType } from "../../../../db/enums";
 import { isWithinLimit } from "../../../plans/api";
-import { getChatModel } from "../../ai.providers";
+import { getChatModel } from "../../models";
 import { createUsageCallback } from "../../../ai-usage/api";
 import { UNTRUSTED_RULE, wrapUntrusted } from "../../untrusted";
 import { formatResults, webSearch, webSearchAvailable } from "../../web-search/web-search";

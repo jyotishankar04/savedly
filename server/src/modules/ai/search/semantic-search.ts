@@ -1,4 +1,4 @@
-import { getEmbeddings } from "../ai.providers";
+import { getEmbeddings } from "../models";
 import { getVectorStore } from "../vector-store";
 import { logAiUsage } from "../../ai-usage/api";
 import { logger } from "../../../shared/utils/logger";

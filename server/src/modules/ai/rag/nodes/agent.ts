@@ -1,6 +1,7 @@
 import { AIMessage, SystemMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import type { GraphNode } from "@langchain/langgraph";
-import { getChatModel, platformCredential } from "../../ai.providers";
+import { getChatModel } from "../../models";
+import { platformCredential } from "../../credentials";
 import { AiRole } from "../../../../db/enums";
 import { planHasManagedAi } from "../../../plans/api";
 import { withUsage } from "../../../ai-usage/api";
