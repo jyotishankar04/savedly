@@ -11,6 +11,15 @@ const EXTENSION_PAGE = "/chrome-extension";
 export const FEATURE_TOUR_CARDS = [
   {
     kind: WhatsNewKind.NEW,
+    title: "Notes, with a real editor",
+    body: "Write notes full page, with headings, lists, to-dos, callouts, code and pictures. Type / for the menu.",
+    bullets: ["Notes save as you write", "A Note tab in Add to Savedly for a quick one, and Open full page when it grows", "Search and Ask find them like any memory"],
+    imageUrl: "/whats-new/loops/notes.webp",
+    ctaLabel: "Write a note",
+    ctaUrl: "/app/notes/new",
+  },
+  {
+    kind: WhatsNewKind.NEW,
     title: "Highlight anything on the web",
     body: "Select text on any page and pick a colour, or add a note. Your highlights are there when you come back, and you can search them.",
     bullets: ["Five colours, and a note on any highlight", "Alt+H highlights the selection in yellow", "See them all on the memory in Savedly"],
