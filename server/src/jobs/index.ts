@@ -6,6 +6,7 @@ import { startWeeklyDigestWorker } from "../modules/memory/weekly-digest.job";
 import { startEmailWorker } from "../modules/email";
 import { startAccountDeletionWorker } from "../modules/account";
 import { startGithubStarsWorker } from "../modules/integrations/github/github.job";
+import { startRedditSavedWorker } from "../modules/integrations/reddit/reddit.job";
 import { logger } from "../shared/utils/logger";
 
 /**
@@ -30,6 +31,7 @@ const BACKGROUND_JOBS: BackgroundJob[] = [
   { name: "Email worker", start: startEmailWorker, ifItFails: "Failed to start email worker — outgoing email will not be sent" },
   { name: "Account deletion worker", start: startAccountDeletionWorker, ifItFails: "Failed to start account deletion worker — scheduled account wipes will not run" },
   { name: "GitHub stars worker", start: startGithubStarsWorker, ifItFails: "Failed to start GitHub stars worker — new stars will only sync when someone presses Sync now" },
+  { name: "Reddit saved worker", start: startRedditSavedWorker, ifItFails: "Failed to start Reddit saved worker — saved items will only sync when someone presses Sync now" },
 ];
 
 /**

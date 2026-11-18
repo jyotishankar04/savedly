@@ -15,6 +15,8 @@ export interface ServerConfig {
   aiReady: boolean;
   /** GitHub stars can be connected: GitHub sign-in is set up on the server and the integration isn't switched off. */
   githubStars: boolean;
+  /** Reddit saved items can be connected: Reddit credentials are set up on the server and the integration isn't switched off. */
+  redditSaved?: boolean;
 }
 
 export function getServerConfig(): Promise<ServerConfig> {

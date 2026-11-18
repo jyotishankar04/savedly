@@ -61,6 +61,38 @@ export const githubConnections = pgTable(
   (table) => [uniqueIndex("uq_github_connections_user").on(table.userId)],
 );
 
+// One per user: the Reddit account whose saved posts & comments are added to the library (modules/integrations/reddit).
+export const redditConnections = pgTable(
+  "reddit_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    redditUsername: varchar("reddit_username", { length: 100 }).notNull(),
+    encryptedAccessToken: text("encrypted_access_token").notNull(),
+    encryptedRefreshToken: text("encrypted_refresh_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }).notNull(),
+    scope: text("scope").notNull().default(""),
+    // Fullname of the newest saved item already processed (e.g. "t3_abc123" or "t1_def456")
+    lastItemFullname: varchar("last_item_fullname", { length: 64 }),
+    lastSavedAt: timestamp("last_saved_at", { withTimezone: true }),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    // Items this connection has added to the library in total
+    importedCount: integer("imported_count").notNull().default(0),
+    // Why the last sync stopped short, in words the user can act on. Null when it went fine.
+    lastError: text("last_error"),
+    // Reddit refused the token (access revoked): syncing stops until they connect again.
+    needsReconnect: boolean("needs_reconnect").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [uniqueIndex("uq_reddit_connections_user").on(table.userId)],
+);
+
 // One row per memory and provider event, so a memory isn't pushed twice and its remote event can be found.
 export const calendarEventLinks = pgTable(
   "calendar_event_links",

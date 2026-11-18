@@ -25,6 +25,7 @@ export const RESERVED_FLAG_KEYS = {
   CALENDAR_SYNC_ENABLED: "features.calendar.sync.enabled",
   CALENDAR_GOOGLE_ENABLED: "features.calendar.google.enabled",
   GITHUB_STARS_ENABLED: "features.integrations.github_stars.enabled",
+  REDDIT_SAVED_ENABLED: "features.integrations.reddit_saved.enabled",
   EMAIL_CAMPAIGNS_ENABLED: "features.email.campaigns.enabled",
   EMAIL_RATE_LIMIT_PER_HOUR: "features.email.rate_limit_per_hour",
   IMPORT_ENABLED: "features.import.enabled",
@@ -63,6 +64,7 @@ const DEFAULT_FLAGS: { key: string; value: unknown; description: string; categor
   { key: RESERVED_FLAG_KEYS.CALENDAR_SYNC_ENABLED, value: true, description: "Enable calendar integration and OAuth connections.", category: "features" },
   { key: RESERVED_FLAG_KEYS.CALENDAR_GOOGLE_ENABLED, value: true, description: "Allow Google Calendar OAuth connections.", category: "features" },
   { key: RESERVED_FLAG_KEYS.GITHUB_STARS_ENABLED, value: true, description: "Let people connect GitHub and add their starred repositories.", category: "features" },
+  { key: RESERVED_FLAG_KEYS.REDDIT_SAVED_ENABLED, value: true, description: "Let people connect Reddit and add their saved posts and comments.", category: "features" },
   { key: RESERVED_FLAG_KEYS.EMAIL_CAMPAIGNS_ENABLED, value: true, description: "Enable email campaigns and bulk notifications.", category: "features" },
   { key: RESERVED_FLAG_KEYS.EMAIL_RATE_LIMIT_PER_HOUR, value: 1000, description: "Max emails sent per hour.", category: "features" },
   { key: RESERVED_FLAG_KEYS.IMPORT_ENABLED, value: true, description: "Enable memory imports from external sources.", category: "features" },
@@ -221,6 +223,10 @@ export async function isCalendarProviderEnabled(_provider: "google"): Promise<bo
 
 export async function isGithubStarsEnabled(): Promise<boolean> {
   return getFlagValue<boolean>(RESERVED_FLAG_KEYS.GITHUB_STARS_ENABLED, true);
+}
+
+export async function isRedditSavedEnabled(): Promise<boolean> {
+  return getFlagValue<boolean>(RESERVED_FLAG_KEYS.REDDIT_SAVED_ENABLED, true);
 }
 
 export async function isEmailCampaignsEnabled(): Promise<boolean> {
