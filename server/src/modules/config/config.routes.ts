@@ -5,7 +5,7 @@ import { ApiResponse } from "../../shared/response/api-response";
 import { isBillingEnabled } from "../billing";
 import { isCalendarProviderEnabled, isCalendarSyncEnabled } from "../feature-flags/api";
 import { isAiReady } from "../admin/api";
-import { isGithubStarsAvailable } from "../integrations/api";
+import { isGithubStarsAvailable, isRedditSavedAvailable } from "../integrations/api";
 
 const router = Router();
 
@@ -13,11 +13,12 @@ router.get("/", async (_req: Request, res: Response) => {
   // New Google Calendar connections can be switched off (Admin > Features), as hosted did during
   // Google's review; the client then shows "coming soon" instead of a Connect button that hits
   // Google's unverified-app warning.
-  const [calendarSync, googleCalendar, aiReady, githubStars] = await Promise.all([
+  const [calendarSync, googleCalendar, aiReady, githubStars, redditSaved] = await Promise.all([
     isCalendarSyncEnabled(),
     isCalendarProviderEnabled("google"),
     isAiReady(),
     isGithubStarsAvailable(),
+    isRedditSavedAvailable(),
   ]);
   res.status(200).json(
     ApiResponse.success({
@@ -28,6 +29,8 @@ router.get("/", async (_req: Request, res: Response) => {
       aiReady,
       // GitHub stars can be connected: sign-in is set up and an admin hasn't switched it off.
       githubStars,
+      // Reddit saved items can be connected: client credentials are set up and an admin hasn't switched it off.
+      redditSaved,
     }),
   );
 });

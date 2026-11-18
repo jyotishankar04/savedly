@@ -3,3 +3,4 @@
 export { createStandaloneCalendarEvent, deleteEventForMemory, deleteExternalCalendarEvent, eventLinksForMemory, listEvents, updateEventForMemory, updateExternalCalendarEvent } from "./calendar/calendar.events";
 export { CalendarController, validatePushEvent, validateUpdateEvent } from "./calendar/index";
 export { isGithubStarsAvailable } from "./github/github.controller";
+export { isRedditSavedAvailable } from "./reddit/reddit.controller";

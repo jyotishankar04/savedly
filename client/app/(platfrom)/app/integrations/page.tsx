@@ -33,6 +33,7 @@ import { ProBadge } from "@/components/plan-limit-notice";
 import { ConnectLink } from "@/components/integrations/connect-link";
 import { CalendarConnectResult } from "@/components/integrations/calendar-connect-result";
 import { GithubStarsActions, githubStarsDescription, useGithubConnection } from "@/components/integrations/github-stars-card";
+import { RedditSavedActions, redditSavedDescription, useRedditConnection } from "@/components/integrations/reddit-saved-card";
 
 /** Official Google "G" mark — small enough that a colored circle badge alone wouldn't read as Google. */
 function GoogleLogo({ className }: { className?: string }) {
@@ -350,7 +351,14 @@ export default function IntegrationsPage() {
   const githubLive = serverConfig?.githubStars === true;
   const { data: github } = useGithubConnection(githubLive);
   const githubPlan = PLANNED.find((p) => p.key === "github")!;
-  const planned = PLANNED.filter((p) => !(githubLive && p.key === "github"));
+  // Reddit saved posts is a real connection where the server has Reddit configured;
+  // anywhere else its card stays in the planned list.
+  const redditLive = serverConfig?.redditSaved === true;
+  const { data: reddit } = useRedditConnection(redditLive);
+  const redditPlan = PLANNED.find((p) => p.key === "reddit")!;
+  const planned = PLANNED.filter(
+    (p) => !(githubLive && p.key === "github") && !(redditLive && p.key === "reddit")
+  );
   function isCalendarConnected(provider: CalendarProviderKey): boolean {
     return calendarConnections?.some((c) => c.provider === provider) ?? false;
   }
@@ -358,6 +366,7 @@ export default function IntegrationsPage() {
   const cardMeta: CardMeta[] = [
     { key: "google-calendar", title: "Google Calendar", description: "Sync detected and manually added events straight to your Google Calendar.", category: "Calendar", connected: isCalendarConnected("google") },
     ...(githubLive ? [{ key: "github", title: githubPlan.title, description: `${githubPlan.description} ${githubPlan.brings.join(" ")}`, category: githubPlan.category, connected: !!github?.connected }] : []),
+    ...(redditLive ? [{ key: "reddit", title: redditPlan.title, description: `${redditPlan.description} ${redditPlan.brings.join(" ")}`, category: redditPlan.category, connected: !!reddit?.connected }] : []),
     ...planned.map((p) => ({ key: p.key, title: p.title, description: `${p.description} ${p.brings.join(" ")}`, category: p.category, connected: false })),
   ];
 
@@ -492,6 +501,24 @@ export default function IntegrationsPage() {
               action={
                 <React.Suspense fallback={null}>
                   <GithubStarsActions connection={github} />
+                </React.Suspense>
+              }
+            />
+          )}
+
+          {redditLive && visible.has("reddit") && (
+            <IntegrationCard
+              iconBg={redditPlan.iconClassName}
+              icon={<HugeiconsIcon icon={redditPlan.icon} strokeWidth={2} className="h-[18px] w-[18px]" />}
+              title={redditPlan.title}
+              category={redditPlan.category}
+              how="Sync"
+              connected={!!reddit?.connected}
+              description={redditSavedDescription(reddit)}
+              brings={reddit?.connected ? undefined : ["Saved posts", "Saved comments", "The subreddit, as a tag"]}
+              action={
+                <React.Suspense fallback={null}>
+                  <RedditSavedActions connection={reddit} />
                 </React.Suspense>
               }
             />
